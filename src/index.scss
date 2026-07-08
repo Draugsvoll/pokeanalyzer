@@ -1,0 +1,49 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background:radial-gradient(ellipse 1200px 600px at 50% 0%,
+      rgba(88, 29, 208, 0.18) 0%,   /* reduced brightness */
+      rgba(59, 130, 246, 0.10) 35%,
+      rgba(11, 9, 18, 0.0) 70%
+    ),var(--bg); /* base bg */
+    
+
+  --bg:#191724;
+  --bg-secondary:rgba(255, 255, 255, 0.04);
+  --primary-color: #2b3252;
+  --primary-hover: #303757;
+  // --secondary-color: red;
+
+  --border: 1px solid #334155;
+
+  --text: #f8fafc;
+  --muted: #94a3b8;
+
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 20rem;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}

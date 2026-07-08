@@ -1,0 +1,28 @@
+.swimlane-container {
+  width: 85%;
+  margin:1rem auto;
+}
+
+/* Horizontal swimlane */
+.swimlane {
+  display: flex;
+  flex-wrap: nowrap;       /* Prevent wrapping */
+  gap: 2rem;
+  border-radius: 4px;
+
+  overflow-x: auto;        /* Enable horizontal scroll */
+  overflow-y: hidden;
+
+  padding: 1 0 2rem;
+
+  /* Optional smooth scrolling */
+  scroll-behavior: smooth;
+
+  /* Optional scrollbar styling */
+  scrollbar-width: thin;
+}
+
+/* Prevent cards from shrinking */
+.swimlane > * {
+  flex: 0 0 auto;
+}

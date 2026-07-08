@@ -1,0 +1,40 @@
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.app-btn:active { transform: translateY(1px); }
+
+.app-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.app-btn--primary {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+}
+
+.app-btn--danger {
+  background: #fff6f6;
+  color: #b91c1c;
+  border: 1px solid rgba(185,28,28,0.08);
+}
+
+.app-btn--default {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: var(--border);
+}

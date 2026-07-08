@@ -1,0 +1,221 @@
+.profile {
+  padding: 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  color: #f3f4f6;
+
+  .profile__card {
+    color: var(--text);
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-top: 1rem;
+    background-color: var(--bg-secondary);
+    border: var(--border);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+
+    p {
+      margin: 0.5rem 0;
+    }
+  }
+
+  .profile__avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 999px;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .profile__avatar--fallback {
+    display: grid;
+    place-items: center;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 800;
+  }
+
+  .profile__saved-listings,
+  .profile__bids,
+  .profile__listings {
+    margin-top: 2rem;
+  }
+
+  .profile__bid-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .profile__bid {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem;
+    border: var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .profile__bid:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  .profile__bid-title,
+  .profile__bid-amount,
+  .profile__bid-status,
+  .profile__bid-meta {
+    margin: 0;
+  }
+
+  .profile__bid-title,
+  .profile__bid-amount {
+    font-weight: 800;
+  }
+
+  .profile__bid-values {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .profile__bid-meta {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .profile__bid-status {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .profile__bid--withdrawn .profile__bid-title,
+  .profile__bid--withdrawn .profile__bid-amount {
+    opacity: 0.65;
+    text-decoration: line-through;
+  }
+
+  .listing-card-container {
+    flex: 0 0 14rem;
+    width: 14rem;
+  }
+
+  .profile__listing-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .profile__listing-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  }
+
+  .profile__listing-label {
+    margin: 0 0 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .profile__listing-image {
+    width: 100%;
+    height: 10rem;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  .profile__listing-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .profile__listing-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .profile__listing-price {
+    font-weight: 700;
+    color: #0f766e;
+  }
+
+  .profile__listing-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .profile__listing-description {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .profile__listing-edit,
+  .profile__listing-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .profile__listing-edit input,
+  .profile__listing-edit textarea {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font: inherit;
+  }
+
+  .profile__listing-edit textarea {
+    min-height: 4.5rem;
+    resize: vertical;
+  }
+
+  .profile__action-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+  }
+
+  .profile__action-btn--primary {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .profile__action-btn--danger {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+}
+
+

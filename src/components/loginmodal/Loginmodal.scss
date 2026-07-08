@@ -1,0 +1,40 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  padding: 1.2rem;
+  border-radius: 10px;
+  width: 19rem;
+}
+
+.input {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  padding: 0.5rem;
+}
+
+.button {
+  width: 100%;
+  padding: 0.7rem;
+  cursor: pointer;
+}
+
+.close {
+  margin-top: 0.7rem;
+  width: 100%;
+}
+
+.error {
+  color: red;
+  margin-top: 0.7rem;
+}

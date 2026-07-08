@@ -1,0 +1,70 @@
+.openai-testeer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(100%, 48rem);
+  padding: 2rem;
+
+  h1 {
+    font-size: 2rem;
+  }
+}
+
+.openai-testeer__textarea {
+  width: 100%;
+  min-height: 10rem;
+  resize: vertical;
+  background: var(--bg-secondary);
+  border: var(--border);
+  border-radius: 0.75rem;
+  color: var(--text);
+  font: inherit;
+  padding: 1rem;
+
+  &:focus {
+    outline: 0.125rem solid var(--muted);
+    outline-offset: 0.125rem;
+  }
+}
+
+.openai-testeer__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.openai-testeer__button {
+  width: fit-content;
+}
+
+.openai-testeer__error {
+  color: #fca5a5;
+}
+
+.openai-testeer__response {
+  background: var(--bg-secondary);
+  border: var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  p {
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+}
+
+.openai-testeer__response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.openai-testeer__copy-button {
+  padding: 0.5rem 0.9rem;
+}

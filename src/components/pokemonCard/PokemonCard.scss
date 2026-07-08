@@ -1,0 +1,57 @@
+.card {
+  --card-small: 8rem;
+  --card-big: 12rem;
+  .card-image--small {
+    width:8rem;
+  }
+  
+  .card-image--big {
+    width:12rem;
+  }
+}
+.card--small {
+  width:var(--card-small);
+}
+
+.card--big {
+  overflow-y:hidden;
+  width:var(--card-big);
+}
+
+.rarity-symbol {
+  display:none;
+  img {
+    position: absolute;
+    right:0.8rem;
+    bottom: 0rem;;
+    max-height:1.1rem;
+    max-width:1.1rem;
+  }
+}
+
+.card-image-container {
+  position: relative;
+}
+
+.favorite-btn {
+  position: absolute;
+  bottom: 2.5rem;
+  right: 0.7rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 999rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  &:hover {
+    opacity: 1;
+    visibility: visible;
+    filter: brightness(1.3);
+  }
+}
