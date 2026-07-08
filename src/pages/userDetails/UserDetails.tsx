@@ -1,11 +1,8 @@
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/button/Button";
-import { GridView } from "../../components/gridView/GridView";
-import ListingCard from "../../components/listingCard/ListingCard";
 import { db } from "../../firebase";
-import type { Listing } from "../../types/listing.types";
 import type { UserProfile } from "../../types/user.types";
 import { useInitials } from "../../hooks/useInitials";
 import { formatTimestampDate } from "../../utils/timestamp";
@@ -15,7 +12,6 @@ export default function UserDetails() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const profileInitial = useInitials(userProfile?.firstName);
@@ -35,28 +31,15 @@ export default function UserDetails() {
         const userSnap = await getDoc(doc(db, "users", userId));
         if (!userSnap.exists()) {
           setUserProfile(null);
-          setListings([]);
           setError("Fant ikke brukeren.");
           return;
         }
 
-        const listingsQuery = query(
-          collection(db, "listings"),
-          where("userId", "==", userId)
-        );
-        const listingsSnap = await getDocs(listingsQuery);
-        const userListings = listingsSnap.docs.map((listingDoc) => ({
-          ...(listingDoc.data() as Omit<Listing, "id">),
-          id: listingDoc.id,
-        }));
-
         setUserProfile(userSnap.data() as UserProfile);
-        setListings(userListings);
       } catch (err) {
         console.error("Failed to load user details:", err);
         setError("Kunne ikke hente bruker.");
         setUserProfile(null);
-        setListings([]);
       } finally {
         setLoading(false);
       }
@@ -122,19 +105,6 @@ export default function UserDetails() {
             <b>User ID:</b> {userId}
           </p>
         </div>
-      </section>
-
-      <section className="user-details__listings">
-        <h2>Aktive annonser</h2>
-        {listings.length === 0 ? (
-          <p>Denne brukeren har ingen aktive annonser.</p>
-        ) : (
-          <GridView>
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </GridView>
-        )}
       </section>
     </div>
   );

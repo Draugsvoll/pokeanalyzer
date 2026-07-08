@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import "./Frontpage.scss";
 import Button from "../button/Button";
 import {
-  ShoppingBag,
-  Package,
   LineChart,
   Shield,
   TrendingUp,
+  Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { PokemonCard } from "../../types/pokemon";
@@ -114,32 +113,19 @@ export const Frontpage: React.FC = () => {
   return (
     <div className="frontpage-container">
       <section className="hero">
-        <h1>Norges markedsplass for Pokémon-kort</h1>
-        <p>Kjøp, selg og følg markedspriser på Pokémon-kort i sanntid.</p>
+        <h1>Analyser og samle Pokémon-kort</h1>
+        <p>Søk i kortdatabasen, sjekk markedspriser og bygg din portefølje.</p>
 
         <section className="action-grid">
           <div className="action-card">
             <div className="action-card-header">
               <div className="action-card-icon">
-                <ShoppingBag />
+                <Search />
               </div>
-              <h3>Kjøp kort</h3>
+              <h3>Søk kort</h3>
             </div>
-            <p>Finn kort fra samlere i hele Norge.</p>
-            <Button className="btn-secondary">Utforsk marked</Button>
-          </div>
-
-          <div className="action-card">
-            <div className="action-card-header">
-              <div className="action-card-icon">
-                <Package />
-              </div>
-              <h3>Selg mine kort</h3>
-            </div>
-            <p>Lag en annonse på under 2 minutter</p>
-            <Button className="btn-secondary" onClick={() => navigate("/sell")}>
-              Selg kort
-            </Button>
+            <p>Finn kort i databasen og se detaljer.</p>
+            <Button className="btn-secondary">Bruk søket under</Button>
           </div>
 
           <div className="action-card">
@@ -149,8 +135,8 @@ export const Frontpage: React.FC = () => {
               </div>
               <h3>Verdi estimering</h3>
             </div>
-            <p>Søk opp kort og dets verdi i markedet</p>
-            <Button className="btn-secondary">Søk kort</Button>
+            <p>Se TCGPlayer, Cardmarket og eBay-priser.</p>
+            <Button className="btn-secondary">Åpne et kort</Button>
           </div>
         </section>
       </section>
@@ -265,14 +251,9 @@ export const Frontpage: React.FC = () => {
       </section>
 
       <section className="trust-section">
-        <h2>Hvorfor bruke PokéMarket?</h2>
+        <h2>Hvorfor bruke PokéAnalyzer?</h2>
 
         <div className="trust-grid">
-          <div className="trust-item">
-            <Shield />
-            <span>Verifiserte brukere</span>
-          </div>
-
           <div className="trust-item">
             <TrendingUp />
             <span>Globale markedspriser</span>
@@ -280,7 +261,7 @@ export const Frontpage: React.FC = () => {
 
           <div className="trust-item">
             <Shield />
-            <span>Trygge handler</span>
+            <span>Portefølje for samlere</span>
           </div>
 
           <div className="trust-item">

@@ -5,7 +5,6 @@ import { db } from "./db/db.js";
 import dotenv from "dotenv";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
-import justTcgRoutes from "./db/routes/justTcgRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import {
   gradeCardImage,
@@ -42,7 +41,6 @@ app.use(express.json({ limit: "15mb" }));
 app.use(limiter);
 app.use("/grok", grokRoutes);
 app.use("/openai", openaiRoutes);
-app.use("/justtcg", justTcgRoutes);
 
 app.get("/ebay", ebayLimiter, async (req, res) => {
   try {

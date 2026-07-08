@@ -59,7 +59,7 @@ export async function testChat(text: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "grok-4.3",
+      model: DEFAULT_GROK_MODEL,
       temperature: 0.0,
       reasoning: {
         effort: "high", // none | low | medium | high

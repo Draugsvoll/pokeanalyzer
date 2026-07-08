@@ -357,8 +357,6 @@ export default function CardDetails() {
         </div>
 
         <div className="card-view__buttons">
-          <Button>Buy</Button>
-          <Button>Sell</Button>
           <Button onClick={handleTogglePortfolio} disabled={saving}>
             {saving
               ? alreadySaved
