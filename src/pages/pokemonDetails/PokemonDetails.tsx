@@ -167,14 +167,12 @@ export default function CardDetails() {
   return (
     <div className="card-view">
       <div className="card-view__panel-wrap">
-        <div className="card-view__panel">
-          <div className="card-view__image-side">
-            <img
-              className={`card-view__image${glowColor ? " card-view__image--glow" : ""}`}
-              src={cardImageSrc}
-              alt={card.name}
-              style={imageGlowStyle}
-            />
+        <div className="card-view__shell">
+          <div
+            className={`card-view__image-side${glowColor ? " card-view__image-side--glow" : ""}`}
+            style={imageGlowStyle}
+          >
+            <img className="card-view__image" src={cardImageSrc} alt={card.name} />
           </div>
 
           <div className="card-view__info-side">

@@ -19,7 +19,7 @@ function averageColorFromImageData(data: Uint8ClampedArray): string | null {
   g = Math.floor(g / count);
   b = Math.floor(b / count);
 
-  return `rgba(${r}, ${g}, ${b}, 0.55)`;
+  return `rgba(${r}, ${g}, ${b}, 0.45)`;
 }
 
 function sampleImageSource(
