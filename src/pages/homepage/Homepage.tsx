@@ -6,7 +6,6 @@ export default function Homepage() {
   return (
     <div className="page-container">
       <Frontpage />
-      <CardGrader />
     </div>
   );
 }

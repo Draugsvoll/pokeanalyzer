@@ -10,12 +10,21 @@ export default function Button({
   className = "",
   children,
   type = "button",
+  onMouseDown,
   ...rest
 }: ButtonProps) {
   const cls = ["app-btn", `app-btn--${variant}`, className].filter(Boolean).join(" ");
 
   return (
-    <button type={type} className={cls} {...rest}>
+    <button
+      type={type}
+      className={cls}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onMouseDown?.(e);
+      }}
+      {...rest}
+    >
       {children}
     </button>
   );

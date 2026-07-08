@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Agent / IDE terminal session files
+terminals/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

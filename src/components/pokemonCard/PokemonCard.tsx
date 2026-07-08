@@ -1,7 +1,7 @@
-import { SELECTED_POKEMON_CACHE_KEY } from "../../constants/cache";
 import BaseCard from "../basecard/BaseCard";
 import { useNavigate } from "react-router-dom";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
+import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
 
 type PokemonCardProps = {
@@ -11,8 +11,7 @@ type PokemonCardProps = {
 export function PokemonCard({ card }: PokemonCardProps) {
   const navigate = useNavigate();
   const handleClick = () => {
-    localStorage.setItem(SELECTED_POKEMON_CACHE_KEY, JSON.stringify(card));
-    navigate(`/card/${card.id}`);
+    navigateToPokemonCard(navigate, card);
   };
 
   return (

@@ -86,6 +86,48 @@ app.post("/api/card-grader/grade", cardGraderLimiter, async (req, res) => {
   }
 });
 
+const ALLOWED_IMAGE_HOSTS = new Set(["images.pokemontcg.io"]);
+
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && ALLOWED_IMAGE_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+app.get("/api/image/proxy", async (req, res) => {
+  try {
+    const imageUrl =
+      typeof req.query.url === "string" ? req.query.url.trim() : "";
+
+    if (!imageUrl || !isAllowedImageUrl(imageUrl)) {
+      res.status(400).json({ error: "Invalid image url" });
+      return;
+    }
+
+    const imageResponse = await fetch(imageUrl);
+
+    if (!imageResponse.ok) {
+      res.status(502).json({ error: "Failed to fetch image" });
+      return;
+    }
+
+    const contentType = imageResponse.headers.get("content-type") ?? "image/png";
+    const buffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(buffer);
+  } catch (err) {
+    console.error("Image proxy failed:", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Image proxy failed",
+    });
+  }
+});
+
 // FETCH ALL CARDS
 app.get("/api/cards", (_req, res) => {
   db.all(
