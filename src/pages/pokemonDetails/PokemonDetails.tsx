@@ -9,8 +9,15 @@ import {
 } from "../../utils/selectedPokemonCache";
 import { FEATURE_CARD_CONFIG } from "../../utils/featureCards";
 import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
+import { marketPricesAnalysis } from "../../utils/grok/queryStrings";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const query = marketPricesAnalysis;
+
+type GrokTestResponse = {
+  text?: string;
+  error?: string;
+};
 
 type CardDetailsLocationState = {
   card?: PokemonCard;
@@ -61,6 +68,37 @@ export default function CardDetails() {
   });
   const [activeView, setActiveView] = useState<CardAction>(FEATURE_CARD_CONFIG[0].id);
   const [glowColor, setGlowColor] = useState<string | null>(null);
+  const [grokResponse, setGrokResponse] = useState("");
+  const [grokError, setGrokError] = useState("");
+  const [grokLoading, setGrokLoading] = useState(false);
+
+  async function handleFeatureClick(featureId: CardAction) {
+    setActiveView(featureId);
+
+    if (featureId !== "prices") return;
+
+    setGrokLoading(true);
+    setGrokError("");
+    setGrokResponse("");
+
+    try {
+      const params = new URLSearchParams({ q: query });
+      const res = await fetch(`${API_URL}/grok/test?${params.toString()}`);
+      const data = (await res.json()) as GrokTestResponse;
+
+      if (!res.ok) {
+        setGrokError(data.error ?? "Grok request failed");
+        return;
+      }
+
+      setGrokResponse(data.text ?? "");
+    } catch (error) {
+      console.error("Grok request failed:", error);
+      setGrokError("Could not reach the Grok endpoint");
+    } finally {
+      setGrokLoading(false);
+    }
+  }
 
   useEffect(() => {
     async function loadCard() {
@@ -209,7 +247,7 @@ export default function CardDetails() {
               className={`feature-card${activeView === feature.id ? " is-active" : ""}`}
               style={{ "--feature-accent": feature.accent } as CSSProperties}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setActiveView(feature.id)}
+              onClick={() => handleFeatureClick(feature.id)}
               aria-pressed={activeView === feature.id}
             >
               <span className="feature-card__icon" aria-hidden="true">
@@ -227,7 +265,15 @@ export default function CardDetails() {
       </div>
 
       <section className="card-view__page" aria-live="polite">
-        <p>hello</p>
+        {activeView === "prices" ? (
+          <>
+            {grokLoading && <p>Asking Grok...</p>}
+            {grokError && <p className="card-view__page-error">{grokError}</p>}
+            {!grokLoading && !grokError && grokResponse && <p>{grokResponse}</p>}
+          </>
+        ) : (
+          <p>hello</p>
+        )}
       </section>
     </div>
   );
