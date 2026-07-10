@@ -1,13 +1,7 @@
 import { useState } from "react";
+import { askGrok } from "../../utils/grok/grokClient";
 import Button from "../button/Button";
 import "./GrokTester.scss";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
-type GrokTestResponse = {
-  text?: string;
-  error?: string;
-};
 
 export default function GrokTester() {
   const [question, setQuestion] = useState("");
@@ -26,23 +20,15 @@ export default function GrokTester() {
     setResponse("");
     setHasCopied(false);
 
-    try {
-      const params = new URLSearchParams({ q: trimmedQuestion });
-      const res = await fetch(`${API_URL}/grok/test?${params.toString()}`);
-      const data = (await res.json()) as GrokTestResponse;
+    const result = await askGrok(trimmedQuestion);
 
-      if (!res.ok) {
-        setError(data.error ?? "Grok request failed");
-        return;
-      }
-
-      setResponse(data.text ?? "");
-    } catch (err) {
-      console.error("Grok test request failed:", err);
-      setError("Could not reach the Grok test endpoint");
-    } finally {
-      setIsLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+    } else {
+      setResponse(result.text);
     }
+
+    setIsLoading(false);
   }
 
   async function handleCopyResponse() {

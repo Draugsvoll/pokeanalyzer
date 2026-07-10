@@ -1,4 +1,5 @@
 import {
+  Gem,
   LineChart,
   Newspaper,
   ScanSearch,
@@ -20,6 +21,7 @@ export type FeatureCardConfig = {
   icon: LucideIcon;
   accent: string;
   action: FeatureCardAction;
+  detailsOnly?: boolean;
 };
 
 export type FeatureCard = Omit<FeatureCardConfig, "action"> & {
@@ -57,6 +59,15 @@ export const FEATURE_CARD_CONFIG: FeatureCardConfig[] = [
     action: "navigate-search",
   },
   {
+    id: "samlerverdi",
+    title: "Samlerverdi",
+    description: "AI-rangering for samlere",
+    icon: Gem,
+    accent: "#eab308",
+    action: "navigate-search",
+    detailsOnly: true,
+  },
+  {
     id: "portfolio",
     title: "Portefølje",
     description: "Din lagrede samling",
@@ -91,7 +102,7 @@ function resolveFeatureCardAction(
 }
 
 export function getFeatureCards(handlers: FeatureCardHandlers): FeatureCard[] {
-  return FEATURE_CARD_CONFIG.map(({ action, ...card }) => ({
+  return FEATURE_CARD_CONFIG.filter((card) => !card.detailsOnly).map(({ action, ...card }) => ({
     ...card,
     action: resolveFeatureCardAction(action, handlers),
   }));

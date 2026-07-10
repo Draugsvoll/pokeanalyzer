@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { GrokApiError, testChat } from "../../services/grokApi.js";
+import { GrokApiError, testChat } from "../../services/xaiService.js";
 
 const router = Router();
 

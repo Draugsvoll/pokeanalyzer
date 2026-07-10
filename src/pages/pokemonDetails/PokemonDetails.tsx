@@ -3,27 +3,13 @@ import { useLocation, useParams } from "react-router-dom";
 import "./PokemonDetails.scss";
 import "../../components/frontpage/Frontpage.scss";
 import type { PokemonCard } from "../../types/pokemon";
-import {
-  getSelectedPokemonFromCache,
-  setSelectedPokemonCache,
-} from "../../utils/selectedPokemonCache";
+import { setSelectedPokemonCache } from "../../utils/selectedPokemonCache";
 import { FEATURE_CARD_CONFIG } from "../../utils/featureCards";
 import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
-import { marketPricesAnalysis } from "../../utils/grok/queryStrings";
+import { askGrok } from "../../utils/grok/grokClient";
+import { collectorsAnalysis, marketPricesAnalysis } from "../../utils/grok/queryStrings";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const query = marketPricesAnalysis;
-
-type GrokTestResponse = {
-  text?: string;
-  error?: string;
-};
-
-type CardDetailsLocationState = {
-  card?: PokemonCard;
-};
-
-type CardAction = (typeof FEATURE_CARD_CONFIG)[number]["id"];
 
 type CardInfoField = {
   label: string;
@@ -31,19 +17,7 @@ type CardInfoField = {
   highlight?: boolean;
 };
 
-function resolveCardForId(
-  cardId: string | undefined,
-  locationState: CardDetailsLocationState | null
-): PokemonCard | null {
-  if (!cardId) return null;
-
-  const stateCard = locationState?.card;
-  if (stateCard?.id === cardId) return stateCard;
-
-  return getSelectedPokemonFromCache(cardId);
-}
-
-function getCardInfoFields(card: PokemonCard): CardInfoField[] {
+function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   return [
     { label: "Series", value: card.set?.series },
     { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
@@ -54,50 +28,43 @@ function getCardInfoFields(card: PokemonCard): CardInfoField[] {
   ];
 }
 
-export default function CardDetails() {
+export default function PokemonDetails() {
   const { id } = useParams();
   const location = useLocation();
-  const locationState = location.state as CardDetailsLocationState | null;
-  const [card, setCard] = useState<PokemonCard | null>(() =>
-    resolveCardForId(id, locationState)
+  const locationCard = (location.state as { card?: PokemonCard } | null)?.card;
+  const stateCard = id && locationCard?.id === id ? locationCard : null;
+  const [card, setCard] = useState<PokemonCard | null>(stateCard);
+  const [loading, setLoading] = useState(!stateCard && Boolean(id));
+  const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
+    stateCard?.images?.large ?? stateCard?.images?.small
   );
-  const [loading, setLoading] = useState(() => resolveCardForId(id, locationState) === null);
-  const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(() => {
-    const resolved = resolveCardForId(id, locationState);
-    return resolved?.images?.large ?? resolved?.images?.small;
-  });
-  const [activeView, setActiveView] = useState<CardAction>(FEATURE_CARD_CONFIG[0].id);
+  const [activeView, setActiveView] = useState(FEATURE_CARD_CONFIG[0].id);
   const [glowColor, setGlowColor] = useState<string | null>(null);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
 
-  async function handleFeatureClick(featureId: CardAction) {
+  async function handleFeatureClick(featureId: string) {
     setActiveView(featureId);
 
-    if (featureId !== "prices") return;
+    if (featureId !== "prices" && featureId !== "samlerverdi") return;
+
+    const prompt =
+      featureId === "samlerverdi" ? collectorsAnalysis : marketPricesAnalysis;
 
     setGrokLoading(true);
     setGrokError("");
     setGrokResponse("");
 
-    try {
-      const params = new URLSearchParams({ q: query });
-      const res = await fetch(`${API_URL}/grok/test?${params.toString()}`);
-      const data = (await res.json()) as GrokTestResponse;
+    const result = await askGrok(prompt);
 
-      if (!res.ok) {
-        setGrokError(data.error ?? "Grok request failed");
-        return;
-      }
-
-      setGrokResponse(data.text ?? "");
-    } catch (error) {
-      console.error("Grok request failed:", error);
-      setGrokError("Could not reach the Grok endpoint");
-    } finally {
-      setGrokLoading(false);
+    if (!result.ok) {
+      setGrokError(result.error);
+    } else {
+      setGrokResponse(result.text);
     }
+
+    setGrokLoading(false);
   }
 
   useEffect(() => {
@@ -108,9 +75,9 @@ export default function CardDetails() {
         return;
       }
 
-      const cachedCard = resolveCardForId(id, location.state as CardDetailsLocationState | null);
-      if (cachedCard) {
-        setCard(cachedCard);
+      const routedCard = (location.state as { card?: PokemonCard } | null)?.card;
+      if (id && routedCard?.id === id) {
+        setCard(routedCard);
         setLoading(false);
         return;
       }
@@ -138,7 +105,7 @@ export default function CardDetails() {
     }
 
     loadCard();
-  }, [id, location.state]);
+  }, [id]);
 
   useEffect(() => {
     if (!card) {
@@ -196,12 +163,15 @@ export default function CardDetails() {
     );
   }
 
-  const infoFields = getCardInfoFields(card);
+  const infoFields = getCardSetInfoFields(card);
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
     : undefined;
 
+
+
+  // RENDERING
   return (
     <div className="card-view">
       <div className="card-view__panel-wrap">
@@ -265,7 +235,7 @@ export default function CardDetails() {
       </div>
 
       <section className="card-view__page" aria-live="polite">
-        {activeView === "prices" ? (
+        {activeView === "prices" || activeView === "samlerverdi" ? (
           <>
             {grokLoading && <p>Asking Grok...</p>}
             {grokError && <p className="card-view__page-error">{grokError}</p>}
