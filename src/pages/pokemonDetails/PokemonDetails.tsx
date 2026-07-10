@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/frontpage/Frontpage.scss";
 import type { PokemonCard } from "../../types/pokemon";
@@ -16,6 +17,65 @@ type CardInfoField = {
   value: string | number | undefined;
   highlight?: boolean;
 };
+
+type CollectorCategory = {
+  name: string;
+  score: string;
+  text: string;
+};
+
+type CollectorAnalysis = {
+  totalScore: string;
+  overview: string;
+  categories: CollectorCategory[];
+  finalNote: string;
+};
+
+const collectorCategoryIcons: LucideIcon[] = [Gem, Users, Landmark, Palette, Clock3];
+
+function parseCollectorAnalysis(response: string): CollectorAnalysis | null {
+  let value: unknown = response.trim();
+
+  if (typeof value === "string" && value.startsWith("```") && value.endsWith("```")) {
+    value = value.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  }
+
+  for (let attempt = 0; attempt < 3 && typeof value === "string"; attempt += 1) {
+    const source = value.trim();
+    const withoutWrappingQuotes =
+      source.length >= 2 && source.startsWith("'") && source.endsWith("'")
+        ? source.slice(1, -1)
+        : source;
+
+    try {
+      value = JSON.parse(withoutWrappingQuotes);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const data = value as Record<string, unknown>;
+  if (!Array.isArray(data.categories)) return null;
+
+  const categories = data.categories
+    .filter((category): category is Record<string, unknown> =>
+      Boolean(category) && typeof category === "object" && !Array.isArray(category)
+    )
+    .map((category) => ({
+      name: String(category.name ?? "Category"),
+      score: String(category.score ?? "0"),
+      text: String(category.text ?? ""),
+    }));
+
+  return {
+    totalScore: String(data.totalScore ?? "0"),
+    overview: String(data.overview ?? ""),
+    categories,
+    finalNote: String(data.finalNote ?? ""),
+  };
+}
 
 function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   return [
@@ -49,8 +109,11 @@ export default function PokemonDetails() {
 
     if (featureId !== "prices" && featureId !== "samlerverdi") return;
 
+    const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
     const prompt =
-      featureId === "samlerverdi" ? collectorsAnalysis : marketPricesAnalysis;
+      featureId === "samlerverdi"
+        ? collectorsAnalysis(cardNameAndSet)
+        : marketPricesAnalysis;
 
     setGrokLoading(true);
     setGrokError("");
@@ -169,6 +232,11 @@ export default function PokemonDetails() {
     ? ({ "--card-glow": glowColor } as CSSProperties)
     : undefined;
 
+  const collectorAnalysis =
+    activeView === "samlerverdi" && grokResponse
+      ? parseCollectorAnalysis(grokResponse)
+      : null;
+
 
 
   // RENDERING
@@ -239,7 +307,63 @@ export default function PokemonDetails() {
           <>
             {grokLoading && <p>Asking Grok...</p>}
             {grokError && <p className="card-view__page-error">{grokError}</p>}
-            {!grokLoading && !grokError && grokResponse && <p>{grokResponse}</p>}
+            {!grokLoading && !grokError && activeView === "samlerverdi" && collectorAnalysis && (
+              <div className="collector-ranking">
+                <header className="collector-ranking__heading">
+                  <h3>{card.name}</h3>
+                  <p>
+                    {[card.number, card.set?.name, card.set?.series].filter(Boolean).join(" • ")}
+                  </p>
+                </header>
+
+                <div className="collector-ranking__summary">
+                  <div
+                    className="collector-ranking__score"
+                    style={{ "--score": Math.min(100, Math.max(0, Number(collectorAnalysis.totalScore) || 0)) } as CSSProperties}
+                  >
+                    <div>
+                      <strong>{collectorAnalysis.totalScore}</strong>
+                      <span>/100</span>
+                    </div>
+                  </div>
+                  <div className="collector-ranking__overview">
+                    <span>Overall score</span>
+                    <h4>{collectorAnalysis.overview}</h4>
+                  </div>
+                </div>
+
+                <div className="collector-ranking__categories">
+                  {collectorAnalysis.categories.map((category, index) => {
+                    const Icon = collectorCategoryIcons[index] ?? Gem;
+                    const score = Math.min(100, Math.max(0, Number(category.score) || 0));
+
+                    return (
+                      <article key={`${category.name}-${index}`} className="collector-ranking__category">
+                        <div className="collector-ranking__category-title">
+                          <h4><Icon size={19} aria-hidden="true" />{category.name}</h4>
+                          <strong>{category.score}</strong>
+                        </div>
+                        <div className="collector-ranking__bar" aria-label={`${category.name}: ${category.score} out of 100`}>
+                          <span style={{ width: `${score}%` }} />
+                        </div>
+                        <p>{category.text}</p>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                {collectorAnalysis.finalNote && (
+                  <section className="collector-ranking__conclusion">
+                    <h4>Conclusion</h4>
+                    <p>{collectorAnalysis.finalNote}</p>
+                  </section>
+                )}
+              </div>
+            )}
+            {!grokLoading && !grokError && grokResponse && activeView !== "samlerverdi" && <p>{grokResponse}</p>}
+            {!grokLoading && !grokError && activeView === "samlerverdi" && grokResponse && !collectorAnalysis && (
+              <p className="card-view__page-error">The collector analysis returned invalid JSON.</p>
+            )}
           </>
         ) : (
           <p>hello</p>
