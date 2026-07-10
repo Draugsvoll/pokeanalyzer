@@ -1,14 +1,19 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { useLocation, useParams } from "react-router-dom";
-import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Clock3, Gem, Landmark, Palette, Search, Users, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/frontpage/Frontpage.scss";
 import type { PokemonCard } from "../../types/pokemon";
-import { setSelectedPokemonCache } from "../../utils/selectedPokemonCache";
+import {
+  getSelectedPokemonFromCache,
+  setSelectedPokemonCache,
+} from "../../utils/selectedPokemonCache";
 import { FEATURE_CARD_CONFIG } from "../../utils/featureCards";
 import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
 import { askGrok } from "../../utils/grok/grokClient";
 import { collectorsAnalysis, marketPricesAnalysis } from "../../utils/grok/queryStrings";
+import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
+import Button from "../../components/button/Button";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -90,15 +95,13 @@ function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
 
 export default function PokemonDetails() {
   const { id } = useParams();
-  const location = useLocation();
-  const locationCard = (location.state as { card?: PokemonCard } | null)?.card;
-  const stateCard = id && locationCard?.id === id ? locationCard : null;
-  const [card, setCard] = useState<PokemonCard | null>(stateCard);
-  const [loading, setLoading] = useState(!stateCard && Boolean(id));
+  const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
+  const [card, setCard] = useState<PokemonCard | null>(cachedCard);
+  const [loading, setLoading] = useState(!cachedCard && Boolean(id));
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
-    stateCard?.images?.large ?? stateCard?.images?.small
+    cachedCard?.images?.large ?? cachedCard?.images?.small
   );
-  const [activeView, setActiveView] = useState(FEATURE_CARD_CONFIG[0].id);
+  const [activeView, setActiveView] = useState("empty_view");
   const [glowColor, setGlowColor] = useState<string | null>(null);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
@@ -138,9 +141,9 @@ export default function PokemonDetails() {
         return;
       }
 
-      const routedCard = (location.state as { card?: PokemonCard } | null)?.card;
-      if (id && routedCard?.id === id) {
-        setCard(routedCard);
+      const cachedCard = getSelectedPokemonFromCache(id);
+      if (cachedCard) {
+        setCard(cachedCard);
         setLoading(false);
         return;
       }
@@ -270,6 +273,15 @@ export default function PokemonDetails() {
                 </div>
               ))}
             </div>
+
+            <Button
+              className="card-view__change-card"
+              onClick={() => setActiveView("search")}
+              aria-pressed={activeView === "search"}
+            >
+              <Search size={17} strokeWidth={2} aria-hidden="true" />
+              <span>Find new card</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -303,7 +315,21 @@ export default function PokemonDetails() {
       </div>
 
       <section className="card-view__page" aria-live="polite">
-        {activeView === "prices" || activeView === "samlerverdi" ? (
+        {activeView === "empty_view" && (
+          <div className="card-view__empty-view" aria-hidden="true">
+            Empty view
+          </div>
+        )}
+
+        {activeView === "prices" && (
+          <>
+            {grokLoading && <p>Asking Grok...</p>}
+            {grokError && <p className="card-view__page-error">{grokError}</p>}
+            {!grokLoading && !grokError && grokResponse && <p>{grokResponse}</p>}
+          </>
+        )}
+
+        {activeView === "samlerverdi" && (
           <>
             {grokLoading && <p>Asking Grok...</p>}
             {grokError && <p className="card-view__page-error">{grokError}</p>}
@@ -360,14 +386,16 @@ export default function PokemonDetails() {
                 )}
               </div>
             )}
-            {!grokLoading && !grokError && grokResponse && activeView !== "samlerverdi" && <p>{grokResponse}</p>}
             {!grokLoading && !grokError && activeView === "samlerverdi" && grokResponse && !collectorAnalysis && (
               <p className="card-view__page-error">The collector analysis returned invalid JSON.</p>
             )}
           </>
-        ) : (
-          <p>hello</p>
         )}
+
+        {activeView === "search" && <DatabaseSearch />}
+        {activeView === "grader" && <p>Grading view</p>}
+        {activeView === "portfolio" && <p>Portfolio view</p>}
+        {activeView === "news" && <p>News view</p>}
       </section>
     </div>
   );

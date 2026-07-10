@@ -3,7 +3,6 @@ import {
   LineChart,
   Newspaper,
   ScanSearch,
-  Search,
   WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -34,14 +33,6 @@ export type FeatureCardHandlers = {
 };
 
 export const FEATURE_CARD_CONFIG: FeatureCardConfig[] = [
-  {
-    id: "search",
-    title: "Søk kort",
-    description: "Finn kort i databasen",
-    icon: Search,
-    accent: "#3b82f6",
-    action: "navigate-search",
-  },
   {
     id: "grader",
     title: "Kortgradering",

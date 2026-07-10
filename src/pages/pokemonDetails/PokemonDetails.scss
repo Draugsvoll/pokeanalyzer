@@ -138,6 +138,11 @@
     }
   }
 
+  &__change-card {
+    align-self: center;
+    margin-top: 1.5rem;
+  }
+
   &__page {
     width: 100%;
     max-width: 47rem;
@@ -153,10 +158,15 @@
     p {
       margin: 0;
     }
+
   }
 
   &__page-error {
     color: #f87171;
+  }
+
+  &__empty-view {
+    min-height: 7rem;
   }
 }
 
