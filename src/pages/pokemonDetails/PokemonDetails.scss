@@ -324,6 +324,67 @@
   }
 }
 
+.ebay-sold-view {
+  h3 {
+    margin: 0;
+    color: #fff;
+  }
+
+  &__query {
+    margin-top: 0.35rem !important;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+  }
+
+  &__results {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  &__result {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.035);
+
+    img {
+      width: 6rem;
+      height: 6rem;
+      flex: 0 0 6rem;
+      border-radius: 0.65rem;
+      object-fit: cover;
+    }
+
+    dl {
+      display: grid;
+      flex: 1;
+      gap: 0.45rem;
+      margin: 0;
+      min-width: 0;
+    }
+
+    dl > div {
+      display: grid;
+      grid-template-columns: minmax(6rem, 0.4fr) minmax(0, 1fr);
+      gap: 0.75rem;
+    }
+
+    dt {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.75rem;
+    }
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 0.82rem;
+    }
+  }
+}
+
 @media (max-width: 32rem) {
   .collector-ranking__summary {
     align-items: flex-start;

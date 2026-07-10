@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
-import { Clock3, Gem, Landmark, Palette, Search, Users, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, Gem, LineChart, Search, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/frontpage/Frontpage.scss";
 import type { PokemonCard } from "../../types/pokemon";
@@ -8,12 +8,17 @@ import {
   getSelectedPokemonFromCache,
   setSelectedPokemonCache,
 } from "../../utils/selectedPokemonCache";
-import { FEATURE_CARD_CONFIG } from "../../utils/featureCards";
 import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
-import { askGrok } from "../../utils/grok/grokClient";
+import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import { collectorsAnalysis, marketPricesAnalysis } from "../../utils/grok/queryStrings";
-import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import Button from "../../components/button/Button";
+import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
+import CollectorAnalysis from "./views/CollectorAnalysisView";
+import EbaySoldView from "./views/EbaySoldView";
+import {
+  getFeatureStyles,
+  type FeatureStyleColor,
+} from "../../utils/featureStylings";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -23,64 +28,44 @@ type CardInfoField = {
   highlight?: boolean;
 };
 
-type CollectorCategory = {
-  name: string;
-  score: string;
-  text: string;
+type ActiveView =
+  | "empty_view"
+  | "collector_analysis"
+  | "search_card"
+  | "ebay_sold"
+  | "prices";
+
+type AI_feature = {
+  view: Extract<ActiveView, "prices" | "collector_analysis" | "ebay_sold">;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  color: FeatureStyleColor;
 };
 
-type CollectorAnalysis = {
-  totalScore: string;
-  overview: string;
-  categories: CollectorCategory[];
-  finalNote: string;
-};
-
-const collectorCategoryIcons: LucideIcon[] = [Gem, Users, Landmark, Palette, Clock3];
-
-function parseCollectorAnalysis(response: string): CollectorAnalysis | null {
-  let value: unknown = response.trim();
-
-  if (typeof value === "string" && value.startsWith("```") && value.endsWith("```")) {
-    value = value.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-
-  for (let attempt = 0; attempt < 3 && typeof value === "string"; attempt += 1) {
-    const source = value.trim();
-    const withoutWrappingQuotes =
-      source.length >= 2 && source.startsWith("'") && source.endsWith("'")
-        ? source.slice(1, -1)
-        : source;
-
-    try {
-      value = JSON.parse(withoutWrappingQuotes);
-    } catch {
-      return null;
-    }
-  }
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-
-  const data = value as Record<string, unknown>;
-  if (!Array.isArray(data.categories)) return null;
-
-  const categories = data.categories
-    .filter((category): category is Record<string, unknown> =>
-      Boolean(category) && typeof category === "object" && !Array.isArray(category)
-    )
-    .map((category) => ({
-      name: String(category.name ?? "Category"),
-      score: String(category.score ?? "0"),
-      text: String(category.text ?? ""),
-    }));
-
-  return {
-    totalScore: String(data.totalScore ?? "0"),
-    overview: String(data.overview ?? ""),
-    categories,
-    finalNote: String(data.finalNote ?? ""),
-  };
-}
+const AI_Features: AI_feature[] = [
+  {
+    view: "prices",
+    title: "Markedspriser",
+    description: "TCGPlayer og Cardmarket",
+    icon: LineChart,
+    color: "teal",
+  },
+  {
+    view: "collector_analysis",
+    title: "Samlerverdi",
+    description: "AI-rangering for samlere",
+    icon: Gem,
+    color: "yellow",
+  },
+  {
+    view: "ebay_sold",
+    title: "eBay solgte",
+    description: "Nylig solgte kort",
+    icon: BadgeDollarSign,
+    color: "orange",
+  },
+];
 
 function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   return [
@@ -101,20 +86,20 @@ export default function PokemonDetails() {
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
     cachedCard?.images?.large ?? cachedCard?.images?.small
   );
-  const [activeView, setActiveView] = useState("empty_view");
+  const [activeView, setActiveView] = useState<ActiveView>("empty_view");
   const [glowColor, setGlowColor] = useState<string | null>(null);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
 
-  async function handleFeatureClick(featureId: string) {
-    setActiveView(featureId);
+  async function handleFeatureClick(aiFeature: AI_feature) {
+    setActiveView(aiFeature.view);
 
-    if (featureId !== "prices" && featureId !== "samlerverdi") return;
+    if (aiFeature.view !== "prices" && aiFeature.view !== "collector_analysis") return;
 
     const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
     const prompt =
-      featureId === "samlerverdi"
+      aiFeature.view === "collector_analysis"
         ? collectorsAnalysis(cardNameAndSet)
         : marketPricesAnalysis;
 
@@ -230,17 +215,18 @@ export default function PokemonDetails() {
   }
 
   const infoFields = getCardSetInfoFields(card);
+  const grokRequestCompleted =
+    !grokLoading && !grokError && Boolean(grokResponse);
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
     : undefined;
 
-  const collectorAnalysis =
-    activeView === "samlerverdi" && grokResponse
-      ? parseCollectorAnalysis(grokResponse)
-      : null;
-
-
+  const grokRequest: GrokRequestState = {
+    loading: grokLoading,
+    error: grokError,
+    response: grokResponse,
+  };
 
   // RENDERING
   return (
@@ -276,37 +262,36 @@ export default function PokemonDetails() {
 
             <Button
               className="card-view__change-card"
-              onClick={() => setActiveView("search")}
-              aria-pressed={activeView === "search"}
+              onClick={() => setActiveView("search_card")}
+              aria-pressed={activeView === "search_card"}
             >
-              <Search size={17} strokeWidth={2} aria-hidden="true" />
-              <span>Find new card</span>
+              <span>Change card</span>
             </Button>
           </div>
         </div>
       </div>
 
       <div className="card-view__actions feature-cards__row">
-        {FEATURE_CARD_CONFIG.map((feature) => {
-          const Icon = feature.icon;
+        {AI_Features.map((aiFeature) => {
+          const Icon = aiFeature.icon;
 
           return (
             <button
-              key={feature.id}
+              key={aiFeature.view}
               type="button"
-              className={`feature-card${activeView === feature.id ? " is-active" : ""}`}
-              style={{ "--feature-accent": feature.accent } as CSSProperties}
+              className={`feature-card${activeView === aiFeature.view ? " is-active" : ""}`}
+              style={getFeatureStyles(aiFeature.color)}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleFeatureClick(feature.id)}
-              aria-pressed={activeView === feature.id}
+              onClick={() => handleFeatureClick(aiFeature)}
+              aria-pressed={activeView === aiFeature.view}
             >
               <span className="feature-card__icon" aria-hidden="true">
                 <Icon size={22} strokeWidth={2} />
               </span>
               <span className="feature-card__text">
-                <span className="feature-card__title">{feature.title}</span>
+                <span className="feature-card__title">{aiFeature.title}</span>
                 <span className="feature-card__description">
-                  {feature.description}
+                  {aiFeature.description}
                 </span>
               </span>
             </button>
@@ -315,6 +300,7 @@ export default function PokemonDetails() {
       </div>
 
       <section className="card-view__page" aria-live="polite">
+
         {activeView === "empty_view" && (
           <div className="card-view__empty-view" aria-hidden="true">
             Empty view
@@ -325,77 +311,16 @@ export default function PokemonDetails() {
           <>
             {grokLoading && <p>Asking Grok...</p>}
             {grokError && <p className="card-view__page-error">{grokError}</p>}
-            {!grokLoading && !grokError && grokResponse && <p>{grokResponse}</p>}
+            {grokRequestCompleted && <p>{grokResponse}</p>}
           </>
         )}
 
-        {activeView === "samlerverdi" && (
-          <>
-            {grokLoading && <p>Asking Grok...</p>}
-            {grokError && <p className="card-view__page-error">{grokError}</p>}
-            {!grokLoading && !grokError && activeView === "samlerverdi" && collectorAnalysis && (
-              <div className="collector-ranking">
-                <header className="collector-ranking__heading">
-                  <h3>{card.name}</h3>
-                  <p>
-                    {[card.number, card.set?.name, card.set?.series].filter(Boolean).join(" • ")}
-                  </p>
-                </header>
-
-                <div className="collector-ranking__summary">
-                  <div
-                    className="collector-ranking__score"
-                    style={{ "--score": Math.min(100, Math.max(0, Number(collectorAnalysis.totalScore) || 0)) } as CSSProperties}
-                  >
-                    <div>
-                      <strong>{collectorAnalysis.totalScore}</strong>
-                      <span>/100</span>
-                    </div>
-                  </div>
-                  <div className="collector-ranking__overview">
-                    <span>Overall score</span>
-                    <h4>{collectorAnalysis.overview}</h4>
-                  </div>
-                </div>
-
-                <div className="collector-ranking__categories">
-                  {collectorAnalysis.categories.map((category, index) => {
-                    const Icon = collectorCategoryIcons[index] ?? Gem;
-                    const score = Math.min(100, Math.max(0, Number(category.score) || 0));
-
-                    return (
-                      <article key={`${category.name}-${index}`} className="collector-ranking__category">
-                        <div className="collector-ranking__category-title">
-                          <h4><Icon size={19} aria-hidden="true" />{category.name}</h4>
-                          <strong>{category.score}</strong>
-                        </div>
-                        <div className="collector-ranking__bar" aria-label={`${category.name}: ${category.score} out of 100`}>
-                          <span style={{ width: `${score}%` }} />
-                        </div>
-                        <p>{category.text}</p>
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {collectorAnalysis.finalNote && (
-                  <section className="collector-ranking__conclusion">
-                    <h4>Conclusion</h4>
-                    <p>{collectorAnalysis.finalNote}</p>
-                  </section>
-                )}
-              </div>
-            )}
-            {!grokLoading && !grokError && activeView === "samlerverdi" && grokResponse && !collectorAnalysis && (
-              <p className="card-view__page-error">The collector analysis returned invalid JSON.</p>
-            )}
-          </>
+        {activeView === "collector_analysis" && (
+          <CollectorAnalysis card={card} grokRequest={grokRequest} />
         )}
 
-        {activeView === "search" && <DatabaseSearch />}
-        {activeView === "grader" && <p>Grading view</p>}
-        {activeView === "portfolio" && <p>Portfolio view</p>}
-        {activeView === "news" && <p>News view</p>}
+        {activeView === "search_card" && <DatabaseSearch />}
+        {activeView === "ebay_sold" && <EbaySoldView card={card} />}
       </section>
     </div>
   );

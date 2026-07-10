@@ -1,69 +1,57 @@
 import {
-  Gem,
   LineChart,
   Newspaper,
   ScanSearch,
   WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { FeatureStyleColor } from "./featureStylings";
 
-export type FeatureCardAction =
+export type InfoCardAction =
   | "navigate-search"
   | "scroll-grader"
   | "navigate-profile"
   | "navigate-news";
 
-export type FeatureCardConfig = {
+export type InfoCardConfig = {
   id: string;
   title: string;
   description: string;
   icon: LucideIcon;
-  accent: string;
-  action: FeatureCardAction;
-  detailsOnly?: boolean;
+  color: FeatureStyleColor;
+  action?: InfoCardAction;
 };
 
-export type FeatureCard = Omit<FeatureCardConfig, "action"> & {
+export type InfoCard = Omit<InfoCardConfig, "action"> & {
   action: () => void;
 };
 
-export type FeatureCardHandlers = {
+export type InfoCardHandlers = {
   scrollToGrader: () => void;
   navigate: (path: string) => void;
 };
 
-export const FEATURE_CARD_CONFIG: FeatureCardConfig[] = [
+export const INFO_CARD_CONFIG: InfoCardConfig[] = [
   {
     id: "grader",
     title: "Kortgradering",
     description: "AI-vurdering av tilstand",
     icon: ScanSearch,
-    accent: "#a855f7",
-    action: "scroll-grader",
+    color: "purple",
   },
   {
     id: "prices",
     title: "Markedspriser",
     description: "TCGPlayer, Cardmarket, eBay",
     icon: LineChart,
-    accent: "#14b8a6",
-    action: "navigate-search",
-  },
-  {
-    id: "samlerverdi",
-    title: "Samlerverdi",
-    description: "AI-rangering for samlere",
-    icon: Gem,
-    accent: "#eab308",
-    action: "navigate-search",
-    detailsOnly: true,
+    color: "teal",
   },
   {
     id: "portfolio",
     title: "Portefølje",
     description: "Din lagrede samling",
     icon: WalletCards,
-    accent: "#f59e0b",
+    color: "orange",
     action: "navigate-profile",
   },
   {
@@ -71,14 +59,14 @@ export const FEATURE_CARD_CONFIG: FeatureCardConfig[] = [
     title: "Nyheter",
     description: "Siste fra Pokémon-verdenen",
     icon: Newspaper,
-    accent: "#f43f5e",
+    color: "pink",
     action: "navigate-news",
   },
 ];
 
-function resolveFeatureCardAction(
-  action: FeatureCardAction,
-  handlers: FeatureCardHandlers
+function resolveInfoCardAction(
+  action: InfoCardAction | undefined,
+  handlers: InfoCardHandlers
 ): () => void {
   switch (action) {
     case "navigate-search":
@@ -89,12 +77,14 @@ function resolveFeatureCardAction(
       return () => handlers.navigate("/profile");
     case "navigate-news":
       return () => handlers.navigate("/news");
+    default:
+      return () => {};
   }
 }
 
-export function getFeatureCards(handlers: FeatureCardHandlers): FeatureCard[] {
-  return FEATURE_CARD_CONFIG.filter((card) => !card.detailsOnly).map(({ action, ...card }) => ({
-    ...card,
-    action: resolveFeatureCardAction(action, handlers),
+export function getInfoCards(handlers: InfoCardHandlers): InfoCard[] {
+  return INFO_CARD_CONFIG.map(({ action, ...infoCard }) => ({
+    ...infoCard,
+    action: resolveInfoCardAction(action, handlers),
   }));
 }

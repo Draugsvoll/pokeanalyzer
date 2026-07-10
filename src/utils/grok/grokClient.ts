@@ -9,6 +9,12 @@ export type GrokResult =
   | { ok: true; text: string }
   | { ok: false; error: string };
 
+export type GrokRequestState = {
+  loading: boolean;
+  error: string;
+  response: string;
+};
+
 export async function askGrok(prompt: string): Promise<GrokResult> {
   try {
     const params = new URLSearchParams({ q: prompt });

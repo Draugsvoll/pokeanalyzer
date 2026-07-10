@@ -2,7 +2,8 @@ import React from "react";
 import "./Frontpage.scss";
 import { useNavigate } from "react-router-dom";
 import Button from "../button/Button";
-import { getFeatureCards } from "../../utils/featureCards";
+import { getInfoCards } from "../../utils/infoCard";
+import { getFeatureStyles } from "../../utils/featureStylings";
 
 export const Frontpage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ export const Frontpage: React.FC = () => {
     document.getElementById("grader")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const featureCards = getFeatureCards({
+  const infoCards = getInfoCards({
     scrollToGrader,
     navigate,
   });
@@ -30,27 +31,27 @@ export const Frontpage: React.FC = () => {
         </Button>
       </section>
 
-      <section className="feature-cards">
-        <div className="feature-cards__row">
-          {featureCards.map((card) => {
-            const Icon = card.icon;
+      <section className="info-cards">
+        <div className="info-cards__row">
+          {infoCards.map((infoCard) => {
+            const Icon = infoCard.icon;
 
             return (
               <button
-                key={card.id}
+                key={infoCard.id}
                 type="button"
-                className="feature-card"
-                style={{ "--feature-accent": card.accent } as React.CSSProperties}
+                className="info-card"
+                style={getFeatureStyles(infoCard.color)}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={card.action}
+                onClick={infoCard.action}
               >
-                <span className="feature-card__icon" aria-hidden="true">
+                <span className="info-card__icon" aria-hidden="true">
                   <Icon size={22} strokeWidth={2} />
                 </span>
-                <span className="feature-card__text">
-                  <span className="feature-card__title">{card.title}</span>
-                  <span className="feature-card__description">
-                    {card.description}
+                <span className="info-card__text">
+                  <span className="info-card__title">{infoCard.title}</span>
+                  <span className="info-card__description">
+                    {infoCard.description}
                   </span>
                 </span>
               </button>
