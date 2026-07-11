@@ -37,7 +37,7 @@ const cardGraderLimiter = rateLimit({
 });
 
 app.use(cors());
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(limiter);
 app.use("/grok", grokRoutes);
 app.use("/openai", openaiRoutes);
@@ -60,16 +60,41 @@ app.get("/ebay", ebayLimiter, async (req, res) => {
 
 app.post("/api/card-grader/grade", cardGraderLimiter, async (req, res) => {
   try {
-    const imageBase64 =
-      typeof req.body?.imageBase64 === "string" ? req.body.imageBase64 : "";
+    const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+    const getBase64Size = (value: string) => {
+      const base64 = value.replace(/^data:image\/[^;]+;base64,/, "").replace(/\s/g, "");
+      const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+      return Math.floor((base64.length * 3) / 4) - padding;
+    };
 
-    if (!imageBase64) {
-      res.status(400).json({ error: "imageBase64 is required" });
+    const frontImageBase64 =
+      typeof req.body?.frontImageBase64 === "string"
+        ? req.body.frontImageBase64
+        : typeof req.body?.imageBase64 === "string"
+          ? req.body.imageBase64
+          : "";
+    const backImageBase64 =
+      typeof req.body?.backImageBase64 === "string"
+        ? req.body.backImageBase64
+        : "";
+
+    if (!frontImageBase64) {
+      res.status(400).json({ error: "frontImageBase64 is required" });
       return;
     }
 
-    const cleanedBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const data = await gradeCardImage(cleanedBase64);
+    if (
+      getBase64Size(frontImageBase64) > MAX_IMAGE_SIZE_BYTES ||
+      (backImageBase64 && getBase64Size(backImageBase64) > MAX_IMAGE_SIZE_BYTES)
+    ) {
+      res.status(413).json({ error: "Each image must be 10MB or smaller" });
+      return;
+    }
+
+    const images = [frontImageBase64, backImageBase64]
+      .filter(Boolean)
+      .map((image) => image.replace(/^data:image\/\w+;base64,/, ""));
+    const data = await gradeCardImage(images);
 
     res.json(data);
   } catch (err) {

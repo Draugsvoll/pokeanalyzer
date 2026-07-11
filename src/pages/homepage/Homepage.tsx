@@ -1,5 +1,5 @@
 import { Frontpage } from '../../components/frontpage/Frontpage';
-import CardGrader from '../../components/cardGrader/CardGrader';
+import CardGrader from '../pokemonDetails/views/UploadCardPage';
 import './Homepage.scss'
 
 export default function Homepage() {

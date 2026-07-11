@@ -18,7 +18,7 @@ export type GrokRequestState = {
 export async function askGrok(prompt: string): Promise<GrokResult> {
   try {
     const params = new URLSearchParams({ q: prompt });
-    const res = await fetch(`${API_URL}/grok/test?${params.toString()}`);
+    const res = await fetch(`${API_URL}/grok?${params.toString()}`);
     const data = (await res.json()) as GrokTestResponse;
 
     if (!res.ok) {

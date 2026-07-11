@@ -1,7 +1,35 @@
-const marketPricesAnalysis: string =
-`
-what day is it today?
-`;
+import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes";
+
+const psaGrading: string = `
+Do a objective and honest PSA grading for the following card in a professional manner.
+Take your time, be objective and honest. If its hard to read details on the image,
+lean slightly on the conservative side. Give reasoning for every sub-score. All the scores
+must align with your reasoning. Overall Score at top
+`.trim();
+
+
+
+export function PsaGradingPrompt(
+  frontImageBase64: string,
+  backImageBase64?: string
+): GrokMultimodalMessage {
+  const images: GrokImageContent[] = [
+    { type: "input_image", image_url: frontImageBase64 },
+  ];
+
+  if (backImageBase64) {
+    images.push({ type: "input_image", image_url: backImageBase64 });
+  }
+
+  return {
+    role: "user",
+    content: [
+      { type: "input_text", text: psaGrading },
+      images[0],
+      ...images.slice(1),
+    ],
+  };
+}
 
 
 const collectorsAnalysis: string =
@@ -46,7 +74,7 @@ Now rank this card:
 
 
 
-const isWorthGradingAnalysisPrompt: string =
+const isWorthGrading: string =
 `
 
 You are an expert Pokémon TCG collector and market analyst.
@@ -69,7 +97,7 @@ Card to analyze:
 `;
 
 export function isWorthGradingPrompt(cardNameAndSet: string): string {
-  const instructions = isWorthGradingAnalysisPrompt
+  const instructions = isWorthGrading
     .split("Card to analyze:")[0]
     .trimEnd();
 

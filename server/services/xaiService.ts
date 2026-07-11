@@ -51,7 +51,30 @@ function getResponseText(data: GrokResponse) {
   );
 }
 
-export async function testChat(text: string) {
+export async function chat(text: string) {
+  return requestGrokResponse([
+    {
+      role: "user",
+      content: text,
+    },
+  ]);
+}
+
+type GrokInputMessage = {
+  role: "user";
+  content:
+    | string
+    | Array<
+        | { type: "input_text"; text: string }
+        | { type: "input_image"; image_url: string }
+      >;
+};
+
+export async function multimodalChat(input: GrokInputMessage[]) {
+  return requestGrokResponse(input);
+}
+
+async function requestGrokResponse(input: GrokInputMessage[]) {
   const response = await fetch(XAI_RESPONSES_URL, {
     method: "POST",
     headers: {
@@ -65,12 +88,7 @@ export async function testChat(text: string) {
         effort: "high", // none | low | medium | high
       },
       instructions: "Answer the user's message clearly and concisely.",
-      input: [
-        {
-          role: "user",
-          content: text,
-        },
-      ],
+      input,
       tools: [{ type: "web_search" }],
     }),
   });

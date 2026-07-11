@@ -1,19 +1,20 @@
 import { Router, type Request, type Response } from "express";
-import { GrokApiError, testChat } from "../../services/xaiService.js";
+import { chat, GrokApiError, multimodalChat } from "../../services/xaiService.js";
+import { PsaGradingPrompt } from "../../../src/utils/grok/grokPrompts.js";
 
 const router = Router();
 
 const prompt:string =
-"In a highly sophisticated pokemon web-app. how would you rate individual pokemons 1-10 as a collector item"
+""
 
-router.get("/test", async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const query =
       typeof req.query.q === "string" && req.query.q.trim()
         ? req.query.q.trim()
         : prompt;
 
-    const text = await testChat(query);
+    const text = await chat(query);
 
     res.json({
       provider: "grok",
@@ -30,6 +31,42 @@ router.get("/test", async (req: Request, res: Response) => {
         err instanceof GrokApiError
           ? err.message
           : "Grok query request failed",
+    });
+  }
+});
+
+router.post("/psa-grade", async (req: Request, res: Response) => {
+  try {
+    const frontImageBase64 =
+      typeof req.body?.frontImageBase64 === "string"
+        ? req.body.frontImageBase64
+        : "";
+    const backImageBase64 =
+      typeof req.body?.backImageBase64 === "string"
+        ? req.body.backImageBase64
+        : undefined;
+
+    if (!frontImageBase64) {
+      res.status(400).json({ error: "frontImageBase64 is required" });
+      return;
+    }
+
+    const message = PsaGradingPrompt(frontImageBase64, backImageBase64);
+    const text = await multimodalChat([message]);
+
+    res.json({
+      provider: "grok",
+      text,
+    });
+  } catch (err) {
+    console.error("Grok PSA grading route failed");
+
+    const statusCode = err instanceof GrokApiError ? err.statusCode : 500;
+    res.status(statusCode).json({
+      error:
+        err instanceof GrokApiError
+          ? err.message
+          : "Grok PSA grading request failed",
     });
   }
 });

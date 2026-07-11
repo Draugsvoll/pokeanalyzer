@@ -8,6 +8,7 @@ import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
 import GrokTester from "./components/grokTester/GrokTester";
 import OpenaiTesteer from "./components/openaiTesteer/OpenaiTesteer";
+import CardGrader from "./pages/pokemonDetails/views/UploadCardPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -24,13 +25,14 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Homepage />} />
         <Route path="search" element={<Search />} />
-        <Route path="news" element={<PlaceholderPage title="Nyheter" />} />
         <Route path="card/:id" element={<Cardview />} />
         <Route path="signup" element={<SignUp />} />
         <Route path="profile" element={<Profile />} />
         <Route path="grok-test" element={<GrokTester />} />
-        <Route path="openai-test" element={<OpenaiTesteer />} />
+        <Route path="uploadcard" element={<CardGrader />} />
 
+        {/* <Route path="news" element={<PlaceholderPage title="Nyheter" />} /> */}
+        {/* <Route path="openai-test" element={<OpenaiTesteer />} /> */}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

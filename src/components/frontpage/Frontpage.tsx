@@ -28,6 +28,13 @@ export const Frontpage: React.FC = () => {
           onClick={() => navigate("/search")}
         >
           Find a card
+        </Button><br />
+        Or upload personal card to analyze condition and authenticity
+        <br />
+        <Button variant="primary"
+          className="hero__cta"
+          onClick={() => navigate("/uploadcard")}>
+          Upload
         </Button>
       </section>
 

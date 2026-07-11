@@ -47,8 +47,9 @@ async function readXimilarJson(response: Response) {
   return data;
 }
 
-export async function gradeCardImage(imageBase64: string) {
+export async function gradeCardImage(imageBase64: string | string[]) {
   const apiKey = getXimilarApiKey();
+  const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64];
 
   const submitResponse = await fetch(XIMILAR_REQUEST_URL, {
     method: "POST",
@@ -59,7 +60,7 @@ export async function gradeCardImage(imageBase64: string) {
     body: JSON.stringify({
       type: "card-grader",
       endpoint: "grade",
-      records: [{ _base64: imageBase64 }],
+      records: images.map((_base64) => ({ _base64 })),
     }),
   });
 
