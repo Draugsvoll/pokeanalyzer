@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
-import { BadgeDollarSign, Gem, LineChart, Search, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, Gem, LineChart, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/frontpage/Frontpage.scss";
 import type { PokemonCard } from "../../types/pokemon";
@@ -10,7 +10,10 @@ import {
 } from "../../utils/selectedPokemonCache";
 import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
-import { collectorsAnalysis, marketPricesAnalysis } from "../../utils/grok/queryStrings";
+import {
+  collectorsAnalysisPrompt,
+  isWorthGradingPrompt,
+} from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import CollectorAnalysis from "./views/CollectorAnalysisView";
@@ -19,6 +22,7 @@ import {
   getFeatureStyles,
   type FeatureStyleColor,
 } from "../../utils/featureStylings";
+import { WorthGradingView } from "./views/WorthGradingView";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -33,10 +37,11 @@ type ActiveView =
   | "collector_analysis"
   | "search_card"
   | "ebay_sold"
-  | "prices";
+  | "prices"
+  | "worth_grading";
 
 type AI_feature = {
-  view: Extract<ActiveView, "prices" | "collector_analysis" | "ebay_sold">;
+  view: Extract<ActiveView, "prices" | "collector_analysis" | "ebay_sold" | "worth_grading">;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -64,6 +69,13 @@ const AI_Features: AI_feature[] = [
     description: "Nylig solgte kort",
     icon: BadgeDollarSign,
     color: "orange",
+  },
+  {
+    view: "worth_grading",
+    title: "Worth grading?",
+    description: "See if this card is worth getting PSA graded",
+    icon: BadgeDollarSign,
+    color: "pink",
   },
 ];
 
@@ -95,13 +107,24 @@ export default function PokemonDetails() {
   async function handleFeatureClick(aiFeature: AI_feature) {
     setActiveView(aiFeature.view);
 
-    if (aiFeature.view !== "prices" && aiFeature.view !== "collector_analysis") return;
+    if (
+      aiFeature.view !== "prices" &&
+      aiFeature.view !== "collector_analysis" &&
+      aiFeature.view !== "worth_grading"
+    ) {
+      return;
+    }
 
     const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
-    const prompt =
-      aiFeature.view === "collector_analysis"
-        ? collectorsAnalysis(cardNameAndSet)
-        : marketPricesAnalysis;
+    let prompt = "";
+
+    if (aiFeature.view === "collector_analysis") {
+      prompt = collectorsAnalysisPrompt(cardNameAndSet);
+    }
+
+    if (aiFeature.view === "worth_grading") {
+      prompt = isWorthGradingPrompt(cardNameAndSet);
+    }
 
     setGrokLoading(true);
     setGrokError("");
@@ -321,6 +344,9 @@ export default function PokemonDetails() {
 
         {activeView === "search_card" && <DatabaseSearch />}
         {activeView === "ebay_sold" && <EbaySoldView card={card} />}
+        {activeView === "worth_grading" && (
+          <WorthGradingView grokRequest={grokRequest} />
+        )}
       </section>
     </div>
   );
