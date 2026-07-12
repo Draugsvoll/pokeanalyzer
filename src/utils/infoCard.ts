@@ -5,7 +5,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { FeatureStyleColor } from "./featureStylings";
+import type { CustomColors } from "./customStylings";
 
 export type InfoCardAction =
   | "navigate-search"
@@ -18,7 +18,7 @@ export type InfoCardConfig = {
   title: string;
   description: string;
   icon: LucideIcon;
-  color: FeatureStyleColor;
+  color: CustomColors;
   action?: InfoCardAction;
 };
 

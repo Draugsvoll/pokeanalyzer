@@ -3,7 +3,7 @@ import './Header.scss'
 import { Link, useNavigate } from 'react-router-dom';
 import LoginModal from '../loginmodal/Loginmodal';
 import Button from "../button/Button";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authContextValue";
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth()

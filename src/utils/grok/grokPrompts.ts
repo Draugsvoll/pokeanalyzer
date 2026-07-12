@@ -1,6 +1,17 @@
 import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes";
 
-export const authenticityCheck: string =
+const identifyCard: string =
+`
+Identify the exact pokemon card provided in the image. Return a valid JSON containing
+these fields:
+
+- pokemon name
+- set name
+- card number
+- set series
+`
+
+const authenticityCheck: string =
 `
 You are a professional pokemon-card inspector. Verify if my pokemon card is real from image(s) provided. do a thorough analysis, take your time.
 Your response must be in a valid json format as shown below.
@@ -132,27 +143,6 @@ Now rank this card:
 
 `;
 
-export function authenticityCheckPrompt(
-  frontImageBase64: string,
-  backImageBase64?: string
-): GrokMultimodalMessage {
-  const images: GrokImageContent[] = [
-    { type: "input_image", image_url: frontImageBase64 },
-  ];
-
-  if (backImageBase64) {
-    images.push({ type: "input_image", image_url: backImageBase64 });
-  }
-
-  return {
-    role: "user",
-    content: [
-      { type: "input_text", text: authenticityCheck.trim() },
-      images[0],
-      ...images.slice(1),
-    ],
-  };
-}
 
 
 const isWorthGrading: string =
@@ -189,6 +179,18 @@ export function collectorsAnalysisPrompt(cardNameAndSet: string): string {
   return `${instructions}\n\nNow rank this card:\n${cardNameAndSet}`;
 }
 
+export function identifyCardPrompt(
+  frontImageBase64: string
+): GrokMultimodalMessage {
+  return {
+    role: "user",
+    content: [
+      { type: "input_text", text: identifyCard.trim() },
+      { type: "input_image", image_url: frontImageBase64 },
+    ],
+  };
+}
+
 export function PsaGradingPrompt(
   frontImageBase64: string,
   backImageBase64?: string
@@ -211,3 +213,24 @@ export function PsaGradingPrompt(
   };
 }
 
+export function authenticityCheckPrompt(
+  frontImageBase64: string,
+  backImageBase64?: string
+): GrokMultimodalMessage {
+  const images: GrokImageContent[] = [
+    { type: "input_image", image_url: frontImageBase64 },
+  ];
+
+  if (backImageBase64) {
+    images.push({ type: "input_image", image_url: backImageBase64 });
+  }
+
+  return {
+    role: "user",
+    content: [
+      { type: "input_text", text: authenticityCheck.trim() },
+      images[0],
+      ...images.slice(1),
+    ],
+  };
+}

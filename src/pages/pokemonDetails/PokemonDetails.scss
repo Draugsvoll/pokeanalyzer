@@ -138,10 +138,18 @@
     }
   }
 
-  &__change-card {
-    align-self: center;
+  &__info-actions {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
     margin-top: 1.5rem;
   }
+
+  &__change-card,
+  &__portfolio-button { margin: 0; }
+
+  &__portfolio-button:disabled { cursor: default; opacity: 0.65; }
 
   &__page {
     width: 100%;
@@ -211,4 +219,3 @@
     }
   }
 }
-

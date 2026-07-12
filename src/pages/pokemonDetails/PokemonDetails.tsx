@@ -19,10 +19,12 @@ import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
 import EbaySoldView from "./views/EbaySold/EbaySoldView";
 import {
-  getFeatureStyles,
-  type FeatureStyleColor,
-} from "../../utils/featureStylings";
+  getCustomColors,
+  type CustomColors,
+} from "../../utils/customStylings";
 import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
+import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
+import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -45,7 +47,7 @@ type AI_feature = {
   title: string;
   description: string;
   icon: LucideIcon;
-  color: FeatureStyleColor;
+  color: CustomColors;
 };
 
 const AI_Features: AI_feature[] = [
@@ -103,6 +105,21 @@ export default function PokemonDetails() {
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
+  const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
+  const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
+  const { isCardSaved } = usePortfolioCache();
+
+  async function handlePortfolioToggle() {
+    if (!card || updatingPortfolio) return;
+
+    setUpdatingPortfolio(true);
+    if (isCardSaved(card.id)) {
+      await removePokemonFromPortfolio(card.id);
+    } else {
+      await savePokemonToPortfolio(card);
+    }
+    setUpdatingPortfolio(false);
+  }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
     setActiveView(aiFeature.view);
@@ -240,6 +257,7 @@ export default function PokemonDetails() {
   const infoFields = getCardSetInfoFields(card);
   const grokRequestCompleted =
     !grokLoading && !grokError && Boolean(grokResponse);
+  const cardIsSaved = isCardSaved(card.id);
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
@@ -283,13 +301,26 @@ export default function PokemonDetails() {
               ))}
             </div>
 
-            <Button
-              className="card-view__change-card"
-              onClick={() => setActiveView("search_card")}
-              aria-pressed={activeView === "search_card"}
-            >
-              <span>Change card</span>
-            </Button>
+            <div className="card-view__info-actions">
+              <Button
+                className="card-view__portfolio-button"
+                disabled={updatingPortfolio}
+                onClick={handlePortfolioToggle}
+              >
+                <span>
+                  {updatingPortfolio
+                    ? cardIsSaved ? "Removing..." : "Saving..."
+                    : cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                </span>
+              </Button>
+              <Button
+                className="card-view__change-card"
+                onClick={() => setActiveView("search_card")}
+                aria-pressed={activeView === "search_card"}
+              >
+                <span>Change card</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -303,7 +334,7 @@ export default function PokemonDetails() {
               key={aiFeature.view}
               type="button"
               className={`feature-card${activeView === aiFeature.view ? " is-active" : ""}`}
-              style={getFeatureStyles(aiFeature.color)}
+              style={getCustomColors(aiFeature.color)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleFeatureClick(aiFeature)}
               aria-pressed={activeView === aiFeature.view}

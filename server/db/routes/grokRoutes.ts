@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { chat, GrokApiError, multimodalChat } from "../../services/xaiService.js";
 import {
   authenticityCheckPrompt,
+  identifyCardPrompt,
   PsaGradingPrompt,
 } from "../../../src/utils/grok/grokPrompts.js";
 
@@ -70,6 +71,35 @@ router.post("/psa-grade", async (req: Request, res: Response) => {
         err instanceof GrokApiError
           ? err.message
           : "Grok PSA grading request failed",
+    });
+  }
+});
+
+router.post("/identify-card", async (req: Request, res: Response) => {
+  try {
+    const frontImageBase64 =
+      typeof req.body?.frontImageBase64 === "string"
+        ? req.body.frontImageBase64
+        : "";
+
+    if (!frontImageBase64) {
+      res.status(400).json({ error: "frontImageBase64 is required" });
+      return;
+    }
+
+    const message = identifyCardPrompt(frontImageBase64);
+    const text = await multimodalChat([message]);
+
+    res.json({ provider: "grok", text });
+  } catch (err) {
+    console.error("Grok card identification route failed");
+    const statusCode = err instanceof GrokApiError ? err.statusCode : 500;
+
+    res.status(statusCode).json({
+      error:
+        err instanceof GrokApiError
+          ? err.message
+          : "Grok card identification request failed",
     });
   }
 });

@@ -16,7 +16,7 @@ export type PokemonCard = {
   attacks?: Attack[];
   weaknesses?: TypeEffect[];
   resistances?: TypeEffect[];
-  retreatCost?: String[];
+  retreatCost?: string[];
   convertedRetreatCost?: number;
   set: CardSet;
   number?: string;

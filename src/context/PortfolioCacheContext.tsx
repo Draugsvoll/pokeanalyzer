@@ -1,28 +1,16 @@
 import {
-  createContext,
-  useContext,
+  useCallback,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./authContextValue";
+import { PortfolioContext } from "./portfolioCacheContextValue";
 import { getPortfolioCacheKey } from "../utils/cache";
 import type { PokemonCard } from "../types/pokemon";
 
-
-type PortfolioContextType = {
-  portfolio: PokemonCard[];
-  loadingPortfolio: boolean;
-  initPortfolio: () => Promise<void>;
-  addToPortfolioCache: (card: PokemonCard ) => void;
-  removeFromPortfolioCache: (cardId: string) => void;
-  isCardSaved: (cardId: string) => boolean;
-};
-
-
-const PortfolioContext = createContext<PortfolioContextType | null>(null);
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth();
@@ -30,14 +18,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [portfolio, setPortfolio] = useState<PokemonCard[]>([]);
   const [loadingPortfolio, setLoadingPortfolio] = useState(true);
 
-  const savePortfolioToCache = (updatedPortfolio: PokemonCard[]) => {
+  const savePortfolioToCache = useCallback((updatedPortfolio: PokemonCard[]) => {
     if (!authUser) return;
 
     const cacheKey = getPortfolioCacheKey(authUser.uid);
     localStorage.setItem(cacheKey, JSON.stringify(updatedPortfolio));
-  };
+  }, [authUser]);
 
-  const initPortfolio = async () => {
+  const initPortfolio = useCallback(async () => {
     if (!authUser) {
       setPortfolio([]);
       setLoadingPortfolio(false);
@@ -63,7 +51,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingPortfolio(false);
     }
-  };
+  }, [authUser, savePortfolioToCache]);
 
   const addToPortfolioCache = (card: PokemonCard) => {
     const updatedPortfolio = [
@@ -86,8 +74,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    initPortfolio();
-  }, [authUser]);
+    const initialize = window.setTimeout(() => {
+      void initPortfolio();
+    }, 0);
+
+    return () => window.clearTimeout(initialize);
+  }, [initPortfolio]);
 
   return (
     <PortfolioContext.Provider
@@ -103,14 +95,4 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       {children}
     </PortfolioContext.Provider>
   );
-}
-
-export function usePortfolioCache() {
-  const context = useContext(PortfolioContext);
-
-  if (!context) {
-    throw new Error("usePortfolio must be used inside PortfolioProvider");
-  }
-
-  return context;
 }

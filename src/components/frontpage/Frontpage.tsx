@@ -3,7 +3,7 @@ import "./Frontpage.scss";
 import { useNavigate } from "react-router-dom";
 import Button from "../button/Button";
 import { getInfoCards } from "../../utils/infoCard";
-import { getFeatureStyles } from "../../utils/featureStylings";
+import { getCustomColors } from "../../utils/customStylings";
 
 export const Frontpage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ export const Frontpage: React.FC = () => {
                 key={infoCard.id}
                 type="button"
                 className="info-card"
-                style={getFeatureStyles(infoCard.color)}
+                style={getCustomColors(infoCard.color)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={infoCard.action}
               >

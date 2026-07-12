@@ -8,7 +8,7 @@ import "./UploadCardPage.scss";
 const API_URL = import.meta.env.VITE_API_URL;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-type AnalysisType = "psa" | "authenticity";
+type AnalysisType = "identify" | "psa" | "authenticity";
 type CardSide = "front" | "back";
 
 type CardImage = {
@@ -49,11 +49,20 @@ const uploadOptions = [
 
 const analysisOptions = [
   {
+    type: "identify",
+    endpoint: "/grok/identify-card",
+    label: "Identify Card",
+    loadingLabel: "Identifying...",
+    buttonClassName: "card-grader__identify-button",
+    includeBackImage: false,
+  },
+  {
     type: "psa",
     endpoint: "/grok/psa-grade",
     label: "Get PSA Estimate",
     loadingLabel: "Analyzing...",
     buttonClassName: "card-grader__estimate-button",
+    includeBackImage: true,
     ResultView: PsaEstimateResultView,
   },
   {
@@ -62,6 +71,7 @@ const analysisOptions = [
     label: "Check Authenticity",
     loadingLabel: "Checking...",
     buttonClassName: "card-grader__auth-button",
+    includeBackImage: true,
     ResultView: AuthenticityResultView,
   },
 ] satisfies ReadonlyArray<{
@@ -70,7 +80,8 @@ const analysisOptions = [
   label: string;
   loadingLabel: string;
   buttonClassName: string;
-  ResultView: React.ComponentType<{ error: string; result: string }>;
+  includeBackImage: boolean;
+  ResultView?: React.ComponentType<{ error: string; result: string }>;
 }>;
 
 function readFileAsDataUrl(file: File) {
@@ -89,6 +100,7 @@ export default function UploadCardPage() {
     back: { file: null, previewUrl: "" },
   });
   const [result, setResult] = useState("");
+  const [identifyResult, setIdentifyResult] = useState("");
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisType>("psa");
   const [error, setError] = useState("");
   const [activeRequest, setActiveRequest] = useState<AnalysisType | null>(null);
@@ -98,6 +110,7 @@ export default function UploadCardPage() {
 
   const resetResults = () => {
     setResult("");
+    setIdentifyResult("");
     setError("");
   };
 
@@ -141,18 +154,20 @@ export default function UploadCardPage() {
 
   const clearImage = (side: CardSide) => selectImage(side, null);
 
-  const runAnalysis = async (type: AnalysisType, endpoint: string) => {
+  const runAnalysis = async (option: (typeof analysisOptions)[number]) => {
+    const { endpoint, includeBackImage, type } = option;
     const frontFile = cardImages.front.file;
     if (!frontFile || activeRequest !== null) return;
 
     setActiveRequest(type);
-    setSelectedAnalysis(type);
+    if (option.ResultView) setSelectedAnalysis(type);
     setError("");
-    setResult("");
+    if (type === "identify") setIdentifyResult("");
+    if (option.ResultView) setResult("");
 
     try {
       const frontImageBase64 = await readFileAsDataUrl(frontFile);
-      const backImageBase64 = cardImages.back.file
+      const backImageBase64 = includeBackImage && cardImages.back.file
         ? await readFileAsDataUrl(cardImages.back.file)
         : undefined;
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -174,7 +189,8 @@ export default function UploadCardPage() {
       }
 
       const text = typeof data?.text === "string" ? data.text : "";
-      setResult(text);
+      if (type === "identify") setIdentifyResult(text);
+      if (option.ResultView) setResult(text);
     } catch (scanError) {
       setError(
         scanError instanceof Error
@@ -240,7 +256,7 @@ export default function UploadCardPage() {
                 key={option.type}
                 className={option.buttonClassName}
                 disabled={actionDisabled}
-                onClick={() => runAnalysis(option.type, option.endpoint)}
+                onClick={() => runAnalysis(option)}
               >
                 {isLoading ? <LoaderCircle className="card-grader__spin" /> : <ScanSearch />}
                 {isLoading ? option.loadingLabel : option.label}
@@ -251,8 +267,12 @@ export default function UploadCardPage() {
 
       </div>
 
+      {identifyResult && (
+        <h2 className="card-grader__identify-result">{identifyResult}</h2>
+      )}
+
       {analysisOptions.map(({ type, ResultView }) =>
-        selectedAnalysis === type ? (
+        selectedAnalysis === type && ResultView ? (
           <ResultView key={type} error={error} result={result} />
         ) : null
       )}

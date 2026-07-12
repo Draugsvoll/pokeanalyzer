@@ -1,7 +1,7 @@
 import { deleteDoc, doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
-import { useAuth } from "../../context/AuthContext";
-import { usePortfolioCache } from "../../context/PortfolioCacheContext";
+import { useAuth } from "../../context/authContextValue";
+import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import type { PokemonCard } from "../../types/pokemon";
 
 export function usePokemonPortfolio() {

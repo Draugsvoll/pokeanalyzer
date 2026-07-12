@@ -1,8 +1,8 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import { useAuth } from "../../context/AuthContext";
-import { usePortfolioCache } from "../../context/PortfolioCacheContext";
+import { useAuth } from "../../context/authContextValue";
+import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import "./Profile.scss";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { getUserProfileSessionKey } from "../../utils/cache";
