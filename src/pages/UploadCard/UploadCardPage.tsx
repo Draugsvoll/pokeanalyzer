@@ -1,33 +1,77 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { ImageUp, LoaderCircle, ScanSearch, X } from "lucide-react";
 import Button from "../../components/button/Button";
+import AuthenticityResultView from "./views/AuthenticityResultView";
+import PsaEstimateResultView from "./views/PsaEstimateResultView";
 import "./UploadCardPage.scss";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-type XimilarGradeRecord = {
-  grades?: {
-    final?: number;
-    condition?: string;
-    corners?: number;
-    edges?: number;
-    surface?: number;
-    centering?: number;
-  };
-  _full_url_card?: string;
-  _exact_url_card?: string;
-  _status?: {
-    text?: string;
-  };
+type AnalysisType = "psa" | "authenticity";
+type CardSide = "front" | "back";
+
+type CardImage = {
+  file: File | null;
+  previewUrl: string;
 };
 
-type XimilarGradeResponse = {
-  status?: string;
-  response?: {
-    records?: XimilarGradeRecord[];
-  };
-};
+const uploadOptions = [
+  {
+    side: "front",
+    heading: "Front Side",
+    badge: "Required",
+    badgeClassName: "card-grader__badge--required",
+    headingNote: "High quality photo recommended",
+    prompt: "Upload front",
+    promptNote: "PNG, JPG up to 10MB",
+    showDropHint: true,
+  },
+  {
+    side: "back",
+    heading: "Back Side",
+    badge: "Recommended",
+    badgeClassName: "card-grader__badge--recommended",
+    prompt: "Upload back",
+    promptNote: "Optional but recommended",
+    showDropHint: false,
+  },
+] satisfies ReadonlyArray<{
+  side: CardSide;
+  heading: string;
+  badge: string;
+  badgeClassName: string;
+  headingNote?: string;
+  prompt: string;
+  promptNote: string;
+  showDropHint: boolean;
+}>;
+
+const analysisOptions = [
+  {
+    type: "psa",
+    endpoint: "/grok/psa-grade",
+    label: "Get PSA Estimate",
+    loadingLabel: "Analyzing...",
+    buttonClassName: "card-grader__estimate-button",
+    ResultView: PsaEstimateResultView,
+  },
+  {
+    type: "authenticity",
+    endpoint: "/grok/authenticity-check",
+    label: "Check Authenticity",
+    loadingLabel: "Checking...",
+    buttonClassName: "card-grader__auth-button",
+    ResultView: AuthenticityResultView,
+  },
+] satisfies ReadonlyArray<{
+  type: AnalysisType;
+  endpoint: string;
+  label: string;
+  loadingLabel: string;
+  buttonClassName: string;
+  ResultView: React.ComponentType<{ error: string; result: string }>;
+}>;
 
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -40,32 +84,24 @@ function readFileAsDataUrl(file: File) {
 }
 
 export default function UploadCardPage() {
-  const [frontFile, setFrontFile] = useState<File | null>(null);
-  const [backFile, setBackFile] = useState<File | null>(null);
-  const [frontPreviewUrl, setFrontPreviewUrl] = useState("");
-  const [backPreviewUrl, setBackPreviewUrl] = useState("");
-  const [result, setResult] = useState<XimilarGradeResponse | null>(null);
-  const [grokResult, setGrokResult] = useState("");
+  const [cardImages, setCardImages] = useState<Record<CardSide, CardImage>>({
+    front: { file: null, previewUrl: "" },
+    back: { file: null, previewUrl: "" },
+  });
+  const [result, setResult] = useState("");
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisType>("psa");
   const [error, setError] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const [hasScannedSelectedFile, setHasScannedSelectedFile] = useState(false);
-  const [draggingSide, setDraggingSide] = useState<"front" | "back" | null>(null);
+  const [activeRequest, setActiveRequest] = useState<AnalysisType | null>(null);
+  const [draggingSide, setDraggingSide] = useState<CardSide | null>(null);
 
-  const gradeRecord = result?.response?.records?.[0];
-  const grades = gradeRecord?.grades;
-  const scanDisabled = !frontFile || isScanning || hasScannedSelectedFile;
+  const actionDisabled = !cardImages.front.file || activeRequest !== null;
 
-  const scoreRows = useMemo(
-    () => [
-      ["Corners", grades?.corners],
-      ["Edges", grades?.edges],
-      ["Surface", grades?.surface],
-      ["Centering", grades?.centering],
-    ],
-    [grades]
-  );
+  const resetResults = () => {
+    setResult("");
+    setError("");
+  };
 
-  const selectImage = (side: "front" | "back", file: File | null) => {
+  const selectImage = (side: CardSide, file: File | null) => {
     if (file && !file.type.startsWith("image/")) {
       setError("Please choose an image file");
       return;
@@ -76,30 +112,26 @@ export default function UploadCardPage() {
       return;
     }
 
-    const previewUrl = side === "front" ? frontPreviewUrl : backPreviewUrl;
-
+    const previewUrl = cardImages[side].previewUrl;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
 
-    if (side === "front") {
-      setFrontFile(file);
-      setFrontPreviewUrl(file ? URL.createObjectURL(file) : "");
-    } else {
-      setBackFile(file);
-      setBackPreviewUrl(file ? URL.createObjectURL(file) : "");
-    }
-    setResult(null);
-    setGrokResult("");
-    setError("");
-    setHasScannedSelectedFile(false);
+    setCardImages((current) => ({
+      ...current,
+      [side]: {
+        file,
+        previewUrl: file ? URL.createObjectURL(file) : "",
+      },
+    }));
+    resetResults();
   };
 
   const handleFileChange = (
-    side: "front" | "back",
+    side: CardSide,
     event: React.ChangeEvent<HTMLInputElement>
   ) => selectImage(side, event.target.files?.[0] ?? null);
 
   const handleDrop = (
-    side: "front" | "back",
+    side: CardSide,
     event: React.DragEvent<HTMLLabelElement>
   ) => {
     event.preventDefault();
@@ -107,40 +139,23 @@ export default function UploadCardPage() {
     selectImage(side, event.dataTransfer.files?.[0] ?? null);
   };
 
-  const clearImage = (side: "front" | "back") => {
-    const previewUrl = side === "front" ? frontPreviewUrl : backPreviewUrl;
+  const clearImage = (side: CardSide) => selectImage(side, null);
 
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  const runAnalysis = async (type: AnalysisType, endpoint: string) => {
+    const frontFile = cardImages.front.file;
+    if (!frontFile || activeRequest !== null) return;
 
-    if (side === "front") {
-      setFrontFile(null);
-      setFrontPreviewUrl("");
-    } else {
-      setBackFile(null);
-      setBackPreviewUrl("");
-    }
-
-    setResult(null);
-    setGrokResult("");
+    setActiveRequest(type);
+    setSelectedAnalysis(type);
     setError("");
-    setHasScannedSelectedFile(false);
-  };
-
-  const handleScan = async () => {
-    if (scanDisabled) return;
-
-    setIsScanning(true);
-    setHasScannedSelectedFile(true);
-    setError("");
-    setResult(null);
-    setGrokResult("");
+    setResult("");
 
     try {
       const frontImageBase64 = await readFileAsDataUrl(frontFile);
-      const backImageBase64 = backFile
-        ? await readFileAsDataUrl(backFile)
+      const backImageBase64 = cardImages.back.file
+        ? await readFileAsDataUrl(cardImages.back.file)
         : undefined;
-      const response = await fetch(`${API_URL}/grok/psa-grade`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -158,15 +173,16 @@ export default function UploadCardPage() {
         );
       }
 
-      setGrokResult(typeof data?.text === "string" ? data.text : "");
+      const text = typeof data?.text === "string" ? data.text : "";
+      setResult(text);
     } catch (scanError) {
       setError(
         scanError instanceof Error
           ? scanError.message
-          : "Could not scan this card"
+          : "Could not analyze this card"
       );
     } finally {
-      setIsScanning(false);
+      setActiveRequest(null);
     }
   };
 
@@ -178,113 +194,69 @@ export default function UploadCardPage() {
       </header>
       <div className="card-grader__upload">
         <div className="card-grader__upload-grid">
-          <div className="card-grader__upload-side">
-            <div className="card-grader__side-heading"><strong>Front Side</strong><span className="card-grader__badge card-grader__badge--required">Required</span><small>High quality photo recommended</small></div>
-            <label
-              className={`card-grader__dropzone${draggingSide === "front" ? " card-grader__dropzone--dragging" : ""}`}
-              onDragEnter={(event) => { event.preventDefault(); setDraggingSide("front"); }}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDraggingSide(null); }}
-              onDrop={(event) => handleDrop("front", event)}
-            >
-              {frontPreviewUrl ? (
-                <img src={frontPreviewUrl} alt="Front of card preview" />
-              ) : (
-                <span className="card-grader__upload-prompt">
-                  <span className="card-grader__upload-icon"><ImageUp aria-hidden="true" /></span>
-                  <strong>Upload front</strong>
-                  <small>PNG, JPG up to 10MB</small>
-                  <em>Drag &amp; drop or click</em>
-                </span>
-              )}
-              <input key={frontPreviewUrl} accept="image/*" type="file" onChange={(event) => handleFileChange("front", event)} />
-            </label>
-            {frontPreviewUrl && (
-              <button aria-label="Clear front image" className="card-grader__clear" type="button" onClick={() => clearImage("front")}><X aria-hidden="true" /></button>
-            )}
-          </div>
+          {uploadOptions.map((option) => {
+            const image = cardImages[option.side];
 
-          <div className="card-grader__upload-side">
-            <div className="card-grader__side-heading"><strong>Back Side</strong><span className="card-grader__badge card-grader__badge--recommended">Recommended</span></div>
-            <label
-              className={`card-grader__dropzone${draggingSide === "back" ? " card-grader__dropzone--dragging" : ""}`}
-              onDragEnter={(event) => { event.preventDefault(); setDraggingSide("back"); }}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDraggingSide(null); }}
-              onDrop={(event) => handleDrop("back", event)}
-            >
-              {backPreviewUrl ? (
-                <img src={backPreviewUrl} alt="Back of card preview" />
-              ) : (
-                <span className="card-grader__upload-prompt">
-                  <span className="card-grader__upload-icon"><ImageUp aria-hidden="true" /></span>
-                  <strong>Upload back</strong>
-                  <small>Optional but recommended</small>
-                </span>
-              )}
-              <input key={backPreviewUrl} accept="image/*" type="file" onChange={(event) => handleFileChange("back", event)} />
-            </label>
-            {backPreviewUrl && (
-              <button aria-label="Clear back image" className="card-grader__clear" type="button" onClick={() => clearImage("back")}><X aria-hidden="true" /></button>
-            )}
-          </div>
+            return (
+              <div className="card-grader__upload-side" key={option.side}>
+                <div className="card-grader__side-heading">
+                  <strong>{option.heading}</strong>
+                  <span className={`card-grader__badge ${option.badgeClassName}`}>{option.badge}</span>
+                  {option.headingNote && <small>{option.headingNote}</small>}
+                </div>
+                <label
+                  className={`card-grader__dropzone${draggingSide === option.side ? " card-grader__dropzone--dragging" : ""}`}
+                  onDragEnter={(event) => { event.preventDefault(); setDraggingSide(option.side); }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDraggingSide(null); }}
+                  onDrop={(event) => handleDrop(option.side, event)}
+                >
+                  {image.previewUrl ? (
+                    <img src={image.previewUrl} alt={`${option.heading} of card preview`} />
+                  ) : (
+                    <span className="card-grader__upload-prompt">
+                      <span className="card-grader__upload-icon"><ImageUp aria-hidden="true" /></span>
+                      <strong>{option.prompt}</strong>
+                      <small>{option.promptNote}</small>
+                      {option.showDropHint && <em>Drag &amp; drop or click</em>}
+                    </span>
+                  )}
+                  <input key={image.previewUrl} accept="image/*" type="file" onChange={(event) => handleFileChange(option.side, event)} />
+                </label>
+                {image.previewUrl && (
+                  <button aria-label={`Clear ${option.side} image`} className="card-grader__clear" type="button" onClick={() => clearImage(option.side)}><X aria-hidden="true" /></button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="card-grader__btn-row">
-          <Button className="card-grader__estimate-button" disabled={scanDisabled} onClick={handleScan}>
-            {isScanning ? <LoaderCircle className="card-grader__spin" /> : <ScanSearch />}
-            {isScanning ? "Analyzing..." : "Get PSA Estimate"}
-          </Button>
-          <Button className="card-grader__auth-button" disabled={!frontFile}><ScanSearch />Check Authenticity</Button>
+          {analysisOptions.map((option) => {
+            const isLoading = activeRequest === option.type;
+
+            return (
+              <Button
+                key={option.type}
+                className={option.buttonClassName}
+                disabled={actionDisabled}
+                onClick={() => runAnalysis(option.type, option.endpoint)}
+              >
+                {isLoading ? <LoaderCircle className="card-grader__spin" /> : <ScanSearch />}
+                {isLoading ? option.loadingLabel : option.label}
+              </Button>
+            );
+          })}
         </div>
 
       </div>
 
-      <div className="card-grader__result">
-        {error && <p className="card-grader__error">{error}</p>}
+      {analysisOptions.map(({ type, ResultView }) =>
+        selectedAnalysis === type ? (
+          <ResultView key={type} error={error} result={result} />
+        ) : null
+      )}
 
-        {!error && !grades && !grokResult && (
-          <p className="card-grader__empty">
-            Upload the front of a card to estimate its grade. A back photo is optional.
-          </p>
-        )}
-
-        {grokResult && (
-          <div className="card-grader__grok-result">{grokResult}</div>
-        )}
-
-        {grades && (
-          <>
-            <div className="card-grader__summary">
-              <div>
-                <span>Estimated grade</span>
-                <strong>{grades.final ?? "N/A"}</strong>
-              </div>
-              <div>
-                <span>Condition</span>
-                <strong>{grades.condition ?? "N/A"}</strong>
-              </div>
-            </div>
-
-            <div className="card-grader__scores">
-              {scoreRows.map(([label, value]) => (
-                <div className="card-grader__score" key={label}>
-                  <b>{label}</b>
-                  <span>{value ?? "N/A"}</span>
-                </div>
-              ))}
-            </div>
-
-            {(gradeRecord?._full_url_card || gradeRecord?._exact_url_card) && (
-              <div className="card-grader__images">
-                {gradeRecord._full_url_card && (
-                  <img src={gradeRecord._full_url_card} alt="Annotated card" />
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
     </div>
   );
 }

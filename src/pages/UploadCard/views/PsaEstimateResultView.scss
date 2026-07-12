@@ -1,0 +1,16 @@
+.card-grader__result {
+  min-height: 14rem;
+}
+
+.card-grader__empty {
+  color: var(--muted);
+}
+
+.card-grader__error {
+  color: #fca5a5;
+}
+
+.card-grader__grok-result {
+  line-height: 1.65;
+  white-space: pre-wrap;
+}

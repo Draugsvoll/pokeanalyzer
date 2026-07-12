@@ -1,35 +1,95 @@
 import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes";
 
+export const authenticityCheck: string =
+`
+You are a professional pokemon-card inspector. Verify if my pokemon card is real from image(s) provided. do a thorough analysis, take your time.
+Your response must be in a valid json format as shown below.
+dont subtract from the score because you cant do physical tests on it,
+just make note a note of it in limitations. if user dont supply the back of the card,
+explain how much that is shaving off the final score (inside the limitation field).
+If the image is hard to read, dont just make assumptions. Note what was hard to scan,
+what assumption you made and mention it in the response.
+
+Use the format as shown in example response below:
+
+{
+  "authenticity": {
+    "verdict": "Real",
+    "confidence_percentage": 85,
+    "confidence_level": "High",
+    "summary": "This card appears to be a genuine Base Set Poliwrath holo. No major red flags were detected."
+  },
+  "analysis_breakdown": [
+    {
+      "category": "Holo Pattern",
+      "score": 9,
+      "status": "Real",
+      "comment": "Starry background with colorful speckles matches authentic Base Set holo pattern."
+    },
+    {
+      "category": "Color & Saturation",
+      "score": 8,
+      "status": "Real",
+      "comment": "Good color depth on the blue background and yellow border."
+    },
+    {
+      "category": "Print Quality",
+      "score": 9,
+      "status": "Real",
+      "comment": "Text is sharp and clean with no blurring."
+    },
+    {
+      "category": "Swirl Pattern",
+      "score": 8,
+      "status": "Real",
+      "comment": "Spiral on the belly has the correct shape and placement."
+    },
+    {
+      "category": "Edges & Borders",
+      "score": 8,
+      "status": "Real",
+      "comment": "Clean yellow border with minimal whitening."
+    },
+    {
+      "category": "PSA Slab",
+      "score": 9,
+      "status": "Likely Real",
+      "comment": "Slab design and red label appear legitimate."
+    }
+  ],
+  "strengths": [
+    "Correct holo pattern",
+    "Good print quality and color balance",
+    "Card is professionally slabbed",
+    "Strong overall eye appeal"
+  ],
+  "limitations": [
+    "Back of the card not visible",
+    "Cannot perform physical checks (weight, texture)",
+    "No microscopic inspection possible"
+  ],
+  "recommendation": {
+    "should_grade": false,
+    "reason": "Already slabbed in what appears to be a legitimate PSA case.",
+    "suggested_action": "No further action needed unless you want a second opinion on the grade."
+  },
+  "metadata": {
+    "analyzed_at": "2026-07-08T13:49:00Z",
+    "analysis_type": "Visual authenticity + condition check",
+    "ai_confidence": 85,
+    "notes": "Analysis based on front view only. Back of card would increase confidence."
+  }
+}
+
+`
+
 const psaGrading: string = `
 Do a objective and honest PSA grading for the following card in a professional manner.
 Take your time, be strict and honest. If its hard to read details on the image,
-lean towards the conservative side of scoring. Give reasoning for every sub-score. All the scores
-must align with your reasoning. Overall Score at top
+lean towards the conservative side of scoring. If something was hard to measure on the image,
+mention it in the response and what assumptions you made. Give reasoning for every sub-score.
+All the scores must align with your reasoning. Overall Score at top
 `.trim();
-
-
-
-export function PsaGradingPrompt(
-  frontImageBase64: string,
-  backImageBase64?: string
-): GrokMultimodalMessage {
-  const images: GrokImageContent[] = [
-    { type: "input_image", image_url: frontImageBase64 },
-  ];
-
-  if (backImageBase64) {
-    images.push({ type: "input_image", image_url: backImageBase64 });
-  }
-
-  return {
-    role: "user",
-    content: [
-      { type: "input_text", text: psaGrading },
-      images[0],
-      ...images.slice(1),
-    ],
-  };
-}
 
 
 const collectorsAnalysis: string =
@@ -72,11 +132,31 @@ Now rank this card:
 
 `;
 
+export function authenticityCheckPrompt(
+  frontImageBase64: string,
+  backImageBase64?: string
+): GrokMultimodalMessage {
+  const images: GrokImageContent[] = [
+    { type: "input_image", image_url: frontImageBase64 },
+  ];
+
+  if (backImageBase64) {
+    images.push({ type: "input_image", image_url: backImageBase64 });
+  }
+
+  return {
+    role: "user",
+    content: [
+      { type: "input_text", text: authenticityCheck.trim() },
+      images[0],
+      ...images.slice(1),
+    ],
+  };
+}
 
 
 const isWorthGrading: string =
 `
-
 You are an expert Pokémon TCG collector and market analyst.
 I will give you a specific Pokémon card. Your task is to analyze whether it is worth
 getting PSA graded and provide a clear, collector-focused response.
@@ -98,8 +178,8 @@ Card to analyze:
 
 export function isWorthGradingPrompt(cardNameAndSet: string): string {
   const instructions = isWorthGrading
-    .split("Card to analyze:")[0]
-    .trimEnd();
+  .split("Card to analyze:")[0]
+  .trimEnd();
 
   return `${instructions}\n\nCard to analyze:\n${cardNameAndSet}`;
 }
@@ -108,3 +188,26 @@ export function collectorsAnalysisPrompt(cardNameAndSet: string): string {
   const instructions = collectorsAnalysis.split("Now rank this card:")[0].trimEnd();
   return `${instructions}\n\nNow rank this card:\n${cardNameAndSet}`;
 }
+
+export function PsaGradingPrompt(
+  frontImageBase64: string,
+  backImageBase64?: string
+): GrokMultimodalMessage {
+  const images: GrokImageContent[] = [
+    { type: "input_image", image_url: frontImageBase64 },
+  ];
+
+  if (backImageBase64) {
+    images.push({ type: "input_image", image_url: backImageBase64 });
+  }
+
+  return {
+    role: "user",
+    content: [
+      { type: "input_text", text: psaGrading },
+      images[0],
+      ...images.slice(1),
+    ],
+  };
+}
+
