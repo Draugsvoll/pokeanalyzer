@@ -1,8 +1,9 @@
 import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import type { PokemonCard } from "../../../types/pokemon";
-import { parseJsonText } from "../../../utils/parseJsonText";
-import type { GrokRequestState } from "../../../utils/grok/grokClient";
+import type { PokemonCard } from "../../../../types/pokemon";
+import { parseJsonText } from "../../../../utils/parseJsonText";
+import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
   name: string;

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import type { PokemonCard } from "../../../types/pokemon";
+import type { PokemonCard } from "../../../../types/pokemon";
 import {
   getVisibleEbayCompResults,
   type EbayCompsResponse,
-} from "../../../utils/ebayComps";
+} from "../../../../utils/ebayComps";
+import "./EbaySoldView.scss";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 

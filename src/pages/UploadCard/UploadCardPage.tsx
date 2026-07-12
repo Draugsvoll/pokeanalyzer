@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ImageUp, LoaderCircle, ScanSearch, X } from "lucide-react";
-import Button from "../../../components/button/Button";
+import Button from "../../components/button/Button";
 import "./UploadCardPage.scss";
 
 const API_URL = import.meta.env.VITE_API_URL;

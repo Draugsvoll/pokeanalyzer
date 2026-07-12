@@ -2,8 +2,8 @@ import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes"
 
 const psaGrading: string = `
 Do a objective and honest PSA grading for the following card in a professional manner.
-Take your time, be objective and honest. If its hard to read details on the image,
-lean slightly on the conservative side. Give reasoning for every sub-score. All the scores
+Take your time, be strict and honest. If its hard to read details on the image,
+lean towards the conservative side of scoring. Give reasoning for every sub-score. All the scores
 must align with your reasoning. Overall Score at top
 `.trim();
 

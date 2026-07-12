@@ -1,4 +1,5 @@
-import type { GrokRequestState } from "../../../utils/grok/grokClient";
+import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import "./WorthGradingView.scss";
 
 type WorthGradingViewProps = {
   grokRequest: GrokRequestState;

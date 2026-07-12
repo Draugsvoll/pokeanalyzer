@@ -8,7 +8,7 @@ import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
 import GrokTester from "./components/grokTester/GrokTester";
 import OpenaiTesteer from "./components/openaiTesteer/OpenaiTesteer";
-import CardGrader from "./pages/pokemonDetails/views/UploadCardPage";
+import CardGrader from "./pages/UploadCard/UploadCardPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (

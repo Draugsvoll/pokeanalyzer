@@ -16,13 +16,13 @@ import {
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
-import CollectorAnalysis from "./views/CollectorAnalysisView";
-import EbaySoldView from "./views/EbaySoldView";
+import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
+import EbaySoldView from "./views/EbaySold/EbaySoldView";
 import {
   getFeatureStyles,
   type FeatureStyleColor,
 } from "../../utils/featureStylings";
-import { WorthGradingView } from "./views/WorthGradingView";
+import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
