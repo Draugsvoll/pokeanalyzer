@@ -13,6 +13,7 @@ import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import {
   collectorsAnalysisPrompt,
   isWorthGradingPrompt,
+  priceAnalysis,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
@@ -25,6 +26,7 @@ import {
 import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
+import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -32,6 +34,11 @@ type CardInfoField = {
   label: string;
   value: string | number | undefined;
   highlight?: boolean;
+};
+
+type FlatPriceField = {
+  label: string;
+  value: number | string;
 };
 
 type ActiveView =
@@ -92,6 +99,68 @@ function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   ];
 }
 
+function formatPriceLabel(value: string) {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function flattenPriceFields(value: unknown, parentLabel = ""): FlatPriceField[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+
+  return Object.entries(value).flatMap(([key, fieldValue]) => {
+    const label = [parentLabel, formatPriceLabel(key)].filter(Boolean).join(" · ");
+
+    if (typeof fieldValue === "number" || typeof fieldValue === "string") {
+      return [{ label, value: fieldValue }];
+    }
+
+    return flattenPriceFields(fieldValue, label);
+  });
+}
+
+function formatStoredPrice(value: number | string, currency: "USD" | "EUR") {
+  if (typeof value !== "number") return value;
+
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+  }).format(value);
+}
+
+function groupPriceFields(fields: FlatPriceField[], splitReverseHolo = false) {
+  const groups = Object.entries(
+    fields.reduce<Record<string, FlatPriceField[]>>((groups, field) => {
+      const parts = field.label.split(" · ");
+      const isReverseHolo = splitReverseHolo && field.label.startsWith("Reverse Holo ");
+      const group = isReverseHolo
+        ? "Reverse Holo"
+        : parts.length > 1
+          ? parts.shift() ?? "Prices"
+          : "Prices";
+      const groupedField = {
+        ...field,
+        label: isReverseHolo
+          ? field.label.replace(/^Reverse Holo /, "")
+          : parts.join(" · ") || field.label,
+      };
+      (groups[group] ??= []).push(groupedField);
+      return groups;
+    }, {})
+  );
+
+  return groups.map(([group, groupedFields]) => [
+    group,
+    [...groupedFields].sort((first, second) => {
+      const firstIsHighlighted = /market|trend/i.test(first.label);
+      const secondIsHighlighted = /market|trend/i.test(second.label);
+      return Number(secondIsHighlighted) - Number(firstIsHighlighted);
+    }),
+  ] as const);
+}
+
 export default function PokemonDetails() {
   const { id } = useParams();
   const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
@@ -134,6 +203,10 @@ export default function PokemonDetails() {
 
     const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
     let prompt = "";
+
+    if (aiFeature.view === "prices") {
+      prompt = priceAnalysis;
+    }
 
     if (aiFeature.view === "collector_analysis") {
       prompt = collectorsAnalysisPrompt(cardNameAndSet);
@@ -255,9 +328,12 @@ export default function PokemonDetails() {
   }
 
   const infoFields = getCardSetInfoFields(card);
-  const grokRequestCompleted =
-    !grokLoading && !grokError && Boolean(grokResponse);
   const cardIsSaved = isCardSaved(card.id);
+  const tcgplayerPriceFields = flattenPriceFields(card.tcgplayer?.prices);
+  const cardmarketPriceFields = flattenPriceFields(card.cardmarket?.prices);
+  const hasStoredPrices = tcgplayerPriceFields.length > 0 || cardmarketPriceFields.length > 0;
+  const tcgplayerPriceGroups = groupPriceFields(tcgplayerPriceFields);
+  const cardmarketPriceGroups = groupPriceFields(cardmarketPriceFields, true);
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
@@ -361,24 +437,92 @@ export default function PokemonDetails() {
           </div>
         )}
 
-        {activeView === "prices" && (
-          <>
-            {grokLoading && <p>Asking Grok...</p>}
-            {grokError && <p className="card-view__page-error">{grokError}</p>}
-            {grokRequestCompleted && <p>{grokResponse}</p>}
-          </>
-        )}
-
+        {activeView === "search_card" && <DatabaseSearch />}
+        {activeView === "ebay_sold" && <EbaySoldView card={card} />}
+        {activeView === "prices" && (<PriceAnalysis grokRequest={grokRequest} />)}
+        {activeView === "worth_grading" && (<WorthGradingView grokRequest={grokRequest} />)}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis card={card} grokRequest={grokRequest} />
         )}
-
-        {activeView === "search_card" && <DatabaseSearch />}
-        {activeView === "ebay_sold" && <EbaySoldView card={card} />}
-        {activeView === "worth_grading" && (
-          <WorthGradingView grokRequest={grokRequest} />
-        )}
       </section>
+
+      {hasStoredPrices && (
+        <div className="card-view__stored-prices">
+          <header className="card-view__stored-price-header">
+            <div>
+              {card.rarity && <span>{card.rarity}</span>}
+              {card.number && <code>{card.number}</code>}
+            </div>
+            <h2>{card.name}</h2>
+            {card.set?.name && (
+              <p>
+                {card.set.name}
+                {card.set.releaseDate ? ` • ${card.set.releaseDate.slice(0, 4)}` : ""}
+              </p>
+            )}
+          </header>
+
+          <div className="card-view__stored-price-sources">
+            {tcgplayerPriceFields.length > 0 && (
+              <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
+                <div className="card-view__stored-price-source-header">
+                  <span>T</span><div><h3>TCGPlayer</h3><small>United States Market</small></div>
+                </div>
+                <div className="card-view__stored-price-groups">
+                  {tcgplayerPriceGroups.map(([group, fields]) => (
+                    <section key={group}>
+                      {group !== "Prices" && <h4>{group}</h4>}
+                      {fields.map((field) => (
+                        <div className={`card-view__stored-price${field.label.toLowerCase().includes("market") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
+                          <span>{field.label}</span>
+                          <strong>{formatStoredPrice(field.value, "USD")}</strong>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {cardmarketPriceFields.length > 0 && (
+              <section className="card-view__stored-price-source card-view__stored-price-source--cardmarket">
+                <div className="card-view__stored-price-source-header">
+                  <span>C</span><div><h3>Cardmarket</h3><small>EU Market</small></div>
+                </div>
+                <div className="card-view__stored-price-groups">
+                  {cardmarketPriceGroups.map(([group, fields]) => (
+                    <section key={group}>
+                      {group !== "Prices" && <h4>{group}</h4>}
+                      {fields.map((field) => (
+                        <div className={`card-view__stored-price${field.label.toLowerCase().includes("trend") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
+                          <span>{field.label}</span>
+                          <strong>{formatStoredPrice(field.value, "EUR")}</strong>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          <aside className="card-view__price-legend">
+            <h3>ⓘ <span>Quick Legend</span></h3>
+            <div>
+              <p><strong>Market Price (TCGPlayer)</strong> — Average based on recent sales</p>
+              <p><strong>Trend Price (Cardmarket)</strong> — Algorithmic market value</p>
+              <p><strong>Low / Mid / High</strong> — Current listing range</p>
+              <p><strong>Average Sell Price</strong> — Actual recent sold prices</p>
+            </div>
+          </aside>
+
+          {(card.tcgplayer?.updatedAt || card.cardmarket?.updatedAt) && (
+            <p className="card-view__stored-price-updated">
+              Prices fluctuate quickly • Data updated {card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

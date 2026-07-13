@@ -85,7 +85,7 @@ async function requestGrokResponse(input: GrokInputMessage[]) {
       model: DEFAULT_GROK_MODEL,
       temperature: 0.0,
       reasoning: {
-        effort: "high", // none | low | medium | high
+        effort: "medium", // none | low | medium | high
       },
       instructions: "Answer the user's message clearly and concisely.",
       input,

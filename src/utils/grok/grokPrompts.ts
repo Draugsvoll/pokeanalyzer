@@ -1,5 +1,103 @@
 import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes";
 
+export const priceAnalysis: string =
+`
+If the data is available, can you show todays market prices for
+
+  "name": "Typhlosion",
+  "set": "Neo Genesis",
+  "number": "17/111",
+  "rarity": "Holo Rare"
+
+from tcgplayer and cardmarket. Add more reliable sources if they are available. Add
+the different price labels that are available from each site.
+
+Return as a valid JSON format, like the format example below. All fields are optional,
+and shall only be filled if you have reliable data.
+
+{
+  "card": {
+    "name": "Golem",
+    "set": "EX Dragon",
+    "number": "5/97",
+    "rarity": "Holo Rare"
+  },
+  "market_data": [
+    {
+      "source": "TCGplayer",
+      "market_price": {
+        "value": 42.21,
+        "currency": "USD"
+      },
+      "lowest_listing": {
+        "value": 12.24,
+        "currency": "USD",
+        "condition": "Unknown (likely lower than Near Mint)"
+      },
+      "most_recent_sale": {
+        "value": 20.48,
+        "currency": "USD"
+      },
+      "notes": "Current Market Price. Lowest listing appears to be a lower-condition copy rather than Near Mint.",
+      "url": "https://www.tcgplayer.com/product/85826/pokemon-dragon-golem"
+    },
+    {
+      "source": "Cardmarket",
+      "region": "EU",
+      "near_mint_listing": {
+        "value": 30.00,
+        "currency": "EUR"
+      },
+      "excellent_listing": {
+        "value": 32.00,
+        "currency": "EUR",
+        "condition": "EX"
+      },
+      "lowest_playable_listing": {
+        "value": 9.99,
+        "currency": "EUR",
+        "condition": "GD"
+      },
+      "notes": "Multiple Near Mint sellers currently asking €30.00.",
+      "url": "https://www.cardmarket.com/en/Pokemon/Products/Singles/EX-Dragon/Golem-DR5"
+    },
+    {
+      "source": "PriceCharting",
+      "recent_near_mint_sales": {
+        "currency": "USD",
+        "range": {
+          "min": 35.00,
+          "max": 47.50
+        },
+        "sales": [
+          35.00,
+          40.00,
+          41.92,
+          47.50,
+          57.64
+        ]
+      },
+      "notes": "Tracks completed sales rather than active listings. The $57.64 sale is considered a premium example.",
+      "url": "https://www.pricecharting.com/game/pokemon-dragon/golem-5"
+    },
+    {
+      "source": "PokeScope",
+      "market_price": {
+        "value": 42.21,
+        "currency": "USD"
+      },
+      "notes": "Aggregates current market value using recent eBay sales and historical pricing.",
+      "url": "https://pokescope.app/card/ex3-5/"
+    }
+  ],
+  "last_updated": "2026-07-13",
+  "currency_reference": {
+    "primary": "USD",
+    "secondary": "EUR"
+  }
+}
+`
+
 const identifyCard: string =
 `
 Identify the exact pokemon card provided in the image. Return a valid JSON containing
@@ -165,6 +263,50 @@ Return a clean JSON object with exactly these keys:
 Card to analyze:
 
 `;
+
+export const getBiggestMovers: string =
+`
+Summarize the biggest price movements in pokemon-cards for the last 7days.
+1 section for biggest gainers, and 1 for biggest losers.
+
+use this workflow:
+-Scan TCGMetric for biggest movers.
+-Verify the move using TCGplayer Market Price.
+
+Return only a valid JSON format as in the example response below.
+
+Get 5-10 cards for both biggest gainers and losers.
+
+"notes" field should mention the price before and after, and try to explain what caused the price movement. If you dont have enough reliable data to explain why the price moved, then dont mention it.
+
+{
+  "report_title": "Pokémon TCG Price Movers",
+  "period": "July 6 – July 13, 2026",
+  "top_gainers": [
+    {
+      "rank": 1,
+      "card": "Tyranitar V",
+      "set": "Fusion Strike",
+      "change": "+70–80%",
+      "notes": "TCGPlayer market price rose from $0.99 to $4.01. The price move was caused by hype from the big event"
+    },
+  ],
+  "top_losers": [
+    {
+      "rank": 1,
+      "card": "Primarina GX",
+      "set": "Sun & Moon",
+      "change": "-75–85%",
+      "notes": "TCGPlayer market price fell from $6.92 to $3.80 (-82%)."
+    },
+  ],
+  "market_context": "The Pokémon TCG singles market showed notable volatility over
+  the past ~30 days (mid-June to early July 2026), with strong gains concentrated
+  in Illustration Rares from newer sets like Black Bolt and White Flare, while older
+  GX/ex cards and certain trainers from Sun & Moon and other eras saw sharp declines.
+  Data derived from TCGPlayer market prices tracked by DigitalTQ."
+}
+`
 
 export const getGeneralNewsPrompt: string =
 `
