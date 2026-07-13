@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { BadgeDollarSign, Gem, LineChart, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
-import "../../components/frontpage/Frontpage.scss";
+import "../../components/welcomeView/WelcomeView.scss";
 import type { PokemonCard } from "../../types/pokemon";
 import {
   getSelectedPokemonFromCache,

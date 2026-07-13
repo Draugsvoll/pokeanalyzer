@@ -18,6 +18,60 @@
   width:var(--card-big);
 }
 
+.pokemon-card__identity {
+  min-width: 0;
+  width: 100%;
+}
+
+.base-card:has(.pokemon-card__identity) {
+  gap: 0.45rem;
+}
+
+.base-card .pokemon-card__name,
+.pokemon-card__set {
+  display: block;
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pokemon-card__price {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+
+  span {
+    color: var(--text);
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+}
+
+.base-card .pokemon-card__name {
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.pokemon-card__set {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.05rem;
+}
+
 .rarity-symbol {
   display:none;
   img {

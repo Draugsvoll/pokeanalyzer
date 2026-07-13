@@ -1,4 +1,4 @@
-.frontpage-container {
+.welcome-view {
   width: 100%;
   min-height: 100vh;
 
@@ -197,7 +197,7 @@
 }
 
 @media (max-width: 48rem) {
-  .frontpage-container section + section {
+  .welcome-view section + section {
     margin-top: 2rem;
   }
 

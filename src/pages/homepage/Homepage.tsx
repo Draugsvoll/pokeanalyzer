@@ -1,11 +1,14 @@
-import { Frontpage } from '../../components/frontpage/Frontpage';
-import CardGrader from '../UploadCard/UploadCardPage';
+import { GeneralNews } from '../../components/newslane/news/general/GeneralNews';
+import { NewsLane } from '../../components/newslane/Newslane';
+import { WelcomeView } from '../../components/welcomeView/WelcomeView';
 import './Homepage.scss'
 
 export default function Homepage() {
   return (
     <div className="page-container">
-      <Frontpage />
+      <WelcomeView />
+      <GeneralNews></GeneralNews>
+      <NewsLane></NewsLane>
     </div>
   );
 }

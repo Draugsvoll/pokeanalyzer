@@ -166,6 +166,41 @@ Card to analyze:
 
 `;
 
+export const getGeneralNewsPrompt: string =
+`
+You are an expert Pokémon TCG collector community analyst.
+
+Your task is to research and summarize the **latest trends** in the Pokémon TCG collector community the last 7days.
+
+Output **only valid JSON** in this exact structure:
+
+{
+  "overview": "1-2 sentence overview of the current state of the Pokémon TCG collector community.",
+  "trends": [
+    {
+      "number": 1,
+      "title": "Short Trend Title",
+      "label": "new release",
+      "context": "1-2 sentences giving context about this trend/news.",
+      "points": [
+        "Key point 1",
+        "Key point 2"
+      ]
+    }
+  ],
+  "overall_sentiment": "One concise sentence about the current mood in the community."
+}
+
+Instructions:
+- you can create more key points if needed.
+- Research and use the most recent Pokémon TCG news (focus on new sets, releases, promos, market trends, and collector activity).
+- Choose accurate short labels (examples: "new release", "anniversary", "market", "promos", "retail", "accessories", "events").
+- Keep "context" field to 1-2 informative sentences.
+- Use engaging but professional tone.
+- Do not include any explanations or text outside the JSON.
+- Current date reference: July 2026.
+`
+
 export function isWorthGradingPrompt(cardNameAndSet: string): string {
   const instructions = isWorthGrading
   .split("Card to analyze:")[0]

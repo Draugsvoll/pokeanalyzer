@@ -69,6 +69,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     savePortfolioToCache(updatedPortfolio);
   };
 
+  const updatePortfolioQuantityCache = (cardId: string, quantity: number) => {
+    const updatedPortfolio = portfolio.map((card) =>
+      card.id === cardId ? { ...card, quantity } : card
+    );
+    setPortfolio(updatedPortfolio);
+    savePortfolioToCache(updatedPortfolio);
+  };
+
   const isCardSaved = (cardId: string) => {
     return portfolio.some((card) => card.id === cardId);
   };
@@ -89,6 +97,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         initPortfolio,
         addToPortfolioCache,
         removeFromPortfolioCache,
+        updatePortfolioQuantityCache,
         isCardSaved,
       }}
     >

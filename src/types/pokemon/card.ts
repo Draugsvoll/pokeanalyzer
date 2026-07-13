@@ -28,4 +28,5 @@ export type PokemonCard = {
   images: CardImages;
   tcgplayer?: TCGPlayer;
   cardmarket?: CardMarket;
+  quantity?: number;
 };

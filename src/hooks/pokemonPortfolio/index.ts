@@ -6,7 +6,7 @@ import type { PokemonCard } from "../../types/pokemon";
 
 export function usePokemonPortfolio() {
   const { user: authUser } = useAuth();
-  const { addToPortfolioCache, removeFromPortfolioCache } =
+  const { addToPortfolioCache, removeFromPortfolioCache, updatePortfolioQuantityCache } =
     usePortfolioCache();
 
   const savePokemonToPortfolio = async (card: PokemonCard) => {
@@ -27,11 +27,16 @@ export function usePokemonPortfolio() {
     }
   };
 
-  const removePokemonFromPortfolio = async (cardId: string) => {
+  const removePokemonFromPortfolio = async (
+    cardId: string,
+    requireConfirmation = true
+  ) => {
     if (!authUser) return false;
 
-    const confirmed = window.confirm("Remove this card from your collection?");
-    if (!confirmed) return false;
+    if (requireConfirmation) {
+      const confirmed = window.confirm("Remove this card from your collection?");
+      if (!confirmed) return false;
+    }
 
     try {
       await deleteDoc(doc(db, "users", authUser.uid, "portfolio", cardId));
@@ -44,5 +49,23 @@ export function usePokemonPortfolio() {
     }
   };
 
-  return { savePokemonToPortfolio, removePokemonFromPortfolio };
+  const updatePokemonQuantity = async (cardId: string, quantity: number) => {
+    if (!authUser || quantity < 1) return false;
+
+    try {
+      await setDoc(
+        doc(db, "users", authUser.uid, "portfolio", cardId),
+        { quantity },
+        { merge: true }
+      );
+      updatePortfolioQuantityCache(cardId, quantity);
+      return true;
+    } catch (error) {
+      console.error("Failed to update card quantity:", error);
+      alert("Failed to update card quantity.");
+      return false;
+    }
+  };
+
+  return { savePokemonToPortfolio, removePokemonFromPortfolio, updatePokemonQuantity };
 }

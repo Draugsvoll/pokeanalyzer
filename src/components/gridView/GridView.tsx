@@ -3,8 +3,9 @@ import "./GridView.scss";
 
 type GridViewProps = {
   children: React.ReactNode;
+  className?: string;
 };
 
-export function GridView({ children }: GridViewProps) {
-  return <div className="grid-view-container">{children}</div>;
+export function GridView({ children, className = "" }: GridViewProps) {
+  return <div className={`grid-view-container${className ? ` ${className}` : ""}`}>{children}</div>;
 }

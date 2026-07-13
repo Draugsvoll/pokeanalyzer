@@ -1,0 +1,69 @@
+.general-news {
+  color: #e2e8f0;
+  margin: 0 auto;
+  max-width: 64rem;
+  width: 100%;
+}
+
+.general-news__header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+}
+
+.general-news__error { color: #fca5a5; }
+.general-news__raw { line-height: 1.65; white-space: pre-wrap; }
+
+.general-news__overview {
+  color: #cbd5e1;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  margin: 0 0 1.5rem;
+  max-width: 48rem;
+}
+
+.general-news__trends {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.general-news__trend {
+  align-items: flex-start;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 1.5rem;
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+}
+
+.general-news__trend-number {
+  color: #64748b;
+  flex: 0 0 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.general-news__trend-content { flex: 1; min-width: 0; }
+.general-news__trend-heading { align-items: center; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.general-news__trend-heading h2 { color: #fff; font-size: 1.1rem; margin: 0; }
+.general-news__trend-heading span { background: #1e293b; border-radius: 999px; color: #fbbf24; font-size: 0.7rem; padding: 0.3rem 0.7rem; text-transform: capitalize; }
+.general-news__trend-content > p { color: #cbd5e1; line-height: 1.55; margin: 0.65rem 0 0; }
+.general-news__trend-content ul { color: #94a3b8; font-size: 0.85rem; line-height: 1.6; margin: 0.75rem 0 0; padding-left: 1.2rem; }
+
+.general-news__sentiment {
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid #334155;
+  border-radius: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+
+  span { color: #fbbf24; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  p { color: #cbd5e1; line-height: 1.55; margin: 0.4rem 0 0; }
+}
+
+@media (max-width: 46rem) {
+  .general-news__trend { padding: 1.25rem; }
+}

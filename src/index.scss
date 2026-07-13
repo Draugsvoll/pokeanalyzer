@@ -14,7 +14,7 @@
       rgba(59, 130, 246, 0.10) 35%,
       rgba(11, 9, 18, 0.0) 70%
     ),var(--bg); /* base bg */
-    
+
 
   --bg:#191724;
   --bg-secondary:rgba(255, 255, 255, 0.04);
@@ -35,6 +35,33 @@
   box-sizing: border-box;
 }
 
+.ui-fade {
+  opacity: 0;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+  visibility: hidden;
+}
+
+.ui-fade--visible {
+  opacity: 1;
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.ui-fade--slow {
+  transition-duration: 0.4s, 0s;
+  transition-delay: 0s, 0.4s;
+
+  &.ui-fade--visible {
+    transition-delay: 0s;
+  }
+}
+
+@starting-style {
+  .ui-fade--visible {
+    opacity: 0;
+  }
+}
+
 body {
   margin: 0;
   display: flex;
@@ -49,5 +76,5 @@ body {
 }
 
 .main-content {
-  padding: 3rem 0;
+  padding: 3rem 2rem;
 }
