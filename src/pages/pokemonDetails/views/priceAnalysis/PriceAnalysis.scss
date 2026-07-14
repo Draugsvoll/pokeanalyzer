@@ -4,23 +4,6 @@
   max-width: 64rem;
   width: 100%;
 
-  &__header { margin-bottom: 2rem; }
-
-  &__header h2 {
-    color: #fff;
-    font-size: clamp(2.5rem, 6vw, 3.25rem);
-    letter-spacing: -0.055em;
-    margin: 0.4rem 0 0;
-  }
-
-  &__card-meta { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; }
-  &__card-meta > span {
-    background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.3);
-    border-radius: 999px; color: #facc15; font-size: 0.75rem; font-weight: 700;
-    padding: 0.3rem 1rem; text-transform: uppercase;
-  }
-  &__card-meta p { color: #a1a1aa; font-family: monospace; font-size: 0.875rem; margin: 0; }
-
   &__section-title {
     color: #71717a; font-size: 0.75rem; letter-spacing: 0.08em; margin: 0 0 1rem 0.25rem;
     text-transform: uppercase;

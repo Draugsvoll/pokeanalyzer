@@ -179,11 +179,12 @@
   }
 
   &__stored-price-header { margin-bottom: 2rem; text-align: center; }
-  &__stored-price-header > div { align-items: center; background: #18181b; border: 1px solid #3f3f46; border-radius: 999px; display: inline-flex; gap: 0.75rem; margin-bottom: 0.75rem; padding: 0.5rem 1.5rem; }
+  &__stored-price-header > div { align-items: center; color: #a1a1aa; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-top: 0.5rem; }
   &__stored-price-header span { background: rgba(250, 204, 21, 0.1); border-radius: 999px; color: #facc15; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.75rem; text-transform: uppercase; }
   &__stored-price-header code { color: #a1a1aa; font-size: 0.85rem; }
-  &__stored-price-header h2 { color: #fff; font-size: 2.25rem; letter-spacing: -0.04em; margin: 0; }
-  &__stored-price-header p { color: #a1a1aa; font-size: 1.15rem; margin: 0.25rem 0 0; }
+  &__stored-price-header h2 { color: #fff; font-size: 2rem; letter-spacing: -0.04em; margin: 0; }
+  &__stored-price-header p { color: #a1a1aa; font-size: 1rem; margin: 0; }
+  &__stored-price-header i { color: #71717a; font-style: normal; }
 
   &__stored-price-sources {
     display: grid;
@@ -199,11 +200,12 @@
   &__stored-price-source--cardmarket &__stored-price-source-header > span { background: #10b981; }
   &__stored-price-source-header h3 { color: #fff; font-size: 1.4rem; margin: 0; }
   &__stored-price-source-header small { color: #fb923c; }
+  &__stored-price-summary { margin-left: auto; text-align: right; }
+  &__stored-price-summary strong { color: #34d399; display: block; font-family: monospace; font-size: 1.8rem; line-height: 1; }
   &__stored-price-source--cardmarket &__stored-price-source-header small { color: #34d399; }
 
-  &__stored-price-groups { display: grid; gap: 1.5rem; }
-  &__stored-price-groups > section + section { border-top: 1px solid #3f3f46; padding-top: 1rem; }
-  &__stored-price-groups h4 { color: #a1a1aa; font-size: 0.7rem; letter-spacing: 0.12em; margin: 0 0 0.5rem; text-transform: uppercase; }
+  &__stored-price-groups { align-content: start; display: grid; gap: 1.5rem; grid-auto-rows: max-content; }
+  &__stored-price-groups h4 { border-bottom: 1px solid #3f3f46; box-sizing: border-box; color: #a1a1aa; font-size: 0.7rem; height: 1.5rem; letter-spacing: 0.12em; line-height: 1rem; margin: 0 0 0.5rem; padding-bottom: 0.5rem; text-transform: uppercase; }
 
   &__stored-price {
     align-items: center;
@@ -223,13 +225,21 @@
     &--highlight span, &--highlight strong { color: #34d399; font-weight: 700; }
   }
 
-  &__price-legend { background: #18181b; border: 1px solid #3f3f46; border-radius: 1.5rem; margin-top: 2rem; padding: 1.5rem; }
-  &__price-legend h3 { color: #60a5fa; font-size: 1rem; margin: 0 0 0.75rem; }
-  &__price-legend h3 span { color: #fff; margin-left: 0.35rem; }
-  &__price-legend > div { display: grid; gap: 0.5rem 2rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  &__price-legend { background: #18181b; border: 1px solid #3f3f46; border-radius: 1.5rem; display: grid; gap: 2rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 2rem; padding: 1.5rem; }
+  &__price-legend h3 { color: #fff; font-size: 0.85rem; margin: 0 0 0.15rem; }
+  &__price-legend section { align-content: start; display: grid; gap: 0.35rem; }
+  &__price-legend-header { align-items: center; display: flex; gap: 0.5rem; margin-bottom: 0.15rem; }
+  &__price-legend-header > span { align-items: center; background: #f97316; border-radius: 0.6rem; color: #fff; display: flex; font-size: 0.65rem; font-weight: 800; height: 1.5rem; justify-content: center; width: 1.5rem; }
+  &__price-legend-source--cardmarket &__price-legend-header > span { background: #10b981; }
+  &__price-legend-header h3 { margin: 0; }
   &__price-legend p { color: #a1a1aa; font-size: 0.75rem; margin: 0; }
   &__price-legend strong { color: #fff; }
   &__stored-price-updated { color: #71717a; font-size: 0.75rem; margin: 1.5rem 0 0; text-align: center; }
+
+  &__just-tcg-output {
+    max-width: 72rem;
+    width: 100%;
+  }
 
   &__empty-view {
     min-height: 7rem;
@@ -277,6 +287,6 @@
     }
 
     &__stored-price-sources { grid-template-columns: 1fr; }
-    &__price-legend > div { grid-template-columns: 1fr; }
+    &__price-legend { grid-template-columns: 1fr; }
   }
 }

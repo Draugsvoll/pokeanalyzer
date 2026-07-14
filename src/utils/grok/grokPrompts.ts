@@ -4,13 +4,18 @@ export const priceAnalysis: string =
 `
 If the data is available, can you show todays market prices for
 
-  "name": "Typhlosion",
-  "set": "Neo Genesis",
-  "number": "17/111",
-  "rarity": "Holo Rare"
+  "name": "golem",
+  "set": "dragon",
+  "number": "5",
 
-from tcgplayer and cardmarket. Add more reliable sources if they are available. Add
-the different price labels that are available from each site.
+Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
+If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
+
+In market_data field, you can add different types of market price data, as long as its
+relevant and valueable to the reader. Make sure the market_price field actually reflects the
+current realistic price of today.
+
+notes field should be concise and user-friendly to read.
 
 Return as a valid JSON format, like the format example below. All fields are optional,
 and shall only be filled if you have reliable data.
@@ -24,7 +29,7 @@ and shall only be filled if you have reliable data.
   },
   "market_data": [
     {
-      "source": "TCGplayer",
+      "source": "source",
       "market_price": {
         "value": 42.21,
         "currency": "USD"
@@ -42,7 +47,7 @@ and shall only be filled if you have reliable data.
       "url": "https://www.tcgplayer.com/product/85826/pokemon-dragon-golem"
     },
     {
-      "source": "Cardmarket",
+      "source": "source",
       "region": "EU",
       "near_mint_listing": {
         "value": 30.00,

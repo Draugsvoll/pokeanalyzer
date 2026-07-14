@@ -69,36 +69,17 @@ export function PriceAnalysis({ grokRequest }: PriceAnalysisProps) {
   const parsed = parseJsonText(response);
   if (!isRecord(parsed)) return <p>{response}</p>;
 
-  const card = isRecord(parsed.card) ? parsed.card : null;
   const marketData = Array.isArray(parsed.market_data)
     ? parsed.market_data.filter(isRecord)
     : [];
   const currencyReference = isRecord(parsed.currency_reference)
     ? parsed.currency_reference
     : null;
-  const cardName = card ? text(card.name) : null;
-  const cardRarity = card ? text(card.rarity) : null;
-  const cardDetails = card
-    ? [text(card.number), text(card.set)].filter(Boolean)
-    : [];
-
   return (
     <section className="price-analysis">
-      {card && (
-        <header className="price-analysis__header">
-          {(cardRarity || cardDetails.length > 0) && (
-            <div className="price-analysis__card-meta">
-              {cardRarity && <span>{cardRarity}</span>}
-              {cardDetails.length > 0 && <p>{cardDetails.join(" • ")}</p>}
-            </div>
-          )}
-          {cardName && <h2>{cardName}</h2>}
-        </header>
-      )}
-
       {marketData.length > 0 && (
         <div>
-          <h2 className="price-analysis__section-title">Market data sources</h2>
+          <h2 className="price-analysis__section-title">Other market sources</h2>
           <div className="price-analysis__markets">
           {marketData.map((market, index) => {
             const source = text(market.source);

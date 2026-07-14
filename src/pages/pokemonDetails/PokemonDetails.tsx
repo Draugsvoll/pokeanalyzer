@@ -27,6 +27,8 @@ import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
+import { fetchJustTcgCard } from "../../utils/fetchJustTcgCard";
+import { JustTcgVariants } from "./views/JustTcgVariants/JustTcgVariants";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -88,15 +90,31 @@ const AI_Features: AI_feature[] = [
   },
 ];
 
-function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
+function getCardSetInfoFields(
+  card: PokemonCard,
+  cardNumber: string | undefined = card.number
+): CardInfoField[] {
   return [
     { label: "Series", value: card.set?.series },
     { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
-    { label: "Kortnummer", value: card.number },
+    { label: "Kortnummer", value: cardNumber },
     { label: "Printed Total", value: card.set?.printedTotal },
     { label: "Set ID", value: card.set?.id },
     { label: "Release Date", value: card.set?.releaseDate },
   ];
+}
+
+function getJustTcgCardNumber(result: unknown): string | undefined {
+  if (!result || typeof result !== "object" || !("data" in result)) return undefined;
+
+  const data = result.data;
+  if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object") return undefined;
+
+  const number = "number" in data[0] ? data[0].number : undefined;
+  if (typeof number === "string" && number.trim()) return number;
+  if (typeof number === "number" && Number.isFinite(number)) return String(number);
+
+  return undefined;
 }
 
 function formatPriceLabel(value: string) {
@@ -175,6 +193,9 @@ export default function PokemonDetails() {
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
+  const [justTcgLoading, setJustTcgLoading] = useState(false);
+  const [justTcgError, setJustTcgError] = useState("");
+  const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
   const { isCardSaved } = usePortfolioCache();
 
@@ -188,6 +209,27 @@ export default function PokemonDetails() {
       await savePokemonToPortfolio(card);
     }
     setUpdatingPortfolio(false);
+  }
+
+  async function handleJustTcgFetch() {
+    if (!card || justTcgLoading) return;
+
+    if (!card.number) {
+      setJustTcgError("This card has no card number");
+      return;
+    }
+
+    setJustTcgLoading(true);
+    setJustTcgError("");
+    setJustTcgResult(null);
+
+    try {
+      setJustTcgResult(await fetchJustTcgCard(card.name, card.number));
+    } catch (error) {
+      setJustTcgError(error instanceof Error ? error.message : "JustTCG request failed");
+    } finally {
+      setJustTcgLoading(false);
+    }
   }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
@@ -327,13 +369,38 @@ export default function PokemonDetails() {
     );
   }
 
-  const infoFields = getCardSetInfoFields(card);
+  const displayedCardNumber = getJustTcgCardNumber(justTcgResult) ?? card.number;
+  const infoFields = getCardSetInfoFields(card, displayedCardNumber);
   const cardIsSaved = isCardSaved(card.id);
   const tcgplayerPriceFields = flattenPriceFields(card.tcgplayer?.prices);
   const cardmarketPriceFields = flattenPriceFields(card.cardmarket?.prices);
-  const hasStoredPrices = tcgplayerPriceFields.length > 0 || cardmarketPriceFields.length > 0;
+  const hiddenCardmarketFields = new Set([
+    "Low Price",
+    "Low",
+    "German Pro Low",
+    "Suggested Price",
+    "Low Price Ex Plus",
+    "Avg1",
+  ]);
+  const visibleCardmarketPriceFields = cardmarketPriceFields.filter(
+    (field) => {
+      const fieldName = field.label
+        .split(" · ")
+        .at(-1)
+        ?.replace(/^(?:Reverse Holo|Holo) /, "");
+
+      return !fieldName || !hiddenCardmarketFields.has(fieldName);
+    }
+  );
+  const hasStoredPrices = tcgplayerPriceFields.length > 0 || visibleCardmarketPriceFields.length > 0;
   const tcgplayerPriceGroups = groupPriceFields(tcgplayerPriceFields);
-  const cardmarketPriceGroups = groupPriceFields(cardmarketPriceFields, true);
+  const cardmarketPriceGroups = groupPriceFields(visibleCardmarketPriceFields, true);
+  const tcgplayerMarketPrice = tcgplayerPriceFields.find((field) =>
+    /market$/i.test(field.label)
+  );
+  const cardmarketTrendPrice = cardmarketPriceFields.find((field) =>
+    /trend price$/i.test(field.label)
+  );
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
@@ -396,6 +463,9 @@ export default function PokemonDetails() {
               >
                 <span>Change card</span>
               </Button>
+              <Button disabled={justTcgLoading} onClick={handleJustTcgFetch}>
+                <span>{justTcgLoading ? "Fetching..." : "just tcg api"}</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -449,17 +519,14 @@ export default function PokemonDetails() {
       {hasStoredPrices && (
         <div className="card-view__stored-prices">
           <header className="card-view__stored-price-header">
+            <h2>{card.name}</h2>
             <div>
               {card.rarity && <span>{card.rarity}</span>}
-              {card.number && <code>{card.number}</code>}
+              {card.rarity && displayedCardNumber && <i>•</i>}
+              {displayedCardNumber && <code>{displayedCardNumber}</code>}
+              {(card.rarity || displayedCardNumber) && card.set?.name && <i>•</i>}
+              {card.set?.name && <p>{card.set.name}</p>}
             </div>
-            <h2>{card.name}</h2>
-            {card.set?.name && (
-              <p>
-                {card.set.name}
-                {card.set.releaseDate ? ` • ${card.set.releaseDate.slice(0, 4)}` : ""}
-              </p>
-            )}
           </header>
 
           <div className="card-view__stored-price-sources">
@@ -467,11 +534,16 @@ export default function PokemonDetails() {
               <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
                 <div className="card-view__stored-price-source-header">
                   <span>T</span><div><h3>TCGPlayer</h3><small>United States Market</small></div>
+                  {tcgplayerMarketPrice && (
+                    <div className="card-view__stored-price-summary">
+                      <strong>{formatStoredPrice(tcgplayerMarketPrice.value, "USD")}</strong>
+                    </div>
+                  )}
                 </div>
                 <div className="card-view__stored-price-groups">
                   {tcgplayerPriceGroups.map(([group, fields]) => (
                     <section key={group}>
-                      {group !== "Prices" && <h4>{group}</h4>}
+                      <h4>{group === "Prices" ? null : group}</h4>
                       {fields.map((field) => (
                         <div className={`card-view__stored-price${field.label.toLowerCase().includes("market") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
                           <span>{field.label}</span>
@@ -484,15 +556,20 @@ export default function PokemonDetails() {
               </section>
             )}
 
-            {cardmarketPriceFields.length > 0 && (
+            {visibleCardmarketPriceFields.length > 0 && (
               <section className="card-view__stored-price-source card-view__stored-price-source--cardmarket">
                 <div className="card-view__stored-price-source-header">
                   <span>C</span><div><h3>Cardmarket</h3><small>EU Market</small></div>
+                  {cardmarketTrendPrice && (
+                    <div className="card-view__stored-price-summary">
+                      <strong>{formatStoredPrice(cardmarketTrendPrice.value, "EUR")}</strong>
+                    </div>
+                  )}
                 </div>
                 <div className="card-view__stored-price-groups">
                   {cardmarketPriceGroups.map(([group, fields]) => (
                     <section key={group}>
-                      {group !== "Prices" && <h4>{group}</h4>}
+                      <h4>{group === "Prices" ? null : group}</h4>
                       {fields.map((field) => (
                         <div className={`card-view__stored-price${field.label.toLowerCase().includes("trend") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
                           <span>{field.label}</span>
@@ -507,13 +584,20 @@ export default function PokemonDetails() {
           </div>
 
           <aside className="card-view__price-legend">
-            <h3>ⓘ <span>Quick Legend</span></h3>
-            <div>
-              <p><strong>Market Price (TCGPlayer)</strong> — Average based on recent sales</p>
-              <p><strong>Trend Price (Cardmarket)</strong> — Algorithmic market value</p>
-              <p><strong>Low / Mid / High</strong> — Current listing range</p>
-              <p><strong>Average Sell Price</strong> — Actual recent sold prices</p>
-            </div>
+            {tcgplayerPriceFields.length > 0 && (
+              <section className="card-view__price-legend-source card-view__price-legend-source--tcgplayer">
+                <div className="card-view__price-legend-header"><span>T</span><h3>TCGPlayer</h3></div>
+                <p><strong>Market Price:</strong> Average based on recent sales</p>
+                <p><strong>Low/Mid/High:  </strong>  Current listing range</p>
+              </section>
+            )}
+            {visibleCardmarketPriceFields.length > 0 && (
+              <section className="card-view__price-legend-source card-view__price-legend-source--cardmarket">
+                <div className="card-view__price-legend-header"><span>C</span><h3>Cardmarket</h3></div>
+                <p><strong>Trend Price:</strong> Algorithmic market value</p>
+                <p><strong>Average Sell Price:</strong> On low-volume cards, a few premium sales can inflate the price heavily. Trend Price is average over all conditions and overall supply.</p>
+              </section>
+            )}
           </aside>
 
           {(card.tcgplayer?.updatedAt || card.cardmarket?.updatedAt) && (
@@ -521,6 +605,13 @@ export default function PokemonDetails() {
               Prices fluctuate quickly • Data updated {card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt}
             </p>
           )}
+        </div>
+      )}
+
+      {(justTcgError || justTcgResult !== null) && (
+        <div className="card-view__just-tcg-output">
+          {justTcgError && <p className="card-view__page-error">{justTcgError}</p>}
+          {justTcgResult !== null && <JustTcgVariants response={justTcgResult} />}
         </div>
       )}
     </div>

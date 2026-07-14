@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
+import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
 import {
   gradeCardImage,
   XimilarCardGraderError,
@@ -171,6 +172,25 @@ app.get("/api/cards", (_req, res) => {
       res.json(cards);
     }
   );
+});
+
+app.get("/api/justtcg-card", async (req, res) => {
+  const name = typeof req.query.name === "string" ? req.query.name.trim() : "";
+  const number = typeof req.query.number === "string" ? req.query.number.trim() : "";
+
+  if (!name || !number) {
+    res.status(400).json({ message: "name and number are required" });
+    return;
+  }
+
+  try {
+    res.json(await fetchJustTcgCard(name, number));
+  } catch (error) {
+    console.error("JustTCG API request failed:", error);
+    res.status(error instanceof JustTcgApiError ? error.statusCode : 502).json({
+      message: error instanceof Error ? error.message : "JustTCG API request failed",
+    });
+  }
 });
 
 // SEARCH FUNCTION
