@@ -45,6 +45,59 @@
     }
   }
 
+  .profile__portfolio-header {
+    align-items: end;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .profile__estimated-value {
+    align-items: flex-end;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    text-align: right;
+
+    span,
+    small {
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.75rem;
+    }
+
+    strong {
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+  }
+
+  .profile__estimated-value-options {
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.35rem 0 0.45rem;
+
+    label {
+      align-items: center;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      font-size: 0.75rem;
+      gap: 0.3rem;
+    }
+
+    input {
+      accent-color: #fff;
+      cursor: pointer;
+      margin: 0;
+    }
+  }
+
   .profile__portfolio-card {
     align-items: center;
     display: flex;
@@ -187,5 +240,18 @@
 
     &::-webkit-inner-spin-button,
     &::-webkit-outer-spin-button { appearance: none; margin: 0; }
+  }
+
+  @media (max-width: 40rem) {
+    .profile__portfolio-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .profile__estimated-value {
+      align-items: flex-start;
+      text-align: left;
+      width: 100%;
+    }
   }
 }

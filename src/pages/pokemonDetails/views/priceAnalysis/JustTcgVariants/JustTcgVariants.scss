@@ -1,0 +1,84 @@
+@use "../../../../../styles/variables" as vars;
+
+.just-tcg-variants {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 72rem;
+  width: 100%;
+
+  &__section {
+    --variant-accent: #fb923c;
+    --variant-accent-bg: rgba(251, 146, 60, 0.1);
+    background: #18181b;
+    border: 1px solid rgba(249, 115, 22, 0.28);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    &--reverse {
+      --variant-accent: #60a5fa;
+      --variant-accent-bg: rgba(96, 165, 250, 0.1);
+      border-color: rgba(96, 165, 250, 0.28);
+    }
+  }
+
+  &__section > header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5rem 1.5rem 1rem;
+  }
+
+  &__heading {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  &__heading > div {
+    align-items: center;
+    background: var(--variant-accent-bg);
+    border-radius: 999px;
+    color: var(--variant-accent);
+    display: flex;
+    font-size: 0.875rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    padding: 0.3rem 0.9rem;
+  }
+
+  &__set-name {
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+  }
+
+  &__heading svg { height: 0.8rem; width: 0.8rem; }
+  &__section > header small { color: #a1a1aa; font-size: 0.75rem; }
+  &__table-wrap { padding: 0.25rem; }
+  table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+  th, td { overflow-wrap: anywhere; padding: 0.85rem 0.65rem; text-align: right; white-space: normal; }
+  th { color: #a1a1aa; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.02em; }
+  th:first-child, td:first-child { text-align: left; }
+  tbody td:first-child { font-weight: 500; }
+  td { color: #f4f4f5; font-size: 0.875rem; }
+  tbody tr + tr { border-top: 1px solid rgba(63, 63, 70, 0.5); }
+  tbody tr:hover td { background: rgba(63, 66, 71, 0.22); }
+  &__current { color: #fff !important; font-family: vars.$price-value-font-family; font-size: 1rem !important; font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: vars.$price-value-letter-spacing; }
+  &__below { color: #fbbf24 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; }
+  &__below span, &__below small { display: block; }
+  &__below span { letter-spacing: vars.$price-value-letter-spacing; }
+  &__below small { color: rgba(251, 191, 36, 0.7); font-size: 0.7rem; }
+  &__high { color: #34d399 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
+  &__low { color: #f87171 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
+  &__empty { color: #a1a1aa; }
+}
+
+@media (max-width: 64rem) {
+  .just-tcg-variants { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 40rem) {
+  .just-tcg-variants__section > header { align-items: flex-start; flex-direction: column; gap: 0.6rem; }
+}

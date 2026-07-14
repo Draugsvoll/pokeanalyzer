@@ -1,4 +1,6 @@
-.price-analysis {
+@use "../../../../styles/variables" as vars;
+
+.grok-price-analysis {
   color: #e4e4e7;
   margin: 0 auto;
   max-width: 64rem;
@@ -27,26 +29,27 @@
   &__source h3 { color: #fff; font-size: 1.2rem; margin: 0; }
   &__source small { color: var(--source-color); }
 
+  &__price-details { display: grid; gap: 0.9rem; padding-bottom: 0.75rem; }
+  &__price-details > :empty { display: none; }
   &__prices { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
   &__price > span, &__range > span, &__sales > span {
     color: #71717a; display: block; font-size: 0.65rem; font-weight: 700;
-    letter-spacing: 0.05em; margin-bottom: 0.25rem; text-transform: uppercase;
+    letter-spacing: 0.05em; line-height: 1; margin-bottom: 0.25rem; text-transform: uppercase;
   }
-  &__price strong, &__range strong { color: #fff; display: block; font-size: 1.7rem; letter-spacing: -0.05em; }
+  &__price strong, &__range strong { display: block; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; line-height: 1.1; }
+  &__price strong { color: #fff; font-size: 1.8rem; font-weight: 700; }
   &__price small { color: #fbbf24; display: block; font-size: 0.65rem; margin-top: 0.15rem; }
-  &__range { margin-top: 0.25rem; }
-  &__range strong { color: #34d399; }
-  &__sales { margin-top: 0.9rem; }
-  &__sales > div { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  &__sales strong { background: rgba(52, 211, 153, 0.1); border-radius: 999px; color: #34d399; font-size: 0.8rem; padding: 0.3rem 0.75rem; }
-  &__notes { border-top: 1px solid #3f3f46; color: #d4d4d8; font-size: 0.875rem; line-height: 1.55; margin: 1rem 0 0; padding-top: 1rem; }
+  &__range strong { color: #34d399; font-size: 1.5rem; font-weight: 700; }
+  &__sales > div { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0; }
+  &__sales strong { background: rgba(52, 211, 153, 0.1); border-radius: 999px; color: #34d399; font-family: vars.$price-value-font-family; font-size: 0.8rem; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; padding: 0.3rem 0.75rem; }
+  &__notes { border-top: 1px solid #3f3f46; color: #d4d4d8; font-size: 0.875rem; line-height: 1.55; margin: 1rem 0 0; padding-top: 1rem; font-weight: 500; }
   &__market > a { align-items: center; background: var(--source-color); border-radius: 999px; color: #fff; display: flex; font-size: 0.85rem; font-weight: 700; gap: 0.5rem; justify-content: center; margin-top: 1.25rem; padding: 0.7rem 1rem; text-decoration: none; }
   &__market > a svg { height: 0.8rem; width: 0.8rem; }
   &__footer { color: #71717a; display: flex; font-size: 0.75rem; gap: 0.75rem; justify-content: center; margin-top: 2rem; }
 }
 
 @media (max-width: 46rem) {
-  .price-analysis {
+  .grok-price-analysis {
     &__markets { grid-template-columns: 1fr; }
     &__footer { align-items: center; flex-direction: column; }
   }

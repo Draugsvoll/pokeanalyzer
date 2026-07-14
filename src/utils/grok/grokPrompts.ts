@@ -2,11 +2,7 @@ import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes"
 
 export const priceAnalysis: string =
 `
-If the data is available, can you show todays market prices for
-
-  "name": "golem",
-  "set": "dragon",
-  "number": "5",
+If the data is available, please show todays market prices for the pokemon card i provided.
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
 If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
@@ -15,7 +11,7 @@ In market_data field, you can add different types of market price data, as long 
 relevant and valueable to the reader. Make sure the market_price field actually reflects the
 current realistic price of today.
 
-notes field should be concise and user-friendly to read.
+notes field should be concise and user-friendly to read. Its a summary.
 
 Return as a valid JSON format, like the format example below. All fields are optional,
 and shall only be filled if you have reliable data.
@@ -102,6 +98,18 @@ and shall only be filled if you have reliable data.
   }
 }
 `
+
+export function priceAnalysisPrompt(
+  name: string,
+  setName: string,
+  number: string | number
+): string {
+  return `"name": ${JSON.stringify(name)},
+          "set": ${JSON.stringify(setName)},
+          "number": ${JSON.stringify(String(number))},
+
+          ${priceAnalysis}`;
+}
 
 const identifyCard: string =
 `

@@ -1,16 +1,19 @@
 const JUST_TCG_API_URL = "https://api.justtcg.com/v1/cards";
 
 export class JustTcgApiError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode: number
-  ) {
+  readonly statusCode: number;
+
+  constructor(message: string, statusCode: number) {
     super(message);
     this.name = "JustTcgApiError";
+    this.statusCode = statusCode;
   }
 }
 
-export async function fetchJustTcgCard(name: string, number: string): Promise<unknown> {
+export async function fetchJustTcgCard(
+  name: string,
+  number: string
+): Promise<unknown> {
   const apiKey = process.env.JUSTTCG_API_KEY ?? process.env.VITE_JUSTTCG_API_KEY;
 
   if (!apiKey) {

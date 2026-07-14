@@ -12,6 +12,13 @@ type JustTcgVariant = {
   allTimeLow?: number;
 };
 
+type JustTcgVariantGroup = {
+  id: string;
+  printing: string;
+  setName: string;
+  variants: JustTcgVariant[];
+};
+
 type JustTcgVariantsProps = {
   response: unknown;
 };
@@ -24,13 +31,18 @@ function optionalNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function parseVariants(response: unknown): JustTcgVariant[] {
+function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
   if (!isRecord(response) || !Array.isArray(response.data)) return [];
 
   return response.data.flatMap((card, cardIndex) => {
     if (!isRecord(card) || !Array.isArray(card.variants)) return [];
 
-    return card.variants
+    const cardId = String(card.id ?? cardIndex);
+    const setName =
+      typeof card.set_name === "string" && card.set_name
+        ? card.set_name
+        : "Unknown set";
+    const variants = card.variants
       .filter(isRecord)
       .map((variant, variantIndex) => ({
         id:
@@ -49,6 +61,21 @@ function parseVariants(response: unknown): JustTcgVariant[] {
         allTimeHigh: optionalNumber(variant.maxPriceAllTime),
         allTimeLow: optionalNumber(variant.minPriceAllTime),
       }));
+
+    return Object.entries(
+      variants.reduce<Record<string, JustTcgVariant[]>>((groups, variant) => {
+        (groups[variant.printing] ??= []).push(variant);
+        return groups;
+      }, {})
+    ).map(([printing, groupedVariants]) => ({
+      id: `${cardId}-${printing}`,
+      printing,
+      setName,
+      variants: [...groupedVariants].sort(
+        (first, second) =>
+          (second.price ?? -Infinity) - (first.price ?? -Infinity)
+      ),
+    }));
   });
 }
 
@@ -61,35 +88,28 @@ function formatUsd(value: number | undefined): string {
 }
 
 export function JustTcgVariants({ response }: JustTcgVariantsProps) {
-  const variants = parseVariants(response);
+  const groups = parseVariantGroups(response);
 
-  if (!variants.length) {
+  if (!groups.length) {
     return <p className="just-tcg-variants__empty">No JustTCG variants were returned.</p>;
   }
 
-  const groups = Object.entries(
-    variants.reduce<Record<string, JustTcgVariant[]>>((result, variant) => {
-      (result[variant.printing] ??= []).push(variant);
-      return result;
-    }, {})
-  ).map(([printing, groupedVariants]) => [
-    printing,
-    [...groupedVariants].sort((first, second) => (second.price ?? -Infinity) - (first.price ?? -Infinity)),
-  ] as const);
-
   return (
     <div className="just-tcg-variants">
-      {groups.map(([printing, groupedVariants]) => {
+      {groups.map(({ id, printing, setName, variants }) => {
         const reverse = printing.toLowerCase().includes("reverse");
 
         return (
           <section
             className={`just-tcg-variants__section${reverse ? " just-tcg-variants__section--reverse" : ""}`}
-            key={printing}
+            key={id}
           >
             <header>
-              <div><Layers3 aria-hidden="true" /><span>{printing}</span></div>
-              <small>Sorted by price (desc)</small>
+              <div className="just-tcg-variants__heading">
+                <div><Layers3 aria-hidden="true" /><span>{printing}</span></div>
+                <span className="just-tcg-variants__set-name">{setName}</span>
+              </div>
+              <small>Sorted by price</small>
             </header>
 
             <div className="just-tcg-variants__table-wrap">
@@ -104,7 +124,7 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {groupedVariants.map((variant) => {
+                  {variants.map((variant) => {
                     const canCalculateBelowAth =
                       variant.price !== undefined &&
                       variant.allTimeHigh !== undefined &&

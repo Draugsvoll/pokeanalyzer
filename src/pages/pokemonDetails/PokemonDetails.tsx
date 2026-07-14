@@ -13,7 +13,7 @@ import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import {
   collectorsAnalysisPrompt,
   isWorthGradingPrompt,
-  priceAnalysis,
+  priceAnalysisPrompt,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
@@ -27,8 +27,10 @@ import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
-import { fetchJustTcgCard } from "../../utils/fetchJustTcgCard";
-import { JustTcgVariants } from "./views/JustTcgVariants/JustTcgVariants";
+import {
+  fetchJustTcgCard,
+  verifyJustTcgCard,
+} from "../../utils/fetchJustTcgCard";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -36,11 +38,6 @@ type CardInfoField = {
   label: string;
   value: string | number | undefined;
   highlight?: boolean;
-};
-
-type FlatPriceField = {
-  label: string;
-  value: number | string;
 };
 
 type ActiveView =
@@ -117,68 +114,6 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
   return undefined;
 }
 
-function formatPriceLabel(value: string) {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function flattenPriceFields(value: unknown, parentLabel = ""): FlatPriceField[] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-
-  return Object.entries(value).flatMap(([key, fieldValue]) => {
-    const label = [parentLabel, formatPriceLabel(key)].filter(Boolean).join(" · ");
-
-    if (typeof fieldValue === "number" || typeof fieldValue === "string") {
-      return [{ label, value: fieldValue }];
-    }
-
-    return flattenPriceFields(fieldValue, label);
-  });
-}
-
-function formatStoredPrice(value: number | string, currency: "USD" | "EUR") {
-  if (typeof value !== "number") return value;
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
-  }).format(value);
-}
-
-function groupPriceFields(fields: FlatPriceField[], splitReverseHolo = false) {
-  const groups = Object.entries(
-    fields.reduce<Record<string, FlatPriceField[]>>((groups, field) => {
-      const parts = field.label.split(" · ");
-      const isReverseHolo = splitReverseHolo && field.label.startsWith("Reverse Holo ");
-      const group = isReverseHolo
-        ? "Reverse Holo"
-        : parts.length > 1
-          ? parts.shift() ?? "Prices"
-          : "Prices";
-      const groupedField = {
-        ...field,
-        label: isReverseHolo
-          ? field.label.replace(/^Reverse Holo /, "")
-          : parts.join(" · ") || field.label,
-      };
-      (groups[group] ??= []).push(groupedField);
-      return groups;
-    }, {})
-  );
-
-  return groups.map(([group, groupedFields]) => [
-    group,
-    [...groupedFields].sort((first, second) => {
-      const firstIsHighlighted = /market|trend/i.test(first.label);
-      const secondIsHighlighted = /market|trend/i.test(second.label);
-      return Number(secondIsHighlighted) - Number(firstIsHighlighted);
-    }),
-  ] as const);
-}
-
 export default function PokemonDetails() {
   const { id } = useParams();
   const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
@@ -224,7 +159,10 @@ export default function PokemonDetails() {
     setJustTcgResult(null);
 
     try {
-      setJustTcgResult(await fetchJustTcgCard(card.name, card.number));
+      const result = await fetchJustTcgCard(card.name, card.number);
+      setJustTcgResult(
+        verifyJustTcgCard(result, card.name, card.set.name, card.number)
+      );
     } catch (error) {
       setJustTcgError(error instanceof Error ? error.message : "JustTCG request failed");
     } finally {
@@ -247,7 +185,12 @@ export default function PokemonDetails() {
     let prompt = "";
 
     if (aiFeature.view === "prices") {
-      prompt = priceAnalysis;
+      prompt = priceAnalysisPrompt(
+        card?.name ?? "",
+        card?.set?.name ?? "",
+        card?.number ?? ""
+      );
+      void handleJustTcgFetch();
     }
 
     if (aiFeature.view === "collector_analysis") {
@@ -372,35 +315,6 @@ export default function PokemonDetails() {
   const displayedCardNumber = getJustTcgCardNumber(justTcgResult) ?? card.number;
   const infoFields = getCardSetInfoFields(card, displayedCardNumber);
   const cardIsSaved = isCardSaved(card.id);
-  const tcgplayerPriceFields = flattenPriceFields(card.tcgplayer?.prices);
-  const cardmarketPriceFields = flattenPriceFields(card.cardmarket?.prices);
-  const hiddenCardmarketFields = new Set([
-    "Low Price",
-    "Low",
-    "German Pro Low",
-    "Suggested Price",
-    "Low Price Ex Plus",
-    "Avg1",
-  ]);
-  const visibleCardmarketPriceFields = cardmarketPriceFields.filter(
-    (field) => {
-      const fieldName = field.label
-        .split(" · ")
-        .at(-1)
-        ?.replace(/^(?:Reverse Holo|Holo) /, "");
-
-      return !fieldName || !hiddenCardmarketFields.has(fieldName);
-    }
-  );
-  const hasStoredPrices = tcgplayerPriceFields.length > 0 || visibleCardmarketPriceFields.length > 0;
-  const tcgplayerPriceGroups = groupPriceFields(tcgplayerPriceFields);
-  const cardmarketPriceGroups = groupPriceFields(visibleCardmarketPriceFields, true);
-  const tcgplayerMarketPrice = tcgplayerPriceFields.find((field) =>
-    /market$/i.test(field.label)
-  );
-  const cardmarketTrendPrice = cardmarketPriceFields.find((field) =>
-    /trend price$/i.test(field.label)
-  );
 
   const imageGlowStyle = glowColor
     ? ({ "--card-glow": glowColor } as CSSProperties)
@@ -425,9 +339,10 @@ export default function PokemonDetails() {
           </div>
 
           <div className="card-view__info-side">
-            <h2 className="card-view__title">
-              {card.name} - {card.set?.name}
-            </h2>
+            <h2 className="card-view__title">{card.name}</h2>
+            {card.set?.name && (
+              <p className="card-view__title-set">{card.set.name}</p>
+            )}
 
             <div className="card-view__info-grid">
               {infoFields.map((field) => (
@@ -471,7 +386,7 @@ export default function PokemonDetails() {
         </div>
       </div>
 
-      <div className="card-view__actions feature-cards__row">
+      <div className="card-view__actions feature-buttons__row">
         {AI_Features.map((aiFeature) => {
           const Icon = aiFeature.icon;
 
@@ -479,18 +394,18 @@ export default function PokemonDetails() {
             <button
               key={aiFeature.view}
               type="button"
-              className={`feature-card${activeView === aiFeature.view ? " is-active" : ""}`}
+              className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}`}
               style={getCustomColors(aiFeature.color)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleFeatureClick(aiFeature)}
               aria-pressed={activeView === aiFeature.view}
             >
-              <span className="feature-card__icon" aria-hidden="true">
+              <span className="feature-button__icon" aria-hidden="true">
                 <Icon size={22} strokeWidth={2} />
               </span>
-              <span className="feature-card__text">
-                <span className="feature-card__title">{aiFeature.title}</span>
-                <span className="feature-card__description">
+              <span className="feature-button__text">
+                <span className="feature-button__title">{aiFeature.title}</span>
+                <span className="feature-button__description">
                   {aiFeature.description}
                 </span>
               </span>
@@ -499,7 +414,7 @@ export default function PokemonDetails() {
         })}
       </div>
 
-      <section className="card-view__page" aria-live="polite">
+      <section className={`card-view__page${activeView === "prices" ? " card-view__page--prices" : ""}`} aria-live="polite">
 
         {activeView === "empty_view" && (
           <div className="card-view__empty-view" aria-hidden="true">
@@ -509,111 +424,24 @@ export default function PokemonDetails() {
 
         {activeView === "search_card" && <DatabaseSearch />}
         {activeView === "ebay_sold" && <EbaySoldView card={card} />}
-        {activeView === "prices" && (<PriceAnalysis grokRequest={grokRequest} />)}
+        {activeView === "prices" && (
+          <PriceAnalysis
+            card={card}
+            cardNumber={displayedCardNumber}
+            grokRequest={grokRequest}
+            justTcgRequest={{
+              loading: justTcgLoading,
+              error: justTcgError,
+              response: justTcgResult,
+            }}
+          />
+        )}
         {activeView === "worth_grading" && (<WorthGradingView grokRequest={grokRequest} />)}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis card={card} grokRequest={grokRequest} />
         )}
       </section>
 
-      {hasStoredPrices && (
-        <div className="card-view__stored-prices">
-          <header className="card-view__stored-price-header">
-            <h2>{card.name}</h2>
-            <div>
-              {card.rarity && <span>{card.rarity}</span>}
-              {card.rarity && displayedCardNumber && <i>•</i>}
-              {displayedCardNumber && <code>{displayedCardNumber}</code>}
-              {(card.rarity || displayedCardNumber) && card.set?.name && <i>•</i>}
-              {card.set?.name && <p>{card.set.name}</p>}
-            </div>
-          </header>
-
-          <div className="card-view__stored-price-sources">
-            {tcgplayerPriceFields.length > 0 && (
-              <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
-                <div className="card-view__stored-price-source-header">
-                  <span>T</span><div><h3>TCGPlayer</h3><small>United States Market</small></div>
-                  {tcgplayerMarketPrice && (
-                    <div className="card-view__stored-price-summary">
-                      <strong>{formatStoredPrice(tcgplayerMarketPrice.value, "USD")}</strong>
-                    </div>
-                  )}
-                </div>
-                <div className="card-view__stored-price-groups">
-                  {tcgplayerPriceGroups.map(([group, fields]) => (
-                    <section key={group}>
-                      <h4>{group === "Prices" ? null : group}</h4>
-                      {fields.map((field) => (
-                        <div className={`card-view__stored-price${field.label.toLowerCase().includes("market") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
-                          <span>{field.label}</span>
-                          <strong>{formatStoredPrice(field.value, "USD")}</strong>
-                        </div>
-                      ))}
-                    </section>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {visibleCardmarketPriceFields.length > 0 && (
-              <section className="card-view__stored-price-source card-view__stored-price-source--cardmarket">
-                <div className="card-view__stored-price-source-header">
-                  <span>C</span><div><h3>Cardmarket</h3><small>EU Market</small></div>
-                  {cardmarketTrendPrice && (
-                    <div className="card-view__stored-price-summary">
-                      <strong>{formatStoredPrice(cardmarketTrendPrice.value, "EUR")}</strong>
-                    </div>
-                  )}
-                </div>
-                <div className="card-view__stored-price-groups">
-                  {cardmarketPriceGroups.map(([group, fields]) => (
-                    <section key={group}>
-                      <h4>{group === "Prices" ? null : group}</h4>
-                      {fields.map((field) => (
-                        <div className={`card-view__stored-price${field.label.toLowerCase().includes("trend") ? " card-view__stored-price--highlight" : ""}`} key={`${group}-${field.label}`}>
-                          <span>{field.label}</span>
-                          <strong>{formatStoredPrice(field.value, "EUR")}</strong>
-                        </div>
-                      ))}
-                    </section>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-
-          <aside className="card-view__price-legend">
-            {tcgplayerPriceFields.length > 0 && (
-              <section className="card-view__price-legend-source card-view__price-legend-source--tcgplayer">
-                <div className="card-view__price-legend-header"><span>T</span><h3>TCGPlayer</h3></div>
-                <p><strong>Market Price:</strong> Average based on recent sales</p>
-                <p><strong>Low/Mid/High:  </strong>  Current listing range</p>
-              </section>
-            )}
-            {visibleCardmarketPriceFields.length > 0 && (
-              <section className="card-view__price-legend-source card-view__price-legend-source--cardmarket">
-                <div className="card-view__price-legend-header"><span>C</span><h3>Cardmarket</h3></div>
-                <p><strong>Trend Price:</strong> Algorithmic market value</p>
-                <p><strong>Average Sell Price:</strong> On low-volume cards, a few premium sales can inflate the price heavily. Trend Price is average over all conditions and overall supply.</p>
-              </section>
-            )}
-          </aside>
-
-          {(card.tcgplayer?.updatedAt || card.cardmarket?.updatedAt) && (
-            <p className="card-view__stored-price-updated">
-              Prices fluctuate quickly • Data updated {card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt}
-            </p>
-          )}
-        </div>
-      )}
-
-      {(justTcgError || justTcgResult !== null) && (
-        <div className="card-view__just-tcg-output">
-          {justTcgError && <p className="card-view__page-error">{justTcgError}</p>}
-          {justTcgResult !== null && <JustTcgVariants response={justTcgResult} />}
-        </div>
-      )}
     </div>
   );
 }

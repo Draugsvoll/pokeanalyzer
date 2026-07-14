@@ -1,5 +1,6 @@
+@use "../../styles/variables" as vars;
+
 .card-view {
-  max-width: 80rem;
   width: 100%;
   margin: 0 auto;
   padding: 3rem 0rem;
@@ -31,7 +32,7 @@
   &__shell {
     display: flex;
     flex-direction: column;
-    width: max-content;
+    width: 48rem;
     max-width: 100%;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.5rem;
@@ -55,29 +56,40 @@
     display: block;
     width: 17.5rem;
     max-width: 100%;
+    height: auto;
+    object-fit: contain;
     border-radius: 16px;
   }
 
   &__info-side {
     @extend %shared-bg;
     width: 100%;
-    max-width: 20rem;
+    max-width: none;
     min-width: 0;
     padding: 2rem;
+    padding-top:1.7rem;
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
   }
 
   &__title {
-    margin: 0 0 1.5rem;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
     text-transform: capitalize;
     line-height: 1.25;
     color: #fff;
+    text-align: center;
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+
+  &__title-set {
+    color: #a1a1aa;
+    font-size: 1rem;
+    margin: 0.35rem 0 1.5rem;
+    text-align: center;
   }
 
   &__info-grid {
@@ -115,25 +127,13 @@
     max-width: 47rem;
     justify-content: center;
 
-    .feature-card {
+    .feature-button {
       width: 15rem;
       min-width: 15rem;
       max-width: 15rem;
-      background: linear-gradient(
-        145deg,
-        color-mix(in srgb, var(--feature-accent) 14%, rgba(255, 255, 255, 0.04)) 0%,
-        rgba(255, 255, 255, 0.03) 100%
-      );
 
       &:hover {
-        transform: none;
-        border-color: color-mix(in srgb, var(--feature-accent) 55%, transparent);
-        box-shadow: none;
-        background: linear-gradient(
-          145deg,
-          color-mix(in srgb, var(--feature-accent) 14%, rgba(255, 255, 255, 0.04)) 0%,
-          rgba(255, 255, 255, 0.03) 100%
-        );
+        transform: translateY(-2px);
       }
     }
   }
@@ -173,6 +173,14 @@
     color: #f87171;
   }
 
+  &__page--prices {
+    backdrop-filter: none;
+    background: transparent;
+    border: 0;
+    max-width: 72rem;
+    padding: 0;
+  }
+
   &__stored-prices {
     max-width: 72rem;
     width: 100%;
@@ -192,7 +200,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  &__stored-price-source { background: #18181b; border: 1px solid; border-radius: 1.5rem; padding: 2rem; }
+  &__stored-price-source { background: #18181b; border: 1px solid; border-radius: 1.5rem; display: flex; flex-direction: column; padding: 2rem; }
   &__stored-price-source--tcgplayer { border-color: rgba(249, 115, 22, 0.25); }
   &__stored-price-source--cardmarket { border-color: rgba(16, 185, 129, 0.25); }
   &__stored-price-source-header { align-items: center; display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -201,7 +209,7 @@
   &__stored-price-source-header h3 { color: #fff; font-size: 1.4rem; margin: 0; }
   &__stored-price-source-header small { color: #fb923c; }
   &__stored-price-summary { margin-left: auto; text-align: right; }
-  &__stored-price-summary strong { color: #34d399; display: block; font-family: monospace; font-size: 1.8rem; line-height: 1; }
+  &__stored-price-summary strong { color: #fff; display: block; font-family: vars.$price-value-font-family; font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: vars.$price-value-letter-spacing; line-height: 1; }
   &__stored-price-source--cardmarket &__stored-price-source-header small { color: #34d399; }
 
   &__stored-price-groups { align-content: start; display: grid; gap: 1.5rem; grid-auto-rows: max-content; }
@@ -213,9 +221,10 @@
     gap: 1rem;
     justify-content: space-between;
     padding: 0.25rem 0;
+    font-weight: 500;
 
     span { color: #d4d4d8; font-size: 0.85rem; }
-    strong { color: #fff; font-family: monospace; font-variant-numeric: tabular-nums; }
+    strong { color: #fff; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; font-weight: 400; letter-spacing: vars.$price-value-letter-spacing; }
     &--highlight {
       background: rgba(52, 211, 153, 0.07);
       border-radius: 0.5rem;
@@ -225,15 +234,23 @@
     &--highlight span, &--highlight strong { color: #34d399; font-weight: 700; }
   }
 
-  &__price-legend { background: #18181b; border: 1px solid #3f3f46; border-radius: 1.5rem; display: grid; gap: 2rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 2rem; padding: 1.5rem; }
-  &__price-legend h3 { color: #fff; font-size: 0.85rem; margin: 0 0 0.15rem; }
-  &__price-legend section { align-content: start; display: grid; gap: 0.35rem; }
+  &__stored-price-source--tcgplayer &__stored-price--highlight {
+    background: rgba(249, 115, 22, 0.08);
+  }
+  &__stored-price-source--tcgplayer &__stored-price--highlight span,
+  &__stored-price-source--tcgplayer &__stored-price--highlight strong { color: #f97316; }
+  &__stored-price-source--cardmarket &__stored-price--highlight {
+    background: rgba(16, 185, 129, 0.08);
+  }
+  &__stored-price-source--cardmarket &__stored-price--highlight span,
+  &__stored-price-source--cardmarket &__stored-price--highlight strong { color: #10b981; }
+
+  &__price-legend-source { align-content: start; border-top: 1px solid #3f3f46; display: grid; gap: 0.35rem; margin-top: auto; padding-top: 1.5rem; }
+  &__price-legend-source h3 { color: #fff; font-size: 0.85rem; margin: 0 0 0.15rem; }
   &__price-legend-header { align-items: center; display: flex; gap: 0.5rem; margin-bottom: 0.15rem; }
-  &__price-legend-header > span { align-items: center; background: #f97316; border-radius: 0.6rem; color: #fff; display: flex; font-size: 0.65rem; font-weight: 800; height: 1.5rem; justify-content: center; width: 1.5rem; }
-  &__price-legend-source--cardmarket &__price-legend-header > span { background: #10b981; }
   &__price-legend-header h3 { margin: 0; }
-  &__price-legend p { color: #a1a1aa; font-size: 0.75rem; margin: 0; }
-  &__price-legend strong { color: #fff; }
+  &__price-legend-source p { color: #a1a1aa; font-size: 0.75rem; margin: 0; }
+  &__price-legend-source strong { color: #fff; }
   &__stored-price-updated { color: #71717a; font-size: 0.75rem; margin: 1.5rem 0 0; text-align: center; }
 
   &__just-tcg-output {
@@ -253,12 +270,16 @@
   }
 
   .card-view__info-side {
-    width: 20rem;
-    flex: 0 0 20rem;
+    box-sizing: border-box;
+    flex: 0 0 50%;
+    width: 50%;
   }
 
   .card-view__image-side {
-    flex-shrink: 0;
+    box-sizing: border-box;
+    flex: 0 0 50%;
+    min-width: 0;
+    width: 50%;
   }
 }
 
@@ -280,13 +301,12 @@
       grid-template-columns: 1fr;
     }
 
-    &__actions .feature-card {
+    &__actions .feature-button {
       width: 100%;
       min-width: 0;
       max-width: none;
     }
 
     &__stored-price-sources { grid-template-columns: 1fr; }
-    &__price-legend { grid-template-columns: 1fr; }
   }
 }

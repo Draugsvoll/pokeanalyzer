@@ -14,6 +14,20 @@ import { useInitials } from "../../hooks/useInitials";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { formatTimestampString } from "../../utils/timestamp";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
+
+type EstimatedValueSource = "tcgplayer" | "cardmarket";
+
+function getEstimatedCardPrice(
+  card: PokemonCardType,
+  source: EstimatedValueSource
+) {
+  if (source === "tcgplayer") {
+    return getTcgPlayerMarketPrice(card.tcgplayer?.prices);
+  }
+
+  return card.cardmarket?.prices.trendPrice;
+}
 
 export default function Profile() {
   const { user: authUser, loading: authLoading, logout } = useAuth();
@@ -32,7 +46,38 @@ export default function Profile() {
     cardId: string;
     cardName: string;
   } | null>(null);
+  const [estimatedValueSource, setEstimatedValueSource] =
+    useState<EstimatedValueSource>("tcgplayer");
   const profileInitial = useInitials(profile?.firstName);
+  const estimatedCollectionValue = portfolio.reduce((total, card) => {
+    const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
+    if (marketPrice == null) return total;
+
+    return total + marketPrice * (card.quantity ?? 1);
+  }, 0);
+  const pricedCardsCount = portfolio.filter(
+    (card) => getEstimatedCardPrice(card, estimatedValueSource) != null
+  ).length;
+  const missingPriceCount = portfolio.length - pricedCardsCount;
+  const missingPriceMessage =
+    missingPriceCount === 0
+      ? null
+      : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price data`;
+  const estimatedValueSourceLabel =
+    estimatedValueSource === "tcgplayer" ? "TCGPlayer market price" : "Cardmarket trend price";
+  const estimatedCollectionValueLabel = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: estimatedValueSource === "tcgplayer" ? "USD" : "EUR",
+  }).format(estimatedCollectionValue);
+
+  useEffect(() => {
+    portfolio.forEach((card) => {
+      const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
+      if (marketPrice == null) {
+        console.log(`Portfolio card missing ${estimatedValueSourceLabel}:`, card);
+      }
+    });
+  }, [portfolio, estimatedValueSource, estimatedValueSourceLabel]);
 
   const requestQuantityChange = (card: PokemonCardType, amount: number) => {
     if (updatingQuantityId) return;
@@ -185,7 +230,34 @@ export default function Profile() {
       </div>
 
       <section className="profile__portfolio">
-        <h2>My collection</h2>
+        <div className="profile__portfolio-header">
+          <h2>My collection</h2>
+          <div className="profile__estimated-value">
+            <span>Estimated value</span>
+            <div className="profile__estimated-value-options" aria-label="Estimated value source">
+              <label>
+                <input
+                  type="radio"
+                  name="estimated-value-source"
+                  checked={estimatedValueSource === "tcgplayer"}
+                  onChange={() => setEstimatedValueSource("tcgplayer")}
+                />
+                TCGPlayer
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="estimated-value-source"
+                  checked={estimatedValueSource === "cardmarket"}
+                  onChange={() => setEstimatedValueSource("cardmarket")}
+                />
+                Cardmarket
+              </label>
+            </div>
+            <strong>{estimatedCollectionValueLabel}</strong>
+            {missingPriceMessage && <small>{missingPriceMessage}</small>}
+          </div>
+        </div>
 
         {portfolio.length === 0 ? (
           <p>No saved cards yet.</p>
