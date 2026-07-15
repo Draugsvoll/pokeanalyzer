@@ -7,10 +7,15 @@ import "./PokemonCard.scss";
 
 type PokemonCardProps = {
   card: PokemonCardType;
+  priceSource?: "tcgplayer" | "cardmarket";
 };
 
-export function PokemonCard({ card }: PokemonCardProps) {
+export function PokemonCard({ card, priceSource = "tcgplayer" }: PokemonCardProps) {
   const navigate = useNavigate();
+  const displayedPrice = priceSource === "tcgplayer"
+    ? getTcgPlayerMarketPrice(card.tcgplayer?.prices)
+    : card.cardmarket?.prices.trendPrice;
+  const currencySymbol = priceSource === "tcgplayer" ? "$" : "€";
   const handleClick = () => {
     navigateToPokemonCard(navigate, card);
   };
@@ -23,8 +28,7 @@ export function PokemonCard({ card }: PokemonCardProps) {
         <span className="pokemon-card__set" title={card.set?.name}>{card.set?.name ?? "Unknown set"}</span>
       </div>
       <p className="pokemon-card__price">
-        <span>{getTcgPlayerMarketPrice(card.tcgplayer?.prices) ?? 0}</span>
-        <small>NOK</small>
+        <span>{currencySymbol}{displayedPrice ?? 0}</span>
       </p>
     </BaseCard>
   );

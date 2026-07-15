@@ -1,0 +1,28 @@
+.app-btn.google-login-button {
+  align-items: center;
+  background: #171920;
+  border: 1px solid #454b59;
+  border-radius: 0.9rem;
+  color: #e5e7eb;
+  display: grid;
+  font-size: 1rem;
+  font-weight: 700;
+  grid-template-columns: 1.5rem 1fr 1.5rem;
+  min-height: 3.75rem;
+  padding: 0.75rem 1.75rem;
+  width: 100%;
+
+  svg {
+    height: 1.15rem;
+    width: 1.15rem;
+  }
+
+  span {
+    grid-column: 2;
+  }
+
+  &:hover:not(:disabled) {
+    background: #1d2028;
+    border-color: #626a7a;
+  }
+}

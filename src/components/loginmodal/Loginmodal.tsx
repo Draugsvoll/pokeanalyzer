@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import './Loginmodal.scss';
 import Button from "../button/Button";
-import { login } from "../../services/auth";
+import { login, signInWithGoogle } from "../../services/auth";
+import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
 
 type ModalProps = {
   isOpen: boolean;
@@ -26,8 +27,24 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       await login(email, password);
       onClose();
       navigate("/profile", { replace: true });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Innlogging mislyktes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (loading) return;
+
+    setError(null);
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      onClose();
+      navigate("/profile", { replace: true });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Google-innlogging mislyktes.");
     } finally {
       setLoading(false);
     }
@@ -37,6 +54,13 @@ return (
   <div className="overlay">
     <div className="modal">
       <h2>Logg inn</h2>
+
+      <GoogleLoginButton
+        disabled={loading}
+        onClick={() => void handleGoogleLogin()}
+      />
+
+      <div className="login-divider"><span>eller</span></div>
 
       <form onSubmit={handleLogin}>
         <input

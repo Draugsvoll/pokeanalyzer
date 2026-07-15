@@ -1,5 +1,5 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -22,6 +22,7 @@ import {
 } from "../../subscriptions";
 
 type EstimatedValueSource = "tcgplayer" | "cardmarket";
+type PortfolioSort = "default" | "price_desc" | "price_asc";
 
 function getEstimatedCardPrice(
   card: PokemonCardType,
@@ -74,9 +75,10 @@ export default function Profile() {
   } | null>(null);
   const [estimatedValueSource, setEstimatedValueSource] =
     useState<EstimatedValueSource>("tcgplayer");
+  const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
   const [selectedPlanId, setSelectedPlanId] =
     useState<MembershipPlanId>("collector");
-  const profileInitial = useInitials(profile?.firstName);
+  const profileInitial = useInitials(profile?.firstName?.trim() || profile?.email);
   const estimatedCollectionValue = portfolio.reduce((total, card) => {
     const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
     if (marketPrice == null) return total;
@@ -90,11 +92,27 @@ export default function Profile() {
   const missingPriceMessage =
     missingPriceCount === 0
       ? null
-      : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price data`;
+      : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price`;
   const estimatedCollectionValueLabel = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: estimatedValueSource === "tcgplayer" ? "USD" : "EUR",
   }).format(estimatedCollectionValue);
+  const sortedPortfolio = useMemo(() => {
+    if (portfolioSort === "default") return portfolio;
+
+    return [...portfolio].sort((firstCard, secondCard) => {
+      const firstPrice = getEstimatedCardPrice(firstCard, estimatedValueSource);
+      const secondPrice = getEstimatedCardPrice(secondCard, estimatedValueSource);
+
+      if (firstPrice == null && secondPrice == null) return 0;
+      if (firstPrice == null) return 1;
+      if (secondPrice == null) return -1;
+
+      return portfolioSort === "price_desc"
+        ? secondPrice - firstPrice
+        : firstPrice - secondPrice;
+    });
+  }, [estimatedValueSource, portfolio, portfolioSort]);
 
   const requestQuantityChange = (card: PokemonCardType, amount: number) => {
     if (updatingQuantityId) return;
@@ -179,7 +197,11 @@ export default function Profile() {
           return;
         }
 
-        const userData = userSnap.data();
+        const userData: UserProfile = {
+          ...userSnap.data(),
+          uid: authUser.uid,
+          email: userSnap.data().email ?? authUser.email ?? "",
+        };
 
         sessionStorage.setItem(cacheKey, JSON.stringify(userData));
         setProfile(userData);
@@ -319,30 +341,50 @@ export default function Profile() {
       <section className="profile__portfolio">
         <div className="profile__portfolio-header">
           <h2>My collection</h2>
-          <div className="profile__estimated-value">
-            <span>Estimated value</span>
-            <div className="profile__estimated-value-options" aria-label="Estimated value source">
-              <label>
-                <input
-                  type="radio"
-                  name="estimated-value-source"
-                  checked={estimatedValueSource === "tcgplayer"}
-                  onChange={() => setEstimatedValueSource("tcgplayer")}
-                />
-                TCGPlayer
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="estimated-value-source"
-                  checked={estimatedValueSource === "cardmarket"}
-                  onChange={() => setEstimatedValueSource("cardmarket")}
-                />
-                Cardmarket
-              </label>
+          <div className="profile__portfolio-tools">
+            <label className="profile__sort">
+              <span>Sort</span>
+              <select
+                value={portfolioSort}
+                onChange={(event) => setPortfolioSort(event.target.value as PortfolioSort)}
+              >
+                <option value="default">Default</option>
+                <option value="price_desc">Price high to low</option>
+                <option value="price_asc">Price low to high</option>
+              </select>
+            </label>
+            <div className="profile__estimated-value">
+              <div className="profile__estimated-value-row">
+                <span>Price source</span>
+                <div className="profile__estimated-value-options" aria-label="Estimated value source">
+                  <label>
+                    <input
+                      type="radio"
+                      name="estimated-value-source"
+                      checked={estimatedValueSource === "tcgplayer"}
+                      onChange={() => setEstimatedValueSource("tcgplayer")}
+                    />
+                    TCGPlayer
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="estimated-value-source"
+                      checked={estimatedValueSource === "cardmarket"}
+                      onChange={() => setEstimatedValueSource("cardmarket")}
+                    />
+                    Cardmarket
+                  </label>
+                </div>
+              </div>
+              <div className="profile__estimated-value-row">
+                <span>Estimated value</span>
+                <strong>{estimatedCollectionValueLabel}</strong>
+              </div>
+              {missingPriceMessage && (
+                <small className="profile__missing-price-data">{missingPriceMessage}</small>
+              )}
             </div>
-            <strong>{estimatedCollectionValueLabel}</strong>
-            {missingPriceMessage && <small>{missingPriceMessage}</small>}
           </div>
         </div>
 
@@ -350,9 +392,9 @@ export default function Profile() {
           <p>No saved cards yet.</p>
         ) : (
           <GridView className="ui-fade ui-fade--slow ui-fade--visible">
-            {portfolio.map((card: PokemonCardType) => (
+            {sortedPortfolio.map((card: PokemonCardType) => (
               <div key={card.id} className="profile__portfolio-card">
-                <PokemonCard card={card} />
+                <PokemonCard card={card} priceSource={estimatedValueSource} />
                 <div className="profile__card-actions ui-fade">
                   <div className="profile__quantity-control">
                     <button

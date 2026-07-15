@@ -1,30 +1,19 @@
 import type { serverTimestamp } from "firebase/firestore";
+import type { TimestampLike } from "../utils/timestamp";
 
-export type UserCreatedAt =
-  | { toDate?: () => Date }
-  | { seconds?: number }
-  | string;
+export type UserCreatedAt = Exclude<TimestampLike, null | undefined>;
 
 export type UserProfile = {
-  uid?: string;
-  username?: string;
+  uid: string;
+  email: string;
   firstName?: string;
-  lastName?: string;
-  email?: string;
-  city?: string;
-  address?: string;
-  avatar?: string | null;
   createdAt?: UserCreatedAt;
+  /** Legacy field retained for existing profiles. */
+  username?: string;
+  /** Legacy field retained for existing profiles. */
+  avatar?: string | null;
 };
 
-export type UserUpload = Omit<UserProfile, "createdAt"> & {
-  uid: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  city: string;
-  address: string;
-  avatar?: string | null;
+export type UserUpload = Pick<UserProfile, "uid" | "email" | "firstName"> & {
   createdAt: ReturnType<typeof serverTimestamp>;
 };
