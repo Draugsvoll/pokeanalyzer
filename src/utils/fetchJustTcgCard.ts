@@ -29,17 +29,6 @@ export function verifyJustTcgCard(
     return result;
   }
 
-  console.log("Original card set name:", setName);
-  result.data.forEach((card) => {
-    if (
-      card !== null &&
-      typeof card === "object" &&
-      "set_name" in card
-    ) {
-      console.log("Fetched card set name:", card.set_name);
-    }
-  });
-
   const matchingCards = result.data.filter((card) => {
     if (
       card === null ||

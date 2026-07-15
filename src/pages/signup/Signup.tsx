@@ -7,6 +7,7 @@ import { auth, db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/button/Button";
 import type { UserUpload } from "../../types/user.types";
+import { initializeFreeSubscription } from "../../subscriptions/subscriptionApi";
 
 export default function SignUpForm() {
   const [formData, setFormData] = useState({
@@ -81,6 +82,7 @@ export default function SignUpForm() {
         createdAt: serverTimestamp(),
       };
       await setDoc(userRef, user);
+      await initializeFreeSubscription(userCredential.user);
       setSuccess("Konto opprettet!");
       setAvatarFile(null);
       setAvatarPreview(null);

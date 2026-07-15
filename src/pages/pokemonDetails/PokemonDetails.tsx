@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { BadgeDollarSign, Gem, LineChart, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
@@ -31,6 +31,11 @@ import {
   fetchJustTcgCard,
   verifyJustTcgCard,
 } from "../../utils/fetchJustTcgCard";
+import {
+  useCredits,
+  useMembershipSubscription,
+  type CreditUsageFeature,
+} from "../../subscriptions";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -54,6 +59,7 @@ type AI_feature = {
   description: string;
   icon: LucideIcon;
   color: CustomColors;
+  creditFeature: CreditUsageFeature;
 };
 
 const AI_Features: AI_feature[] = [
@@ -63,6 +69,7 @@ const AI_Features: AI_feature[] = [
     description: "TCGPlayer og Cardmarket",
     icon: LineChart,
     color: "teal",
+    creditFeature: "price_analysis",
   },
   {
     view: "collector_analysis",
@@ -70,6 +77,7 @@ const AI_Features: AI_feature[] = [
     description: "AI-rangering for samlere",
     icon: Gem,
     color: "yellow",
+    creditFeature: "collector_analysis",
   },
   {
     view: "ebay_sold",
@@ -77,6 +85,7 @@ const AI_Features: AI_feature[] = [
     description: "Nylig solgte kort",
     icon: BadgeDollarSign,
     color: "orange",
+    creditFeature: "ebay_sold",
   },
   {
     view: "worth_grading",
@@ -84,6 +93,7 @@ const AI_Features: AI_feature[] = [
     description: "See if this card is worth getting PSA graded",
     icon: BadgeDollarSign,
     color: "pink",
+    creditFeature: "worth_grading",
   },
 ];
 
@@ -131,8 +141,22 @@ export default function PokemonDetails() {
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
+  const [featureCooldown, setFeatureCooldown] = useState(false);
+  const currentAnalysisRunId = useRef("");
+  const chargedAnalysisRunId = useRef("");
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
   const { isCardSaved } = usePortfolioCache();
+  const {
+    loadingSubscription,
+    subscription,
+    updateSubscription,
+  } = useMembershipSubscription();
+  const {
+    creditMessage,
+    creditsRemaining,
+    spendCredits,
+    updatingCredits,
+  } = useCredits(subscription, updateSubscription);
 
   async function handlePortfolioToggle() {
     if (!card || updatingPortfolio) return;
@@ -147,11 +171,11 @@ export default function PokemonDetails() {
   }
 
   async function handleJustTcgFetch() {
-    if (!card || justTcgLoading) return;
+    if (!card || justTcgLoading) return false;
 
     if (!card.number) {
       setJustTcgError("This card has no card number");
-      return;
+      return false;
     }
 
     setJustTcgLoading(true);
@@ -163,15 +187,36 @@ export default function PokemonDetails() {
       setJustTcgResult(
         verifyJustTcgCard(result, card.name, card.set.name, card.number)
       );
+      return true;
     } catch (error) {
       setJustTcgError(error instanceof Error ? error.message : "JustTCG request failed");
+      return false;
     } finally {
       setJustTcgLoading(false);
     }
   }
 
+  async function chargeCreditAfterSuccess(feature: CreditUsageFeature) {
+    if (chargedAnalysisRunId.current === currentAnalysisRunId.current) return;
+
+    chargedAnalysisRunId.current = currentAnalysisRunId.current;
+    await spendCredits(feature, 1);
+  }
+
+  function handleEbaySuccessfulResponse() {
+    void chargeCreditAfterSuccess("ebay_sold");
+  }
+
   async function handleFeatureClick(aiFeature: AI_feature) {
+    if (featureCooldown || !subscription || creditsRemaining < 1) return;
+
+    setFeatureCooldown(true);
     setActiveView(aiFeature.view);
+    currentAnalysisRunId.current = `${card?.id ?? "unknown-card"}-${aiFeature.view}-${Date.now()}`;
+
+    if (aiFeature.view === "ebay_sold") {
+      return;
+    }
 
     if (
       aiFeature.view !== "prices" &&
@@ -183,6 +228,7 @@ export default function PokemonDetails() {
 
     const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
     let prompt = "";
+    let featureWasSuccessful = false;
 
     if (aiFeature.view === "prices") {
       prompt = priceAnalysisPrompt(
@@ -190,7 +236,7 @@ export default function PokemonDetails() {
         card?.set?.name ?? "",
         card?.number ?? ""
       );
-      void handleJustTcgFetch();
+      featureWasSuccessful = await handleJustTcgFetch();
     }
 
     if (aiFeature.view === "collector_analysis") {
@@ -211,9 +257,14 @@ export default function PokemonDetails() {
       setGrokError(result.error);
     } else {
       setGrokResponse(result.text);
+      featureWasSuccessful = true;
     }
 
     setGrokLoading(false);
+
+    if (featureWasSuccessful) {
+      await chargeCreditAfterSuccess(aiFeature.creditFeature);
+    }
   }
 
   useEffect(() => {
@@ -295,6 +346,16 @@ export default function PokemonDetails() {
       cancelled = true;
     };
   }, [cardImageSrc]);
+
+  useEffect(() => {
+    if (!featureCooldown) return;
+
+    const cooldownTimer = window.setTimeout(() => {
+      setFeatureCooldown(false);
+    }, 2000);
+
+    return () => window.clearTimeout(cooldownTimer);
+  }, [featureCooldown]);
 
   if (loading) {
     return (
@@ -378,12 +439,21 @@ export default function PokemonDetails() {
               >
                 <span>Change card</span>
               </Button>
-              <Button disabled={justTcgLoading} onClick={handleJustTcgFetch}>
-                <span>{justTcgLoading ? "Fetching..." : "just tcg api"}</span>
-              </Button>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="card-view__credit-note">
+        <span>1 credit per analyse</span>
+        <strong>
+          {loadingSubscription
+            ? "Laster credits..."
+            : subscription
+              ? `${creditsRemaining} credits igjen`
+              : "Logg inn for å se credits"}
+        </strong>
+        {creditMessage && <small>{creditMessage}</small>}
       </div>
 
       <div className="card-view__actions feature-buttons__row">
@@ -398,6 +468,13 @@ export default function PokemonDetails() {
               style={getCustomColors(aiFeature.color)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleFeatureClick(aiFeature)}
+              disabled={
+                loadingSubscription ||
+                updatingCredits ||
+                grokLoading ||
+                featureCooldown ||
+                creditsRemaining < 1
+              }
               aria-pressed={activeView === aiFeature.view}
             >
               <span className="feature-button__icon" aria-hidden="true">
@@ -423,7 +500,12 @@ export default function PokemonDetails() {
         )}
 
         {activeView === "search_card" && <DatabaseSearch />}
-        {activeView === "ebay_sold" && <EbaySoldView card={card} />}
+        {activeView === "ebay_sold" && (
+          <EbaySoldView
+            card={card}
+            onSuccessfulResponse={handleEbaySuccessfulResponse}
+          />
+        )}
         {activeView === "prices" && (
           <PriceAnalysis
             card={card}

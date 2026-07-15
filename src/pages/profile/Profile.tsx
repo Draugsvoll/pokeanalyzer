@@ -15,6 +15,11 @@ import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { formatTimestampString } from "../../utils/timestamp";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
+import {
+  useCredits,
+  useMembershipSubscription,
+  type MembershipPlanId,
+} from "../../subscriptions";
 
 type EstimatedValueSource = "tcgplayer" | "cardmarket";
 
@@ -33,6 +38,27 @@ export default function Profile() {
   const { user: authUser, loading: authLoading, logout } = useAuth();
   const { portfolio } = usePortfolioCache();
   const { removePokemonFromPortfolio, updatePokemonQuantity } = usePokemonPortfolio();
+  const {
+    activateMembershipPlan,
+    cancelAtPeriodEnd,
+    loadingSubscription,
+    membershipPlans,
+    subscription,
+    subscriptionMessage,
+    updateSubscription,
+    updatingSubscription,
+  } = useMembershipSubscription();
+  const {
+    bonusCreditsRemaining,
+    bonusCreditsTotal,
+    creditMessage,
+    creditsRemaining,
+    creditsTotal,
+    membershipCreditsRemaining,
+    membershipCreditsTotal,
+    topUpCredits,
+    updatingCredits,
+  } = useCredits(subscription, updateSubscription);
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -48,6 +74,8 @@ export default function Profile() {
   } | null>(null);
   const [estimatedValueSource, setEstimatedValueSource] =
     useState<EstimatedValueSource>("tcgplayer");
+  const [selectedPlanId, setSelectedPlanId] =
+    useState<MembershipPlanId>("collector");
   const profileInitial = useInitials(profile?.firstName);
   const estimatedCollectionValue = portfolio.reduce((total, card) => {
     const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
@@ -63,21 +91,10 @@ export default function Profile() {
     missingPriceCount === 0
       ? null
       : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price data`;
-  const estimatedValueSourceLabel =
-    estimatedValueSource === "tcgplayer" ? "TCGPlayer market price" : "Cardmarket trend price";
   const estimatedCollectionValueLabel = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: estimatedValueSource === "tcgplayer" ? "USD" : "EUR",
   }).format(estimatedCollectionValue);
-
-  useEffect(() => {
-    portfolio.forEach((card) => {
-      const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
-      if (marketPrice == null) {
-        console.log(`Portfolio card missing ${estimatedValueSourceLabel}:`, card);
-      }
-    });
-  }, [portfolio, estimatedValueSource, estimatedValueSourceLabel]);
 
   const requestQuantityChange = (card: PokemonCardType, amount: number) => {
     if (updatingQuantityId) return;
@@ -227,6 +244,76 @@ export default function Profile() {
         <p>
           <b>Joined:</b> {formatTimestampString(profile.createdAt)}
         </p>
+        <section className="profile__subscription">
+          <div>
+            <span>Membership</span>
+            <strong>
+              {loadingSubscription
+                ? "Loading..."
+                : subscription?.status === "active"
+                  ? `${subscription.planName} (${subscription.status})`
+                  : "No active plan"}
+            </strong>
+            {subscription?.status === "active" && subscription.currentPeriodEnd && (
+              <small>
+                Ends {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                {subscription.cancelAtPeriodEnd ? " - canceling" : ""}
+              </small>
+            )}
+            <small>
+              {subscription
+                ? `${creditsRemaining}/${creditsTotal} credits remaining`
+                : "No credits available"}
+            </small>
+            {subscription && (
+              <small>
+                Membership {membershipCreditsRemaining}/{membershipCreditsTotal}
+                {" - "}
+                Bonus {bonusCreditsRemaining}/{bonusCreditsTotal}
+              </small>
+            )}
+          </div>
+          <label>
+            Plan
+            <select
+              value={selectedPlanId}
+              onChange={(event) => setSelectedPlanId(event.target.value as MembershipPlanId)}
+              disabled={updatingSubscription}
+            >
+              {membershipPlans.filter((plan) => plan.id !== "free").map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name} - {plan.credits} credits - {plan.price} {plan.currency}/{plan.billingInterval}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="profile__subscription-actions">
+            <Button
+              disabled={updatingSubscription}
+              onClick={() => void activateMembershipPlan(selectedPlanId)}
+            >
+              {updatingSubscription ? "Updating..." : "paid plan"}
+            </Button>
+            <Button
+              disabled={!subscription || updatingCredits}
+              onClick={() => void topUpCredits(50, 49)}
+            >
+              {updatingCredits ? "Adding..." : "Top up 50 credits"}
+            </Button>
+            {subscription?.status === "active" &&
+              subscription.planId !== "free" &&
+              !subscription.cancelAtPeriodEnd && (
+              <Button
+                disabled={updatingSubscription}
+                onClick={() => void cancelAtPeriodEnd()}
+              >
+                Cancel at period end
+              </Button>
+            )}
+          </div>
+          {subscriptionMessage && <small>{subscriptionMessage}</small>}
+          {creditMessage && <small>{creditMessage}</small>}
+        </section>
       </div>
 
       <section className="profile__portfolio">

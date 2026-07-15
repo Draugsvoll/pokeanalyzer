@@ -1,18 +1,13 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { db } from "./db/db.js";
-import dotenv from "dotenv";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
-import {
-  gradeCardImage,
-  XimilarCardGraderError,
-} from "./services/ximilarCardGraderApi.js";
-
-dotenv.config();
+import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 
 const app = express();
 
@@ -30,18 +25,20 @@ const ebayLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const cardGraderLimiter = rateLimit({
+const grokLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: "Too many Grok requests. Please wait and try again." },
 });
 
 app.use(cors());
 app.use(express.json({ limit: "30mb" }));
 app.use(limiter);
-app.use("/grok", grokRoutes);
+app.use("/grok", grokLimiter, grokRoutes);
 app.use("/openai", openaiRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 app.get("/ebay", ebayLimiter, async (req, res) => {
   try {
@@ -55,59 +52,6 @@ app.get("/ebay", ebayLimiter, async (req, res) => {
     console.error(err);
     res.status(500).json({
       error: err instanceof Error ? err.message : "Unknown error",
-    });
-  }
-});
-
-app.post("/api/card-grader/grade", cardGraderLimiter, async (req, res) => {
-  try {
-    const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-    const getBase64Size = (value: string) => {
-      const base64 = value.replace(/^data:image\/[^;]+;base64,/, "").replace(/\s/g, "");
-      const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
-      return Math.floor((base64.length * 3) / 4) - padding;
-    };
-
-    const frontImageBase64 =
-      typeof req.body?.frontImageBase64 === "string"
-        ? req.body.frontImageBase64
-        : typeof req.body?.imageBase64 === "string"
-          ? req.body.imageBase64
-          : "";
-    const backImageBase64 =
-      typeof req.body?.backImageBase64 === "string"
-        ? req.body.backImageBase64
-        : "";
-
-    if (!frontImageBase64) {
-      res.status(400).json({ error: "frontImageBase64 is required" });
-      return;
-    }
-
-    if (
-      getBase64Size(frontImageBase64) > MAX_IMAGE_SIZE_BYTES ||
-      (backImageBase64 && getBase64Size(backImageBase64) > MAX_IMAGE_SIZE_BYTES)
-    ) {
-      res.status(413).json({ error: "Each image must be 10MB or smaller" });
-      return;
-    }
-
-    const images = [frontImageBase64, backImageBase64]
-      .filter(Boolean)
-      .map((image) => image.replace(/^data:image\/\w+;base64,/, ""));
-    const data = await gradeCardImage(images);
-
-    res.json(data);
-  } catch (err) {
-    console.error("Card grader request failed");
-    const statusCode =
-      err instanceof XimilarCardGraderError ? err.statusCode : 500;
-
-    res.status(statusCode).json({
-      error:
-        err instanceof XimilarCardGraderError
-          ? err.message
-          : "Card grading request failed",
     });
   }
 });

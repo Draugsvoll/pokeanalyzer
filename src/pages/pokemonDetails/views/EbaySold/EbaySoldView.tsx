@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import {
   getVisibleEbayCompResults,
@@ -10,12 +10,21 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type EbaySoldViewProps = {
   card: PokemonCard;
+  onSuccessfulResponse?: () => void;
 };
 
-export default function EbaySoldView({ card }: EbaySoldViewProps) {
+export default function EbaySoldView({
+  card,
+  onSuccessfulResponse,
+}: EbaySoldViewProps) {
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const onSuccessfulResponseRef = useRef(onSuccessfulResponse);
+
+  useEffect(() => {
+    onSuccessfulResponseRef.current = onSuccessfulResponse;
+  }, [onSuccessfulResponse]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +48,7 @@ export default function EbaySoldView({ card }: EbaySoldViewProps) {
         }
 
         setResponse(data);
+        onSuccessfulResponseRef.current?.();
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") return;
         setError(
