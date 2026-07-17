@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "../context/authContextValue";
 import {
+  getTopUpPaymentLink,
   spendCredits as spendCreditsRequest,
-  topUpCredits as topUpCreditsRequest,
 } from "./subscriptionApi";
 import type { CreditUsageFeature, UserSubscription } from "./types";
 
@@ -11,6 +11,7 @@ export function useCredits(
   onSubscriptionChange?: (subscription: UserSubscription | null) => void
 ) {
   const { user } = useAuth();
+  const creditActionInProgressRef = useRef(false);
   const [updatingCredits, setUpdatingCredits] = useState(false);
   const [creditMessage, setCreditMessage] = useState<string | null>(null);
 
@@ -18,9 +19,10 @@ export function useCredits(
     feature: CreditUsageFeature,
     credits = 1
   ) => {
-    if (!user || updatingCredits) return false;
+    if (!user || creditActionInProgressRef.current) return false;
 
     try {
+      creditActionInProgressRef.current = true;
       setUpdatingCredits(true);
       setCreditMessage(null);
       const response = await spendCreditsRequest(user, feature, credits);
@@ -33,28 +35,28 @@ export function useCredits(
       );
       return false;
     } finally {
+      creditActionInProgressRef.current = false;
       setUpdatingCredits(false);
     }
   };
 
-  const topUpCredits = async (credits: number, amount = 0) => {
-    if (!user || updatingCredits) return false;
+  const topUpCredits = async () => {
+    if (!user || creditActionInProgressRef.current) return false;
 
     try {
+      creditActionInProgressRef.current = true;
       setUpdatingCredits(true);
       setCreditMessage(null);
-      const response = await topUpCreditsRequest(user, credits, amount);
-      onSubscriptionChange?.(response.subscription);
-      setCreditMessage(`${credits} credits added`);
+      window.location.assign(getTopUpPaymentLink(user));
       return true;
     } catch (error) {
       console.error("Failed to top up credits:", error);
       setCreditMessage(
         error instanceof Error ? error.message : "Could not top up credits"
       );
-      return false;
-    } finally {
+      creditActionInProgressRef.current = false;
       setUpdatingCredits(false);
+      return false;
     }
   };
 

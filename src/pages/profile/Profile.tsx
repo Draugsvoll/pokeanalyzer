@@ -40,10 +40,11 @@ export default function Profile() {
   const { portfolio } = usePortfolioCache();
   const { removePokemonFromPortfolio, updatePokemonQuantity } = usePokemonPortfolio();
   const {
-    activateMembershipPlan,
     cancelAtPeriodEnd,
     loadingSubscription,
     membershipPlans,
+    openBillingPortal,
+    startMembershipCheckout,
     subscription,
     subscriptionMessage,
     updateSubscription,
@@ -78,6 +79,17 @@ export default function Profile() {
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
   const [selectedPlanId, setSelectedPlanId] =
     useState<MembershipPlanId>("collector");
+  const canStartMembershipCheckout =
+    !subscription?.stripeSubscriptionId ||
+    subscription.status === "canceled" ||
+    subscription.status === "expired";
+  const canManageBilling = Boolean(
+    subscription?.stripeSubscriptionId &&
+    subscription.status !== "canceled" &&
+    subscription.status !== "expired"
+  );
+  const canUseMembership =
+    subscription?.status === "active" || subscription?.status === "trialing";
   const profileInitial = useInitials(profile?.firstName?.trim() || profile?.email);
   const estimatedCollectionValue = portfolio.reduce((total, card) => {
     const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
@@ -272,13 +284,14 @@ export default function Profile() {
             <strong>
               {loadingSubscription
                 ? "Loading..."
-                : subscription?.status === "active"
-                  ? `${subscription.planName} (${subscription.status})`
-                  : "No active plan"}
+                : subscription
+                  ? `${subscription.planName} (${subscription.status.replace("_", " ")})`
+                  : "No membership found"}
             </strong>
-            {subscription?.status === "active" && subscription.currentPeriodEnd && (
+            {subscription?.currentPeriodEnd && (
               <small>
-                Ends {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                {subscription.cancelAtPeriodEnd ? "Access until" : "Billing period ends"}{" "}
+                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                 {subscription.cancelAtPeriodEnd ? " - canceling" : ""}
               </small>
             )}
@@ -310,27 +323,38 @@ export default function Profile() {
             </select>
           </label>
           <div className="profile__subscription-actions">
+            {canStartMembershipCheckout && (
+              <Button
+                disabled={updatingSubscription}
+                onClick={() => void startMembershipCheckout(selectedPlanId)}
+              >
+                {updatingSubscription ? "Opening checkout..." : "Continue to payment"}
+              </Button>
+            )}
             <Button
-              disabled={updatingSubscription}
-              onClick={() => void activateMembershipPlan(selectedPlanId)}
-            >
-              {updatingSubscription ? "Updating..." : "paid plan"}
-            </Button>
-            <Button
-              disabled={!subscription || updatingCredits}
-              onClick={() => void topUpCredits(50, 49)}
+              disabled={!canUseMembership || updatingCredits}
+              onClick={() => void topUpCredits()}
             >
               {updatingCredits ? "Adding..." : "Top up 50 credits"}
             </Button>
-            {subscription?.status === "active" &&
-              subscription.planId !== "free" &&
-              !subscription.cancelAtPeriodEnd && (
+            {canManageBilling && (
               <Button
                 disabled={updatingSubscription}
-                onClick={() => void cancelAtPeriodEnd()}
+                onClick={() => void openBillingPortal()}
               >
-                Cancel at period end
+                Manage billing
               </Button>
+            )}
+            {canUseMembership &&
+              subscription.planId !== "free" &&
+              subscription.stripeSubscriptionId &&
+              !subscription.cancelAtPeriodEnd && (
+                <Button
+                  disabled={updatingSubscription}
+                  onClick={() => void cancelAtPeriodEnd()}
+                >
+                  Cancel at period end
+                </Button>
             )}
           </div>
           {subscriptionMessage && <small>{subscriptionMessage}</small>}

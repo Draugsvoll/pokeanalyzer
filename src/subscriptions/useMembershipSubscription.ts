@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/authContextValue";
 import { MEMBERSHIP_PLANS } from "./plans";
 import {
-  activateMembershipPlan as activateMembershipPlanRequest,
   cancelSubscriptionAtPeriodEnd,
+  createBillingPortal,
+  createMembershipCheckout,
   fetchSubscription,
 } from "./subscriptionApi";
 import type {
@@ -14,6 +15,7 @@ import type {
 
 export function useMembershipSubscription() {
   const { user } = useAuth();
+  const subscriptionActionInProgressRef = useRef(false);
   const [membershipPlans, setMembershipPlans] =
     useState<MembershipPlan[]>(MEMBERSHIP_PLANS);
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
@@ -21,7 +23,7 @@ export function useMembershipSubscription() {
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState<string | null>(null);
 
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async () => {
     if (!user) {
       setSubscription(null);
       setLoadingSubscription(false);
@@ -41,38 +43,55 @@ export function useMembershipSubscription() {
     } finally {
       setLoadingSubscription(false);
     }
-  };
+  }, [user]);
 
-  const activateMembershipPlan = async (planId: MembershipPlanId) => {
-    if (!user || updatingSubscription) return false;
+  const startMembershipCheckout = async (planId: MembershipPlanId) => {
+    if (!user || subscriptionActionInProgressRef.current) return false;
 
     try {
+      subscriptionActionInProgressRef.current = true;
       setUpdatingSubscription(true);
       setSubscriptionMessage(null);
-      const response = await activateMembershipPlanRequest(user, planId);
-      if (response.plans) setMembershipPlans(response.plans);
-      setSubscription(response.subscription);
-      setSubscriptionMessage(
-        response.amount != null
-          ? `Plan active. Charged ${response.amount} NOK`
-          : "Plan active"
-      );
+      const response = await createMembershipCheckout(user, planId);
+      window.location.assign(response.checkoutUrl);
       return true;
     } catch (error) {
       console.error("Failed to activate membership plan:", error);
       setSubscriptionMessage(
         error instanceof Error ? error.message : "Could not activate plan"
       );
-      return false;
-    } finally {
+      subscriptionActionInProgressRef.current = false;
       setUpdatingSubscription(false);
+      return false;
+    }
+  };
+
+  const openBillingPortal = async () => {
+    if (!user || subscriptionActionInProgressRef.current) return false;
+
+    try {
+      subscriptionActionInProgressRef.current = true;
+      setUpdatingSubscription(true);
+      setSubscriptionMessage(null);
+      const response = await createBillingPortal(user);
+      window.location.assign(response.portalUrl);
+      return true;
+    } catch (error) {
+      console.error("Failed to open billing portal:", error);
+      setSubscriptionMessage(
+        error instanceof Error ? error.message : "Could not open billing portal"
+      );
+      subscriptionActionInProgressRef.current = false;
+      setUpdatingSubscription(false);
+      return false;
     }
   };
 
   const cancelAtPeriodEnd = async () => {
-    if (!user || !subscription || updatingSubscription) return false;
+    if (!user || !subscription || subscriptionActionInProgressRef.current) return false;
 
     try {
+      subscriptionActionInProgressRef.current = true;
       setUpdatingSubscription(true);
       setSubscriptionMessage(null);
       const response = await cancelSubscriptionAtPeriodEnd(user);
@@ -86,20 +105,52 @@ export function useMembershipSubscription() {
       );
       return false;
     } finally {
+      subscriptionActionInProgressRef.current = false;
       setUpdatingSubscription(false);
     }
   };
 
   useEffect(() => {
+    // Loading remote subscription state is the purpose of this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSubscription();
-  }, [user?.uid]);
+  }, [refreshSubscription]);
+
+  useEffect(() => {
+    const checkoutState = new URLSearchParams(window.location.search).get("checkout");
+    if (!checkoutState || !user) return;
+
+    const refreshTimers = [window.setTimeout(() => {
+      setSubscriptionMessage(
+        checkoutState === "success"
+          ? "Payment completed. Updating your membership..."
+          : "Payment canceled"
+      );
+    }, 0)];
+    window.history.replaceState({}, "", window.location.pathname);
+
+    if (checkoutState === "success") {
+      refreshTimers.push(
+        ...[1200, 3500].map((delay) =>
+          window.setTimeout(() => void refreshSubscription(), delay)
+        ),
+        window.setTimeout(() => {
+          void refreshSubscription().finally(() => {
+            setSubscriptionMessage("Checkout completed.");
+          });
+        }, 7000),
+      );
+    }
+    return () => refreshTimers.forEach(window.clearTimeout);
+  }, [refreshSubscription, user]);
 
   return {
-    activateMembershipPlan,
     cancelAtPeriodEnd,
     loadingSubscription,
     membershipPlans,
+    openBillingPortal,
     refreshSubscription,
+    startMembershipCheckout,
     subscription,
     subscriptionMessage,
     updateSubscription: setSubscription,

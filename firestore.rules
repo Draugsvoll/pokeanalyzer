@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'createdAt',
+          'email',
+          'firstName',
+          'uid'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'firstName'
+        ]);
+
+      allow delete: if false;
+    }
+
+    match /users/{userId}/portfolio/{cardId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/subscription/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/payments/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/credit_usage/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/subscription_events/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/billing_alerts/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/stripe_checkout_attempts/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /membership_plans/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /stripe_events/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /stripe_billing_alerts/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

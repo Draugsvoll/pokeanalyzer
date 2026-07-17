@@ -30,6 +30,7 @@ terminals/
 .env
 .env.local
 .env.production
+.env.example
 
 notes.md
 db_notes.md

@@ -375,21 +375,19 @@
     width: 100%;
   }
 
-  .profile__missing-price-data {
-    background: #454119;
-    border-radius: 2px;
+  .profile__estimated-value .profile__missing-price-data {
+    background: #17161d;
+    border: 1px solid rgba(255, 91, 20, 0.45);
+    border-radius: 999px;
     bottom: 0.35rem;
-    color: #fff59d;
-    font-weight: 600;
+    color: #ff651f;
+    font-weight: 500;
     left: 1rem;
-    margin: 0 auto;
-    margin-left:0;
-    padding: 0.12rem 0.3rem;
-    position: absolute;
-    right: 1rem;
+    line-height: 1;
+    margin: 0;
+    padding: 0.35rem 0.7rem;
     text-align: center;
     width: fit-content;
-    border-radius: 8px;
   }
 
 }

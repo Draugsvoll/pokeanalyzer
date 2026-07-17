@@ -498,26 +498,25 @@ export default function PokemonDetails() {
             Empty view
           </div>
         )}
-
-        {activeView === "search_card" && <DatabaseSearch />}
         {activeView === "ebay_sold" && (
           <EbaySoldView
-            card={card}
-            onSuccessfulResponse={handleEbaySuccessfulResponse}
+          card={card}
+          onSuccessfulResponse={handleEbaySuccessfulResponse}
           />
         )}
         {activeView === "prices" && (
           <PriceAnalysis
-            card={card}
-            cardNumber={displayedCardNumber}
-            grokRequest={grokRequest}
-            justTcgRequest={{
-              loading: justTcgLoading,
-              error: justTcgError,
-              response: justTcgResult,
-            }}
+          card={card}
+          cardNumber={displayedCardNumber}
+          grokRequest={grokRequest}
+          justTcgRequest={{
+            loading: justTcgLoading,
+            error: justTcgError,
+            response: justTcgResult,
+          }}
           />
         )}
+        {activeView === "search_card" && <DatabaseSearch />}
         {activeView === "worth_grading" && (<WorthGradingView grokRequest={grokRequest} />)}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis card={card} grokRequest={grokRequest} />

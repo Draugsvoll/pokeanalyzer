@@ -4,6 +4,7 @@ export type SubscriptionStatus =
   | "active"
   | "trialing"
   | "past_due"
+  | "paused"
   | "canceled"
   | "expired";
 
@@ -35,6 +36,8 @@ export type UserSubscription = {
   planId: MembershipPlanId;
   planName: string;
   status: SubscriptionStatus;
+  stripePriceId?: string;
+  stripeSubscriptionId?: string;
 };
 
 export type CreditUsageFeature =
@@ -50,4 +53,12 @@ export type SubscriptionResponse = {
   amount?: number;
   plans?: MembershipPlan[];
   subscription: UserSubscription | null;
+};
+
+export type CheckoutResponse = {
+  checkoutUrl: string;
+};
+
+export type BillingPortalResponse = {
+  portalUrl: string;
 };

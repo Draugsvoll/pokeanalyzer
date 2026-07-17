@@ -8,6 +8,7 @@ import openaiRoutes from "./db/routes/openaiRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
+import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 
 const app = express();
 
@@ -34,6 +35,11 @@ const grokLimiter = rateLimit({
 });
 
 app.use(cors());
+app.post(
+  "/api/subscription/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhookHandler,
+);
 app.use(express.json({ limit: "30mb" }));
 app.use(limiter);
 app.use("/grok", grokLimiter, grokRoutes);

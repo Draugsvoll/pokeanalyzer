@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "./firebaseAdmin.js";
 import {
@@ -9,6 +9,12 @@ import {
   getMembershipPlan,
   type MembershipPlan,
 } from "./plans.js";
+import {
+  cancelStripeSubscriptionAtPeriodEnd,
+  createBillingPortal,
+  createMembershipCheckout,
+  createTopUpCheckout,
+} from "./stripePayments.js";
 
 type UserSubscription = {
   bonusCreditsRemaining: number;
@@ -22,10 +28,22 @@ type UserSubscription = {
   membershipCreditsUsed: number;
   planId: string;
   planName: string;
-  status: "active" | "canceled" | "expired";
+  status: "active" | "trialing" | "past_due" | "paused" | "canceled" | "expired";
 };
 
 const router = Router();
+
+router.post("/checkout/membership", createMembershipCheckout);
+router.post("/checkout/top-up", createTopUpCheckout);
+router.post("/billing-portal", createBillingPortal);
+router.post("/cancel-at-period-end", cancelStripeSubscriptionAtPeriodEnd);
+router.use("/mock", (_req: Request, res: Response, next: NextFunction) => {
+  if (process.env.ENABLE_MOCK_PAYMENTS === "true") {
+    next();
+    return;
+  }
+  res.status(404).json({ message: "Mock payments are disabled" });
+});
 
 function getSafeErrorMessage(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : "";
@@ -229,7 +247,7 @@ router.post("/initialize-free", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/activate", async (req: Request, res: Response) => {
+router.post("/mock/activate", async (req: Request, res: Response) => {
   try {
     const uid = await getUid(req);
     const planId = typeof req.body?.planId === "string" ? req.body.planId : undefined;
@@ -325,7 +343,7 @@ router.post("/activate", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/top-up", async (req: Request, res: Response) => {
+router.post("/mock/top-up", async (req: Request, res: Response) => {
   try {
     const uid = await getUid(req);
     const credits = Number(req.body?.credits);
@@ -338,6 +356,12 @@ router.post("/top-up", async (req: Request, res: Response) => {
 
     if (!Number.isFinite(credits) || credits < 1) {
       res.status(400).json({ message: "credits must be a positive number" });
+      return;
+    }
+
+    const userSnap = await adminDb.doc(`users/${uid}`).get();
+    if (userSnap.data()?.billingReviewRequired === true) {
+      res.status(409).json({ message: "Credit usage is paused while billing is under review." });
       return;
     }
 
@@ -405,6 +429,12 @@ router.post("/spend", async (req: Request, res: Response) => {
       return;
     }
 
+    const userSnap = await adminDb.doc(`users/${uid}`).get();
+    if (userSnap.data()?.billingReviewRequired === true) {
+      res.status(409).json({ message: "Credit usage is paused while billing is under review." });
+      return;
+    }
+
     const updatedSubscription = await adminDb.runTransaction(async (transaction) => {
       const subscriptionRef = userSubscriptionRef(uid);
       const subscriptionSnap = await transaction.get(subscriptionRef);
@@ -417,7 +447,9 @@ router.post("/spend", async (req: Request, res: Response) => {
       const totalCreditsRemaining =
         subscription.membershipCreditsRemaining + subscription.bonusCreditsRemaining;
 
-      if (subscription.status !== "active" || totalCreditsRemaining < credits) {
+      const canUseCredits =
+        subscription.status === "active" || subscription.status === "trialing";
+      if (!canUseCredits || totalCreditsRemaining < credits) {
         throw new Error("Not enough credits.");
       }
 
@@ -465,7 +497,7 @@ router.post("/spend", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/cancel-at-period-end", async (req: Request, res: Response) => {
+router.post("/mock/cancel-at-period-end", async (req: Request, res: Response) => {
   try {
     const uid = await getUid(req);
 
