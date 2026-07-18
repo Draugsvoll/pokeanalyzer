@@ -24,7 +24,7 @@ export function useMembershipSubscription() {
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState<string | null>(null);
 
-  const refreshSubscription = useCallback(async () => {
+  const refreshSubscription = useCallback(async (background = false) => {
     if (!user) {
       setSubscription(null);
       setLoadingSubscription(false);
@@ -32,7 +32,7 @@ export function useMembershipSubscription() {
     }
 
     try {
-      setLoadingSubscription(true);
+      if (!background) setLoadingSubscription(true);
       const response = await fetchSubscription(user);
       if (response.plans) setMembershipPlans(response.plans);
       setSubscription(response.subscription);
@@ -42,7 +42,7 @@ export function useMembershipSubscription() {
       setSubscriptionMessage("Could not load subscription");
       return null;
     } finally {
-      setLoadingSubscription(false);
+      if (!background) setLoadingSubscription(false);
     }
   }, [user]);
 
@@ -121,27 +121,14 @@ export function useMembershipSubscription() {
     const checkoutState = new URLSearchParams(window.location.search).get("checkout");
     if (!checkoutState || !user) return;
 
-    const refreshTimers = [window.setTimeout(() => {
-      setSubscriptionMessage(
-        checkoutState === "success"
-          ? "Payment completed. Updating your membership..."
-          : "Payment canceled"
-      );
-    }, 0)];
     window.history.replaceState({}, "", window.location.pathname);
 
-    if (checkoutState === "success") {
-      refreshTimers.push(
-        ...[1200, 3500].map((delay) =>
-          window.setTimeout(() => void refreshSubscription(), delay)
-        ),
-        window.setTimeout(() => {
-          void refreshSubscription().finally(() => {
-            setSubscriptionMessage("Checkout completed.");
-          });
-        }, 7000),
-      );
-    }
+    if (checkoutState !== "success") return;
+
+    const refreshTimers = [1200, 3500, 7000].map((delay) =>
+      window.setTimeout(() => void refreshSubscription(true), delay)
+    );
+
     return () => refreshTimers.forEach(window.clearTimeout);
   }, [refreshSubscription, user]);
 

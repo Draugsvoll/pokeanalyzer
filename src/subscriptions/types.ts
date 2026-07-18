@@ -58,7 +58,7 @@ export type CheckoutResponse = {
   checkoutUrl: string;
 };
 
-export type TopUpPackageId = "credits_50";
+export type TopUpPackageId = "credits_100";
 
 export type BillingPortalResponse = {
   portalUrl: string;

@@ -6,25 +6,24 @@
 
   .profile__card {
     color: var(--text);
-    padding: 1.5rem;
-    border-radius: 16px;
+    overflow: hidden;
+    border-radius: 1.25rem;
     margin-top: 1rem;
-    background-color: var(--bg-secondary);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(99, 102, 241, 0.1), transparent 28rem),
+      var(--bg-secondary);
     border: var(--border);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
-
-    p {
-      margin: 0.5rem 0;
-    }
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.22);
   }
 
   .profile__avatar {
-    width: 5rem;
-    height: 5rem;
+    flex: 0 0 auto;
+    width: 4.75rem;
+    height: 4.75rem;
     border-radius: 999px;
     object-fit: cover;
-    margin-bottom: 1rem;
     border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 0 0.4rem rgba(255, 255, 255, 0.035);
   }
 
   .profile__avatar--fallback {
@@ -36,49 +35,495 @@
     font-weight: 800;
   }
 
-  .profile__subscription {
-    align-items: flex-start;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.9rem;
-    display: grid;
-    gap: 0.85rem;
-    margin-top: 1rem;
-    padding: 1rem;
+  .profile__identity {
+    align-items: center;
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    padding: 1.75rem 2rem;
+  }
 
-    > div:first-child,
-    label {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
+  .profile__identity-main {
+    align-items: center;
+    display: flex;
+    gap: 1.25rem;
+    min-width: 0;
+  }
 
-    span,
-    label,
-    small {
-      color: rgba(255, 255, 255, 0.68);
-      font-size: 0.78rem;
-    }
+  .profile__identity-copy {
+    min-width: 0;
 
-    strong {
+    h2 {
       color: #fff;
-      font-size: 1rem;
+      font-size: clamp(1.35rem, 3vw, 1.8rem);
+      line-height: 1.15;
+      margin: 0.25rem 0 0.3rem;
     }
 
-    select {
-      background: rgba(10, 10, 16, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 0.55rem;
-      color: #fff;
-      max-width: 20rem;
-      padding: 0.55rem 0.65rem;
+    p {
+      color: rgba(255, 255, 255, 0.62);
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
-  .profile__subscription-actions {
+  .profile__eyebrow {
+    color: rgba(255, 255, 255, 0.56);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .profile__account-details {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    min-width: min(20rem, 42%);
+
+    div {
+      align-items: baseline;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 6rem minmax(0, 1fr);
+    }
+
+    dt {
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 0.72rem;
+    }
+
+    dd {
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 0.78rem;
+      margin: 0;
+      overflow: hidden;
+      text-align: right;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .profile__subscription {
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+    padding: 1.5rem;
+  }
+
+  .profile__membership-overview {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.9fr);
+  }
+
+  .profile__plan-card,
+  .profile__credits-card,
+  .profile__plan-actions {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+  }
+
+  .profile__plan-card,
+  .profile__credits-card {
+    min-height: 12rem;
+    padding: 1.25rem;
+  }
+
+  .profile__plan-card {
+    background:
+      linear-gradient(135deg, rgba(79, 70, 229, 0.15), transparent 60%),
+      rgba(255, 255, 255, 0.035);
+    border-color: rgba(129, 140, 248, 0.28);
+  }
+
+  .profile__section-heading {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .profile__status {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.7);
+    display: inline-flex;
+    font-size: 0.7rem;
+    gap: 0.4rem;
+    padding: 0.3rem 0.55rem;
+    text-transform: capitalize;
+
+    i {
+      background: currentColor;
+      border-radius: 999px;
+      height: 0.4rem;
+      width: 0.4rem;
+    }
+
+    &--active {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(52, 211, 153, 0.22);
+      color: #6ee7b7;
+    }
+  }
+
+  .profile__plan-title {
+    align-items: center;
+    display: flex;
+    gap: 0.9rem;
+    margin-top: 1.55rem;
+
+    h3 {
+      color: #fff;
+      font-size: 1.75rem;
+      line-height: 1;
+      margin: 0 0 0.45rem;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 0.8rem;
+      margin: 0;
+    }
+  }
+
+  .profile__plan-icon,
+  .profile__credits-icon {
+    align-items: center;
+    background: rgba(129, 140, 248, 0.13);
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    border-radius: 0.75rem;
+    color: #a5b4fc;
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  .profile__plan-icon {
+    height: 2.75rem;
+    width: 2.75rem;
+
+    svg { height: 1.3rem; width: 1.3rem; }
+  }
+
+  .profile__credits-icon {
+    height: 2rem;
+    width: 2rem;
+
+    svg { height: 1rem; width: 1rem; }
+  }
+
+  .profile__period {
+    color: rgba(255, 255, 255, 0.5);
+    display: block;
+    font-size: 0.72rem;
+    margin-top: 1.4rem;
+
+    strong { color: rgba(255, 255, 255, 0.78); }
+  }
+
+  .profile__credits-total {
+    align-items: baseline;
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.8rem;
+
+    strong {
+      color: #fff;
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    span { color: rgba(255, 255, 255, 0.45); font-size: 0.85rem; }
+  }
+
+  .profile__credits-progress {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    height: 0.35rem;
+    margin: 0.85rem 0;
+    overflow: hidden;
+
+    span {
+      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      border-radius: inherit;
+      display: block;
+      height: 100%;
+      transition: width 0.25s ease;
+    }
+  }
+
+  .profile__credit-breakdown {
+    display: grid;
+    gap: 0.35rem;
+
+    > span {
+      color: rgba(255, 255, 255, 0.54);
+      display: flex;
+      font-size: 0.72rem;
+      justify-content: space-between;
+    }
+
+    strong { color: rgba(255, 255, 255, 0.84); }
+  }
+
+  .profile__plan-actions {
+    margin-top: 1rem;
+    padding: 1.25rem;
+  }
+
+  .profile__upgrade-copy {
+    align-self: start;
+
+    h3 {
+      color: #fff;
+      font-size: 1.1rem;
+      margin: 0.4rem 0;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.52);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  .profile__purchase-options {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 1.1rem;
+  }
+
+  .profile__purchase-card {
+    align-items: flex-start;
+    background:
+      linear-gradient(145deg, rgba(99, 102, 241, 0.09), transparent 65%),
+      rgba(11, 11, 18, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 0.9rem;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 13.5rem;
+    padding: 1rem;
+    text-align: left;
+
+    &.is-current {
+      border-color: rgba(52, 211, 153, 0.38);
+      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.08);
+      opacity: 1;
+
+      .profile__purchase-cta {
+        background: rgba(16, 185, 129, 0.12);
+        color: #6ee7b7;
+      }
+    }
+
+    &.is-scheduled {
+      border-color: rgba(245, 158, 11, 0.32);
+      opacity: 1;
+
+      .profile__purchase-cta {
+        background: rgba(245, 158, 11, 0.1);
+        color: #fcd34d;
+      }
+    }
+
+    &--free {
+      background:
+        linear-gradient(145deg, rgba(16, 185, 129, 0.08), transparent 65%),
+        rgba(11, 11, 18, 0.5);
+
+      .profile__purchase-icon {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(52, 211, 153, 0.2);
+        color: #6ee7b7;
+      }
+    }
+
+    &--top-up {
+      background:
+        linear-gradient(145deg, rgba(245, 158, 11, 0.1), transparent 65%),
+        rgba(11, 11, 18, 0.5);
+
+      .profile__purchase-icon {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.22);
+        color: #fbbf24;
+      }
+
+      .profile__purchase-cta {
+        background: rgba(245, 158, 11, 0.11);
+        color: #fcd34d;
+      }
+    }
+  }
+
+  .profile__purchase-icon {
+    align-items: center;
+    background: rgba(129, 140, 248, 0.12);
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    border-radius: 0.7rem;
+    color: #a5b4fc;
+    display: inline-flex;
+    height: 2.25rem;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+    width: 2.25rem;
+
+    svg { height: 1.05rem; width: 1.05rem; }
+  }
+
+  .profile__purchase-name {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.35rem;
+  }
+
+  .profile__purchase-card > strong {
+    color: #fff;
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  .profile__purchase-card > small {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.7rem;
+    line-height: 1.35;
+    margin-top: 0.25rem;
+  }
+
+  .profile__purchase-cta {
+    background: rgba(129, 140, 248, 0.12);
+    border: 0;
+    border-radius: 0.5rem;
+    color: #c7d2fe;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-top: auto;
+    padding: 0.45rem 0.65rem;
+    text-align: left;
+    transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      background: rgba(129, 140, 248, 0.2);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #818cf8;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+
+  .profile__billing-tools {
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-wrap: wrap;
     gap: 0.65rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+
+    > span {
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 0.72rem;
+      margin-right: auto;
+    }
+  }
+
+  .profile__billing-notices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+
+    small {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 999px;
+      color: #c7d2fe;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.65rem;
+    }
+
+    small.is-warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+  }
+
+  .profile__dialog-backdrop {
+    align-items: center;
+    backdrop-filter: blur(0.35rem);
+    background: rgba(7, 7, 12, 0.72);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 1rem;
+    position: fixed;
+    z-index: 1000;
+  }
+
+  .profile__plan-dialog {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.09), transparent 16rem),
+      #22212b;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 1rem;
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.45);
+    max-width: 30rem;
+    padding: 1.4rem;
+    width: 100%;
+
+    h2 {
+      color: #fff;
+      font-size: 1.3rem;
+      margin: 0.45rem 0 0.7rem;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 0.82rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+
+  .profile__plan-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+  }
+
+  .profile__plan-dialog-error {
+    color: #fca5a5;
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 0.8rem;
+  }
+
+  .profile__confirm-free-button {
+    background: rgba(245, 158, 11, 0.13);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #fcd34d;
   }
 
   .profile__portfolio {
@@ -345,7 +790,54 @@
     &::-webkit-outer-spin-button { appearance: none; margin: 0; }
   }
 
+  @media (max-width: 60rem) {
+    .profile__purchase-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   @media (max-width: 40rem) {
+    padding: 1rem;
+
+    .profile__identity {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 1.4rem;
+      padding: 1.35rem;
+    }
+
+    .profile__identity-main {
+      width: 100%;
+    }
+
+    .profile__account-details {
+      min-width: 0;
+      width: 100%;
+
+      dd { max-width: 12rem; }
+    }
+
+    .profile__subscription {
+      padding: 1rem;
+    }
+
+    .profile__membership-overview,
+    .profile__purchase-options {
+      grid-template-columns: 1fr;
+    }
+
+    .profile__purchase-card {
+      min-height: 12rem;
+    }
+
+    .profile__billing-tools {
+      .app-btn { flex: 1 1 auto; }
+    }
+
+    .profile__plan-dialog-actions .app-btn {
+      flex: 1 1 auto;
+    }
+
     .profile__portfolio-header {
       align-items: flex-start;
       flex-direction: column;

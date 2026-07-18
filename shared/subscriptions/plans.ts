@@ -3,7 +3,7 @@ export type MembershipPlanId = "free" | "collector" | "pro";
 export type MembershipPlan = {
   billingInterval: "month";
   credits: number;
-  currency: "NOK";
+  currency: "NOK" | "USD";
   id: MembershipPlanId;
   name: string;
   price: number;
@@ -21,16 +21,16 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
   {
     id: "collector",
     name: "Collector",
-    price: 79,
-    currency: "NOK",
+    price: 8,
+    currency: "USD",
     billingInterval: "month",
     credits: 100,
   },
   {
     id: "pro",
     name: "Pro",
-    price: 149,
-    currency: "NOK",
+    price: 14,
+    currency: "USD",
     billingInterval: "month",
     credits: 500,
   },

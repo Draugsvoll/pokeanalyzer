@@ -6,16 +6,16 @@ The app uses Stripe-hosted Checkout. Membership and credit changes are made only
 
 In the Stripe Dashboard, with **Test mode** enabled, create:
 
-- Collector: recurring monthly price, `79 NOK`
-- Pro: recurring monthly price, `149 NOK`
-- 50-credit top-up: one-time price, `$5 USD`
+- Collector: recurring monthly price, `$8 USD`
+- Pro: recurring monthly price, `$14 USD`
+- 100-credit top-up: one-time price, `$5 USD`
 
 Copy each `price_...` ID into the matching server variable in `.env`:
 
 ```text
 STRIPE_COLLECTOR_PRICE_ID=price_...
 STRIPE_PRO_PRICE_ID=price_...
-STRIPE_TOPUP_50_PRICE_ID=price_...
+STRIPE_TOPUP_100_PRICE_ID=price_...
 ```
 
 The backend creates Stripe Checkout Sessions and supplies success and cancellation URLs automatically. No Stripe Payment Link is required.
@@ -84,7 +84,7 @@ Use any future expiry, any three-digit CVC, and a valid postal code. Confirm tha
 
 Test all of these flows:
 
-- Free, Collector, and Pro can each purchase a 50-credit top-up.
+- Free, Collector, and Pro can each purchase a 100-credit top-up.
 - A scheduled cancellation keeps access until period end and still shows **Manage billing**.
 - A fully canceled subscription becomes active Free while preserving unused bonus credits.
 - A failed or past-due subscription can still open the billing portal but cannot spend or buy more credits until it is active again.

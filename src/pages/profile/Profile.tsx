@@ -13,13 +13,12 @@ import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
-import { formatTimestampString } from "../../utils/timestamp";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { formatTimestampDate } from "../../utils/timestamp";
+import { ChevronDown, ChevronUp, Coins, Crown, Leaf, Sparkles, X } from "lucide-react";
 import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
 import {
   useCredits,
   useMembershipSubscription,
-  type MembershipPlanId,
 } from "../../subscriptions";
 
 type EstimatedValueSource = "tcgplayer" | "cardmarket";
@@ -77,8 +76,7 @@ export default function Profile() {
   const [estimatedValueSource, setEstimatedValueSource] =
     useState<EstimatedValueSource>("tcgplayer");
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
-  const [selectedPlanId, setSelectedPlanId] =
-    useState<MembershipPlanId>("collector");
+  const [confirmFreeSwitch, setConfirmFreeSwitch] = useState(false);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
     subscription.status === "canceled" ||
@@ -91,6 +89,14 @@ export default function Profile() {
   const canUseMembership =
     subscription?.status === "active" || subscription?.status === "trialing";
   const profileInitial = useInitials(profile?.firstName?.trim() || profile?.email);
+  const profileName =
+    profile?.firstName?.trim() || profile?.username?.trim() || profile?.email;
+  const planOptions = membershipPlans.filter(
+    (plan) => plan.id === "free" || plan.id === "collector" || plan.id === "pro"
+  );
+  const creditPercentage = creditsTotal > 0
+    ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
+    : 0;
   const estimatedCollectionValue = portfolio.reduce((total, card) => {
     const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
     if (marketPrice == null) return total;
@@ -175,6 +181,19 @@ export default function Profile() {
   }, [pendingQuantity, pendingRemoval]);
 
   useEffect(() => {
+    if (!confirmFreeSwitch) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !updatingSubscription) {
+        setConfirmFreeSwitch(false);
+      }
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [confirmFreeSwitch, updatingSubscription]);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!authUser) {
         setProfile(null);
@@ -255,112 +274,289 @@ export default function Profile() {
       <h1>My Profile</h1>
 
       <div className="profile__card">
-        {profile.avatar?.trim() ? (
-          <img
-            className="profile__avatar"
-            src={profile.avatar.trim()}
-            alt={profile.username ?? "Profile avatar"}
-          />
-        ) : (
-          <div className="profile__avatar profile__avatar--fallback">
-            {profileInitial}
+        <header className="profile__identity">
+          <div className="profile__identity-main">
+            {profile.avatar?.trim() ? (
+              <img
+                className="profile__avatar"
+                src={profile.avatar.trim()}
+                alt={profileName ?? "Profile avatar"}
+              />
+            ) : (
+              <div className="profile__avatar profile__avatar--fallback">
+                {profileInitial}
+              </div>
+            )}
+            <div className="profile__identity-copy">
+              <span className="profile__eyebrow">Account</span>
+              <h2>{profileName}</h2>
+              <p>{profile.email}</p>
+            </div>
           </div>
-        )}
-        <p>
-          <b>Username:</b> {profile.username}
-        </p>
-        <p>
-          <b>Email:</b> {profile.email}
-        </p>
-        <p>
-          <b>User ID:</b> {authUser.uid}
-        </p>
-        <p>
-          <b>Joined:</b> {formatTimestampString(profile.createdAt)}
-        </p>
+          <dl className="profile__account-details">
+            <div>
+              <dt>Member since</dt>
+              <dd>{formatTimestampDate(profile.createdAt)}</dd>
+            </div>
+            <div>
+              <dt>User ID</dt>
+              <dd title={authUser.uid}>{authUser.uid}</dd>
+            </div>
+          </dl>
+        </header>
+
         <section className="profile__subscription">
-          <div>
-            <span>Membership</span>
-            <strong>
-              {loadingSubscription
-                ? "Loading..."
-                : subscription
-                  ? `${subscription.planName} (${subscription.status.replace("_", " ")})`
-                  : "No membership found"}
-            </strong>
-            {subscription?.currentPeriodEnd && (
-              <small>
-                {subscription.cancelAtPeriodEnd ? "Access until" : "Billing period ends"}{" "}
-                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                {subscription.cancelAtPeriodEnd ? " - canceling" : ""}
-              </small>
-            )}
-            <small>
-              {subscription
-                ? `${creditsRemaining}/${creditsTotal} credits remaining`
-                : "No credits available"}
-            </small>
-            {subscription && (
-              <small>
-                Membership {membershipCreditsRemaining}/{membershipCreditsTotal}
-                {" - "}
-                Bonus {bonusCreditsRemaining}/{bonusCreditsTotal}
-              </small>
-            )}
+          <div className="profile__membership-overview">
+            <article className="profile__plan-card">
+              <div className="profile__section-heading">
+                <span className="profile__eyebrow">Current plan</span>
+                {subscription && (
+                  <span className={`profile__status profile__status--${canUseMembership ? "active" : "inactive"}`}>
+                    <i aria-hidden="true" />
+                    {subscription.status.replace("_", " ")}
+                  </span>
+                )}
+              </div>
+              <div className="profile__plan-title">
+                <span className="profile__plan-icon" aria-hidden="true"><Crown /></span>
+                <div>
+                  <h3>
+                    {loadingSubscription
+                      ? "Loading..."
+                      : subscription?.planName ?? "No membership"}
+                  </h3>
+                  <p>
+                    {subscription?.planId === "free"
+                      ? "Your free account plan"
+                      : subscription
+                        ? `${membershipCreditsTotal} credits every month`
+                        : "No active plan found"}
+                  </p>
+                </div>
+              </div>
+              {subscription?.currentPeriodEnd && (
+                <small className="profile__period">
+                  {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing date"}{" "}
+                  <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong>
+                  {subscription.cancelAtPeriodEnd && " · Cancelling"}
+                </small>
+              )}
+            </article>
+
+            <article className="profile__credits-card">
+              <div className="profile__section-heading">
+                <span className="profile__eyebrow">Credit balance</span>
+                <span className="profile__credits-icon" aria-hidden="true"><Coins /></span>
+              </div>
+              <div className="profile__credits-total">
+                <strong>{subscription ? creditsRemaining : 0}</strong>
+                <span>/ {subscription ? creditsTotal : 0}</span>
+              </div>
+              <div
+                className="profile__credits-progress"
+                role="progressbar"
+                aria-label="Credits remaining"
+                aria-valuemin={0}
+                aria-valuemax={creditsTotal}
+                aria-valuenow={creditsRemaining}
+              >
+                <span style={{ width: `${creditPercentage}%` }} />
+              </div>
+              <div className="profile__credit-breakdown">
+                <span>Membership credits <strong>{membershipCreditsRemaining}/{membershipCreditsTotal}</strong></span>
+                <span>Extra credits <strong>{bonusCreditsRemaining}/{bonusCreditsTotal}</strong></span>
+              </div>
+            </article>
           </div>
-          <label>
-            Plan
-            <select
-              value={selectedPlanId}
-              onChange={(event) => setSelectedPlanId(event.target.value as MembershipPlanId)}
-              disabled={updatingSubscription}
-            >
-              {membershipPlans.filter((plan) => plan.id !== "free").map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} - {plan.credits} credits - {plan.price} {plan.currency}/{plan.billingInterval}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="profile__subscription-actions">
-            {canStartMembershipCheckout && (
-              <Button
-                disabled={updatingSubscription}
-                onClick={() => void startMembershipCheckout(selectedPlanId)}
-              >
-                {updatingSubscription ? "Opening checkout..." : "Continue to payment"}
-              </Button>
-            )}
-            <Button
-              disabled={!canUseMembership || updatingCredits}
-              onClick={() => void topUpCredits()}
-            >
-              {updatingCredits ? "Adding..." : "Top up 50 credits"}
-            </Button>
+
+          <div className="profile__plan-actions">
+            <div className="profile__upgrade-copy">
+              <span className="profile__eyebrow">Plans and credits</span>
+              <h3>Choose how you want to add credits</h3>
+              <p>Subscribe for monthly credits or make a one-time purchase.</p>
+            </div>
+
+            <div className="profile__purchase-options">
+              {planOptions.map((plan) => {
+                const isFreePlan = plan.id === "free";
+                const planIsCurrent = subscription?.planId === plan.id;
+                const switchToFreeIsScheduled = Boolean(
+                  isFreePlan &&
+                  subscription?.planId !== "free" &&
+                  subscription?.cancelAtPeriodEnd
+                );
+                const canSwitchToFree = Boolean(
+                  isFreePlan &&
+                  subscription?.planId !== "free" &&
+                  subscription?.stripeSubscriptionId &&
+                  !subscription?.cancelAtPeriodEnd
+                );
+                const useBillingPortal = Boolean(
+                  !isFreePlan && !canStartMembershipCheckout && canManageBilling
+                );
+                const PlanIcon = isFreePlan
+                  ? Leaf
+                  : plan.id === "pro"
+                    ? Sparkles
+                    : Crown;
+                const planAction = () => {
+                  if (isFreePlan) {
+                    setConfirmFreeSwitch(true);
+                    return;
+                  }
+                  if (useBillingPortal) return openBillingPortal();
+                  return startMembershipCheckout(plan.id);
+                };
+
+                return (
+                  <article
+                    key={plan.id}
+                    className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
+                  >
+                    <span className="profile__purchase-icon" aria-hidden="true">
+                      <PlanIcon />
+                    </span>
+                    <span className="profile__purchase-name">{plan.name}</span>
+                    <strong>{isFreePlan ? "Free forever" : `${plan.credits} credits`}</strong>
+                    <small>
+                      {isFreePlan
+                        ? "No monthly fee · No subscription"
+                        : `${plan.price} ${plan.currency} / month`}
+                    </small>
+                    <button
+                      type="button"
+                      className="profile__purchase-cta"
+                      disabled={
+                        planIsCurrent ||
+                        switchToFreeIsScheduled ||
+                        updatingSubscription ||
+                        (isFreePlan
+                          ? !canSwitchToFree
+                          : !canStartMembershipCheckout && !canManageBilling)
+                      }
+                      onClick={() => void planAction()}
+                    >
+                      {planIsCurrent
+                        ? "Current plan"
+                        : switchToFreeIsScheduled
+                          ? subscription?.currentPeriodEnd
+                            ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                            : "Switch scheduled"
+                        : updatingSubscription
+                          ? "Opening checkout..."
+                          : isFreePlan
+                            ? "Switch to Free"
+                          : useBillingPortal
+                            ? "Switch plan"
+                            : `Choose ${plan.name}`}
+                    </button>
+                  </article>
+                );
+              })}
+
+              <article className="profile__purchase-card profile__purchase-card--top-up">
+                <span className="profile__purchase-icon" aria-hidden="true"><Coins /></span>
+                <span className="profile__purchase-name">One-time payment</span>
+                <strong>100 extra credits</strong>
+                <small>One-time payment · No subscription</small>
+                <button
+                  type="button"
+                  className="profile__purchase-cta"
+                  disabled={!canUseMembership || updatingCredits}
+                  onClick={() => void topUpCredits()}
+                >
+                  {updatingCredits ? "Opening checkout..." : "Buy credits"}
+                </button>
+              </article>
+            </div>
+
             {canManageBilling && (
-              <Button
-                disabled={updatingSubscription}
-                onClick={() => void openBillingPortal()}
-              >
-                Manage billing
-              </Button>
-            )}
-            {canUseMembership &&
-              subscription.planId !== "free" &&
-              subscription.stripeSubscriptionId &&
-              !subscription.cancelAtPeriodEnd && (
+              <div className="profile__billing-tools">
+                <span>Already subscribed? Manage your payment details and membership.</span>
                 <Button
                   disabled={updatingSubscription}
-                  onClick={() => void cancelAtPeriodEnd()}
+                  onClick={() => void openBillingPortal()}
                 >
-                  Cancel at period end
+                  Manage billing
                 </Button>
+                {canUseMembership &&
+                  subscription.planId !== "free" &&
+                  subscription.stripeSubscriptionId &&
+                  !subscription.cancelAtPeriodEnd && (
+                    <Button
+                      disabled={updatingSubscription}
+                      onClick={() => void cancelAtPeriodEnd()}
+                    >
+                      Cancel subscription
+                    </Button>
+                )}
+              </div>
+            )}
+
+            {(subscriptionMessage || creditMessage) && (
+              <div className="profile__billing-notices" aria-live="polite">
+                {subscriptionMessage && (
+                  <small>{subscriptionMessage}</small>
+                )}
+                {creditMessage && <small className="is-warning">{creditMessage}</small>}
+              </div>
             )}
           </div>
-          {subscriptionMessage && <small>{subscriptionMessage}</small>}
-          {creditMessage && <small>{creditMessage}</small>}
         </section>
       </div>
+
+      {confirmFreeSwitch && subscription && (
+        <div
+          className="profile__dialog-backdrop"
+          onMouseDown={() => {
+            if (!updatingSubscription) setConfirmFreeSwitch(false);
+          }}
+        >
+          <div
+            className="profile__plan-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="free-plan-dialog-title"
+            aria-describedby="free-plan-dialog-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <span className="profile__eyebrow">Confirm plan change</span>
+            <h2 id="free-plan-dialog-title">Switch to the Free plan?</h2>
+            <p id="free-plan-dialog-description">
+              Your {subscription.planName} plan will remain active
+              {subscription.currentPeriodEnd
+                ? ` until ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                : " until the end of the current billing period"}.
+              {" "}It will not renew after that, and your remaining extra credits will be preserved.
+            </p>
+            {subscriptionMessage && (
+              <small className="profile__plan-dialog-error" role="alert">
+                {subscriptionMessage}
+              </small>
+            )}
+            <div className="profile__plan-dialog-actions">
+              <Button
+                autoFocus
+                disabled={updatingSubscription}
+                onClick={() => setConfirmFreeSwitch(false)}
+              >
+                Keep {subscription.planName}
+              </Button>
+              <Button
+                className="profile__confirm-free-button"
+                disabled={updatingSubscription}
+                onClick={() => {
+                  void cancelAtPeriodEnd().then((wasScheduled) => {
+                    if (wasScheduled) setConfirmFreeSwitch(false);
+                  });
+                }}
+              >
+                {updatingSubscription ? "Scheduling..." : "Switch to Free"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="profile__portfolio">
         <div className="profile__portfolio-header">

@@ -17,7 +17,7 @@ export function useCredits(subscription: UserSubscription | null) {
       creditActionInProgressRef.current = true;
       setUpdatingCredits(true);
       setCreditMessage(null);
-      const response = await createTopUpCheckout(user, "credits_50");
+      const response = await createTopUpCheckout(user, "credits_100");
       window.location.assign(response.checkoutUrl);
       return true;
     } catch (error) {

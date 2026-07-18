@@ -22,11 +22,11 @@ const MEMBERSHIP_PRICE_ENV: Record<Exclude<MembershipPlanId, "free">, string> = 
 };
 
 const TOP_UP_PACKAGES = {
-  credits_50: {
+  credits_100: {
     amount: 5,
-    credits: 50,
+    credits: 100,
     currency: "USD",
-    priceEnv: "STRIPE_TOPUP_50_PRICE_ID",
+    priceEnv: "STRIPE_TOPUP_100_PRICE_ID",
   },
 } as const;
 
