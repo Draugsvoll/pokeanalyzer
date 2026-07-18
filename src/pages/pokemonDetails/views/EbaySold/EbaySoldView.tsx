@@ -11,6 +11,7 @@ import {
   isAbortError,
   useAbortableRequest,
 } from "../../../../hooks/useAbortableRequest";
+import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -29,8 +30,7 @@ export default function EbaySoldView({
   const { isCurrentRequest, startRequest } = useAbortableRequest();
   useEffect(() => {
     async function loadSoldListings() {
-      const query = [card.name, card.set?.name].filter(Boolean).join(" ");
-      const params = new URLSearchParams({ q: query });
+      const params = new URLSearchParams({ cardId: card.id });
       const signal = startRequest();
 
       setLoading(true);
@@ -44,6 +44,7 @@ export default function EbaySoldView({
         const data = (await res.json()) as
           Partial<PaidFeatureResponse<EbayCompsResponse>> & {
             error?: string;
+            fromDatabase?: boolean;
             message?: string;
           };
 
@@ -56,9 +57,12 @@ export default function EbaySoldView({
         if (!data.subscription) {
           throw new Error("The eBay response did not include subscription data");
         }
+        onSubscriptionChange?.(data.subscription);
+        if (data.fromDatabase) {
+          await waitForStoredResponse(signal);
+        }
         if (!signal.aborted) {
           setResponse(data.data);
-          onSubscriptionChange?.(data.subscription);
         }
       } catch (requestError) {
         if (isAbortError(requestError)) return;
@@ -77,7 +81,7 @@ export default function EbaySoldView({
     }
 
     loadSoldListings();
-  }, [card.name, card.set?.name, isCurrentRequest, onSubscriptionChange, startRequest]);
+  }, [card.id, isCurrentRequest, onSubscriptionChange, startRequest]);
 
   if (loading) return <p>Loading eBay sold listings...</p>;
   if (error) return <p className="card-view__page-error">{error}</p>;

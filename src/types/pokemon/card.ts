@@ -28,5 +28,11 @@ export type PokemonCard = {
   images: CardImages;
   tcgplayer?: TCGPlayer;
   cardmarket?: CardMarket;
+  grok?: {
+    collectors_analysis?: Record<string, unknown> & { timestamp: string };
+    price_analysis?: Record<string, unknown> & { timestamp: string };
+    ebay_sold?: Record<string, unknown> & { timestamp: string };
+    worth_grading?: Record<string, unknown> & { timestamp: string };
+  };
   quantity?: number;
 };

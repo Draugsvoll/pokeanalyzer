@@ -2,7 +2,10 @@ import { Router, type Request, type Response } from "express";
 import { chat, GrokApiError, multimodalChat } from "../../services/xaiService.js";
 import {
   authenticityCheckPrompt,
+  collectorsAnalysisPrompt,
   identifyCardPrompt,
+  isWorthGradingPrompt,
+  priceAnalysisPrompt,
   PsaGradingPrompt,
 } from "../../../src/utils/grok/grokPrompts.js";
 import { getAuthenticatedUid } from "../../security/auth.js";
@@ -15,9 +18,15 @@ import {
   getRequestAbortSignal,
   isRequestAbort,
 } from "../../security/requestAbort.js";
+import {
+  getCardGrokContext,
+  saveCardGrokResponse,
+} from "../cardGrokStore.js";
+import { getCardGrokFeature } from "../cardGrokConfig.js";
 
 const router = Router();
 const MAX_PROMPT_LENGTH = 10_000;
+const MAX_CARD_ID_LENGTH = 100;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_PREFIXES = [
   "data:image/jpeg;base64,",
@@ -71,24 +80,92 @@ router.post("/", async (req: Request, res: Response) => {
   const signal = getRequestAbortSignal(res);
   try {
     const uid = getAuthenticatedUid(res);
-    const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+    const requestedPrompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
     const feature = typeof req.body?.feature === "string" ? req.body.feature.trim() : "";
+
+    if (!ALLOWED_GROK_FEATURES.has(feature)) {
+      throw new CreditHttpError("Invalid Grok feature", 400);
+    }
+
+    let prompt = requestedPrompt;
+    let cardGrokTarget: { cardId: string; storageKey: string } | null = null;
+    const cardGrokFeature = getCardGrokFeature(feature);
+
+    if (cardGrokFeature) {
+      const cardId = typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
+      if (!cardId || cardId.length > MAX_CARD_ID_LENGTH) {
+        throw new CreditHttpError("A valid cardId is required for card analysis", 400);
+      }
+
+      const context = await getCardGrokContext(
+        cardId,
+        cardGrokFeature.storageKey,
+        cardGrokFeature.reuseDays,
+      );
+      if (!context || !context.cardName) {
+        throw new CreditHttpError("Card not found", 404);
+      }
+      if (context.storedResponse) {
+        const storedResult = await runPaidFeature(
+          uid,
+          feature,
+          async () => JSON.stringify(context.storedResponse),
+          signal,
+        );
+        res.json({
+          provider: "database",
+          fromDatabase: true,
+          text: storedResult.data,
+          subscription: storedResult.subscription,
+        });
+        return;
+      }
+
+      cardGrokTarget = { cardId, storageKey: cardGrokFeature.storageKey };
+      if (feature === "collector_analysis") {
+        prompt = collectorsAnalysisPrompt(context.cardNameAndSet);
+      } else if (feature === "price_analysis") {
+        if (!context.setName || !context.cardNumber) {
+          throw new CreditHttpError("Card is missing set or number data", 422);
+        }
+        prompt = priceAnalysisPrompt(
+          context.cardName,
+          context.setName,
+          context.cardNumber,
+        );
+      } else if (feature === "worth_grading") {
+        prompt = isWorthGradingPrompt(context.cardNameAndSet);
+      } else {
+        throw new CreditHttpError("Unsupported stored card feature", 400);
+      }
+    }
 
     if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
       throw new CreditHttpError("prompt must contain 1 to 10000 characters", 400);
-    }
-    if (!ALLOWED_GROK_FEATURES.has(feature)) {
-      throw new CreditHttpError("Invalid Grok feature", 400);
     }
 
     const result = await runPaidFeature(
       uid,
       feature,
-      () => chat(prompt, signal),
+      async () => {
+        const response = await chat(prompt, signal);
+        if (!cardGrokTarget) return response;
+
+        const storedResponse = await saveCardGrokResponse(
+          cardGrokTarget.cardId,
+          cardGrokTarget.storageKey,
+          response,
+        );
+        if (!storedResponse) {
+          throw new CreditHttpError("Grok returned invalid analysis JSON", 502);
+        }
+        return JSON.stringify(storedResponse);
+      },
       signal,
     );
     res.json({
       provider: "grok",
+      fromDatabase: false,
       text: result.data,
       subscription: result.subscription,
     });

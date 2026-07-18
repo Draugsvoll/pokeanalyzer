@@ -13,6 +13,7 @@ const HIDDEN_EBAY_COMP_FIELDS = new Set([
   "scrapedat",
   "fullresthumbnail",
   "fullresthumbnailurl",
+  "timestamp",
 ]);
 
 export type EbayCompsResponse = unknown;

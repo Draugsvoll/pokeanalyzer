@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
 
 type FlatPriceField = { label: string; value: number | string };
@@ -29,6 +30,17 @@ function hasNonZeroPrice(field: FlatPriceField) {
   return !Number.isFinite(numericValue) || numericValue !== 0;
 }
 
+function getSafeSourceUrl(value: string | undefined) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function group(fields: FlatPriceField[], splitReverse = false) {
   const groups = Object.entries(fields.reduce<Record<string, FlatPriceField[]>>((result, field) => {
     const parts = field.label.split(" · ");
@@ -58,6 +70,25 @@ export function StoredPrices({ card, cardNumber }: { card: PokemonCard; cardNumb
   const cardmarketGroups = group(cardmarketFields, true);
   const tcgMarket = tcgFields.find((field) => /market$/i.test(field.label));
   const cardmarketTrend = cardmarketFields.find((field) => /trend price$/i.test(field.label));
+  const tcgplayerUrl = getSafeSourceUrl(card.tcgplayer?.url);
+  const cardmarketUrl = getSafeSourceUrl(card.cardmarket?.url);
+
+  const sourceDetails = (market: string, url: string | null, source: string) => (
+    <div className="card-view__stored-price-source-details">
+      <small>{market}</small>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`View ${card.name} on ${source}`}
+        >
+          View card
+          <ExternalLink size={12} aria-hidden="true" />
+        </a>
+      )}
+    </div>
+  );
 
   const renderGroups = (groups: ReturnType<typeof group>, currency: "USD" | "EUR", highlight: RegExp) => (
     <div className="card-view__stored-price-groups">
@@ -89,12 +120,12 @@ export function StoredPrices({ card, cardNumber }: { card: PokemonCard; cardNumb
 
       <div className="card-view__stored-price-sources">
         {tcgFields.length > 0 && <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
-          <div className="card-view__stored-price-source-header"><span>T</span><div><h3>TCGPlayer</h3><small>United States Market</small></div>{tcgMarket && <div className="card-view__stored-price-summary"><strong>{formatPrice(tcgMarket.value, "USD")}</strong></div>}</div>
+          <div className="card-view__stored-price-source-header"><span>T</span><div><h3>TCGPlayer</h3>{sourceDetails("United States Market", tcgplayerUrl, "TCGPlayer")}</div>{tcgMarket && <div className="card-view__stored-price-summary"><strong>{formatPrice(tcgMarket.value, "USD")}</strong></div>}</div>
           {renderGroups(tcgGroups, "USD", /market/i)}
           <aside className="card-view__price-legend-source card-view__price-legend-source--tcgplayer"><div className="card-view__price-legend-header"></div><p><strong>Market Price:</strong> Average based on recent sales</p><p><strong>Low/Mid/High:</strong> Current listing range</p></aside>
         </section>}
         {cardmarketFields.length > 0 && <section className="card-view__stored-price-source card-view__stored-price-source--cardmarket">
-          <div className="card-view__stored-price-source-header"><span>C</span><div><h3>Cardmarket</h3><small>EU Market</small></div>{cardmarketTrend && <div className="card-view__stored-price-summary"><strong>{formatPrice(cardmarketTrend.value, "EUR")}</strong></div>}</div>
+          <div className="card-view__stored-price-source-header"><span>C</span><div><h3>Cardmarket</h3>{sourceDetails("EU Market", cardmarketUrl, "Cardmarket")}</div>{cardmarketTrend && <div className="card-view__stored-price-summary"><strong>{formatPrice(cardmarketTrend.value, "EUR")}</strong></div>}</div>
           {renderGroups(cardmarketGroups, "EUR", /trend/i)}
           <aside className="card-view__price-legend-source card-view__price-legend-source--cardmarket"><div className="card-view__price-legend-header"></div><p><strong>Trend Price:</strong> Algorithmic market value</p><p><strong>Average Sell Price:</strong> Low volume cards can have drastic price fluctuations.</p></aside>
         </section>}

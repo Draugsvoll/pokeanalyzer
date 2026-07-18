@@ -8,10 +8,11 @@ type GrokResponse = {
   text?: string;
   error?: string;
   subscription?: UserSubscription;
+  fromDatabase?: boolean;
 };
 
 export type GrokResult =
-  | { ok: true; text: string; subscription: UserSubscription }
+  | { ok: true; text: string; subscription: UserSubscription; fromDatabase: boolean }
   | { ok: false; error: string };
 
 export type GrokRequestState = {
@@ -24,12 +25,13 @@ export async function askGrok(
   prompt: string,
   feature: CreditUsageFeature,
   signal?: AbortSignal,
+  cardId?: string,
 ): Promise<GrokResult> {
   try {
     const res = await authenticatedFetch(`${API_URL}/grok`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, feature }),
+      body: JSON.stringify({ prompt, feature, cardId }),
       signal,
     });
     const data = (await res.json()) as GrokResponse;
@@ -41,7 +43,12 @@ export async function askGrok(
       return { ok: false, error: "Grok response did not include subscription data" };
     }
 
-    return { ok: true, text: data.text ?? "", subscription: data.subscription };
+    return {
+      ok: true,
+      text: data.text ?? "",
+      subscription: data.subscription,
+      fromDatabase: Boolean(data.fromDatabase),
+    };
   } catch (error) {
     if (isAbortError(error)) throw error;
     return {

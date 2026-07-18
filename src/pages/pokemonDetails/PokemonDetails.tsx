@@ -40,8 +40,16 @@ import {
   isAbortError,
   useAbortableRequest,
 } from "../../hooks/useAbortableRequest";
+import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const integerFormatter = new Intl.NumberFormat("en-US");
+const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+  year: "numeric",
+});
 
 type CardInfoField = {
   label: string;
@@ -101,17 +109,45 @@ const AI_Features: AI_feature[] = [
   },
 ];
 
-function getCardSetInfoFields(
-  card: PokemonCard,
-  cardNumber: string | undefined = card.number
-): CardInfoField[] {
+function formatReleaseDate(value: string | undefined) {
+  if (!value) return value;
+
+  const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value.trim());
+  if (!match) return value;
+
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return value;
+  }
+
+  return releaseDateFormatter.format(date);
+}
+
+function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
+  const printedTotal = card.set?.printedTotal;
+  const cardNumber = card.number && printedTotal !== undefined
+    ? `${card.number} / ${integerFormatter.format(printedTotal)}`
+    : card.number;
+  const setSize = printedTotal === undefined
+    ? undefined
+    : integerFormatter.format(printedTotal);
+
   return [
     { label: "Series", value: card.set?.series },
     { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
     { label: "Kortnummer", value: cardNumber },
-    { label: "Printed Total", value: card.set?.printedTotal },
+    { label: "Printed Total", value: setSize },
     { label: "Set ID", value: card.set?.id },
-    { label: "Release Date", value: card.set?.releaseDate },
+    { label: "Release Date", value: formatReleaseDate(card.set?.releaseDate) },
   ];
 }
 
@@ -213,15 +249,20 @@ export default function PokemonDetails() {
       priceAnalysisPrompt(card.name, card.set.name, cardNumber),
       "price_analysis",
       signal,
+      card.id,
     )
-      .then((result) => {
+      .then(async (result) => {
         if (signal.aborted) return false;
         if (!result.ok) {
           setGrokError(result.error);
           return false;
         }
-        setGrokResponse(result.text);
         updateSubscription(result.subscription);
+        if (result.fromDatabase) {
+          await waitForStoredResponse(signal);
+        }
+        if (signal.aborted) return false;
+        setGrokResponse(result.text);
         return true;
       })
       .catch((error: unknown) => {
@@ -241,7 +282,7 @@ export default function PokemonDetails() {
   }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
-    if (featureCooldown || !subscription || creditsRemaining < 1) return;
+    if (!card || featureCooldown || !subscription || creditsRemaining < 1) return;
 
     setFeatureCooldown(true);
     abortActiveRequest();
@@ -281,14 +322,28 @@ export default function PokemonDetails() {
 
     const signal = startRequest();
     try {
-      const result = await askGrok(prompt, aiFeature.creditFeature, signal);
+      const result = await askGrok(
+        prompt,
+        aiFeature.creditFeature,
+        signal,
+        aiFeature.view === "collector_analysis" || aiFeature.view === "worth_grading"
+          ? card.id
+          : undefined,
+      );
       if (signal.aborted) return;
 
       if (!result.ok) {
         setGrokError(result.error);
       } else {
-        setGrokResponse(result.text);
         updateSubscription(result.subscription);
+        if (
+          result.fromDatabase &&
+          (aiFeature.view === "collector_analysis" || aiFeature.view === "worth_grading")
+        ) {
+          await waitForStoredResponse(signal);
+        }
+        if (signal.aborted) return;
+        setGrokResponse(result.text);
       }
     } catch (error) {
       if (!isAbortError(error)) {
@@ -398,7 +453,7 @@ export default function PokemonDetails() {
   }
 
   const displayedCardNumber = getJustTcgCardNumber(justTcgResult) ?? card.number;
-  const infoFields = getCardSetInfoFields(card, displayedCardNumber);
+  const infoFields = getCardSetInfoFields(card);
   const cardIsSaved = isCardSaved(card.id);
 
   const grokRequest: GrokRequestState = {
@@ -419,7 +474,10 @@ export default function PokemonDetails() {
           <div className="card-view__info-side">
             <h2 className="card-view__title">{card.name}</h2>
             {card.set?.name && (
-              <p className="card-view__title-set">{card.set.name}</p>
+              <p className="card-view__title-set">
+                <i aria-hidden="true">•</i>
+                {card.set.name}
+              </p>
             )}
 
             <div className="card-view__info-grid">
@@ -491,6 +549,7 @@ export default function PokemonDetails() {
               disabled={
                 loadingSubscription ||
                 updatingCredits ||
+                grokLoading ||
                 featureCooldown ||
                 creditsRemaining < 1
               }

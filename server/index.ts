@@ -18,6 +18,11 @@ import {
   getRequestAbortSignal,
   isRequestAbort,
 } from "./security/requestAbort.js";
+import { CARD_GROK_FEATURES } from "./db/cardGrokConfig.js";
+import {
+  getCardGrokContext,
+  saveCardGrokResponse,
+} from "./db/cardGrokStore.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -113,21 +118,53 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   const signal = getRequestAbortSignal(res);
   try {
     const uid = getAuthenticatedUid(res);
-    const query =
-      typeof req.query.q === "string" ? req.query.q.trim() : "";
-    if (!query || query.length > 200) {
-      res.status(400).json({ error: "q must contain 1 to 200 characters" });
+    const cardId = typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
+    if (!cardId || cardId.length > 100) {
+      throw new CreditHttpError("A valid cardId is required", 400);
+    }
+
+    const feature = CARD_GROK_FEATURES.ebay_sold;
+    const context = await getCardGrokContext(
+      cardId,
+      feature.storageKey,
+      feature.reuseDays,
+    );
+    if (!context || !context.cardNameAndSet) {
+      throw new CreditHttpError("Card not found", 404);
+    }
+    if (context.storedResponse) {
+      const storedResult = await runPaidFeature(
+        uid,
+        "ebay_sold",
+        async () => context.storedResponse,
+        signal,
+      );
+      res.json({
+        ...storedResult,
+        fromDatabase: true,
+      });
       return;
     }
 
     const result = await runPaidFeature(
       uid,
       "ebay_sold",
-      () => fetchEbayComps(query, signal),
+      async () => {
+        const response = await fetchEbayComps(context.cardNameAndSet, signal);
+        const storedResponse = await saveCardGrokResponse(
+          cardId,
+          feature.storageKey,
+          response,
+        );
+        if (!storedResponse) {
+          throw new CreditHttpError("eBay returned invalid response data", 502);
+        }
+        return storedResponse;
+      },
       signal,
     );
 
-    res.json(result);
+    res.json({ ...result, fromDatabase: false });
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
     logError("eBay request failed", error);

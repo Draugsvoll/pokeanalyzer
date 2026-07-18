@@ -91,13 +91,9 @@
     margin: 0.3rem 0 1.5rem;
     text-align: center;
 
-    &::before {
-      background: #71717a;
-      border-radius: 50%;
-      content: "";
-      flex: 0 0 auto;
-      height: 0.35rem;
-      width: 0.35rem;
+    i {
+      color: #71717a;
+      font-style: normal;
     }
   }
 
@@ -124,6 +120,7 @@
   &__value {
     font-weight: 600;
     color: #fff;
+    font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
 
     &--highlight {
@@ -242,9 +239,14 @@
   &__stored-price-source--cardmarket &__stored-price-source-header > span { background: #10b981; }
   &__stored-price-source-header h3 { color: #fff; font-size: 1.4rem; margin: 0; }
   &__stored-price-source-header small { color: #fb923c; }
+  &__stored-price-source-details { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.15rem; }
+  &__stored-price-source-details a { align-items: center; border: 1px solid currentColor; border-radius: 999px; color: #fb923c; display: inline-flex; font-size: 0.65rem; font-weight: 700; gap: 0.25rem; line-height: 1; padding: 0.25rem 0.45rem; text-decoration: none; }
+  &__stored-price-source-details a:hover { background: rgba(249, 115, 22, 0.1); }
   &__stored-price-summary { margin-left: auto; text-align: right; }
   &__stored-price-summary strong { color: #fff; display: block; font-family: vars.$price-value-font-family; font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: vars.$price-value-letter-spacing; line-height: 1; }
   &__stored-price-source--cardmarket &__stored-price-source-header small { color: #34d399; }
+  &__stored-price-source--cardmarket &__stored-price-source-details a { color: #34d399; }
+  &__stored-price-source--cardmarket &__stored-price-source-details a:hover { background: rgba(16, 185, 129, 0.1); }
 
   &__stored-price-groups { align-content: start; display: grid; gap: 1.5rem; grid-auto-rows: max-content; }
   &__stored-price-groups h4 { border-bottom: 1px solid #3f3f46; box-sizing: border-box; color: #a1a1aa; font-size: 0.7rem; height: 1.5rem; letter-spacing: 0.12em; line-height: 1rem; margin: 0 0 0.5rem; padding-bottom: 0.5rem; text-transform: uppercase; }
