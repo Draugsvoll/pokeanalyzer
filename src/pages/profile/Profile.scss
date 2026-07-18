@@ -37,9 +37,8 @@
 
   .profile__identity {
     align-items: center;
+    background: linear-gradient(105deg, rgba(129, 140, 248, 0.055), transparent 55%);
     display: flex;
-    gap: 2rem;
-    justify-content: space-between;
     padding: 1.75rem 2rem;
   }
 
@@ -48,16 +47,18 @@
     display: flex;
     gap: 1.25rem;
     min-width: 0;
+    width: 100%;
   }
 
   .profile__identity-copy {
+    flex: 1;
     min-width: 0;
 
     h2 {
       color: #fff;
       font-size: clamp(1.35rem, 3vw, 1.8rem);
       line-height: 1.15;
-      margin: 0.25rem 0 0.3rem;
+      margin: 0;
     }
 
     p {
@@ -69,41 +70,57 @@
     }
   }
 
+  .profile__identity-title {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin: 0.3rem 0 0.35rem;
+  }
+
+  .profile__verified-badge {
+    align-items: center;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.18);
+    border-radius: 999px;
+    color: #6ee7b7;
+    display: inline-flex;
+    font-size: 0.66rem;
+    font-weight: 700;
+    gap: 0.25rem;
+    padding: 0.25rem 0.45rem;
+
+    svg { height: 0.8rem; width: 0.8rem; }
+  }
+
+  .profile__identity-meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+
+    > span {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 0.68rem;
+      padding: 0.38rem 0.65rem;
+    }
+
+    > span strong {
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 600;
+    }
+  }
+
   .profile__eyebrow {
     color: rgba(255, 255, 255, 0.56);
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-  }
-
-  .profile__account-details {
-    display: grid;
-    gap: 0.7rem;
-    margin: 0;
-    min-width: min(20rem, 42%);
-
-    div {
-      align-items: baseline;
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: 6rem minmax(0, 1fr);
-    }
-
-    dt {
-      color: rgba(255, 255, 255, 0.48);
-      font-size: 0.72rem;
-    }
-
-    dd {
-      color: rgba(255, 255, 255, 0.84);
-      font-size: 0.78rem;
-      margin: 0;
-      overflow: hidden;
-      text-align: right;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
   }
 
   .profile__subscription {
@@ -526,270 +543,6 @@
     color: #fcd34d;
   }
 
-  .profile__portfolio {
-    margin-top: 2rem;
-
-    .grid-view-container {
-      column-gap: 1rem;
-      row-gap: 2rem;
-    }
-  }
-
-  .profile__portfolio-header {
-    align-items: end;
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-    margin-bottom: 1.25rem;
-  }
-
-  .profile__portfolio-tools {
-    align-items: stretch;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    justify-content: flex-end;
-  }
-
-  .profile__sort {
-    align-items: flex-start;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.9rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    justify-content: center;
-    padding: 0.75rem 1rem;
-
-    span {
-      color: rgba(255, 255, 255, 0.62);
-      font-size: 0.75rem;
-    }
-
-    select {
-      appearance: none;
-      background:
-        linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.72) 50%) right 0.85rem center / 0.35rem 0.35rem no-repeat,
-        linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 999px;
-      color: #fff;
-      cursor: pointer;
-      font: inherit;
-      font-size: 0.8rem;
-      min-width: 10.75rem;
-      padding: 0.45rem 1.7rem 0.45rem 0.75rem;
-
-      option {
-        background-color: #24232d;
-        color: #fff;
-      }
-
-      &:focus-visible {
-        outline: 2px solid rgba(255, 255, 255, 0.5);
-        outline-offset: 2px;
-      }
-    }
-  }
-
-  .profile__estimated-value {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.9rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    min-width: 18rem;
-    padding: 0.75rem 1rem;
-    position: relative;
-
-    span,
-    small {
-      color: rgba(255, 255, 255, 0.62);
-      font-size: 0.75rem;
-    }
-
-    strong {
-      color: #fff;
-      font-size: 1.4rem;
-      font-weight: 700;
-      line-height: 1.15;
-    }
-  }
-
-  .profile__estimated-value-options {
-    display: flex;
-    gap: 0.75rem;
-    margin: 0;
-
-    label {
-      align-items: center;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      font-size: 0.75rem;
-      gap: 0.3rem;
-      opacity: 0.58;
-      transition: opacity 0.15s ease;
-
-      &:has(input:checked) {
-        font-weight: 700;
-        opacity: 1;
-      }
-    }
-
-    input {
-      accent-color: #fff;
-      cursor: pointer;
-      margin: 0;
-    }
-  }
-
-  .profile__portfolio-card {
-    align-items: center;
-    display: flex;
-    gap: 0;
-    transition: transform 0.2s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-    }
-
-    .base-card:hover {
-      transform: none;
-    }
-
-    &:hover .profile__card-actions,
-    &:focus-within .profile__card-actions {
-      opacity: 1;
-      transition-delay: 0s;
-      visibility: visible;
-    }
-  }
-
-  .profile__card-actions {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-left: 0.5rem;
-  }
-
-  .profile__remove-card {
-    align-items: center;
-    background: rgba(10, 10, 16, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
-    color: rgba(255, 255, 255, 0.72);
-    cursor: pointer;
-    display: flex;
-    height: 2rem;
-    justify-content: center;
-    padding: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    width: 2rem;
-    z-index: 2;
-
-    svg {
-      height: 1rem;
-      width: 1rem;
-    }
-
-    &:hover {
-      background: rgba(127, 29, 29, 0.9);
-      border-color: rgba(248, 113, 113, 0.7);
-      color: #fff;
-    }
-
-    &:focus-visible {
-      outline: 2px solid #f87171;
-      outline-offset: 2px;
-    }
-  }
-
-  .profile__quantity-button,
-  .profile__quantity {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-sizing: border-box;
-    height: 2rem;
-    width: 2rem;
-  }
-
-  .profile__quantity-control,
-  .profile__remove-control,
-  .profile__quantity-display {
-    position: relative;
-  }
-
-  .profile__quantity-confirm {
-    align-items: center;
-    background: #18181f;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 0.75rem;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-    display: flex;
-    gap: 0.4rem;
-    left: calc(100% + 0.55rem);
-    padding: 0.45rem;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    white-space: nowrap;
-    z-index: 5;
-
-    span {
-      color: var(--text);
-      font-size: 0.75rem;
-      padding: 0 0.25rem;
-    }
-
-    button {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 0.45rem;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 0.7rem;
-      padding: 0.3rem 0.5rem;
-
-      &:first-of-type { background: #087354; border-color: transparent; color: #fff; }
-      &:hover:not(:disabled) { filter: brightness(1.15); }
-      &:disabled { cursor: not-allowed; opacity: 0.4; }
-    }
-  }
-
-  .profile__quantity-button {
-    align-items: center;
-    background: rgba(10, 10, 16, 0.72);
-    border-radius: 999px;
-    color: rgba(255, 255, 255, 0.78);
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    padding: 0;
-
-    svg { height: 1rem; width: 1rem; }
-    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
-    &:disabled { cursor: not-allowed; opacity: 0.3; }
-    &:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
-  }
-
-  .profile__quantity {
-    appearance: textfield;
-    background: transparent;
-    border-left: 0;
-    border-right: 0;
-    color: var(--text);
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 0;
-    text-align: center;
-
-    &::-webkit-inner-spin-button,
-    &::-webkit-outer-spin-button { appearance: none; margin: 0; }
-  }
-
   @media (max-width: 60rem) {
     .profile__purchase-options {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -808,13 +561,6 @@
 
     .profile__identity-main {
       width: 100%;
-    }
-
-    .profile__account-details {
-      min-width: 0;
-      width: 100%;
-
-      dd { max-width: 12rem; }
     }
 
     .profile__subscription {
@@ -838,48 +584,6 @@
       flex: 1 1 auto;
     }
 
-    .profile__portfolio-header {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .profile__estimated-value {
-      align-items: flex-start;
-      text-align: left;
-      width: 100%;
-    }
-
-    .profile__portfolio-tools,
-    .profile__sort {
-      width: 100%;
-    }
-
-    .profile__portfolio-tools {
-      justify-content: flex-start;
-    }
-  }
-
-  .profile__estimated-value-row {
-    align-items: center;
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .profile__estimated-value .profile__missing-price-data {
-    background: #17161d;
-    border: 1px solid rgba(255, 91, 20, 0.45);
-    border-radius: 999px;
-    bottom: 0.35rem;
-    color: #ff651f;
-    font-weight: 500;
-    left: 1rem;
-    line-height: 1;
-    margin: 0;
-    padding: 0.35rem 0.7rem;
-    text-align: center;
-    width: fit-content;
   }
 
 }

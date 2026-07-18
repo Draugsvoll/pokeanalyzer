@@ -1,44 +1,22 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
-import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import "./Profile.scss";
-import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { getUserProfileSessionKey } from "../../utils/cache";
-import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
-import { GridView } from "../../components/gridView/GridView";
 import Button from "../../components/button/Button";
 import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
-import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { formatTimestampDate } from "../../utils/timestamp";
-import { ChevronDown, ChevronUp, Coins, Crown, Leaf, Sparkles, X } from "lucide-react";
-import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
+import { BadgeCheck, Coins, Crown, Leaf, Sparkles } from "lucide-react";
 import {
   useCredits,
   useMembershipSubscription,
 } from "../../subscriptions";
 
-type EstimatedValueSource = "tcgplayer" | "cardmarket";
-type PortfolioSort = "default" | "price_desc" | "price_asc";
-
-function getEstimatedCardPrice(
-  card: PokemonCardType,
-  source: EstimatedValueSource
-) {
-  if (source === "tcgplayer") {
-    return getTcgPlayerMarketPrice(card.tcgplayer?.prices);
-  }
-
-  return card.cardmarket?.prices.trendPrice;
-}
-
 export default function Profile() {
   const { user: authUser, loading: authLoading, logout } = useAuth();
-  const { portfolio } = usePortfolioCache();
-  const { removePokemonFromPortfolio, updatePokemonQuantity } = usePokemonPortfolio();
   const {
     cancelAtPeriodEnd,
     loadingSubscription,
@@ -64,18 +42,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [updatingQuantityId, setUpdatingQuantityId] = useState<string | null>(null);
-  const [pendingQuantity, setPendingQuantity] = useState<{
-    cardId: string;
-    quantity: number;
-  } | null>(null);
-  const [pendingRemoval, setPendingRemoval] = useState<{
-    cardId: string;
-    cardName: string;
-  } | null>(null);
-  const [estimatedValueSource, setEstimatedValueSource] =
-    useState<EstimatedValueSource>("tcgplayer");
-  const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
   const [confirmFreeSwitch, setConfirmFreeSwitch] = useState(false);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
@@ -89,96 +55,14 @@ export default function Profile() {
   const canUseMembership =
     subscription?.status === "active" || subscription?.status === "trialing";
   const profileInitial = useInitials(profile?.firstName?.trim() || profile?.email);
-  const profileName =
-    profile?.firstName?.trim() || profile?.username?.trim() || profile?.email;
+  const profileName = profile?.firstName?.trim() || profile?.username?.trim();
+  const profileHeading = profileName || profile?.email;
   const planOptions = membershipPlans.filter(
     (plan) => plan.id === "free" || plan.id === "collector" || plan.id === "pro"
   );
   const creditPercentage = creditsTotal > 0
     ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
     : 0;
-  const estimatedCollectionValue = portfolio.reduce((total, card) => {
-    const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
-    if (marketPrice == null) return total;
-
-    return total + marketPrice * (card.quantity ?? 1);
-  }, 0);
-  const pricedCardsCount = portfolio.filter(
-    (card) => getEstimatedCardPrice(card, estimatedValueSource) != null
-  ).length;
-  const missingPriceCount = portfolio.length - pricedCardsCount;
-  const missingPriceMessage =
-    missingPriceCount === 0
-      ? null
-      : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price`;
-  const estimatedCollectionValueLabel = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: estimatedValueSource === "tcgplayer" ? "USD" : "EUR",
-  }).format(estimatedCollectionValue);
-  const sortedPortfolio = useMemo(() => {
-    if (portfolioSort === "default") return portfolio;
-
-    return [...portfolio].sort((firstCard, secondCard) => {
-      const firstPrice = getEstimatedCardPrice(firstCard, estimatedValueSource);
-      const secondPrice = getEstimatedCardPrice(secondCard, estimatedValueSource);
-
-      if (firstPrice == null && secondPrice == null) return 0;
-      if (firstPrice == null) return 1;
-      if (secondPrice == null) return -1;
-
-      return portfolioSort === "price_desc"
-        ? secondPrice - firstPrice
-        : firstPrice - secondPrice;
-    });
-  }, [estimatedValueSource, portfolio, portfolioSort]);
-
-  const requestQuantityChange = (card: PokemonCardType, amount: number) => {
-    if (updatingQuantityId) return;
-
-    const currentQuantity = pendingQuantity?.cardId === card.id
-      ? pendingQuantity.quantity
-      : card.quantity ?? 1;
-    const nextQuantity = currentQuantity + amount;
-    if (nextQuantity < 1) return;
-
-    setPendingQuantity({
-      cardId: card.id,
-      quantity: nextQuantity,
-    });
-  };
-
-  const confirmQuantityChange = async () => {
-    if (!pendingQuantity) return;
-
-    setUpdatingQuantityId(pendingQuantity.cardId);
-    await updatePokemonQuantity(pendingQuantity.cardId, pendingQuantity.quantity);
-    setUpdatingQuantityId(null);
-    setPendingQuantity(null);
-  };
-
-  const confirmRemoval = async () => {
-    if (!pendingRemoval) return;
-
-    await removePokemonFromPortfolio(pendingRemoval.cardId, false);
-    setPendingRemoval(null);
-  };
-
-  useEffect(() => {
-    if (!pendingQuantity && !pendingRemoval) return;
-
-    const cancelWhenClickingOutside = (event: PointerEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest(".profile__quantity-confirm, .profile__quantity-control, .profile__quantity-display")
-      ) return;
-      setPendingQuantity(null);
-      setPendingRemoval(null);
-    };
-
-    document.addEventListener("pointerdown", cancelWhenClickingOutside);
-    return () => document.removeEventListener("pointerdown", cancelWhenClickingOutside);
-  }, [pendingQuantity, pendingRemoval]);
 
   useEffect(() => {
     if (!confirmFreeSwitch) return;
@@ -280,7 +164,7 @@ export default function Profile() {
               <img
                 className="profile__avatar"
                 src={profile.avatar.trim()}
-                alt={profileName ?? "Profile avatar"}
+                alt={profileName ? `${profileName}'s profile avatar` : "Profile avatar"}
               />
             ) : (
               <div className="profile__avatar profile__avatar--fallback">
@@ -289,20 +173,22 @@ export default function Profile() {
             )}
             <div className="profile__identity-copy">
               <span className="profile__eyebrow">Account</span>
-              <h2>{profileName}</h2>
-              <p>{profile.email}</p>
+              <div className="profile__identity-title">
+                <h2>{profileHeading}</h2>
+                {authUser.emailVerified && (
+                  <span className="profile__verified-badge">
+                    <BadgeCheck aria-hidden="true" /> Verified
+                  </span>
+                )}
+              </div>
+              {profileName && <p>{profile.email}</p>}
+              <div className="profile__identity-meta">
+                <span>
+                  Member since <strong>{formatTimestampDate(profile.createdAt)}</strong>
+                </span>
+              </div>
             </div>
           </div>
-          <dl className="profile__account-details">
-            <div>
-              <dt>Member since</dt>
-              <dd>{formatTimestampDate(profile.createdAt)}</dd>
-            </div>
-            <div>
-              <dt>User ID</dt>
-              <dd title={authUser.uid}>{authUser.uid}</dd>
-            </div>
-          </dl>
         </header>
 
         <section className="profile__subscription">
@@ -557,147 +443,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
-      <section className="profile__portfolio">
-        <div className="profile__portfolio-header">
-          <h2>My collection</h2>
-          <div className="profile__portfolio-tools">
-            <label className="profile__sort">
-              <span>Sort</span>
-              <select
-                value={portfolioSort}
-                onChange={(event) => setPortfolioSort(event.target.value as PortfolioSort)}
-              >
-                <option value="default">Default</option>
-                <option value="price_desc">Price high to low</option>
-                <option value="price_asc">Price low to high</option>
-              </select>
-            </label>
-            <div className="profile__estimated-value">
-              <div className="profile__estimated-value-row">
-                <span>Price source</span>
-                <div className="profile__estimated-value-options" aria-label="Estimated value source">
-                  <label>
-                    <input
-                      type="radio"
-                      name="estimated-value-source"
-                      checked={estimatedValueSource === "tcgplayer"}
-                      onChange={() => setEstimatedValueSource("tcgplayer")}
-                    />
-                    TCGPlayer
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="estimated-value-source"
-                      checked={estimatedValueSource === "cardmarket"}
-                      onChange={() => setEstimatedValueSource("cardmarket")}
-                    />
-                    Cardmarket
-                  </label>
-                </div>
-              </div>
-              <div className="profile__estimated-value-row">
-                <span>Estimated value</span>
-                <strong>{estimatedCollectionValueLabel}</strong>
-              </div>
-              {missingPriceMessage && (
-                <small className="profile__missing-price-data">{missingPriceMessage}</small>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {portfolio.length === 0 ? (
-          <p>No saved cards yet.</p>
-        ) : (
-          <GridView className="ui-fade ui-fade--slow ui-fade--visible">
-            {sortedPortfolio.map((card: PokemonCardType) => (
-              <div key={card.id} className="profile__portfolio-card">
-                <PokemonCard card={card} priceSource={estimatedValueSource} />
-                <div className="profile__card-actions ui-fade">
-                  <div className="profile__quantity-control">
-                    <button
-                      type="button"
-                      className="profile__quantity-button"
-                      aria-label={`Increase ${card.name} quantity`}
-                      disabled={updatingQuantityId === card.id}
-                      onClick={() => requestQuantityChange(card, 1)}
-                    >
-                      <ChevronUp aria-hidden="true" />
-                    </button>
-                  </div>
-                  <div className="profile__quantity-display">
-                    <input
-                      className="profile__quantity"
-                      aria-label={`${card.name} quantity`}
-                      type="number"
-                      min="1"
-                      readOnly
-                      value={
-                        pendingQuantity?.cardId === card.id
-                          ? pendingQuantity.quantity
-                          : card.quantity ?? 1
-                      }
-                    />
-                    <div
-                      className={`profile__quantity-confirm ui-fade${pendingQuantity?.cardId === card.id ? " ui-fade--visible" : ""}`}
-                      role="dialog"
-                      aria-label="Confirm quantity change"
-                      aria-hidden={pendingQuantity?.cardId !== card.id}
-                    >
-                        <button
-                          type="button"
-                          disabled={!pendingQuantity || pendingQuantity.cardId !== card.id || pendingQuantity.quantity === (card.quantity ?? 1)}
-                          onClick={confirmQuantityChange}
-                        >
-                          Update
-                        </button>
-                        <button type="button" onClick={() => setPendingQuantity(null)}>Cancel</button>
-                    </div>
-                  </div>
-                  <div className="profile__quantity-control">
-                    <button
-                      type="button"
-                      className="profile__quantity-button"
-                      aria-label={`Decrease ${card.name} quantity`}
-                    disabled={
-                      (pendingQuantity?.cardId === card.id
-                        ? pendingQuantity.quantity
-                        : card.quantity ?? 1) <= 1 || updatingQuantityId === card.id
-                    }
-                      onClick={() => requestQuantityChange(card, -1)}
-                    >
-                      <ChevronDown aria-hidden="true" />
-                    </button>
-                  </div>
-                  <div className="profile__remove-control">
-                    <button
-                      type="button"
-                      className="profile__remove-card"
-                      aria-label={`Remove ${card.name} from portfolio`}
-                      title="Remove from portfolio"
-                      onClick={() => setPendingRemoval({ cardId: card.id, cardName: card.name })}
-                    >
-                      <X aria-hidden="true" />
-                    </button>
-                    <div
-                      className={`profile__quantity-confirm ui-fade${pendingRemoval?.cardId === card.id ? " ui-fade--visible" : ""}`}
-                      role="dialog"
-                      aria-label="Confirm card removal"
-                      aria-hidden={pendingRemoval?.cardId !== card.id}
-                    >
-                        <span>Remove {pendingRemoval?.cardName ?? card.name}?</span>
-                        <button type="button" onClick={confirmRemoval}>OK</button>
-                        <button type="button" onClick={() => setPendingRemoval(null)}>Cancel</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </GridView>
-        )}
-      </section>
 
       <div className="profile__actions">
         <Button onClick={logout}>Log out</Button>

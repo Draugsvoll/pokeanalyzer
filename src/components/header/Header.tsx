@@ -24,6 +24,9 @@ export const Header: React.FC = () => {
           <div className="btn-container">
             {user ? (
               <>
+              <Link to="/portfolio">
+                Min samling
+              </Link>
               <Link to="/profile">
                 Min Konto
               </Link>
