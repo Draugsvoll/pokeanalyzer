@@ -51,13 +51,13 @@ function getResponseText(data: GrokResponse) {
   );
 }
 
-export async function chat(text: string) {
+export async function chat(text: string, signal?: AbortSignal) {
   return requestGrokResponse([
     {
       role: "user",
       content: text,
     },
-  ]);
+  ], signal);
 }
 
 type GrokInputMessage = {
@@ -70,11 +70,20 @@ type GrokInputMessage = {
       >;
 };
 
-export async function multimodalChat(input: GrokInputMessage[]) {
-  return requestGrokResponse(input);
+export async function multimodalChat(
+  input: GrokInputMessage[],
+  signal?: AbortSignal,
+) {
+  return requestGrokResponse(input, signal);
 }
 
-async function requestGrokResponse(input: GrokInputMessage[]) {
+async function requestGrokResponse(
+  input: GrokInputMessage[],
+  signal?: AbortSignal,
+) {
+  const requestSignal = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(120_000)])
+    : AbortSignal.timeout(120_000);
   const response = await fetch(XAI_RESPONSES_URL, {
     method: "POST",
     headers: {
@@ -91,6 +100,7 @@ async function requestGrokResponse(input: GrokInputMessage[]) {
       input,
       tools: [{ type: "web_search" }],
     }),
+    signal: requestSignal,
   });
 
   const data = (await response.json()) as GrokResponse;
@@ -107,7 +117,7 @@ async function requestGrokResponse(input: GrokInputMessage[]) {
   const content = getResponseText(data);
 
   if (!content) {
-    console.error("Grok returned no text content", JSON.stringify(data, null, 2));
+    console.error("Grok returned no text content");
     throw new GrokApiError("Grok returned an empty response", 502);
   }
 

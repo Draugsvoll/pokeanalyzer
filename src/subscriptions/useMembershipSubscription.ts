@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/authContextValue";
-import { MEMBERSHIP_PLANS } from "./plans";
+import { MEMBERSHIP_PLANS } from "../../shared/subscriptions/plans";
 import {
   cancelSubscriptionAtPeriodEnd,
   createBillingPortal,
@@ -12,6 +12,7 @@ import type {
   MembershipPlanId,
   UserSubscription,
 } from "./types";
+import { logClientError } from "../utils/logClientError";
 
 export function useMembershipSubscription() {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ export function useMembershipSubscription() {
       setSubscription(response.subscription);
       return response.subscription;
     } catch (error) {
-      console.error("Failed to fetch subscription:", error);
+      logClientError("Failed to fetch subscription", error);
       setSubscriptionMessage("Could not load subscription");
       return null;
     } finally {
@@ -56,7 +57,7 @@ export function useMembershipSubscription() {
       window.location.assign(response.checkoutUrl);
       return true;
     } catch (error) {
-      console.error("Failed to activate membership plan:", error);
+      logClientError("Failed to activate membership plan", error);
       setSubscriptionMessage(
         error instanceof Error ? error.message : "Could not activate plan"
       );
@@ -77,7 +78,7 @@ export function useMembershipSubscription() {
       window.location.assign(response.portalUrl);
       return true;
     } catch (error) {
-      console.error("Failed to open billing portal:", error);
+      logClientError("Failed to open billing portal", error);
       setSubscriptionMessage(
         error instanceof Error ? error.message : "Could not open billing portal"
       );
@@ -99,7 +100,7 @@ export function useMembershipSubscription() {
       setSubscriptionMessage("Subscription will cancel at period end");
       return true;
     } catch (error) {
-      console.error("Failed to cancel subscription:", error);
+      logClientError("Failed to cancel subscription", error);
       setSubscriptionMessage(
         error instanceof Error ? error.message : "Could not cancel subscription"
       );

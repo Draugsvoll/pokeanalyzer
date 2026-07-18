@@ -10,6 +10,7 @@ import { useAuth } from "./authContextValue";
 import { PortfolioContext } from "./portfolioCacheContextValue";
 import { getPortfolioCacheKey } from "../utils/cache";
 import type { PokemonCard } from "../types/pokemon";
+import { logClientError } from "../utils/logClientError";
 
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
@@ -46,7 +47,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       setPortfolio(portfolioCards);
       savePortfolioToCache(portfolioCards);
     } catch (error) {
-      console.error("Failed to refresh portfolio:", error);
+      logClientError("Failed to refresh portfolio", error);
       setPortfolio([]);
     } finally {
       setLoadingPortfolio(false);

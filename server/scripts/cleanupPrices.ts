@@ -1,5 +1,6 @@
 // sletter gamle prisdata intervaller så vi ikke får millioner av rows
 import { db } from "../db/db.js";
+import { logError } from "../security/logging.js";
 
 function run(sql: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -20,5 +21,5 @@ async function cleanupPrices(): Promise<void> {
 }
 
 cleanupPrices().catch((err: unknown) => {
-  console.error("Price cleanup failed:", err);
+  logError("Price cleanup failed", err);
 });

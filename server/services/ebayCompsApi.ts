@@ -1,4 +1,4 @@
-export async function fetchEbayComps(query: string) {
+export async function fetchEbayComps(query: string, signal?: AbortSignal) {
   const apiKey = process.env.EBAYCOMPS_API_KEY;
   const api_url = process.env.EBAYCOMPS_API_URL || "https://api.sold-comps.com/v1/scrape";
   const api_param = process.env.EBAYCOMPS_API_PARAM || "keyword";
@@ -13,11 +13,14 @@ export async function fetchEbayComps(query: string) {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
+      : AbortSignal.timeout(30_000),
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`EbayComps failed: ${res.status} ${text}`);
+    await res.body?.cancel();
+    throw new Error(`EbayComps request failed with status ${res.status}`);
   }
 
   return res.json();

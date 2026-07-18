@@ -50,7 +50,7 @@ export function BiggestMovers() {
     setError("");
     setResponse("");
 
-    const result = await askGrok(getBiggestMovers);
+    const result = await askGrok(getBiggestMovers, "market_news");
 
     if (result.ok) setResponse(result.text);
     else setError(result.error);

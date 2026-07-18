@@ -79,7 +79,7 @@ export async function testOpenAiChat(text: string) {
   const content = getResponseText(data);
 
   if (!content) {
-    console.error("OpenAI returned no text content", JSON.stringify(data, null, 2));
+    console.error("OpenAI returned no text content");
     throw new OpenAiApiError("OpenAI returned an empty response", 502);
   }
 

@@ -5,13 +5,13 @@ import {
 
 import {
   onAuthStateChanged,
-  signInWithEmailAndPassword,
   signOut,
   type User,
 } from "firebase/auth";
 
 import { auth } from "../firebase";
 import { AuthContext } from "./authContextValue";
+import { getPortfolioCacheKey, getUserProfileSessionKey } from "../utils/cache";
 
 export function AuthProvider({
   children,
@@ -30,16 +30,16 @@ export function AuthProvider({
     return unsub;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  };
-
   const logout = async () => {
+    if (user) {
+      localStorage.removeItem(getPortfolioCacheKey(user.uid));
+      sessionStorage.removeItem(getUserProfileSessionKey(user.uid));
+    }
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

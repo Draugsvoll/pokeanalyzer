@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { BadgeDollarSign, Gem, LineChart, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
@@ -8,7 +8,6 @@ import {
   getSelectedPokemonFromCache,
   setSelectedPokemonCache,
 } from "../../utils/selectedPokemonCache";
-import { getDominantColorFromImageUrl } from "../../utils/cardImageColor";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import {
   collectorsAnalysisPrompt,
@@ -36,6 +35,11 @@ import {
   useMembershipSubscription,
   type CreditUsageFeature,
 } from "../../subscriptions";
+import { logClientError } from "../../utils/logClientError";
+import {
+  isAbortError,
+  useAbortableRequest,
+} from "../../hooks/useAbortableRequest";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -133,7 +137,6 @@ export default function PokemonDetails() {
     cachedCard?.images?.large ?? cachedCard?.images?.small
   );
   const [activeView, setActiveView] = useState<ActiveView>("empty_view");
-  const [glowColor, setGlowColor] = useState<string | null>(null);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
@@ -142,8 +145,11 @@ export default function PokemonDetails() {
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
   const [featureCooldown, setFeatureCooldown] = useState(false);
-  const currentAnalysisRunId = useRef("");
-  const chargedAnalysisRunId = useRef("");
+  const {
+    abortActiveRequest,
+    isCurrentRequest,
+    startRequest,
+  } = useAbortableRequest();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
   const { isCardSaved } = usePortfolioCache();
   const {
@@ -154,9 +160,8 @@ export default function PokemonDetails() {
   const {
     creditMessage,
     creditsRemaining,
-    spendCredits,
     updatingCredits,
-  } = useCredits(subscription, updateSubscription);
+  } = useCredits(subscription);
 
   async function handlePortfolioToggle() {
     if (!card || updatingPortfolio) return;
@@ -170,49 +175,77 @@ export default function PokemonDetails() {
     setUpdatingPortfolio(false);
   }
 
-  async function handleJustTcgFetch() {
-    if (!card || justTcgLoading) return false;
+  async function handlePriceAnalysis(signal: AbortSignal) {
+    if (!card) return false;
 
     if (!card.number) {
       setJustTcgError("This card has no card number");
       return false;
     }
+    const cardNumber = card.number;
 
     setJustTcgLoading(true);
+    setGrokLoading(true);
     setJustTcgError("");
+    setGrokError("");
+    setGrokResponse("");
     setJustTcgResult(null);
 
-    try {
-      const result = await fetchJustTcgCard(card.name, card.number);
-      setJustTcgResult(
-        verifyJustTcgCard(result, card.name, card.set.name, card.number)
-      );
-      return true;
-    } catch (error) {
-      setJustTcgError(error instanceof Error ? error.message : "JustTCG request failed");
-      return false;
-    } finally {
-      setJustTcgLoading(false);
-    }
-  }
+    const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
+      .then((result) => {
+        setJustTcgResult(
+          verifyJustTcgCard(result, card.name, card.set.name, cardNumber),
+        );
+        return true;
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return false;
+        setJustTcgError(
+          error instanceof Error ? error.message : "JustTCG request failed",
+        );
+        return false;
+      })
+      .finally(() => {
+        if (isCurrentRequest(signal)) setJustTcgLoading(false);
+      });
 
-  async function chargeCreditAfterSuccess(feature: CreditUsageFeature) {
-    if (chargedAnalysisRunId.current === currentAnalysisRunId.current) return;
+    const grokRequest = askGrok(
+      priceAnalysisPrompt(card.name, card.set.name, cardNumber),
+      "price_analysis",
+      signal,
+    )
+      .then((result) => {
+        if (signal.aborted) return false;
+        if (!result.ok) {
+          setGrokError(result.error);
+          return false;
+        }
+        setGrokResponse(result.text);
+        updateSubscription(result.subscription);
+        return true;
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return false;
+        setGrokError(error instanceof Error ? error.message : "Price analysis failed");
+        return false;
+      })
+      .finally(() => {
+        if (isCurrentRequest(signal)) setGrokLoading(false);
+      });
 
-    chargedAnalysisRunId.current = currentAnalysisRunId.current;
-    await spendCredits(feature, 1);
-  }
-
-  function handleEbaySuccessfulResponse() {
-    void chargeCreditAfterSuccess("ebay_sold");
+    const [justTcgSucceeded, grokSucceeded] = await Promise.all([
+      justTcgRequest,
+      grokRequest,
+    ]);
+    return justTcgSucceeded || grokSucceeded;
   }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
     if (featureCooldown || !subscription || creditsRemaining < 1) return;
 
     setFeatureCooldown(true);
+    abortActiveRequest();
     setActiveView(aiFeature.view);
-    currentAnalysisRunId.current = `${card?.id ?? "unknown-card"}-${aiFeature.view}-${Date.now()}`;
 
     if (aiFeature.view === "ebay_sold") {
       return;
@@ -227,17 +260,12 @@ export default function PokemonDetails() {
     }
 
     const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
-    let prompt = "";
-    let featureWasSuccessful = false;
-
     if (aiFeature.view === "prices") {
-      prompt = priceAnalysisPrompt(
-        card?.name ?? "",
-        card?.set?.name ?? "",
-        card?.number ?? ""
-      );
-      featureWasSuccessful = await handleJustTcgFetch();
+      await handlePriceAnalysis(startRequest());
+      return;
     }
+
+    let prompt = "";
 
     if (aiFeature.view === "collector_analysis") {
       prompt = collectorsAnalysisPrompt(cardNameAndSet);
@@ -251,21 +279,29 @@ export default function PokemonDetails() {
     setGrokError("");
     setGrokResponse("");
 
-    const result = await askGrok(prompt);
+    const signal = startRequest();
+    try {
+      const result = await askGrok(prompt, aiFeature.creditFeature, signal);
+      if (signal.aborted) return;
 
-    if (!result.ok) {
-      setGrokError(result.error);
-    } else {
-      setGrokResponse(result.text);
-      featureWasSuccessful = true;
-    }
-
-    setGrokLoading(false);
-
-    if (featureWasSuccessful) {
-      await chargeCreditAfterSuccess(aiFeature.creditFeature);
+      if (!result.ok) {
+        setGrokError(result.error);
+      } else {
+        setGrokResponse(result.text);
+        updateSubscription(result.subscription);
+      }
+    } catch (error) {
+      if (!isAbortError(error)) {
+        setGrokError(error instanceof Error ? error.message : "Analysis failed");
+      }
+    } finally {
+      if (isCurrentRequest(signal)) setGrokLoading(false);
     }
   }
+
+  useEffect(() => {
+    abortActiveRequest();
+  }, [abortActiveRequest, id]);
 
   useEffect(() => {
     async function loadCard() {
@@ -297,7 +333,7 @@ export default function PokemonDetails() {
         setSelectedPokemonCache(fetchedCard);
         setCard(fetchedCard);
       } catch (error) {
-        console.error("Failed to load card:", error);
+        logClientError("Failed to load card", error);
         setCard(null);
       } finally {
         setLoading(false);
@@ -308,44 +344,32 @@ export default function PokemonDetails() {
   }, [id]);
 
   useEffect(() => {
-    if (!card) {
-      setCardImageSrc(undefined);
-      return;
-    }
-
-    const smallImage = card.images?.small;
-    const largeImage = card.images?.large;
-
-    if (!largeImage || largeImage === smallImage) {
-      setCardImageSrc(largeImage ?? smallImage);
-      return;
-    }
-
-    setCardImageSrc(smallImage ?? largeImage);
-
-    const image = new Image();
-    image.onload = () => setCardImageSrc(largeImage);
-    image.src = largeImage;
-  }, [card?.id, card?.images?.large, card?.images?.small]);
-
-  useEffect(() => {
-    if (!cardImageSrc) {
-      setGlowColor(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    getDominantColorFromImageUrl(cardImageSrc, API_URL).then((color) => {
-      if (!cancelled && color) {
-        setGlowColor(color);
+    let image: HTMLImageElement | null = null;
+    const imageTimer = window.setTimeout(() => {
+      if (!card) {
+        setCardImageSrc(undefined);
+        return;
       }
-    });
+
+      const smallImage = card.images?.small;
+      const largeImage = card.images?.large;
+
+      if (!largeImage || largeImage === smallImage) {
+        setCardImageSrc(largeImage ?? smallImage);
+        return;
+      }
+
+      setCardImageSrc(smallImage ?? largeImage);
+      image = new Image();
+      image.onload = () => setCardImageSrc(largeImage);
+      image.src = largeImage;
+    }, 0);
 
     return () => {
-      cancelled = true;
+      window.clearTimeout(imageTimer);
+      if (image) image.onload = null;
     };
-  }, [cardImageSrc]);
+  }, [card]);
 
   useEffect(() => {
     if (!featureCooldown) return;
@@ -377,10 +401,6 @@ export default function PokemonDetails() {
   const infoFields = getCardSetInfoFields(card, displayedCardNumber);
   const cardIsSaved = isCardSaved(card.id);
 
-  const imageGlowStyle = glowColor
-    ? ({ "--card-glow": glowColor } as CSSProperties)
-    : undefined;
-
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
     error: grokError,
@@ -392,10 +412,7 @@ export default function PokemonDetails() {
     <div className="card-view">
       <div className="card-view__panel-wrap">
         <div className="card-view__shell">
-          <div
-            className={`card-view__image-side${glowColor ? " card-view__image-side--glow" : ""}`}
-            style={imageGlowStyle}
-          >
+          <div className="card-view__image-side">
             <img className="card-view__image" src={cardImageSrc} alt={card.name} />
           </div>
 
@@ -434,7 +451,10 @@ export default function PokemonDetails() {
               </Button>
               <Button
                 className="card-view__change-card"
-                onClick={() => setActiveView("search_card")}
+                onClick={() => {
+                  abortActiveRequest();
+                  setActiveView("search_card");
+                }}
                 aria-pressed={activeView === "search_card"}
               >
                 <span>Change card</span>
@@ -471,7 +491,6 @@ export default function PokemonDetails() {
               disabled={
                 loadingSubscription ||
                 updatingCredits ||
-                grokLoading ||
                 featureCooldown ||
                 creditsRemaining < 1
               }
@@ -501,7 +520,7 @@ export default function PokemonDetails() {
         {activeView === "ebay_sold" && (
           <EbaySoldView
           card={card}
-          onSuccessfulResponse={handleEbaySuccessfulResponse}
+          onSubscriptionChange={updateSubscription}
           />
         )}
         {activeView === "prices" && (

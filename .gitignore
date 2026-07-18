@@ -27,10 +27,7 @@ terminals/
 *.sw?
 
 
-.env
-.env.local
-.env.production
-.env.example
+.env*
 
 notes.md
 db_notes.md

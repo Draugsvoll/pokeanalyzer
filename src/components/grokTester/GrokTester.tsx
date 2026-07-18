@@ -20,7 +20,7 @@ export default function GrokTester() {
     setResponse("");
     setHasCopied(false);
 
-    const result = await askGrok(trimmedQuestion);
+    const result = await askGrok(trimmedQuestion, "manual_test");
 
     if (!result.ok) {
       setError(result.error);

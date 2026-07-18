@@ -8,28 +8,21 @@ In the Stripe Dashboard, with **Test mode** enabled, create:
 
 - Collector: recurring monthly price, `79 NOK`
 - Pro: recurring monthly price, `149 NOK`
-- 50-credit top-up: create a reusable Payment Link with a one-time price of `49 NOK`
+- 50-credit top-up: one-time price, `$5 USD`
 
-Copy the Collector and Pro `price_...` IDs into the matching server environment variables shown in `.env.example`.
-
-For the top-up Payment Link, copy its public sandbox URL and its `plink_...` ID. Configure the expected amount in the currency's minor unit (`4900` for 49 NOK, or `500` for a $5 sandbox test):
+Copy each `price_...` ID into the matching server variable in `.env`:
 
 ```text
-VITE_STRIPE_TOPUP_PAYMENT_LINK=https://buy.stripe.com/test_...
-STRIPE_TOPUP_PAYMENT_LINK_ID=plink_...
-STRIPE_TOPUP_PAYMENT_LINK_AMOUNT=4900
-STRIPE_TOPUP_PAYMENT_LINK_CURRENCY=nok
+STRIPE_COLLECTOR_PRICE_ID=price_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_TOPUP_50_PRICE_ID=price_...
 ```
 
-In the Payment Link's **After payment** settings, redirect to:
-
-```text
-http://localhost:5173/profile?checkout=success
-```
+The backend creates Stripe Checkout Sessions and supplies success and cancellation URLs automatically. No Stripe Payment Link is required.
 
 ## 2. Add server secrets
 
-Copy the Stripe entries from `.env.example` into `.env`. Use the test secret key from Stripe's API keys page. Never use a `STRIPE_SECRET_KEY` or webhook secret in a `VITE_` variable.
+Add the Stripe secret key and webhook signing secret to `.env`. Use test-mode values while developing. Never use a `STRIPE_SECRET_KEY` or webhook secret in a `VITE_` variable.
 
 ## 3. Forward webhooks locally
 
@@ -95,8 +88,8 @@ Test all of these flows:
 - A scheduled cancellation keeps access until period end and still shows **Manage billing**.
 - A fully canceled subscription becomes active Free while preserving unused bonus credits.
 - A failed or past-due subscription can still open the billing portal but cannot spend or buy more credits until it is active again.
-- A refund or dispute creates `users/{uid}/billing_alerts/{eventId}` and sets `billingReviewRequired` on the user. Payments and credit usage remain paused until you reconcile the account and set that field back to `false`.
+- A refund or dispute creates `users/{uid}/billing_alerts/{eventId}` and sets `billingReviewRequired` on the user. New purchases remain paused until you reconcile the account and set that field back to `false`; existing available credits can still be used.
 
-Checkout and portal routes require a Firebase user with a verified email. Prices are checked against the expected NOK amount and billing interval before Stripe Checkout opens.
+Checkout and portal routes require a Firebase user with a verified email. Membership prices are checked against their expected NOK amounts and monthly interval; the top-up price is checked against the expected one-time `$5 USD` amount before Stripe Checkout opens.
 
-The legacy no-charge routes are available only under `/api/subscription/mock/*` when `ENABLE_MOCK_PAYMENTS=true`.
+Legacy no-charge mock-payment routes have been removed. Use Stripe test mode for all payment testing.

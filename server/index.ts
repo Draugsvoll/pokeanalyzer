@@ -1,16 +1,41 @@
 import "dotenv/config";
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { db } from "./db/db.js";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
+import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
+import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
+import { getSafeErrorDetails, logError } from "./security/logging.js";
+import { CreditHttpError, runPaidFeature } from "./subscriptions/creditService.js";
+import {
+  attachRequestAbortSignal,
+  getRequestAbortSignal,
+  isRequestAbort,
+} from "./security/requestAbort.js";
 
 const app = express();
+const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
+const allowedOrigins = new Set(
+  (process.env.CORS_ALLOWED_ORIGINS ?? APP_URL)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
+const trustProxySetting = process.env.TRUST_PROXY?.trim();
+
+if (trustProxySetting === "true") {
+  app.set("trust proxy", 1);
+} else if (trustProxySetting && /^\d+$/.test(trustProxySetting)) {
+  app.set("trust proxy", Number(trustProxySetting));
+}
+
+app.disable("x-powered-by");
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 per minutt
@@ -22,85 +47,95 @@ const limiter = rateLimit({
 const ebayLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
+  keyGenerator: (_req, res) => String(res.locals.authUid),
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: "Too many eBay requests. Please wait and try again." },
 });
 
 const grokLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
+  keyGenerator: (_req, res) => String(res.locals.authUid),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many Grok requests. Please wait and try again." },
 });
 
-app.use(cors());
-app.post(
-  "/api/subscription/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  stripeWebhookHandler,
-);
-app.use(express.json({ limit: "30mb" }));
-app.use(limiter);
-app.use("/grok", grokLimiter, grokRoutes);
-app.use("/openai", openaiRoutes);
-app.use("/api/subscription", subscriptionRoutes);
-
-app.get("/ebay", ebayLimiter, async (req, res) => {
-  try {
-    const query =
-    typeof req.query.q === "string" ? req.query.q : "pokemon charizard";
-
-    const data = await fetchEbayComps(query);
-
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: err instanceof Error ? err.message : "Unknown error",
-    });
-  }
+const paidApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: (_req, res) => String(res.locals.authUid),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many paid API requests. Please wait and try again." },
 });
 
-const ALLOWED_IMAGE_HOSTS = new Set(["images.pokemontcg.io"]);
-
-function isAllowedImageUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" && ALLOWED_IMAGE_HOSTS.has(parsed.hostname);
-  } catch {
-    return false;
+app.use((_req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
-}
+  next();
+});
+app.use(cors({
+  origin(origin, callback) {
+    callback(null, !origin || allowedOrigins.has(origin));
+  },
+  methods: ["DELETE", "GET", "PATCH", "POST", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type", "Stripe-Signature"],
+  maxAge: 86400,
+}));
+app.post(
+  "/api/subscription/stripe/webhook",
+  express.raw({ type: "application/json", limit: "256kb" }),
+  stripeWebhookHandler,
+);
+app.use(limiter);
+app.use(attachRequestAbortSignal);
+app.use(
+  "/grok",
+  requireVerifiedUser,
+  grokLimiter,
+  express.json({ limit: "28mb" }),
+  grokRoutes,
+);
+app.use(express.json({ limit: "256kb" }));
+app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
+app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
-app.get("/api/image/proxy", async (req, res) => {
+app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
+  const signal = getRequestAbortSignal(res);
   try {
-    const imageUrl =
-      typeof req.query.url === "string" ? req.query.url.trim() : "";
-
-    if (!imageUrl || !isAllowedImageUrl(imageUrl)) {
-      res.status(400).json({ error: "Invalid image url" });
+    const uid = getAuthenticatedUid(res);
+    const query =
+      typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (!query || query.length > 200) {
+      res.status(400).json({ error: "q must contain 1 to 200 characters" });
       return;
     }
 
-    const imageResponse = await fetch(imageUrl);
+    const result = await runPaidFeature(
+      uid,
+      "ebay_sold",
+      () => fetchEbayComps(query, signal),
+      signal,
+    );
 
-    if (!imageResponse.ok) {
-      res.status(502).json({ error: "Failed to fetch image" });
-      return;
-    }
-
-    const contentType = imageResponse.headers.get("content-type") ?? "image/png";
-    const buffer = Buffer.from(await imageResponse.arrayBuffer());
-
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=86400");
-    res.send(buffer);
-  } catch (err) {
-    console.error("Image proxy failed:", err);
-    res.status(500).json({
-      error: err instanceof Error ? err.message : "Image proxy failed",
-    });
+    res.json(result);
+  } catch (error) {
+    if (isRequestAbort(error, signal)) return;
+    logError("eBay request failed", error);
+    const statusCode = error instanceof CreditHttpError ? error.statusCode : 502;
+    const message = error instanceof CreditHttpError
+      ? error.message
+      : "Failed to fetch eBay sold listings";
+    res.status(statusCode).json({ error: message });
   }
 });
 
@@ -115,7 +150,8 @@ app.get("/api/cards", (_req, res) => {
     [],
     (err, rows: { raw_json: string }[]) => {
       if (err) {
-        res.status(500).json({ error: err.message });
+        logError("Failed to fetch cards", err);
+        res.status(500).json({ error: "Failed to fetch cards" });
         return;
       }
       const cards = rows.map((row) => JSON.parse(row.raw_json));
@@ -124,7 +160,8 @@ app.get("/api/cards", (_req, res) => {
   );
 });
 
-app.get("/api/justtcg-card", async (req, res) => {
+app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, res) => {
+  const signal = getRequestAbortSignal(res);
   const name = typeof req.query.name === "string" ? req.query.name.trim() : "";
   const number = typeof req.query.number === "string" ? req.query.number.trim() : "";
 
@@ -134,12 +171,15 @@ app.get("/api/justtcg-card", async (req, res) => {
   }
 
   try {
-    res.json(await fetchJustTcgCard(name, number));
+    const result = await fetchJustTcgCard(name, number, signal);
+    res.json(result);
   } catch (error) {
-    console.error("JustTCG API request failed:", error);
-    res.status(error instanceof JustTcgApiError ? error.statusCode : 502).json({
-      message: error instanceof Error ? error.message : "JustTCG API request failed",
-    });
+    if (isRequestAbort(error, signal)) return;
+    logError("JustTCG API request failed", error);
+    const statusCode = error instanceof JustTcgApiError && error.statusCode === 429
+      ? 429
+      : 502;
+    res.status(statusCode).json({ message: "JustTCG API request failed" });
   }
 });
 
@@ -223,7 +263,8 @@ app.get("/api/cards/search", (req, res) => {
 
   db.all(sql, params, (err, rows: { raw_json: string }[]) => {
     if (err) {
-      res.status(500).json({ error: err.message });
+      logError("Card search failed", err);
+      res.status(500).json({ error: "Card search failed" });
       return;
     }
 
@@ -243,7 +284,8 @@ app.get("/api/cards/:id", (req, res) => {
     [req.params.id],
     (err, row: { raw_json: string } | undefined) => {
       if (err) {
-        res.status(500).json({ error: err.message });
+        logError("Failed to fetch card", err);
+        res.status(500).json({ error: "Failed to fetch card" });
         return;
       }
       if (!row) {
@@ -256,6 +298,22 @@ app.get("/api/cards/:id", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+
+  logError("Unhandled request error", error);
+  const details = getSafeErrorDetails(error) as { status?: number; statusCode?: number };
+  const statusCode = details.status === 413 || details.statusCode === 413 ? 413 : 400;
+  res.status(statusCode).json({
+    error: statusCode === 413 ? "Request body is too large" : "Invalid request",
+  });
+};
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

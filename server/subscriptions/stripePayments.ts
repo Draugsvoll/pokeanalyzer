@@ -3,7 +3,16 @@ import type { Request, Response } from "express";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import Stripe from "stripe";
 import { adminAuth, adminDb } from "./firebaseAdmin.js";
-import { getMembershipPlan, type MembershipPlanId } from "./plans.js";
+import {
+  getMembershipPlan,
+  type MembershipPlanId,
+} from "../../shared/subscriptions/plans.js";
+import { AuthHttpError, getAuthenticatedUid } from "../security/auth.js";
+import { logError } from "../security/logging.js";
+import {
+  serializeSubscription,
+  type StoredUserSubscription,
+} from "./subscriptionModel.js";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 
@@ -14,8 +23,9 @@ const MEMBERSHIP_PRICE_ENV: Record<Exclude<MembershipPlanId, "free">, string> = 
 
 const TOP_UP_PACKAGES = {
   credits_50: {
-    amount: 49,
+    amount: 5,
     credits: 50,
+    currency: "USD",
     priceEnv: "STRIPE_TOPUP_50_PRICE_ID",
   },
 } as const;
@@ -45,26 +55,10 @@ function getRequiredEnv(name: string) {
 }
 
 function sendPaymentError(res: Response, error: unknown, fallback: string) {
-  const statusCode = error instanceof PaymentHttpError ? error.statusCode : 500;
-  const message = error instanceof PaymentHttpError ? error.message : fallback;
+  const isSafeHttpError = error instanceof PaymentHttpError || error instanceof AuthHttpError;
+  const statusCode = isSafeHttpError ? error.statusCode : 500;
+  const message = isSafeHttpError ? error.message : fallback;
   res.status(statusCode).json({ message });
-}
-
-async function getVerifiedUid(req: Request) {
-  const authHeader = req.header("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (!token) throw new PaymentHttpError("Missing auth token", 401);
-
-  let decodedToken;
-  try {
-    decodedToken = await adminAuth.verifyIdToken(token);
-  } catch {
-    throw new PaymentHttpError("Invalid auth token", 401);
-  }
-  if (decodedToken.email_verified !== true) {
-    throw new PaymentHttpError("Verify your email before using payments.", 403);
-  }
-  return decodedToken.uid;
 }
 
 function stripeCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null) {
@@ -76,49 +70,22 @@ function stripeSubscriptionId(subscription: string | Stripe.Subscription) {
   return typeof subscription === "string" ? subscription : subscription.id;
 }
 
-function stripePaymentLinkId(paymentLink: string | Stripe.PaymentLink | null) {
-  if (!paymentLink) return null;
-  return typeof paymentLink === "string" ? paymentLink : paymentLink.id;
-}
-
-function isConfiguredTopUpPaymentLink(session: Stripe.Checkout.Session) {
-  const configuredPaymentLinkId = process.env.STRIPE_TOPUP_PAYMENT_LINK_ID?.trim();
-  return Boolean(
-    configuredPaymentLinkId &&
-    stripePaymentLinkId(session.payment_link) === configuredPaymentLinkId,
-  );
-}
-
-function getPaymentLinkExpectedAmount() {
-  const amount = Number(getRequiredEnv("STRIPE_TOPUP_PAYMENT_LINK_AMOUNT"));
-  if (!Number.isSafeInteger(amount) || amount < 1) {
-    throw new Error("Invalid Stripe top-up Payment Link amount configuration");
-  }
-  return amount;
-}
-
-async function getVerifiedPaymentLinkUid(session: Stripe.Checkout.Session) {
-  if (!isConfiguredTopUpPaymentLink(session) || !session.client_reference_id) {
-    return null;
-  }
-
-  const authUser = await adminAuth.getUser(session.client_reference_id);
-  const firebaseEmail = authUser.email?.trim().toLowerCase();
-  const checkoutEmail = session.customer_details?.email?.trim().toLowerCase();
-  if (!authUser.emailVerified || !firebaseEmail || firebaseEmail !== checkoutEmail) {
-    return null;
-  }
-  return authUser.uid;
-}
-
-async function findPaymentLinkUidForPaymentIntent(paymentIntentId: string) {
+async function findTopUpSessionForPaymentIntent(paymentIntentId: string) {
   const sessions = await getStripe().checkout.sessions.list({
     limit: 10,
     payment_intent: paymentIntentId,
   });
   for (const session of sessions.data) {
-    const uid = await getVerifiedPaymentLinkUid(session);
-    if (uid) return uid;
+    const isTopUp =
+      session.mode === "payment" &&
+      session.metadata?.purchaseType === "top_up";
+    if (!isTopUp) continue;
+
+    const metadataUid = session.metadata?.firebaseUid;
+    const customerUid = await findUidForCustomer(stripeCustomerId(session.customer));
+    if (metadataUid && customerUid === metadataUid) {
+      return { session, uid: metadataUid };
+    }
   }
   return null;
 }
@@ -182,7 +149,7 @@ async function validateTopUpPrice(priceId: string, packageId: TopUpPackageId) {
   const price = await getStripe().prices.retrieve(priceId);
   if (
     !price.active ||
-    price.currency.toUpperCase() !== "NOK" ||
+    price.currency.toUpperCase() !== topUp.currency ||
     price.unit_amount !== topUp.amount * 100 ||
     price.recurring !== null
   ) {
@@ -546,48 +513,49 @@ async function grantMembershipCredits(subscription: Stripe.Subscription, invoice
 async function grantTopUp(session: Stripe.Checkout.Session) {
   if (session.payment_status !== "paid") return;
 
-  const isPaymentLinkCheckout = isConfiguredTopUpPaymentLink(session);
-  const paymentLinkUid = isPaymentLinkCheckout
-    ? await getVerifiedPaymentLinkUid(session)
-    : null;
-  const uid = session.metadata?.firebaseUid ?? paymentLinkUid ?? undefined;
-  const credits = isPaymentLinkCheckout
-    ? TOP_UP_PACKAGES.credits_50.credits
-    : Number(session.metadata?.credits);
-  const packageId = isPaymentLinkCheckout
-    ? "credits_50"
-    : session.metadata?.packageId as TopUpPackageId | undefined;
+  const uid = session.metadata?.firebaseUid;
+  const credits = Number(session.metadata?.credits);
+  const packageId = session.metadata?.packageId as TopUpPackageId | undefined;
   const topUp = packageId ? TOP_UP_PACKAGES[packageId] : undefined;
   const customerId = stripeCustomerId(session.customer);
-  const customerUid = isPaymentLinkCheckout ? null : await findUidForCustomer(customerId);
-  const expectedAmount = isPaymentLinkCheckout
-    ? getPaymentLinkExpectedAmount()
-    : topUp?.amount ? topUp.amount * 100 : 0;
-  const expectedCurrency = isPaymentLinkCheckout
-    ? getRequiredEnv("STRIPE_TOPUP_PAYMENT_LINK_CURRENCY").toUpperCase()
-    : "NOK";
+  const customerUid = await findUidForCustomer(customerId);
+  const expectedAmount = topUp?.amount ? topUp.amount * 100 : 0;
+  const expectedCurrency = topUp?.currency ?? "";
   if (
     !uid ||
     !topUp ||
     credits !== topUp.credits ||
     session.amount_total !== expectedAmount ||
     session.currency?.toUpperCase() !== expectedCurrency ||
-    (isPaymentLinkCheckout ? paymentLinkUid !== uid : customerUid !== uid)
+    customerUid !== uid
   ) {
     throw new Error(`Invalid paid top-up session ${session.id}`);
   }
 
   await adminDb.runTransaction(async (transaction) => {
+    const userRef = adminDb.doc(`users/${uid}`);
     const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
     const paymentRef = adminDb.doc(`users/${uid}/payments/${session.id}`);
-    const [subscriptionSnap, paymentSnap] = await Promise.all([
+    const reversalRef = adminDb.doc(`users/${uid}/topup_reversals/${session.id}`);
+    const [userSnap, subscriptionSnap, paymentSnap, reversalSnap] = await Promise.all([
+      transaction.get(userRef),
       transaction.get(subscriptionRef),
       transaction.get(paymentRef),
+      transaction.get(reversalRef),
     ]);
 
     if (paymentSnap.exists) return;
     const current = subscriptionSnap.data();
     const subscriptionExists = subscriptionSnap.exists;
+    const creditsReversed = Math.min(
+      Number(reversalSnap.data()?.creditsReversed ?? 0),
+      credits,
+    );
+    const billingHold = userSnap.data()?.billingReviewRequired === true;
+    const creditsToGrant = billingHold ? 0 : Math.max(credits - creditsReversed, 0);
+    const paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
 
     transaction.set(
       subscriptionRef,
@@ -601,8 +569,9 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
           planName: "Free",
           status: "active",
         }),
-        bonusCreditsRemaining: Number(current?.bonusCreditsRemaining ?? 0) + credits,
-        bonusCreditsTotal: Number(current?.bonusCreditsTotal ?? 0) + credits,
+        bonusCreditsRemaining:
+          Number(current?.bonusCreditsRemaining ?? 0) + creditsToGrant,
+        bonusCreditsTotal: Number(current?.bonusCreditsTotal ?? 0) + creditsToGrant,
         bonusCreditsUsed: Number(current?.bonusCreditsUsed ?? 0),
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -611,20 +580,28 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
 
     transaction.set(paymentRef, {
       amount: Number(session.amount_total ?? 0) / 100,
-      bonusCredits: credits,
+      bonusCredits: creditsToGrant,
       checkoutSessionId: session.id,
+      creditsReversed,
       currency: session.currency?.toUpperCase() ?? "NOK",
       isTopUp: true,
-      stripePaymentLinkId: stripePaymentLinkId(session.payment_link),
-      status: "paid",
+      originalBonusCredits: credits,
+      paymentIntentId,
+      status: billingHold
+        ? "held_for_review"
+        : creditsReversed >= credits
+          ? "refunded"
+          : creditsReversed > 0
+            ? "partially_refunded"
+            : "paid",
       createdAt: FieldValue.serverTimestamp(),
     });
 
     transaction.set(adminDb.collection(`users/${uid}/subscription_events`).doc(), {
-      bonusCredits: credits,
+      bonusCredits: creditsToGrant,
       checkoutSessionId: session.id,
+      creditsReversed,
       eventType: "stripe_credits_topped_up",
-      stripePaymentLinkId: stripePaymentLinkId(session.payment_link),
       createdAt: FieldValue.serverTimestamp(),
     });
   });
@@ -669,6 +646,132 @@ async function recordBillingAlert(
   await adminDb.doc(`stripe_billing_alerts/${event.id}`).set(alertData);
 }
 
+async function reverseTopUpCredits(
+  uid: string,
+  session: Stripe.Checkout.Session,
+  eventId: string,
+  refundedAmount: number,
+  currency: string,
+) {
+  const originalCredits = Number(session.metadata?.credits ?? 0);
+  const originalAmount = Number(session.amount_total ?? 0);
+  if (
+    !Number.isSafeInteger(originalCredits) ||
+    originalCredits < 1 ||
+    !Number.isSafeInteger(refundedAmount) ||
+    refundedAmount < 1 ||
+    originalAmount < 1 ||
+    session.currency?.toUpperCase() !== currency.toUpperCase()
+  ) {
+    return;
+  }
+
+  const requestedReversal = Math.min(
+    Math.ceil((originalCredits * refundedAmount) / originalAmount),
+    originalCredits,
+  );
+  const reversalRef = adminDb.doc(`users/${uid}/topup_reversals/${session.id}`);
+  const adjustmentRef = adminDb.doc(`users/${uid}/credit_adjustments/${eventId}`);
+  const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
+  const paymentRef = adminDb.doc(`users/${uid}/payments/${session.id}`);
+
+  await adminDb.runTransaction(async (transaction) => {
+    const [reversalSnap, adjustmentSnap, subscriptionSnap, paymentSnap] =
+      await Promise.all([
+        transaction.get(reversalRef),
+        transaction.get(adjustmentRef),
+        transaction.get(subscriptionRef),
+        transaction.get(paymentRef),
+      ]);
+
+    if (adjustmentSnap.exists) return;
+
+    const alreadyReversed = Number(reversalSnap.data()?.creditsReversed ?? 0);
+    const additionalReversal = Math.max(
+      Math.min(requestedReversal, originalCredits - alreadyReversed),
+      0,
+    );
+    const nextReversed = alreadyReversed + additionalReversal;
+    const payment = paymentSnap.data();
+    const current = subscriptionSnap.data();
+    const grantedCreditsRemaining = Math.max(Number(payment?.bonusCredits ?? 0), 0);
+    const availableBonusCredits = Math.max(Number(current?.bonusCreditsRemaining ?? 0), 0);
+    const creditsRemoved = paymentSnap.exists && subscriptionSnap.exists
+      ? Math.min(additionalReversal, grantedCreditsRemaining, availableBonusCredits)
+      : 0;
+    const creditDebt = paymentSnap.exists ? additionalReversal - creditsRemoved : 0;
+
+    transaction.set(
+      reversalRef,
+      {
+        checkoutSessionId: session.id,
+        creditsReversed: nextReversed,
+        originalCredits,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.set(adjustmentRef, {
+      checkoutSessionId: session.id,
+      creditDebt,
+      creditsRemoved,
+      creditsReversed: additionalReversal,
+      eventId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    if (paymentSnap.exists) {
+      transaction.set(
+        paymentRef,
+        {
+          bonusCredits: Math.max(grantedCreditsRemaining - additionalReversal, 0),
+          creditsReversed: nextReversed,
+          refundedAmount: FieldValue.increment(refundedAmount / 100),
+          status: nextReversed >= originalCredits ? "refunded" : "partially_refunded",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    if (subscriptionSnap.exists && creditsRemoved > 0) {
+      transaction.set(
+        subscriptionRef,
+        {
+          bonusCreditsRemaining: availableBonusCredits - creditsRemoved,
+          bonusCreditsTotal: Math.max(
+            Number(current?.bonusCreditsTotal ?? 0) - creditsRemoved,
+            Number(current?.bonusCreditsUsed ?? 0),
+          ),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+    if (creditDebt > 0) {
+      transaction.set(
+        adminDb.doc(`users/${uid}`),
+        {
+          billingReviewRequired: true,
+          creditDebt: FieldValue.increment(creditDebt),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    transaction.set(adminDb.collection(`users/${uid}/subscription_events`).doc(), {
+      checkoutSessionId: session.id,
+      creditDebt,
+      creditsRemoved,
+      creditsReversed: additionalReversal,
+      eventType: "stripe_topup_reversed",
+      stripeEventId: eventId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
 async function handleRefund(event: Stripe.Event & { data: { object: Stripe.Refund } }) {
   const refund = event.data.object;
   const paymentIntentId = typeof refund.payment_intent === "string"
@@ -677,15 +780,24 @@ async function handleRefund(event: Stripe.Event & { data: { object: Stripe.Refun
   const paymentIntent = paymentIntentId
     ? await getStripe().paymentIntents.retrieve(paymentIntentId)
     : null;
-  const paymentLinkUid = paymentIntentId
-    ? await findPaymentLinkUidForPaymentIntent(paymentIntentId)
+  const topUpSession = paymentIntentId
+    ? await findTopUpSessionForPaymentIntent(paymentIntentId)
     : null;
+  if (topUpSession) {
+    await reverseTopUpCredits(
+      topUpSession.uid,
+      topUpSession.session,
+      event.id,
+      refund.amount,
+      refund.currency,
+    );
+  }
   await recordBillingAlert(event, stripeCustomerId(paymentIntent?.customer ?? null), {
     amount: refund.amount / 100,
     currency: refund.currency.toUpperCase(),
     refundId: refund.id,
     status: refund.status,
-  }, true, paymentLinkUid);
+  }, true, topUpSession?.uid);
 }
 
 async function handleDispute(event: Stripe.Event & { data: { object: Stripe.Dispute } }) {
@@ -695,16 +807,25 @@ async function handleDispute(event: Stripe.Event & { data: { object: Stripe.Disp
   const paymentIntentId = typeof charge.payment_intent === "string"
     ? charge.payment_intent
     : charge.payment_intent?.id;
-  const paymentLinkUid = paymentIntentId
-    ? await findPaymentLinkUidForPaymentIntent(paymentIntentId)
+  const topUpSession = paymentIntentId
+    ? await findTopUpSessionForPaymentIntent(paymentIntentId)
     : null;
+  if (topUpSession) {
+    await reverseTopUpCredits(
+      topUpSession.uid,
+      topUpSession.session,
+      event.id,
+      dispute.amount,
+      dispute.currency,
+    );
+  }
   await recordBillingAlert(event, stripeCustomerId(charge.customer), {
     amount: dispute.amount / 100,
     currency: dispute.currency.toUpperCase(),
     disputeId: dispute.id,
     reason: dispute.reason,
     status: dispute.status,
-  }, true, paymentLinkUid);
+  }, true, topUpSession?.uid);
 }
 
 async function processStripeEvent(event: Stripe.Event) {
@@ -715,10 +836,7 @@ async function processStripeEvent(event: Stripe.Event) {
     const session = event.data.object;
     if (
       session.mode === "payment" &&
-      (
-        session.metadata?.purchaseType === "top_up" ||
-        isConfiguredTopUpPaymentLink(session)
-      )
+      session.metadata?.purchaseType === "top_up"
     ) {
       await grantTopUp(session);
     }
@@ -797,14 +915,14 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
     await eventRef.set({ type: event.type, processedAt: FieldValue.serverTimestamp() });
     res.json({ received: true });
   } catch (error) {
-    console.error("Stripe webhook failed:", error);
-    res.status(400).send(error instanceof Error ? error.message : "Webhook failed");
+    logError("Stripe webhook failed", error);
+    res.status(400).send("Webhook failed");
   }
 }
 
 export async function createMembershipCheckout(req: Request, res: Response) {
   try {
-    const uid = await getVerifiedUid(req);
+    const uid = getAuthenticatedUid(res);
     const requestedPlanId: unknown = req.body?.planId;
     if (requestedPlanId !== "collector" && requestedPlanId !== "pro") {
       throw new PaymentHttpError("Invalid paid plan", 400);
@@ -859,14 +977,14 @@ export async function createMembershipCheckout(req: Request, res: Response) {
 
     res.json({ checkoutUrl: session.url });
   } catch (error) {
-    console.error("Failed to create Stripe checkout:", error);
+    logError("Failed to create Stripe checkout", error);
     sendPaymentError(res, error, "Checkout failed");
   }
 }
 
 export async function createTopUpCheckout(req: Request, res: Response) {
   try {
-    const uid = await getVerifiedUid(req);
+    const uid = getAuthenticatedUid(res);
     const packageId = req.body?.packageId as TopUpPackageId | undefined;
     const requestId = typeof req.body?.requestId === "string" ? req.body.requestId : "";
     if (!packageId || !(packageId in TOP_UP_PACKAGES)) {
@@ -918,14 +1036,14 @@ export async function createTopUpCheckout(req: Request, res: Response) {
 
     res.json({ checkoutUrl: session.url });
   } catch (error) {
-    console.error("Failed to create top-up checkout:", error);
+    logError("Failed to create top-up checkout", error);
     sendPaymentError(res, error, "Checkout failed");
   }
 }
 
-export async function createBillingPortal(req: Request, res: Response) {
+export async function createBillingPortal(_req: Request, res: Response) {
   try {
-    const uid = await getVerifiedUid(req);
+    const uid = getAuthenticatedUid(res);
 
     const customer = await getOrCreateCustomer(uid);
     const session = await getStripe().billingPortal.sessions.create({
@@ -934,14 +1052,14 @@ export async function createBillingPortal(req: Request, res: Response) {
     });
     res.json({ portalUrl: session.url });
   } catch (error) {
-    console.error("Failed to create billing portal:", error);
+    logError("Failed to create billing portal", error);
     sendPaymentError(res, error, "Portal failed");
   }
 }
 
-export async function cancelStripeSubscriptionAtPeriodEnd(req: Request, res: Response) {
+export async function cancelStripeSubscriptionAtPeriodEnd(_req: Request, res: Response) {
   try {
-    const uid = await getVerifiedUid(req);
+    const uid = getAuthenticatedUid(res);
 
     const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
     const subscriptionSnap = await subscriptionRef.get();
@@ -964,15 +1082,11 @@ export async function cancelStripeSubscriptionAtPeriodEnd(req: Request, res: Res
     const data = updatedSnap.data();
     res.json({
       subscription: data
-        ? {
-            ...data,
-            currentPeriodEnd: data.currentPeriodEnd?.toDate?.().toISOString(),
-            currentPeriodStart: data.currentPeriodStart?.toDate?.().toISOString(),
-          }
+        ? serializeSubscription(data as StoredUserSubscription)
         : null,
     });
   } catch (error) {
-    console.error("Failed to cancel Stripe subscription:", error);
+    logError("Failed to cancel Stripe subscription", error);
     sendPaymentError(res, error, "Cancellation failed");
   }
 }

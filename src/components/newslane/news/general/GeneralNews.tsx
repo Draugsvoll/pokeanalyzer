@@ -46,7 +46,7 @@ export const GeneralNews: React.FC = () => {
     setError("");
     setResponse("");
 
-    const result = await askGrok(getGeneralNewsPrompt);
+    const result = await askGrok(getGeneralNewsPrompt, "market_news");
 
     if (result.ok) setResponse(result.text);
     else setError(result.error);

@@ -1,4 +1,5 @@
 import { db } from "../db/db.js";
+import { logError } from "../security/logging.js";
 import type { PokemonTcgApiCard } from "../types/PokemonTcgApiCard";
 import { getCardsPage, waitBetweenRequests, PAGE_SIZE } from "../services/pokemonTcgApi";
 
@@ -59,5 +60,5 @@ async function syncCards(): Promise<void> {
 }
 
 syncCards().catch((err: unknown) => {
-  console.error("Card sync failed:", err);
+  logError("Card sync failed", err);
 });

@@ -1,8 +1,12 @@
-import { deleteDoc, doc, setDoc } from "firebase/firestore";
-import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import type { PokemonCard } from "../../types/pokemon";
+import { logClientError } from "../../utils/logClientError";
+import {
+  addPortfolioCard,
+  removePortfolioCard,
+  updatePortfolioCardQuantity,
+} from "../../services/portfolioApi";
 
 export function usePokemonPortfolio() {
   const { user: authUser } = useAuth();
@@ -13,15 +17,11 @@ export function usePokemonPortfolio() {
     if (!authUser) return false;
 
     try {
-      await setDoc(
-        doc(db, "users", authUser.uid, "portfolio", card.id),
-        card,
-        { merge: true }
-      );
-      addToPortfolioCache(card);
+      const response = await addPortfolioCard(card.id);
+      addToPortfolioCache(response.card);
       return true;
     } catch (error) {
-      console.error("Failed to save card:", error);
+      logClientError("Failed to save card", error);
       alert("Failed to save card.");
       return false;
     }
@@ -39,11 +39,11 @@ export function usePokemonPortfolio() {
     }
 
     try {
-      await deleteDoc(doc(db, "users", authUser.uid, "portfolio", cardId));
+      await removePortfolioCard(cardId);
       removeFromPortfolioCache(cardId);
       return true;
     } catch (err) {
-      console.error(err);
+      logClientError("Failed to remove card", err);
       alert("Failed to remove card.");
       return false;
     }
@@ -53,15 +53,11 @@ export function usePokemonPortfolio() {
     if (!authUser || quantity < 1) return false;
 
     try {
-      await setDoc(
-        doc(db, "users", authUser.uid, "portfolio", cardId),
-        { quantity },
-        { merge: true }
-      );
+      await updatePortfolioCardQuantity(cardId, quantity);
       updatePortfolioQuantityCache(cardId, quantity);
       return true;
     } catch (error) {
-      console.error("Failed to update card quantity:", error);
+      logClientError("Failed to update card quantity", error);
       alert("Failed to update card quantity.");
       return false;
     }

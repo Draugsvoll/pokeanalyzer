@@ -1,4 +1,12 @@
-export type MembershipPlanId = "free" | "collector" | "pro";
+import type {
+  MembershipPlan,
+  MembershipPlanId,
+} from "../../shared/subscriptions/plans";
+
+export type {
+  MembershipPlan,
+  MembershipPlanId,
+} from "../../shared/subscriptions/plans";
 
 export type SubscriptionStatus =
   | "active"
@@ -7,21 +15,6 @@ export type SubscriptionStatus =
   | "paused"
   | "canceled"
   | "expired";
-
-export type MembershipEntitlement = {
-  credits: number;
-  id: "credits";
-  label: "Credits";
-};
-
-export type MembershipPlan = {
-  id: MembershipPlanId;
-  name: string;
-  price: number;
-  currency: "NOK";
-  billingInterval: "month";
-  credits: number;
-};
 
 export type UserSubscription = {
   bonusCreditsRemaining: number;
@@ -46,8 +39,14 @@ export type CreditUsageFeature =
   | "ebay_sold"
   | "worth_grading"
   | "card_identification"
+  | "authenticity_check"
   | "market_news"
   | "manual_test";
+
+export type PaidFeatureResponse<T> = {
+  data: T;
+  subscription: UserSubscription;
+};
 
 export type SubscriptionResponse = {
   amount?: number;
@@ -58,6 +57,8 @@ export type SubscriptionResponse = {
 export type CheckoutResponse = {
   checkoutUrl: string;
 };
+
+export type TopUpPackageId = "credits_50";
 
 export type BillingPortalResponse = {
   portalUrl: string;

@@ -12,9 +12,10 @@ export class JustTcgApiError extends Error {
 
 export async function fetchJustTcgCard(
   name: string,
-  number: string
+  number: string,
+  signal?: AbortSignal,
 ): Promise<unknown> {
-  const apiKey = process.env.JUSTTCG_API_KEY ?? process.env.VITE_JUSTTCG_API_KEY;
+  const apiKey = process.env.JUSTTCG_API_KEY?.trim();
 
   if (!apiKey) {
     throw new JustTcgApiError("JUSTTCG_API_KEY is not configured", 500);
@@ -31,16 +32,14 @@ export async function fetchJustTcgCard(
 
   const response = await fetch(`${JUST_TCG_API_URL}?${params}`, {
     headers: { "x-api-key": apiKey },
-    signal: AbortSignal.timeout(30000),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
+      : AbortSignal.timeout(30_000),
   });
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      data && typeof data === "object" && "error" in data && typeof data.error === "string"
-        ? data.error
-        : `JustTCG request failed: ${response.status}`;
-    throw new JustTcgApiError(message, response.status);
+    throw new JustTcgApiError("JustTCG request failed", response.status);
   }
 
   return data;

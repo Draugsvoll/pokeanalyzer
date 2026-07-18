@@ -11,9 +11,9 @@ import { auth, db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/button/Button";
 import type { UserUpload } from "../../types/user.types";
-import { initializeFreeSubscription } from "../../subscriptions/subscriptionApi";
 import { signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
+import { logClientError } from "../../utils/logClientError";
 
 export default function SignUpForm() {
   const [formData, setFormData] = useState({
@@ -59,12 +59,11 @@ export default function SignUpForm() {
         createdAt: serverTimestamp(),
       };
       await setDoc(userRef, user);
-      await initializeFreeSubscription(userCredential.user);
       await sendEmailVerification(userCredential.user);
       await signOut(auth);
       setSuccess("Konto opprettet! Sjekk e-posten din og bekreft adressen før du logger inn.");
     } catch (err: unknown) {
-      console.error("SIGNUP ERROR:", err);
+      logClientError("Signup failed", err);
       setError(err instanceof Error ? err.message : "Noe gikk galt under registrering.");
     } finally {
       setLoading(false);
@@ -82,7 +81,7 @@ export default function SignUpForm() {
       await signInWithGoogle();
       navigate("/profile");
     } catch (err: unknown) {
-      console.error("GOOGLE SIGN-IN ERROR:", err);
+      logClientError("Google sign-in failed", err);
       setError(err instanceof Error ? err.message : "Google-innlogging mislyktes.");
     } finally {
       setLoading(false);

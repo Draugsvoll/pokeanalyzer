@@ -10,6 +10,7 @@ import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
 import { GridView } from "../../components/gridView/GridView";
 import Button from "../../components/button/Button";
 import type { UserProfile } from "../../types/user.types";
+import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { formatTimestampString } from "../../utils/timestamp";
@@ -47,7 +48,6 @@ export default function Profile() {
     startMembershipCheckout,
     subscription,
     subscriptionMessage,
-    updateSubscription,
     updatingSubscription,
   } = useMembershipSubscription();
   const {
@@ -60,7 +60,7 @@ export default function Profile() {
     membershipCreditsTotal,
     topUpCredits,
     updatingCredits,
-  } = useCredits(subscription, updateSubscription);
+  } = useCredits(subscription);
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -218,7 +218,7 @@ export default function Profile() {
         sessionStorage.setItem(cacheKey, JSON.stringify(userData));
         setProfile(userData);
       } catch (err) {
-        console.error(err);
+        logClientError("Failed to fetch user data", err);
         setError("Failed to fetch user data.");
         setProfile(null);
       } finally {

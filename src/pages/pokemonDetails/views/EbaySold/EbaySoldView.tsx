@@ -1,69 +1,83 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
+import type { PaidFeatureResponse, UserSubscription } from "../../../../subscriptions/types";
+import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
 import {
   getVisibleEbayCompResults,
   type EbayCompsResponse,
 } from "../../../../utils/ebayComps";
 import "./EbaySoldView.scss";
+import {
+  isAbortError,
+  useAbortableRequest,
+} from "../../../../hooks/useAbortableRequest";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type EbaySoldViewProps = {
   card: PokemonCard;
-  onSuccessfulResponse?: () => void;
+  onSubscriptionChange?: (subscription: UserSubscription) => void;
 };
 
 export default function EbaySoldView({
   card,
-  onSuccessfulResponse,
+  onSubscriptionChange,
 }: EbaySoldViewProps) {
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const onSuccessfulResponseRef = useRef(onSuccessfulResponse);
-
+  const { isCurrentRequest, startRequest } = useAbortableRequest();
   useEffect(() => {
-    onSuccessfulResponseRef.current = onSuccessfulResponse;
-  }, [onSuccessfulResponse]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
     async function loadSoldListings() {
       const query = [card.name, card.set?.name].filter(Boolean).join(" ");
       const params = new URLSearchParams({ q: query });
+      const signal = startRequest();
 
       setLoading(true);
       setError("");
       setResponse(null);
 
       try {
-        const res = await fetch(`${API_URL}/ebay?${params.toString()}`, {
-          signal: controller.signal,
+        const res = await authenticatedFetch(`${API_URL}/ebay?${params.toString()}`, {
+          signal,
         });
-        const data = (await res.json()) as EbayCompsResponse & { error?: string };
+        const data = (await res.json()) as
+          Partial<PaidFeatureResponse<EbayCompsResponse>> & {
+            error?: string;
+            message?: string;
+          };
 
         if (!res.ok) {
-          throw new Error(data?.error ?? "Failed to fetch eBay sold listings");
+          throw new Error(
+            data?.error ?? data?.message ?? "Failed to fetch eBay sold listings",
+          );
         }
 
-        setResponse(data);
-        onSuccessfulResponseRef.current?.();
+        if (!data.subscription) {
+          throw new Error("The eBay response did not include subscription data");
+        }
+        if (!signal.aborted) {
+          setResponse(data.data);
+          onSubscriptionChange?.(data.subscription);
+        }
       } catch (requestError) {
-        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "Failed to fetch eBay sold listings"
-        );
+        if (isAbortError(requestError)) return;
+        if (!signal.aborted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to fetch eBay sold listings"
+          );
+        }
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (isCurrentRequest(signal)) {
+          setLoading(false);
+        }
       }
     }
 
     loadSoldListings();
-    return () => controller.abort();
-  }, [card.name, card.set?.name]);
+  }, [card.name, card.set?.name, isCurrentRequest, onSubscriptionChange, startRequest]);
 
   if (loading) return <p>Loading eBay sold listings...</p>;
   if (error) return <p className="card-view__page-error">{error}</p>;

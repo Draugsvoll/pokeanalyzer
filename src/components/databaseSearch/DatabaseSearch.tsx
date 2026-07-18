@@ -4,6 +4,7 @@ import Button from "../button/Button";
 import type { PokemonCard } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import "./DatabaseSearch.scss";
+import { logClientError } from "../../utils/logClientError";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -77,7 +78,7 @@ export const DatabaseSearch: React.FC = () => {
       const data = await res.json();
       setResults(data);
     } catch (error) {
-      console.error("Search failed:", error);
+      logClientError("Search failed", error);
       setResults([]);
     } finally {
       setIsSearching(false);

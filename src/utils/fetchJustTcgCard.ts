@@ -1,15 +1,20 @@
+import { authenticatedFetch } from "./authenticatedFetch";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 export async function fetchJustTcgCard(
   name: string,
-  number: string | number
+  number: string | number,
+  signal?: AbortSignal,
 ) {
   const params = new URLSearchParams({
     name,
     number: String(number),
   });
 
-  const response = await fetch(`${API_URL}/api/justtcg-card?${params}`);
+  const response = await authenticatedFetch(`${API_URL}/api/justtcg-card?${params}`, {
+    signal,
+  });
 
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as { message?: string };
@@ -23,7 +28,7 @@ export function verifyJustTcgCard(
   result: unknown,
   name: string,
   setName: string,
-  number: string | number
+  number: string | number,
 ): unknown {
   if (!result || typeof result !== "object" || !("data" in result) || !Array.isArray(result.data)) {
     return result;

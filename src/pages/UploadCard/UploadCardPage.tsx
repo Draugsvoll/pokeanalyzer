@@ -4,6 +4,11 @@ import Button from "../../components/button/Button";
 import AuthenticityResultView from "./views/AuthenticityResultView";
 import PsaEstimateResultView from "./views/PsaEstimateResultView";
 import "./UploadCardPage.scss";
+import { authenticatedFetch } from "../../utils/authenticatedFetch";
+import {
+  isAbortError,
+  useAbortableRequest,
+} from "../../hooks/useAbortableRequest";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -105,6 +110,7 @@ export default function UploadCardPage() {
   const [error, setError] = useState("");
   const [activeRequest, setActiveRequest] = useState<AnalysisType | null>(null);
   const [draggingSide, setDraggingSide] = useState<CardSide | null>(null);
+  const { abortActiveRequest, startRequest } = useAbortableRequest();
 
   const actionDisabled = !cardImages.front.file || activeRequest !== null;
 
@@ -115,6 +121,7 @@ export default function UploadCardPage() {
   };
 
   const selectImage = (side: CardSide, file: File | null) => {
+    abortActiveRequest();
     if (file && !file.type.startsWith("image/")) {
       setError("Please choose an image file");
       return;
@@ -166,16 +173,21 @@ export default function UploadCardPage() {
     if (option.ResultView) setResult("");
 
     try {
+      const signal = startRequest();
       const frontImageBase64 = await readFileAsDataUrl(frontFile);
       const backImageBase64 = includeBackImage && cardImages.back.file
         ? await readFileAsDataUrl(cardImages.back.file)
         : undefined;
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      const response = await authenticatedFetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ frontImageBase64, backImageBase64 }),
+        body: JSON.stringify({
+          frontImageBase64,
+          backImageBase64,
+        }),
+        signal,
       });
 
       const data = await response.json();
@@ -192,6 +204,7 @@ export default function UploadCardPage() {
       if (type === "identify") setIdentifyResult(text);
       if (option.ResultView) setResult(text);
     } catch (scanError) {
+      if (isAbortError(scanError)) return;
       setError(
         scanError instanceof Error
           ? scanError.message

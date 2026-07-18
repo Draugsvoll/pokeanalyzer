@@ -1,35 +1,34 @@
 import { Router, type Request, type Response } from "express";
 import { OpenAiApiError, testOpenAiChat } from "../../services/openaiApi.js";
+import { getAuthenticatedUid } from "../../security/auth.js";
+import { logError } from "../../security/logging.js";
+import { CreditHttpError, runPaidFeature } from "../../subscriptions/creditService.js";
 
 const router = Router();
+const MAX_PROMPT_LENGTH = 10_000;
 
-const prompt: string =
-  "In a highly sophisticated pokemon web-app, how would you rate individual pokemon 1-10 as collector items?";
-
-router.get("/test", async (req: Request, res: Response) => {
+router.post("/test", async (req: Request, res: Response) => {
   try {
-    const query =
-      typeof req.query.q === "string" && req.query.q.trim()
-        ? req.query.q.trim()
-        : prompt;
+    const uid = getAuthenticatedUid(res);
+    const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+    if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
+      throw new CreditHttpError("prompt must contain 1 to 10000 characters", 400);
+    }
 
-    const text = await testOpenAiChat(query);
-
+    const result = await runPaidFeature(uid, "manual_test", () => testOpenAiChat(prompt));
     res.json({
       provider: "openai",
-      query,
-      text,
+      text: result.data,
+      subscription: result.subscription,
     });
-  } catch (err) {
-    console.error("OpenAI query route failed");
-
-    const statusCode = err instanceof OpenAiApiError ? err.statusCode : 500;
-
-    res.status(statusCode).json({
-      error:
-        err instanceof OpenAiApiError
-          ? err.message
-          : "OpenAI query request failed",
+  } catch (error) {
+    logError("OpenAI query route failed", error);
+    if (error instanceof CreditHttpError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    res.status(error instanceof OpenAiApiError && error.statusCode === 429 ? 429 : 502).json({
+      error: "OpenAI query request failed",
     });
   }
 });

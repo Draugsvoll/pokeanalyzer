@@ -36,6 +36,8 @@ export async function login(
     throw new Error("Bekreft e-postadressen din før du logger inn. Sjekk innboksen og søppelpost.");
   }
 
+  await initializeFreeSubscription(userCredential.user);
+
   return userCredential;
 }
 
