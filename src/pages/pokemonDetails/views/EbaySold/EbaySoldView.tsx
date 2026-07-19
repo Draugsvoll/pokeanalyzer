@@ -92,11 +92,6 @@ export default function EbaySoldView({
 
   return (
     <div className="ebay-sold-view">
-      <h3>eBay sold listings</h3>
-      <p className="ebay-sold-view__query">
-        {card.name} · {card.set?.name}
-      </p>
-
       <div className="ebay-sold-view__results">
         {results.map((result, index) => (
           <article key={index} className="ebay-sold-view__result">

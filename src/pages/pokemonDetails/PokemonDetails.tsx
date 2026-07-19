@@ -41,6 +41,7 @@ import {
   useAbortableRequest,
 } from "../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
+import { CardFeatureHeader } from "./components/CardFeatureHeader";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const integerFormatter = new Intl.NumberFormat("en-US");
@@ -72,6 +73,7 @@ type AI_feature = {
   icon: LucideIcon;
   color: CustomColors;
   creditFeature: CreditUsageFeature;
+  headerLabel: string;
 };
 
 const AI_Features: AI_feature[] = [
@@ -82,6 +84,7 @@ const AI_Features: AI_feature[] = [
     icon: LineChart,
     color: "teal",
     creditFeature: "price_analysis",
+    headerLabel: "Market prices",
   },
   {
     view: "collector_analysis",
@@ -90,6 +93,7 @@ const AI_Features: AI_feature[] = [
     icon: Gem,
     color: "yellow",
     creditFeature: "collector_analysis",
+    headerLabel: "Collector analysis",
   },
   {
     view: "ebay_sold",
@@ -98,6 +102,7 @@ const AI_Features: AI_feature[] = [
     icon: BadgeDollarSign,
     color: "orange",
     creditFeature: "ebay_sold",
+    headerLabel: "eBay sold listings",
   },
   {
     view: "worth_grading",
@@ -106,6 +111,7 @@ const AI_Features: AI_feature[] = [
     icon: BadgeDollarSign,
     color: "pink",
     creditFeature: "worth_grading",
+    headerLabel: "Grading analysis",
   },
 ];
 
@@ -455,6 +461,7 @@ export default function PokemonDetails() {
   const displayedCardNumber = getJustTcgCardNumber(justTcgResult) ?? card.number;
   const infoFields = getCardSetInfoFields(card);
   const cardIsSaved = isCardSaved(card.id);
+  const activeFeature = AI_Features.find((feature) => feature.view === activeView);
 
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
@@ -569,7 +576,22 @@ export default function PokemonDetails() {
         })}
       </div>
 
-      <section className={`card-view__page${activeView === "prices" ? " card-view__page--prices" : ""}`} aria-live="polite">
+      <section
+        className={`card-view__page${
+          activeView === "prices" ? " card-view__page--prices" : ""
+        }`}
+        aria-live="polite"
+      >
+
+        {activeFeature && (
+          <CardFeatureHeader
+            card={card}
+            cardNumber={activeView === "prices" ? displayedCardNumber : undefined}
+            color={activeFeature.color}
+            icon={activeFeature.icon}
+            label={activeFeature.headerLabel}
+          />
+        )}
 
         {activeView === "empty_view" && (
           <div className="card-view__empty-view" aria-hidden="true">
@@ -585,7 +607,6 @@ export default function PokemonDetails() {
         {activeView === "prices" && (
           <PriceAnalysis
           card={card}
-          cardNumber={displayedCardNumber}
           grokRequest={grokRequest}
           justTcgRequest={{
             loading: justTcgLoading,
@@ -595,9 +616,9 @@ export default function PokemonDetails() {
           />
         )}
         {activeView === "search_card" && <DatabaseSearch />}
-        {activeView === "worth_grading" && (<WorthGradingView grokRequest={grokRequest} />)}
+        {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
         {activeView === "collector_analysis" && (
-          <CollectorAnalysis card={card} grokRequest={grokRequest} />
+          <CollectorAnalysis grokRequest={grokRequest} />
         )}
       </section>
 

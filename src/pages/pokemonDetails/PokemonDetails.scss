@@ -186,11 +186,11 @@
     width: 100%;
     max-width: 47rem;
     min-height: 10rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: transparent;
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #f43f5e;
     border-radius: 20px;
-    padding: 1.5rem;
+    padding: 0;
     text-align: left;
     color: rgba(255, 255, 255, 0.9);
 
@@ -205,25 +205,11 @@
   }
 
   &__page--prices {
-    backdrop-filter: none;
-    background: transparent;
-    border: 0;
-    max-width: 72rem;
-    padding: 0;
   }
 
   &__stored-prices {
-    max-width: 72rem;
     width: 100%;
   }
-
-  &__stored-price-header { margin-bottom: 2rem; text-align: center; }
-  &__stored-price-header > div { align-items: center; color: #a1a1aa; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-top: 0.5rem; }
-  &__stored-price-header span { background: rgba(250, 204, 21, 0.1); border-radius: 999px; color: #facc15; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.75rem; text-transform: uppercase; }
-  &__stored-price-header code { color: #a1a1aa; font-size: 0.85rem; }
-  &__stored-price-header h2 { color: #fff; font-size: 2rem; letter-spacing: -0.04em; margin: 0; }
-  &__stored-price-header p { color: #a1a1aa; font-size: 1rem; margin: 0; }
-  &__stored-price-header i { color: #71717a; font-style: normal; }
 
   &__stored-price-sources {
     display: grid;

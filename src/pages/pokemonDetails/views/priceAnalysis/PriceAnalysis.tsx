@@ -8,7 +8,6 @@ import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
   card: PokemonCard;
-  cardNumber?: string;
   grokRequest: GrokRequestState;
   justTcgRequest: {
     loading: boolean;
@@ -207,13 +206,12 @@ function JustTcgPriceAnalysis({
 
 export function PriceAnalysis({
   card,
-  cardNumber,
   grokRequest,
   justTcgRequest,
 }: PriceAnalysisProps) {
   return (
     <>
-      <StoredPrices card={card} cardNumber={cardNumber} />
+      <StoredPrices card={card} />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </>

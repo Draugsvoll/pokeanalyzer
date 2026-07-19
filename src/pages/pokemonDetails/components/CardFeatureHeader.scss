@@ -1,0 +1,62 @@
+.card-feature-header {
+  margin: 0 0 1.5rem;
+
+  &__label {
+    align-items: center;
+    color: var(--feature-accent);
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 750;
+    gap: 0.45rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+
+    svg { height: 0.9rem; width: 0.9rem; }
+  }
+
+  h2 {
+    color: #fff;
+    font-size: clamp(1.8rem, 5vw, 2.35rem);
+    font-weight: 650;
+    letter-spacing: -0.045em;
+    line-height: 1.1;
+    margin: 0.75rem 0 0;
+  }
+
+  &__metadata {
+    align-items: center;
+    color: #9a9cac;
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+  }
+
+  &__metadata-item {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.45rem;
+
+    i { color: #626575; font-style: normal; }
+  }
+
+  &__rarity {
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.08);
+    border-radius: 999px;
+    color: #facc15;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.025em;
+    line-height: 1;
+    padding: 0.38rem 0.7rem;
+    text-transform: uppercase;
+  }
+
+  &__number {
+    color: #aaa8ca;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}

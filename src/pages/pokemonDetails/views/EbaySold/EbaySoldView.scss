@@ -1,13 +1,5 @@
 .ebay-sold-view {
-  h3 { margin: 0; color: #fff; }
-
-  &__query {
-    margin-top: 0.35rem !important;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-  }
-
-  &__results { display: grid; gap: 1rem; margin-top: 1.5rem; }
+  &__results { display: grid; gap: 1rem; }
 
   &__result {
     display: flex;

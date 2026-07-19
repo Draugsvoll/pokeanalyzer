@@ -56,7 +56,7 @@ function group(fields: FlatPriceField[], splitReverse = false) {
   return groups.map(([name, values]) => [name, [...values].sort((a, b) => Number(/market|trend/i.test(b.label)) - Number(/market|trend/i.test(a.label)))] as const);
 }
 
-export function StoredPrices({ card, cardNumber }: { card: PokemonCard; cardNumber?: string }) {
+export function StoredPrices({ card }: { card: PokemonCard }) {
   const tcgFields = flatten(card.tcgplayer?.prices).filter(hasNonZeroPrice);
   const hidden = new Set(["Low Price", "Low", "German Pro Low", "Suggested Price", "Low Price Ex Plus", "Avg1"]);
   const cardmarketFields = flatten(card.cardmarket?.prices).filter(hasNonZeroPrice).filter((field) => {
@@ -107,17 +107,6 @@ export function StoredPrices({ card, cardNumber }: { card: PokemonCard; cardNumb
 
   return (
     <div className="card-view__stored-prices">
-      <header className="card-view__stored-price-header">
-        <h2>{card.name}</h2>
-        <div>
-          {card.rarity && <span>{card.rarity}</span>}
-          {card.rarity && cardNumber && <i>•</i>}
-          {cardNumber && <code>{cardNumber}</code>}
-          {(card.rarity || cardNumber) && card.set?.name && <i>•</i>}
-          {card.set?.name && <p>{card.set.name}</p>}
-        </div>
-      </header>
-
       <div className="card-view__stored-price-sources">
         {tcgFields.length > 0 && <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
           <div className="card-view__stored-price-source-header"><span>T</span><div><h3>TCGPlayer</h3>{sourceDetails("United States Market", tcgplayerUrl, "TCGPlayer")}</div>{tcgMarket && <div className="card-view__stored-price-summary"><strong>{formatPrice(tcgMarket.value, "USD")}</strong></div>}</div>

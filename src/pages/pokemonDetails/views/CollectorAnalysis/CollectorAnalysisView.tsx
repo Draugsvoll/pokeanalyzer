@@ -1,6 +1,5 @@
 import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import type { PokemonCard } from "../../../../types/pokemon";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import "./CollectorAnalysisView.scss";
@@ -19,7 +18,6 @@ type CollectorAnalysisData = {
 };
 
 type CollectorAnalysisProps = {
-  card: PokemonCard;
   grokRequest: GrokRequestState;
 };
 
@@ -52,12 +50,11 @@ function parseCollectorAnalysis(response: string): CollectorAnalysisData | null 
 }
 
 export default function CollectorAnalysis({
-  card,
   grokRequest,
 }: CollectorAnalysisProps) {
   const { loading, error, response } = grokRequest;
 
-  if (loading) return <p>Asking Grok...</p>;
+  if (loading) return <p className="collector-ranking__state">Building collector report...</p>;
   if (error) return <p className="card-view__page-error">{error}</p>;
   if (!response) return null;
 
@@ -70,18 +67,15 @@ export default function CollectorAnalysis({
 
   return (
     <div className="collector-ranking">
-      <header className="collector-ranking__heading">
-        <h3>{card.name}</h3>
-        <p>{[card.number, card.set?.name, card.set?.series].filter(Boolean).join(" • ")}</p>
-      </header>
-
       <div className="collector-ranking__summary">
         <div
           className="collector-ranking__score"
           style={{ "--score": totalScore } as CSSProperties}
+          role="img"
+          aria-label={`Overall collector score: ${totalScore} out of 100`}
         >
           <div>
-            <strong>{analysis.totalScore}</strong>
+            <strong>{totalScore}</strong>
             <span>/100</span>
           </div>
         </div>
@@ -100,11 +94,15 @@ export default function CollectorAnalysis({
             <article key={`${category.name}-${index}`} className="collector-ranking__category">
               <div className="collector-ranking__category-title">
                 <h4><Icon size={19} aria-hidden="true" />{category.name}</h4>
-                <strong>{category.score}</strong>
+                <strong>{score}</strong>
               </div>
               <div
                 className="collector-ranking__bar"
-                aria-label={`${category.name}: ${category.score} out of 100`}
+                role="progressbar"
+                aria-label={category.name}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={score}
               >
                 <span style={{ width: `${score}%` }} />
               </div>
