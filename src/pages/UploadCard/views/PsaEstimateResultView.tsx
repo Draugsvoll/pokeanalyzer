@@ -10,7 +10,10 @@ export default function PsaEstimateResultView({
   result,
 }: PsaEstimateResultViewProps) {
   return (
-    <div className="card-grader__result">
+    <div
+      className="card-grader__result ui-render-fade"
+      key={error ? "error" : result ? "result" : "empty"}
+    >
       {error && <p className="card-grader__error">{error}</p>}
 
       {!error && !result && (

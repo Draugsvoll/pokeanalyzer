@@ -1,5 +1,5 @@
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 
 export default function Search() {
-  return <DatabaseSearch />;
+  return <DatabaseSearch autoFocusName />;
 }

@@ -1,0 +1,16 @@
+.card-rarity-badge {
+  align-items: center;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.08);
+  border-radius: 999px;
+  color: #facc15;
+  display: inline-flex;
+  font-size: var(--font-size-badge);
+  font-weight: 750;
+  letter-spacing: 0.025em;
+  line-height: 1;
+  padding: 0.38rem 0.7rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: fit-content;
+}

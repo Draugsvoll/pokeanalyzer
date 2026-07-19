@@ -1,8 +1,29 @@
 .header {
-	position: sticky;
+  position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom:1px solid rgba(53, 53, 54, 0.611);
+  background-color: transparent;
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(0) saturate(100%);
+  -webkit-backdrop-filter: blur(0) saturate(100%);
+  transition:
+    background-color 1s ease,
+    border-color 1s ease,
+    box-shadow 1s ease,
+    backdrop-filter 1s ease,
+    -webkit-backdrop-filter 1s ease;
+
+  &--scrolled {
+    background-color: color-mix(
+      in srgb,
+      var(--bg) 74%,
+      rgba(255, 255, 255, 0.1)
+    );
+    border-bottom-color: rgba(148, 163, 184, 0.16);
+    box-shadow: 0 0.5rem 1.75rem rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(20px) saturate(130%);
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+  }
 }
 
 

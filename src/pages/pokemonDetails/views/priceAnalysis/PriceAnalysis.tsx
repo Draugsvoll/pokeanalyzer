@@ -85,10 +85,10 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
     ? parsed.currency_reference
     : null;
   return (
-    <section className="grok-price-analysis">
+    <section className="grok-price-analysis ui-render-fade">
       {marketData.length > 0 && (
         <div>
-          <h2 className="grok-price-analysis__section-title">Other market sources</h2>
+          <h2 className="grok-price-analysis__section-title app-subheader">Other market sources</h2>
           <div className="grok-price-analysis__markets">
           {marketData.map((market, index) => {
             const source = text(market.source);

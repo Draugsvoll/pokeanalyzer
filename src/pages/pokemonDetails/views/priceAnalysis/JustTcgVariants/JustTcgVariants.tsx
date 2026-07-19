@@ -14,6 +14,7 @@ type JustTcgVariant = {
 
 type JustTcgVariantGroup = {
   id: string;
+  pokemonName: string;
   printing: string;
   setName: string;
   variants: JustTcgVariant[];
@@ -38,6 +39,10 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
     if (!isRecord(card) || !Array.isArray(card.variants)) return [];
 
     const cardId = String(card.id ?? cardIndex);
+    const pokemonName =
+      typeof card.name === "string" && card.name
+        ? card.name
+        : "Unknown card";
     const setName =
       typeof card.set_name === "string" && card.set_name
         ? card.set_name
@@ -69,6 +74,7 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
       }, {})
     ).map(([printing, groupedVariants]) => ({
       id: `${cardId}-${printing}`,
+      pokemonName,
       printing,
       setName,
       variants: [...groupedVariants].sort(
@@ -95,8 +101,11 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
   }
 
   return (
-    <div className="just-tcg-variants">
-      {groups.map(({ id, printing, setName, variants }) => {
+    <div className="just-tcg-variants ui-render-fade">
+      <header className="just-tcg-variants__source-header">
+        <h2 className="app-subheader">JustTCG (Aggregator of price data)</h2>
+      </header>
+      {groups.map(({ id, pokemonName, printing, setName, variants }) => {
         const reverse = printing.toLowerCase().includes("reverse");
 
         return (
@@ -106,8 +115,12 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
           >
             <header>
               <div className="just-tcg-variants__heading">
-                <div><Layers3 aria-hidden="true" /><span>{printing}</span></div>
-                <span className="just-tcg-variants__set-name">{setName}</span>
+                <div className="just-tcg-variants__printing"><Layers3 aria-hidden="true" /><span>{printing}</span></div>
+                <div className="just-tcg-variants__identity">
+                  <strong className="just-tcg-variants__pokemon-name">{pokemonName}</strong>
+                  <i aria-hidden="true">•</i>
+                  <span className="just-tcg-variants__set-name">{setName}</span>
+                </div>
               </div>
               <small>Sorted by price</small>
             </header>

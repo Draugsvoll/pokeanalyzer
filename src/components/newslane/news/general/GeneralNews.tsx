@@ -77,9 +77,6 @@ export const GeneralNews: React.FC = () => {
             <div className="general-news__trends">
               {newsData.trends.map((trend, index) => (
                 <article className="general-news__trend" key={trend.number ?? index}>
-                  {trend.number !== undefined && (
-                    <span className="general-news__trend-number">{trend.number}</span>
-                  )}
                   <div className="general-news__trend-content">
                     <div className="general-news__trend-heading">
                       {trend.title && <h2>{trend.title}</h2>}

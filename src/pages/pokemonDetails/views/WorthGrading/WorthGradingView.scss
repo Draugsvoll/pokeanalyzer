@@ -3,7 +3,7 @@
 .worth-grading-view__raw { line-height: 1.65; white-space: pre-wrap; }
 
 .worth-grading-view__verdict {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.38), rgba(9, 9, 11, 0.7));
+  background: var(--bg2);
   border: 1px solid rgba(6, 95, 70, 0.5);
   border-radius: 1.5rem;
   margin-bottom: 2rem;
@@ -14,7 +14,7 @@
 }
 
 .worth-grading-view__eyebrow {
-  align-items: center; background: rgba(6, 78, 59, 0.55); border-radius: 999px; color: #34d399;
+  align-items: center; background: var(--bg2); border-radius: 999px; color: #34d399;
   display: inline-flex; font-size: 0.7rem; font-weight: 700; gap: 0.45rem; letter-spacing: 0.1em;
   padding: 0.35rem 0.9rem; text-transform: uppercase;
   svg { height: 0.85rem; width: 0.85rem; }
@@ -25,7 +25,7 @@
 .worth-grading-view__section-heading h3 { color: #a1a1aa; font-size: 0.75rem; letter-spacing: 0.12em; margin: 0; text-transform: uppercase; }
 .worth-grading-view__section-heading span { color: #71717a; font-size: 0.72rem; }
 
-.worth-grading-view__market { background: #18181b; border: 1px solid #27272a; border-radius: 1.5rem; overflow: hidden; padding: 0.25rem; }
+.worth-grading-view__market { background: var(--bg2); border: 1px solid #27272a; border-radius: 1.5rem; overflow: hidden; padding: 0.25rem; }
 .worth-grading-view__market-row {
   align-items: center; display: flex; justify-content: space-between; padding: 1rem 1.25rem;
   &:not(:last-child) { border-bottom: 1px solid #27272a; }
@@ -35,10 +35,10 @@
 }
 .worth-grading-view__market-row--amber > span { color: #fbbf24; }
 .worth-grading-view__market-row--green { svg, > span { color: #34d399; } }
-.worth-grading-view__market-row--red { background: rgba(24, 24, 27, 0.6); svg, > span { color: #f87171; } }
+.worth-grading-view__market-row--red { svg, > span { color: #f87171; } }
 
 .worth-grading-view__bottom-line,
-.worth-grading-view__action { background: #18181b; border: 1px solid #27272a; border-radius: 1.5rem; display: flex; gap: 1rem; padding: 1.5rem; }
+.worth-grading-view__action { background: var(--bg2); border: 1px solid #27272a; border-radius: 1.5rem; display: flex; gap: 1rem; padding: 1.5rem; }
 .worth-grading-view__bottom-line { margin-bottom: 2rem; > svg { color: #34d399; flex: 0 0 auto; } h3 { margin: 0 0 0.5rem; } p { color: #d4d4d8; line-height: 1.65; margin: 0; } }
 .worth-grading-view__action { > svg { color: #facc15; flex: 0 0 auto; } strong { color: #facc15; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; } p { font-size: 1.05rem; font-weight: 600; line-height: 1.45; margin: 0.35rem 0 0; } }
 

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { BadgeDollarSign, Gem, LineChart, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, Gem, LineChart, Star, type LucideIcon } from "lucide-react";
 import "./PokemonDetails.scss";
+import "./components/CardRarityBadge.scss";
 import "../../components/welcomeView/WelcomeView.scss";
 import type { PokemonCard } from "../../types/pokemon";
 import {
@@ -151,8 +152,8 @@ function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
     { label: "Series", value: card.set?.series },
     { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
     { label: "Kortnummer", value: cardNumber },
-    { label: "Printed Total", value: setSize },
-    { label: "Set ID", value: card.set?.id },
+    { label: "Set Total Cards", value: card.set.total },
+    { label: "Artist", value: card.artist },
     { label: "Release Date", value: formatReleaseDate(card.set?.releaseDate) },
   ];
 }
@@ -172,6 +173,8 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
 
 export default function PokemonDetails() {
   const { id } = useParams();
+  const featureButtonsRef = useRef<HTMLDivElement>(null);
+  const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
   const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
   const [card, setCard] = useState<PokemonCard | null>(cachedCard);
   const [loading, setLoading] = useState(!cachedCard && Boolean(id));
@@ -183,6 +186,7 @@ export default function PokemonDetails() {
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
+  const [portfolioConfirmation, setPortfolioConfirmation] = useState("");
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
@@ -205,16 +209,43 @@ export default function PokemonDetails() {
     updatingCredits,
   } = useCredits(subscription);
 
+  function scrollToFeatureButtons() {
+    requestAnimationFrame(() => {
+      const featureButtons = featureButtonsRef.current;
+      if (!featureButtons) return;
+
+      window.scrollTo({
+        top: window.scrollY + featureButtons.getBoundingClientRect().top + 80,
+        behavior: "smooth",
+      });
+    });
+  }
+
+  function showPortfolioConfirmation(message: string) {
+    window.clearTimeout(portfolioConfirmationTimerRef.current);
+    setPortfolioConfirmation(message);
+    portfolioConfirmationTimerRef.current = window.setTimeout(() => {
+      setPortfolioConfirmation("");
+    }, 1000);
+  }
+
   async function handlePortfolioToggle() {
     if (!card || updatingPortfolio) return;
 
+    const cardWasSaved = isCardSaved(card.id);
     setUpdatingPortfolio(true);
-    if (isCardSaved(card.id)) {
-      await removePokemonFromPortfolio(card.id);
-    } else {
-      await savePokemonToPortfolio(card);
+    try {
+      if (cardWasSaved) {
+        await removePokemonFromPortfolio(card.id);
+      } else {
+        await savePokemonToPortfolio(card);
+      }
+      showPortfolioConfirmation(
+        cardWasSaved ? "Removed from portfolio" : "Added to portfolio"
+      );
+    } finally {
+      setUpdatingPortfolio(false);
     }
-    setUpdatingPortfolio(false);
   }
 
   async function handlePriceAnalysis(signal: AbortSignal) {
@@ -236,7 +267,7 @@ export default function PokemonDetails() {
     const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
       .then((result) => {
         setJustTcgResult(
-          verifyJustTcgCard(result, card.name, card.set.name, cardNumber),
+          verifyJustTcgCard(result, card.set.name, cardNumber),
         );
         return true;
       })
@@ -293,6 +324,7 @@ export default function PokemonDetails() {
     setFeatureCooldown(true);
     abortActiveRequest();
     setActiveView(aiFeature.view);
+    scrollToFeatureButtons();
 
     if (aiFeature.view === "ebay_sold") {
       return;
@@ -363,6 +395,10 @@ export default function PokemonDetails() {
   useEffect(() => {
     abortActiveRequest();
   }, [abortActiveRequest, id]);
+
+  useEffect(() => () => {
+    window.clearTimeout(portfolioConfirmationTimerRef.current);
+  }, []);
 
   useEffect(() => {
     async function loadCard() {
@@ -475,11 +511,36 @@ export default function PokemonDetails() {
       <div className="card-view__panel-wrap">
         <div className="card-view__shell">
           <div className="card-view__image-side">
-            <img className="card-view__image" src={cardImageSrc} alt={card.name} />
+            <img
+              key={card.id}
+              className="card-view__image ui-render-fade"
+              src={cardImageSrc}
+              alt={card.name}
+            />
           </div>
 
           <div className="card-view__info-side">
-            <h2 className="card-view__title">{card.name}</h2>
+            <div className="card-view__title-row">
+              <h2 className="card-view__title">{card.name}</h2>
+              <div className="card-view__portfolio-control">
+                <Button
+                  className={`card-view__portfolio-button${cardIsSaved ? " is-saved" : ""}`}
+                  disabled={updatingPortfolio}
+                  onClick={handlePortfolioToggle}
+                  aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                  aria-pressed={cardIsSaved}
+                  aria-busy={updatingPortfolio}
+                  title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                >
+                  <Star aria-hidden="true" />
+                </Button>
+                {portfolioConfirmation && (
+                  <span className="card-view__portfolio-confirmation" role="status">
+                    {portfolioConfirmation}
+                  </span>
+                )}
+              </div>
+            </div>
             {card.set?.name && (
               <p className="card-view__title-set">
                 <i aria-hidden="true">•</i>
@@ -493,7 +554,7 @@ export default function PokemonDetails() {
                   <span className="card-view__label">{field.label}</span>
                   <span
                     className={`card-view__value${
-                      field.highlight ? " card-view__value--highlight" : ""
+                      field.highlight ? " card-rarity-badge" : ""
                     }`}
                   >
                     {field.value ?? "N/A"}
@@ -504,21 +565,11 @@ export default function PokemonDetails() {
 
             <div className="card-view__info-actions">
               <Button
-                className="card-view__portfolio-button"
-                disabled={updatingPortfolio}
-                onClick={handlePortfolioToggle}
-              >
-                <span>
-                  {updatingPortfolio
-                    ? cardIsSaved ? "Removing..." : "Saving..."
-                    : cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
-                </span>
-              </Button>
-              <Button
                 className="card-view__change-card"
                 onClick={() => {
                   abortActiveRequest();
                   setActiveView("search_card");
+                  scrollToFeatureButtons();
                 }}
                 aria-pressed={activeView === "search_card"}
               >
@@ -541,7 +592,7 @@ export default function PokemonDetails() {
         {creditMessage && <small>{creditMessage}</small>}
       </div>
 
-      <div className="card-view__actions feature-buttons__row">
+      <div ref={featureButtonsRef} className="card-view__actions feature-buttons__row">
         {AI_Features.map((aiFeature) => {
           const Icon = aiFeature.icon;
 
@@ -577,7 +628,8 @@ export default function PokemonDetails() {
       </div>
 
       <section
-        className={`card-view__page${
+        key={activeView}
+        className={`card-view__page ui-render-fade${
           activeView === "prices" ? " card-view__page--prices" : ""
         }`}
         aria-live="polite"

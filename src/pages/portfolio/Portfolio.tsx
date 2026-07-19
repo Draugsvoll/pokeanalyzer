@@ -134,15 +134,15 @@ export default function Portfolio() {
   }, [pendingQuantity, pendingRemoval]);
 
   if (authLoading || loadingPortfolio) {
-    return <main className="portfolio portfolio--status"><h1>Loading collection...</h1></main>;
+    return <main className="portfolio portfolio--status ui-render-fade" key="loading"><h1>Loading collection...</h1></main>;
   }
 
   if (!user) {
-    return <main className="portfolio portfolio--status"><h1>Log in to view your collection</h1></main>;
+    return <main className="portfolio portfolio--status ui-render-fade" key="logged-out"><h1>Log in to view your collection</h1></main>;
   }
 
   return (
-    <main className="portfolio">
+    <main className="portfolio ui-render-fade" key="collection">
       <header className="portfolio__header">
         <div>
           <span className="portfolio__eyebrow">Portfolio</span>
@@ -201,7 +201,7 @@ export default function Portfolio() {
           <p>Cards you add to your portfolio will appear here.</p>
         </div>
       ) : (
-        <GridView className="ui-fade ui-fade--slow ui-fade--visible">
+        <GridView>
           {sortedPortfolio.map((card) => (
             <div
               key={card.id}

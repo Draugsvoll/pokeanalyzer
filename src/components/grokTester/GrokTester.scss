@@ -14,7 +14,7 @@
   width: 100%;
   min-height: 10rem;
   resize: vertical;
-  background: var(--bg-secondary);
+  background: var(--bg2);
   border: var(--border);
   border-radius: 0.75rem;
   color: var(--text);
@@ -41,7 +41,7 @@
 }
 
 .grok-tester__response {
-  background: var(--bg-secondary);
+  background: var(--bg2);
   border: var(--border);
   border-radius: 0.75rem;
   padding: 1rem;

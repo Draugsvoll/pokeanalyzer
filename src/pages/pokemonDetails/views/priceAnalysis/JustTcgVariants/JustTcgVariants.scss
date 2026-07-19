@@ -3,17 +3,36 @@
 .just-tcg-variants {
   display: grid;
   gap: 2rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   margin: 0 auto;
   max-width: 72rem;
   width: 100%;
 
+  &__source-header {
+    align-items: center;
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    margin-bottom: -1rem;
+    margin-top:3rem;
+    margin-left:auto;
+    margin-right:auto;
+    padding: 0 0.25rem;
+
+    span {
+      color: #71717a;
+      font-size: 0.72rem;
+    }
+  }
+
   &__section {
     --variant-accent: #fb923c;
     --variant-accent-bg: rgba(251, 146, 60, 0.1);
-    background: #18181b;
-    border: 1px solid rgba(249, 115, 22, 0.28);
+    background: var(--bg2);
     border-radius: 1.5rem;
+    box-shadow:
+      0 1rem 2.5rem rgba(0, 0, 0, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.035);
     overflow: hidden;
     &--reverse {
       --variant-accent: #60a5fa;
@@ -24,9 +43,10 @@
 
   &__section > header {
     align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.065);
     display: flex;
     justify-content: space-between;
-    padding: 1.5rem 1.5rem 1rem;
+    padding: 1.25rem 1.5rem;
   }
 
   &__heading {
@@ -36,9 +56,10 @@
     min-width: 0;
   }
 
-  &__heading > div {
+  &__printing {
     align-items: center;
-    background: var(--variant-accent-bg);
+    background: var(--bg2);
+    border: 1px solid color-mix(in srgb, var(--variant-accent) 18%, transparent);
     border-radius: 999px;
     color: var(--variant-accent);
     display: flex;
@@ -48,14 +69,43 @@
     padding: 0.3rem 0.9rem;
   }
 
+  &__identity {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    min-width: 0;
+
+    i {
+      color: #626575;
+      font-style: normal;
+    }
+  }
+
   &__set-name {
     color: #a1a1aa;
     font-size: 0.8rem;
     overflow-wrap: anywhere;
   }
 
+  &__pokemon-name {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
   &__heading svg { height: 0.8rem; width: 0.8rem; }
-  &__section > header small { color: #a1a1aa; font-size: 0.75rem; }
+  &__section > header small {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 999px;
+    color: #a1a1aa;
+    font-size: 0.68rem;
+    padding: 0.3rem 0.6rem;
+    white-space: nowrap;
+  }
   &__table-wrap { padding: 0.25rem; }
   table { border-collapse: collapse; table-layout: fixed; width: 100%; }
   th, td { overflow-wrap: anywhere; padding: 0.85rem 0.65rem; text-align: right; white-space: normal; }
@@ -73,10 +123,6 @@
   &__high { color: #34d399 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
   &__low { color: #f87171 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
   &__empty { color: #a1a1aa; }
-}
-
-@media (max-width: 64rem) {
-  .just-tcg-variants { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 40rem) {

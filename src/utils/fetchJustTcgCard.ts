@@ -26,7 +26,6 @@ export async function fetchJustTcgCard(
 
 export function verifyJustTcgCard(
   result: unknown,
-  name: string,
   setName: string,
   number: string | number,
 ): unknown {
@@ -38,8 +37,6 @@ export function verifyJustTcgCard(
     if (
       card === null ||
       typeof card !== "object" ||
-      !("name" in card) ||
-      typeof card.name !== "string" ||
       !("set_name" in card) ||
       typeof card.set_name !== "string" ||
       !("number" in card) ||
@@ -60,7 +57,7 @@ export function verifyJustTcgCard(
     const cardNumbersMatch =
       normalizeCardNumber(card.number) === normalizeCardNumber(number);
 
-    return card.name.trim() === name.trim() && setNamesMatch && cardNumbersMatch;
+    return setNamesMatch && cardNumbersMatch;
   });
 
   return { ...result, data: matchingCards };

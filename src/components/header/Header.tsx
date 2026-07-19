@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Header.scss'
 import { Link, useNavigate } from 'react-router-dom';
 import LoginModal from '../loginmodal/Loginmodal';
@@ -8,10 +8,20 @@ import { useAuth } from "../../context/authContextValue";
 export const Header: React.FC = () => {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const updateScrollState = () => setIsScrolled(window.scrollY > 0);
+
+    updateScrollState();
+    window.addEventListener("scroll", updateScrollState, { passive: true });
+
+    return () => window.removeEventListener("scroll", updateScrollState);
+  }, []);
   
   return (
-   <header className="header">
+   <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
         <div className="nav-container">
           <Link to="/" className="logo">
           <div className="logo">

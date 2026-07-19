@@ -5,7 +5,15 @@ import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
 import {
   getVisibleEbayCompResults,
   type EbayCompsResponse,
+  type EbayCompResult,
 } from "../../../../utils/ebayComps";
+import {
+  CalendarDays,
+  ExternalLink,
+  Gavel,
+  MapPin,
+  ShieldCheck,
+} from "lucide-react";
 import "./EbaySoldView.scss";
 import {
   isAbortError,
@@ -19,6 +27,58 @@ type EbaySoldViewProps = {
   card: PokemonCard;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
 };
+
+const FEATURED_FIELDS = new Set([
+  "url",
+  "title",
+  "condition",
+  "bidcount",
+  "endedat",
+  "soldprice",
+  "soldcurrency",
+  "sellerusername",
+  "sellerpositivepercent",
+  "sellerfeedbackscore",
+  "itemlocation",
+]);
+
+function getField(result: EbayCompResult, key: string) {
+  return result.fields.find((field) => field.key.toLowerCase() === key.toLowerCase())?.value;
+}
+
+function formatPrice(price?: string, currency?: string) {
+  if (!price) return "Price unavailable";
+
+  const numericPrice = Number(price.replace(/,/g, ""));
+  if (!Number.isFinite(numericPrice) || !currency) {
+    return [price, currency].filter(Boolean).join(" ");
+  }
+
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(numericPrice);
+  } catch {
+    return `${price} ${currency}`;
+  }
+}
+
+function formatDate(value?: string) {
+  if (!value) return "Date unavailable";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatFieldLabel(value: string) {
+  return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
 
 export default function EbaySoldView({
   card,
@@ -91,21 +151,104 @@ export default function EbaySoldView({
   if (!results.length) return <p>No eBay sold listings found.</p>;
 
   return (
-    <div className="ebay-sold-view">
+    <div className="ebay-sold-view ui-render-fade">
       <div className="ebay-sold-view__results">
-        {results.map((result, index) => (
-          <article key={index} className="ebay-sold-view__result">
-            {result.thumbnailUrl && <img src={result.thumbnailUrl} alt="" />}
-            <dl>
-              {result.fields.map((field) => (
-                <div key={field.key}>
-                  <dt>{field.key}</dt>
-                  <dd>{field.value}</dd>
+        {results.map((result, index) => {
+          const title = getField(result, "title") ?? "eBay sold listing";
+          const url = getField(result, "url");
+          const condition = getField(result, "condition");
+          const bidCount = getField(result, "bidCount");
+          const endedAt = getField(result, "endedAt");
+          const seller = getField(result, "sellerUsername");
+          const sellerPositive = getField(result, "sellerPositivePercent");
+          const feedbackScore = getField(result, "sellerFeedbackScore");
+          const location = getField(result, "itemLocation");
+          const soldPrice = formatPrice(
+            getField(result, "soldPrice"),
+            getField(result, "soldCurrency"),
+          );
+          const additionalFields = result.fields.filter(
+            (field) => !FEATURED_FIELDS.has(field.key.toLowerCase()),
+          );
+          const hasListingUrl = Boolean(url && /^https?:\/\//i.test(url));
+
+          return (
+            <article key={url ?? `${title}-${index}`} className="ebay-sold-view__result">
+              <div className="ebay-sold-view__visual">
+                <div className="ebay-sold-view__media">
+                  {result.thumbnailUrl ? (
+                    <img src={result.thumbnailUrl} alt={title} />
+                  ) : (
+                    <Gavel aria-hidden="true" />
+                  )}
                 </div>
-              ))}
-            </dl>
-          </article>
-        ))}
+              </div>
+
+              <div className="ebay-sold-view__content">
+                <header className="ebay-sold-view__header">
+                  <div>
+                    <h3>{title}</h3>
+                    <div className="ebay-sold-view__badges">
+                      {condition && (
+                        <span className="ebay-sold-view__condition">{condition}</span>
+                      )}
+                      {bidCount && bidCount !== "N/A" && (
+                        <span><Gavel aria-hidden="true" /> {bidCount} bids</span>
+                      )}
+                      <span><CalendarDays aria-hidden="true" /> Sold {formatDate(endedAt)}</span>
+                      {hasListingUrl && (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          View on eBay <ExternalLink aria-hidden="true" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ebay-sold-view__price">
+                    <small>Sold for</small>
+                    <strong>{soldPrice}</strong>
+                  </div>
+                </header>
+
+                <div className="ebay-sold-view__details">
+                  {seller && (
+                    <div>
+                      <ShieldCheck aria-hidden="true" />
+                      <span>Seller<strong>{seller}</strong></span>
+                    </div>
+                  )}
+                  {sellerPositive && (
+                    <div>
+                      <span>Positive feedback<strong>{sellerPositive}%</strong></span>
+                    </div>
+                  )}
+                  {feedbackScore && (
+                    <div>
+                      <span>Feedback score<strong>{feedbackScore}</strong></span>
+                    </div>
+                  )}
+                  {location && (
+                    <div>
+                      <MapPin aria-hidden="true" />
+                      <span>Item location<strong>{location}</strong></span>
+                    </div>
+                  )}
+                </div>
+
+                {additionalFields.length > 0 && (
+                  <dl className="ebay-sold-view__extra-fields">
+                    {additionalFields.map((field) => (
+                      <div key={field.key}>
+                        <dt>{formatFieldLabel(field.key)}</dt>
+                        <dd>{field.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

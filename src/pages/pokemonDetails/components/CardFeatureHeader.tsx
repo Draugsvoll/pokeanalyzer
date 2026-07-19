@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import { getCustomColors, type CustomColors } from "../../../utils/customStylings";
 import "./CardFeatureHeader.scss";
+import "./CardRarityBadge.scss";
 
 type CardFeatureHeaderProps = {
   card: PokemonCard;
@@ -31,7 +32,7 @@ export function CardFeatureHeader({
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
   const metadata = [
-    card.rarity && <span className="card-feature-header__rarity">{card.rarity}</span>,
+    card.rarity && <span className="card-rarity-badge">{card.rarity}</span>,
     displayedNumber && <span className="card-feature-header__number">{displayedNumber}</span>,
     card.set?.name && <span>{card.set.name}</span>,
   ].filter(Boolean);

@@ -47,7 +47,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   ];
 
   return (
-    <section className="worth-grading-view">
+    <section className="worth-grading-view ui-render-fade">
       <div className="worth-grading-view__verdict">
         <div className="worth-grading-view__eyebrow"><Gavel aria-hidden="true" /> Final verdict</div>
         <h2>{data.verdict ?? "Grading verdict unavailable"}</h2>

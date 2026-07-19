@@ -18,10 +18,7 @@
 
   &__summary {
     align-items: center;
-    background:
-      radial-gradient(circle at 8% 12%, rgba(20, 184, 166, 0.105), transparent 36%),
-      radial-gradient(circle at 92% 100%, rgba(45, 212, 191, 0.045), transparent 40%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.025));
+    background: var(--bg2);
     backdrop-filter: blur(18px) saturate(120%);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 1.25rem;
@@ -107,9 +104,7 @@
   }
 
   &__category {
-    background:
-      radial-gradient(circle at 0 0, rgba(20, 184, 166, 0.045), transparent 44%),
-      linear-gradient(145deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018));
+    background: var(--bg2);
     backdrop-filter: blur(16px) saturate(115%);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1rem;
@@ -174,7 +169,7 @@
   }
 
   &__bar {
-    background: rgba(20, 184, 166, 0.11);
+    background: var(--bg2);
     border-radius: 999px;
     height: 0.25rem;
     margin-top: 0.75rem;
@@ -190,9 +185,7 @@
   }
 
   &__conclusion {
-    background:
-      radial-gradient(circle at 0 0, rgba(20, 184, 166, 0.07), transparent 50%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018));
+    background: var(--bg2);
     backdrop-filter: blur(16px) saturate(115%);
     border: 1px solid rgba(255, 255, 255, 0.105);
     border-radius: 1rem;

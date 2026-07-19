@@ -10,7 +10,10 @@ export default function AuthenticityResultView({
   result,
 }: AuthenticityResultViewProps) {
   return (
-    <div className="card-grader__result authenticity-result">
+    <div
+      className="card-grader__result authenticity-result ui-render-fade"
+      key={error ? "error" : result ? "result" : "empty"}
+    >
       {error && <p className="card-grader__error">{error}</p>}
       {!error && !result && (
         <p className="card-grader__empty">

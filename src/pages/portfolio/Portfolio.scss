@@ -70,7 +70,7 @@
   }
 
   &__estimated-value {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.9rem;
     display: flex;
@@ -135,7 +135,7 @@
   }
 
   &__empty {
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 1rem;
     padding: 2rem;
@@ -156,7 +156,7 @@
     position: relative;
     transition: transform 0.2s ease;
 
-    &:hover { transform: translateY(-2px); }
+    &:hover { transform: translateY(var(--hover-lift)); }
     .base-card:hover { transform: none; }
 
     &:hover .portfolio__card-actions,
@@ -235,7 +235,7 @@
 
   &__quantity-confirm {
     align-items: center;
-    background: #18181f;
+    background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 0.75rem;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);

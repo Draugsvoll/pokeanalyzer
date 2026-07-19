@@ -66,7 +66,7 @@ export default function CollectorAnalysis({
   const totalScore = Math.min(100, Math.max(0, Number(analysis.totalScore) || 0));
 
   return (
-    <div className="collector-ranking">
+    <div className="collector-ranking ui-render-fade">
       <div className="collector-ranking__summary">
         <div
           className="collector-ranking__score"

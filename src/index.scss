@@ -15,17 +15,39 @@
       rgba(11, 9, 18, 0.0) 70%
     ),var(--bg); /* base bg */
 
-
   --bg:#191724;
-  --bg-secondary:rgba(255, 255, 255, 0.04);
+  --bg2: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--custom-color-purple) 7%, rgba(255, 255, 255, 0.045)) 0%,
+    rgba(255, 255, 255, 0.018) 72%
+    );
+  --bg3: linear-gradient(
+    135deg,
+    rgba(32, 35, 46, 0.9) 0%,
+    rgba(22, 24, 31, 0.92) 52%,
+    rgba(11, 12, 16, 0.94) 100%
+    );
+
   --primary-color: #2b3252;
   --primary-hover: #303757;
-  // --secondary-color: red;
+  --custom-color-purple: #a855f7;
+  --custom-color-teal: #14b8a6;
+  --custom-color-yellow: #facc15;
+  --custom-color-orange: #fb923c;
+  --custom-color-pink: #f43f5e;
 
   --border: 1px solid #334155;
+  --hover-lift: -2px;
 
   --text: #f8fafc;
+  --text-soft: #cbd5e1;
   --muted: #94a3b8;
+
+  --font-size-title: 1.1rem;
+  --font-size-subtitle: 0.88rem;
+  --font-size-label: 0.82rem;
+  --font-size-value: 0.9rem;
+  --font-size-badge: 0.68rem;
 
 }
 
@@ -33,6 +55,14 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+.app-subheader {
+  color: #ebebf1;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0;
 }
 
 .ui-fade {
@@ -58,6 +88,17 @@
 
 @starting-style {
   .ui-fade--visible {
+    opacity: 0;
+  }
+}
+
+.ui-render-fade {
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+@starting-style {
+  .ui-render-fade {
     opacity: 0;
   }
 }

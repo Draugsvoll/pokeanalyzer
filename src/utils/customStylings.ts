@@ -3,11 +3,11 @@ import type { CSSProperties } from "react";
 export type CustomColors = "purple" | "teal" | "yellow" | "orange" | "pink";
 
 const CUSTOM_COLORS: Record<CustomColors, string> = {
-  purple: "#a855f7",
-  teal: "#14b8a6",
-  yellow: "#facc15",
-  orange: "#fb923c",
-  pink: "#f43f5e",
+  purple: "var(--custom-color-purple)",
+  teal: "var(--custom-color-teal)",
+  yellow: "var(--custom-color-yellow)",
+  orange: "var(--custom-color-orange)",
+  pink: "var(--custom-color-pink)",
 };
 
 export function getCustomColors(color: CustomColors): CSSProperties {

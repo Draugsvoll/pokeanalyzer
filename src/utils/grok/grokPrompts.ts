@@ -325,12 +325,14 @@ export const getGeneralNewsPrompt: string =
 `
 You are an expert Pokémon TCG collector community analyst.
 
-Your task is to research and summarize the **latest trends** in the Pokémon TCG collector community the last 7days.
+Your task is to research and summarize the **latest trends** in the Pokémon TCG collector
+community the last 7days. Use reliable sources.
 
 Output **only valid JSON** in this exact structure:
 
 {
   "overview": "1-2 sentence overview of the current state of the Pokémon TCG collector community.",
+  "overall_sentiment": "One concise sentence about the current mood/sentiment in the community."
   "trends": [
     {
       "number": 1,
@@ -343,7 +345,6 @@ Output **only valid JSON** in this exact structure:
       ]
     }
   ],
-  "overall_sentiment": "One concise sentence about the current mood in the community."
 }
 
 Instructions:

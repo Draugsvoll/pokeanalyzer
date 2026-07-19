@@ -41,19 +41,6 @@
     i { color: #626575; font-style: normal; }
   }
 
-  &__rarity {
-    background: rgba(250, 204, 21, 0.12);
-    border: 1px solid rgba(250, 204, 21, 0.08);
-    border-radius: 999px;
-    color: #facc15;
-    font-size: 0.68rem;
-    font-weight: 750;
-    letter-spacing: 0.025em;
-    line-height: 1;
-    padding: 0.38rem 0.7rem;
-    text-transform: uppercase;
-  }
-
   &__number {
     color: #aaa8ca;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

@@ -1,29 +1,40 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../button/Button";
 import type { PokemonCard } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import "./DatabaseSearch.scss";
+import "../../pages/pokemonDetails/components/CardRarityBadge.scss";
 import { logClientError } from "../../utils/logClientError";
 
 const API_URL = import.meta.env.VITE_API_URL;
+const integerFormatter = new Intl.NumberFormat("en-US");
 
-export const DatabaseSearch: React.FC = () => {
+type DatabaseSearchProps = {
+  autoFocusName?: boolean;
+};
+
+export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
+  autoFocusName = false,
+}) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
   const [setSeries, setSetSeries] = useState("");
   const [cardNumber, setCardNumber] = useState("");
-  const [rarity, setRarity] = useState("");
-  const [nationalPokedexNumbers, setNationalPokedexNumbers] = useState("");
-  const [cardId, setCardId] = useState("");
   const [results, setResults] = useState<PokemonCard[]>([]);
+  const [resultRenderKey, setResultRenderKey] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
 
   const handleClick = (card: PokemonCard) => {
     navigateToPokemonCard(navigate, card);
+
+    if (location.pathname.startsWith("/card")) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   async function handleSearch() {
@@ -33,18 +44,12 @@ export const DatabaseSearch: React.FC = () => {
     const trimmedSetName = setName.trim();
     const trimmedSetSeries = setSeries.trim();
     const trimmedCardNumber = cardNumber.trim();
-    const trimmedRarity = rarity.trim();
-    const trimmedNationalPokedexNumbers = nationalPokedexNumbers.trim();
-    const trimmedCardId = cardId.trim();
 
     if (
       !trimmedPokemonName &&
       !trimmedSetName &&
       !trimmedSetSeries &&
-      !trimmedCardNumber &&
-      !trimmedRarity &&
-      !trimmedNationalPokedexNumbers &&
-      !trimmedCardId
+      !trimmedCardNumber
     ) {
       setResults([]);
       return;
@@ -60,11 +65,6 @@ export const DatabaseSearch: React.FC = () => {
       if (trimmedSetName) params.set("setName", trimmedSetName);
       if (trimmedSetSeries) params.set("setSeries", trimmedSetSeries);
       if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
-      if (trimmedRarity) params.set("rarity", trimmedRarity);
-      if (trimmedNationalPokedexNumbers) {
-        params.set("nationalPokedexNumbers", trimmedNationalPokedexNumbers);
-      }
-      if (trimmedCardId) params.set("cardId", trimmedCardId);
 
       const res = await fetch(
         `${API_URL}/api/cards/search?${params.toString()}`
@@ -77,6 +77,7 @@ export const DatabaseSearch: React.FC = () => {
 
       const data = await res.json();
       setResults(data);
+      setResultRenderKey((currentKey) => currentKey + 1);
     } catch (error) {
       logClientError("Search failed", error);
       setResults([]);
@@ -85,7 +86,7 @@ export const DatabaseSearch: React.FC = () => {
 
       setTimeout(() => {
         setCanSearch(true);
-      }, 2000);
+      }, 1000);
     }
   }
 
@@ -100,9 +101,6 @@ export const DatabaseSearch: React.FC = () => {
     setSetName("");
     setSetSeries("");
     setCardNumber("");
-    setRarity("");
-    setNationalPokedexNumbers("");
-    setCardId("");
   };
 
   return (
@@ -112,52 +110,32 @@ export const DatabaseSearch: React.FC = () => {
       <div className="database-search-container">
         <input
           className="database-search"
+          autoFocus={autoFocusName}
           value={pokemonName}
           onChange={(e) => setPokemonName(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          placeholder="PokemonName"
+          placeholder="Name"
         />
         <input
           className="database-search"
           value={setName}
           onChange={(e) => setSetName(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          placeholder="setName"
+          placeholder="Set"
         />
         <input
           className="database-search"
           value={setSeries}
           onChange={(e) => setSetSeries(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          placeholder="setSeries"
+          placeholder="Series"
         />
         <input
           className="database-search"
           value={cardNumber}
           onChange={(e) => setCardNumber(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          placeholder="cardNumber"
-        />
-        <input
-          className="database-search"
-          value={rarity}
-          onChange={(e) => setRarity(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="rarity"
-        />
-        <input
-          className="database-search"
-          value={nationalPokedexNumbers}
-          onChange={(e) => setNationalPokedexNumbers(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="nationalPokedexNumbers"
-        />
-        <input
-          className="database-search"
-          value={cardId}
-          onChange={(e) => setCardId(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="cardId"
+          placeholder="Number"
         />
         <Button className="btn-secondary" onClick={handleClearSearch}>
           Tøm
@@ -167,49 +145,68 @@ export const DatabaseSearch: React.FC = () => {
           onClick={handleSearch}
           disabled={!canSearch || isSearching}
         >
-          {isSearching ? "Søker..." : canSearch ? "Søk" : "Vent litt..."}
+          Søk
         </Button>
       </div>
 
       {results.length > 0 && (
-        <div className="search-results">
+        <div
+          className="search-results ui-render-fade"
+          key={resultRenderKey}
+        >
           {results.map((card) => (
-            <div
+            <article
               key={card.id}
               className="database-card"
+              role="button"
+              tabIndex={0}
               onClick={() => handleClick(card)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleClick(card);
+                }
+              }}
             >
-              <div>
+              <div className="database-card__image">
                 <img src={card.images?.small} alt={card.name} />
               </div>
-              <div>
-                <h3>{card.name}</h3>
-                <p>
-                  <b>Set: </b>
-                  {card.set?.name}
-                </p>
-                <p>
-                  <b>Series: </b>
-                  {card.set?.series}
-                </p>
-                <p>
-                  <b>Rarity: </b>
-                  {card.rarity}
-                </p>
-                <p>
-                  <b>Kortnummer: </b>
-                  {card.number}
-                </p>
-                <p>
-                  <b>Printed Total: </b>
-                  {card.set.printedTotal}
-                </p>
-                <p>
-                  <b>National Pokedex: </b>
-                  {card.nationalPokedexNumbers?.join(", ") ?? "N/A"}
-                </p>
+              <div className="database-card__content">
+                <header className="database-card__header">
+                  <div>
+                    <h3>{card.name}</h3>
+                    <p>{card.set?.name}</p>
+                  </div>
+                  {card.rarity && (
+                    <span className="card-rarity-badge">{card.rarity}</span>
+                  )}
+                </header>
+
+                <dl className="database-card__metadata">
+                  <div>
+                    <dt>Number</dt>
+                    <dd>
+                      {card.number && card.set.printedTotal !== undefined
+                        ? `${card.number} / ${integerFormatter.format(card.set.printedTotal)}`
+                        : card.number ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Set cards</dt>
+                    <dd>{card.set.printedTotal ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Artist</dt>
+                    <dd>{card.artist ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Series</dt>
+                    <dd>{card.set?.series ?? "—"}</dd>
+                  </div>
+                </dl>
+
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
