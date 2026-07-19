@@ -182,6 +182,16 @@ export default function EbaySoldView({
                     <Gavel aria-hidden="true" />
                   )}
                 </div>
+                {hasListingUrl && (
+                  <a
+                    className="ebay-sold-view__sale-link"
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View sale <ExternalLink aria-hidden="true" />
+                  </a>
+                )}
               </div>
 
               <div className="ebay-sold-view__content">
@@ -196,11 +206,6 @@ export default function EbaySoldView({
                         <span><Gavel aria-hidden="true" /> {bidCount} bids</span>
                       )}
                       <span><CalendarDays aria-hidden="true" /> Sold {formatDate(endedAt)}</span>
-                      {hasListingUrl && (
-                        <a href={url} target="_blank" rel="noreferrer">
-                          View on eBay <ExternalLink aria-hidden="true" />
-                        </a>
-                      )}
                     </div>
                   </div>
                   <div className="ebay-sold-view__price">
