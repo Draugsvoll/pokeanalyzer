@@ -153,17 +153,21 @@
   &__card {
     align-items: center;
     display: flex;
+    position: relative;
     transition: transform 0.2s ease;
 
     &:hover { transform: translateY(-2px); }
     .base-card:hover { transform: none; }
 
     &:hover .portfolio__card-actions,
-    &:focus-within .portfolio__card-actions {
+    &:focus-within .portfolio__card-actions,
+    &--confirming .portfolio__card-actions {
       opacity: 1;
       transition-delay: 0s;
       visibility: visible;
     }
+
+    &--confirming { z-index: 10; }
   }
 
   &__card-actions {

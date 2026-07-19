@@ -9,7 +9,7 @@ import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
 import { formatTimestampDate } from "../../utils/timestamp";
-import { BadgeCheck, Coins, Crown, Leaf, Sparkles } from "lucide-react";
+import { BadgeCheck, Coins, Crown, Leaf, LogOut, Sparkles } from "lucide-react";
 import {
   useCredits,
   useMembershipSubscription,
@@ -189,6 +189,10 @@ export default function Profile() {
               </div>
             </div>
           </div>
+          <Button className="profile__logout" onClick={logout}>
+            <LogOut aria-hidden="true" />
+            Log out
+          </Button>
         </header>
 
         <section className="profile__subscription">
@@ -259,7 +263,11 @@ export default function Profile() {
             <div className="profile__upgrade-copy">
               <span className="profile__eyebrow">Plans and credits</span>
               <h3>Choose how you want to add credits</h3>
-              <p>Subscribe for monthly credits or make a one-time purchase.</p>
+            </div>
+
+            <div className="profile__purchase-group-heading">
+              <span>Membership plans</span>
+              <small>Renews monthly</small>
             </div>
 
             <div className="profile__purchase-options">
@@ -339,19 +347,31 @@ export default function Profile() {
                   </article>
                 );
               })}
+            </div>
 
+            <div className="profile__purchase-divider" aria-hidden="true">
+              <span>or</span>
+            </div>
+
+            <div className="profile__purchase-group-heading profile__purchase-group-heading--one-time">
+              <span>One-time payment</span>
+            </div>
+
+            <div className="profile__top-up-row">
               <article className="profile__purchase-card profile__purchase-card--top-up">
                 <span className="profile__purchase-icon" aria-hidden="true"><Coins /></span>
-                <span className="profile__purchase-name">One-time payment</span>
-                <strong>100 extra credits</strong>
-                <small>One-time payment · No subscription</small>
+                <div className="profile__top-up-copy">
+                  <span className="profile__purchase-name">Credit top-up</span>
+                  <strong>100 extra credits</strong>
+                  <small>One-time payment · No subscription</small>
+                </div>
                 <button
                   type="button"
                   className="profile__purchase-cta"
                   disabled={!canUseMembership || updatingCredits}
                   onClick={() => void topUpCredits()}
                 >
-                  {updatingCredits ? "Opening checkout..." : "Buy credits"}
+                  {updatingCredits ? "Opening checkout..." : "Buy extra credits"}
                 </button>
               </article>
             </div>
@@ -444,9 +464,6 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="profile__actions">
-        <Button onClick={logout}>Log out</Button>
-      </div>
     </div>
   );
 }

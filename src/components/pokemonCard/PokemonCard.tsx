@@ -8,9 +8,14 @@ import "./PokemonCard.scss";
 type PokemonCardProps = {
   card: PokemonCardType;
   priceSource?: "tcgplayer" | "cardmarket";
+  quantity?: number;
 };
 
-export function PokemonCard({ card, priceSource = "tcgplayer" }: PokemonCardProps) {
+export function PokemonCard({
+  card,
+  priceSource = "tcgplayer",
+  quantity = 1,
+}: PokemonCardProps) {
   const navigate = useNavigate();
   const displayedPrice = priceSource === "tcgplayer"
     ? getTcgPlayerMarketPrice(card.tcgplayer?.prices)
@@ -22,6 +27,14 @@ export function PokemonCard({ card, priceSource = "tcgplayer" }: PokemonCardProp
 
   return (
     <BaseCard onClick={handleClick}>
+      {quantity > 1 && (
+        <span
+          className="pokemon-card__quantity-badge"
+          aria-label={`${quantity} copies in collection`}
+        >
+          ×{quantity}
+        </span>
+      )}
       <img src={card.images?.small} alt={card.name} />
       <div className="pokemon-card__identity">
         <h2 className="pokemon-card__name" title={card.name}>{card.name}</h2>

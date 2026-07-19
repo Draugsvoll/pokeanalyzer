@@ -35,7 +35,7 @@ export const WelcomeView: React.FC = () => {
             const Icon = infoCard.icon;
 
             return (
-              <div
+              <article
                 key={infoCard.id}
                 className="info-card"
                 style={getCustomColors(infoCard.color)}
@@ -49,7 +49,7 @@ export const WelcomeView: React.FC = () => {
                     {infoCard.description}
                   </span>
                 </span>
-              </div>
+              </article>
             );
           })}
         </div>

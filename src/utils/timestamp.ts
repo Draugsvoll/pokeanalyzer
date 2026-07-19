@@ -33,7 +33,13 @@ export function getTimestampMillis(value: TimestampLike): number {
 
 export function formatTimestampDate(value: TimestampLike): string {
   const time = getTimestampMillis(value);
-  return time ? new Date(time).toLocaleDateString() : "N/A";
+  return time
+    ? new Date(time).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "N/A";
 }
 
 export function formatTimestampDateTime(value: TimestampLike): string {

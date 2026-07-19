@@ -23,6 +23,11 @@ function getEstimatedCardPrice(
   return card.cardmarket?.prices.trendPrice;
 }
 
+function getPortfolioCardQuantity(card: PokemonCardType) {
+  const quantity = Number(card.quantity ?? 1);
+  return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1;
+}
+
 export default function Portfolio() {
   const { user, loading: authLoading } = useAuth();
   const { portfolio, loadingPortfolio } = usePortfolioCache();
@@ -40,14 +45,23 @@ export default function Portfolio() {
     useState<EstimatedValueSource>("tcgplayer");
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
 
-  const estimatedCollectionValue = portfolio.reduce((total, card) => {
-    const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
-    return marketPrice == null ? total : total + marketPrice * (card.quantity ?? 1);
-  }, 0);
-  const pricedCardsCount = portfolio.filter(
-    (card) => getEstimatedCardPrice(card, estimatedValueSource) != null,
-  ).length;
-  const missingPriceCount = portfolio.length - pricedCardsCount;
+  const { estimatedCollectionValue, missingPriceCount } = useMemo(() => (
+    portfolio.reduce(
+      (summary, card) => {
+        const quantity = getPortfolioCardQuantity(card);
+        const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
+
+        if (marketPrice == null) {
+          summary.missingPriceCount += quantity;
+        } else {
+          summary.estimatedCollectionValue += marketPrice * quantity;
+        }
+
+        return summary;
+      },
+      { estimatedCollectionValue: 0, missingPriceCount: 0 },
+    )
+  ), [estimatedValueSource, portfolio]);
   const missingPriceMessage = missingPriceCount === 0
     ? null
     : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price`;
@@ -189,8 +203,19 @@ export default function Portfolio() {
       ) : (
         <GridView className="ui-fade ui-fade--slow ui-fade--visible">
           {sortedPortfolio.map((card) => (
-            <div key={card.id} className="portfolio__card">
-              <PokemonCard card={card} priceSource={estimatedValueSource} />
+            <div
+              key={card.id}
+              className={`portfolio__card${
+                pendingQuantity?.cardId === card.id || pendingRemoval?.cardId === card.id
+                  ? " portfolio__card--confirming"
+                  : ""
+              }`}
+            >
+              <PokemonCard
+                card={card}
+                priceSource={estimatedValueSource}
+                quantity={card.quantity}
+              />
               <div className="portfolio__card-actions ui-fade">
                 <div className="portfolio__quantity-control">
                   <button
@@ -214,25 +239,22 @@ export default function Portfolio() {
                       ? pendingQuantity.quantity
                       : card.quantity ?? 1}
                   />
-                  <div
-                    className={`portfolio__quantity-confirm ui-fade${pendingQuantity?.cardId === card.id ? " ui-fade--visible" : ""}`}
-                    role="dialog"
-                    aria-label="Confirm quantity change"
-                    aria-hidden={pendingQuantity?.cardId !== card.id}
-                  >
-                    <button
-                      type="button"
-                      disabled={
-                        !pendingQuantity ||
-                        pendingQuantity.cardId !== card.id ||
-                        pendingQuantity.quantity === (card.quantity ?? 1)
-                      }
-                      onClick={confirmQuantityChange}
+                  {pendingQuantity?.cardId === card.id && (
+                    <div
+                      className="portfolio__quantity-confirm"
+                      role="dialog"
+                      aria-label="Confirm quantity change"
                     >
-                      Update
-                    </button>
-                    <button type="button" onClick={() => setPendingQuantity(null)}>Cancel</button>
-                  </div>
+                      <button
+                        type="button"
+                        disabled={pendingQuantity.quantity === (card.quantity ?? 1)}
+                        onClick={confirmQuantityChange}
+                      >
+                        Update
+                      </button>
+                      <button type="button" onClick={() => setPendingQuantity(null)}>Cancel</button>
+                    </div>
+                  )}
                 </div>
                 <div className="portfolio__quantity-control">
                   <button
@@ -259,16 +281,17 @@ export default function Portfolio() {
                   >
                     <X aria-hidden="true" />
                   </button>
-                  <div
-                    className={`portfolio__quantity-confirm ui-fade${pendingRemoval?.cardId === card.id ? " ui-fade--visible" : ""}`}
-                    role="dialog"
-                    aria-label="Confirm card removal"
-                    aria-hidden={pendingRemoval?.cardId !== card.id}
-                  >
-                    <span>Remove {pendingRemoval?.cardName ?? card.name}?</span>
-                    <button type="button" onClick={confirmRemoval}>OK</button>
-                    <button type="button" onClick={() => setPendingRemoval(null)}>Cancel</button>
-                  </div>
+                  {pendingRemoval?.cardId === card.id && (
+                    <div
+                      className="portfolio__quantity-confirm"
+                      role="dialog"
+                      aria-label="Confirm card removal"
+                    >
+                      <span>Delete?</span>
+                      <button type="button" onClick={confirmRemoval}>OK</button>
+                      <button type="button" onClick={() => setPendingRemoval(null)}>Cancel</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
