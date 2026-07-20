@@ -1,49 +1,184 @@
-.worth-grading-view { color: #e4e4e7; margin: 0 auto; max-width: 48rem; width: 100%; }
-.worth-grading-view__state { color: var(--muted); }
-.worth-grading-view__raw { line-height: 1.65; white-space: pre-wrap; }
+/* Typography: global tokens only. Layout + accents local. */
 
-.worth-grading-view__verdict {
+.worth-grading-view {
+  display: grid;
+  gap: 1rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.worth-grading-view__state {
+  color: var(--font-color-muted);
+  padding: 1rem;
+  text-align: center;
+}
+
+.worth-grading-view__raw {
+  color: var(--font-color-secondary);
+  white-space: pre-wrap;
+}
+
+.worth-grading-view__card {
   background: var(--bg2);
-  border: 1px solid rgba(6, 95, 70, 0.5);
+  border: var(--border);
   border-radius: var(--border-radius);
-  margin-bottom: 2rem;
-  padding: 2rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
 
-  h2 { color: #fff; font-size: clamp(2rem, 6vw, 2.7rem); letter-spacing: -0.045em; line-height: 1.05; margin: 1rem 0 0; }
-  p { color: rgba(110, 231, 183, 0.9); line-height: 1.5; margin: 0.8rem 0 0; max-width: 34rem; }
+/* ----- Text panels (verdict / summary): one left indent for all copy ----- */
+.worth-grading-view__panel {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  padding: 1.2rem 1.25rem;
+  text-align: left;
+
+  h2 {
+    border-bottom: 1px solid var(--border-divider);
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: var(--font-leading-snug);
+    margin: 0;
+    padding-bottom: 1rem;
+    width: 100%;
+  }
+
+  p,
+  .worth-grading-view__panel-body {
+    color: var(--font-color-secondary);
+    margin: 0;
+    max-width: 42rem;
+    padding: 0;
+    text-align: left;
+  }
 }
 
 .worth-grading-view__eyebrow {
-  align-items: center; background: var(--bg2); border-radius: var(--border-radius-pill); color: #34d399;
-  display: inline-flex; font-size: 0.7rem; font-weight: 700; gap: 0.45rem; letter-spacing: 0.1em;
-  padding: 0.35rem 0.9rem; text-transform: uppercase;
-  svg { height: 0.85rem; width: 0.85rem; }
+  align-items: center;
+  color: var(--font-color-success);
+  display: inline-flex;
+  font-size: var(--font-size-overline);
+  font-weight: var(--font-weight-bold);
+  gap: 0.4rem;
+  letter-spacing: var(--font-tracking-wider);
+  margin: 0;
+  text-transform: uppercase;
+
+  svg {
+    flex: 0 0 auto;
+    height: 0.85rem;
+    width: 0.85rem;
+  }
+
+  &--action {
+    color: var(--custom-color-yellow);
+  }
 }
 
-.worth-grading-view__summary { margin-bottom: 2rem; }
-.worth-grading-view__section-heading { align-items: center; display: flex; justify-content: space-between; margin: 0 0 0.75rem; padding: 0 0.25rem; }
-.worth-grading-view__section-heading h3 { color: #a1a1aa; font-size: 0.75rem; letter-spacing: 0.12em; margin: 0; text-transform: uppercase; }
-.worth-grading-view__section-heading span { color: #71717a; font-size: 0.72rem; }
+/* ----- Market snapshot ----- */
+.worth-grading-view__summary {
+  display: grid;
+  gap: 0.65rem;
+}
 
-.worth-grading-view__market { background: var(--bg2); border: 1px solid #27272a; border-radius: var(--border-radius); overflow: hidden; padding: 0.25rem; }
+.worth-grading-view__section-heading {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.1rem;
+
+  h3 {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  span {
+    color: var(--font-color-faint);
+    font-size: var(--font-size-caption);
+  }
+}
+
+.worth-grading-view__market {
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
 .worth-grading-view__market-row {
-  align-items: center; display: flex; justify-content: space-between; padding: 1rem 1.25rem;
-  &:not(:last-child) { border-bottom: 1px solid #27272a; }
-  > div { align-items: center; display: flex; gap: 0.75rem; }
-  svg { color: #a1a1aa; height: 1rem; width: 1rem; }
-  > span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.2rem; font-weight: 700; }
-}
-.worth-grading-view__market-row--amber > span { color: #fbbf24; }
-.worth-grading-view__market-row--green { svg, > span { color: #34d399; } }
-.worth-grading-view__market-row--red { svg, > span { color: #f87171; } }
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 1.1rem 0.8rem;
 
-.worth-grading-view__bottom-line,
-.worth-grading-view__action { background: var(--bg2); border: 1px solid #27272a; border-radius: var(--border-radius); display: flex; gap: 1rem; padding: 1.5rem; }
-.worth-grading-view__bottom-line { margin-bottom: 2rem; > svg { color: #34d399; flex: 0 0 auto; } h3 { margin: 0 0 0.5rem; } p { color: #d4d4d8; line-height: 1.65; margin: 0; } }
-.worth-grading-view__action { > svg { color: #facc15; flex: 0 0 auto; } strong { color: #facc15; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; } p { font-size: 1.05rem; font-weight: 600; line-height: 1.45; margin: 0.35rem 0 0; } }
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border-divider);
+  }
+
+  > div {
+    align-items: center;
+    color: var(--font-color-secondary);
+    display: flex;
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
+    gap: 0.55rem;
+    min-width: 0;
+
+    strong {
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+    }
+  }
+
+  svg {
+    color: var(--font-color-muted);
+    flex: 0 0 auto;
+    height: 1rem;
+    width: 1rem;
+  }
+
+  /* Same price treatment as stored-prices / JustTCG */
+  > span {
+    color: var(--font-color-primary);
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-price);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--font-tracking-wide);
+    line-height: 1.1;
+    text-align: right;
+    white-space: nowrap;
+    font-size:var(--font-size-price);
+  }
+}
+
+.worth-grading-view__market-row--amber > span {
+  color: var(--font-color-warning);
+}
+
+.worth-grading-view__market-row--green {
+  svg,
+  > span {
+    color: var(--font-color-success);
+  }
+}
+
+.worth-grading-view__market-row--red {
+  svg,
+  > span {
+    color: var(--font-color-error);
+    font-size:0.9rem;
+  }
+}
 
 @media (max-width: 36rem) {
-  .worth-grading-view__verdict { padding: 1.5rem; }
-  .worth-grading-view__market-row { align-items: flex-start; gap: 0.75rem; }
-  .worth-grading-view__market-row > span { font-size: 1rem; text-align: right; }
+  .worth-grading-view__market-row {
+    align-items: flex-start;
+  }
 }

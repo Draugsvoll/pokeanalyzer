@@ -36,9 +36,9 @@
   }
 
   h1 {
-    font-size: 2.5rem;
-    letter-spacing: 0.02rem;
-    line-height: 1.1;
+    font-size: var(--font-size-display);
+    letter-spacing: var(--font-tracking-tight);
+    line-height: var(--font-leading-tight);
     max-width: 50rem;
     margin: 0 auto 1.5rem;
   }
@@ -46,9 +46,9 @@
   p {
     max-width: 42rem;
     margin: 0 auto;
-    font-size: 1.2rem;
-    color: var(--muted);
-    line-height: 1.6;
+    font-size: var(--font-size-h3);
+    color: var(--font-color-muted);
+    line-height: var(--font-leading-relaxed);
   }
 }
 
@@ -57,8 +57,9 @@
   z-index: 1;
   margin-top: 2rem;
   padding: 1rem 2.5rem;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-normal);
   border-radius: var(--border-radius);
   background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   box-shadow:
@@ -123,7 +124,7 @@
     rgba(255, 255, 255, 0.06) 0%,
     rgba(255, 255, 255, 0.02) 100%
   );
-  color: var(--text);
+  color: var(--font-color-primary);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -182,7 +183,7 @@
     rgba(255, 255, 255, 0.018) 72%
   );
   box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.12);
-  color: var(--text);
+  color: var(--font-color-primary);
   font: inherit;
   text-align: left;
   cursor: default;
@@ -243,32 +244,32 @@
 }
 
 .feature-button__title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-leading-snug);
+  letter-spacing: var(--font-tracking-normal);
 }
 
 .info-card__title {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.01em;
+  font-size: var(--font-size-price);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-leading-snug);
+  letter-spacing: var(--font-tracking-normal);
 }
 
 .feature-button__description {
-  font-size: 0.78rem;
+  font-size: var(--font-size-label);
   line-height: 1.35;
-  color: var(--muted);
+  color: var(--font-color-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .info-card__description {
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-normal);
+  color: var(--font-color-muted);
   white-space: normal;
 }
 
@@ -276,7 +277,7 @@
 
 @media (max-width: 64rem) {
   .hero h1 {
-    font-size: 2.25rem;
+    font-size: var(--font-size-h1);
   }
 
   .info-cards__row {
@@ -307,7 +308,7 @@
   }
 
   .hero h1 {
-    font-size: 1.85rem;
+    font-size: var(--font-size-price-lg);
   }
 
   .feature-button {

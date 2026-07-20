@@ -1,11 +1,9 @@
-@use "../../styles/variables" as vars;
-
 .card-view {
   width: 100%;
   margin: 0 auto;
   padding: 3rem 0rem;
-  color: #fff;
-  font-family: Inter, system-ui, sans-serif;
+  color: var(--font-color-primary);
+  font-family: var(--font-family-base);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -15,7 +13,7 @@
     min-height: 12rem;
     justify-content: center;
     text-align: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--font-color-secondary);
   }
 
   &__panel-wrap {
@@ -69,11 +67,11 @@
 
   &__title {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
     text-transform: capitalize;
-    line-height: 1.25;
-    color: #fff;
+    line-height: var(--font-leading-snug);
+    color: var(--font-color-primary);
     text-align: left;
     min-width: 0;
     overflow-wrap: anywhere;
@@ -89,11 +87,12 @@
 
   &__title-set {
     align-items: center;
-    color: var(--text-grey-tint);
+    color: var(--font-color-secondary);
     display: flex;
-    font-size: 0.95rem;
-    margin: -0.1rem 0 0.4rem 0;
+    font-size: var(--font-size-paragraph);
     text-align: left;
+    padding:0;
+    padding-bottom:0.3rem;
 
     i {
       display: none;
@@ -101,12 +100,12 @@
   }
 
   &__info-grid {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-divider);
     flex: 1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem 2rem;
-    font-size: 0.85rem;
+    font-size: var(--font-size-paragraph-sm);
     padding-top: 1rem;
   }
 
@@ -118,18 +117,19 @@
   }
 
   &__label {
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-color-muted);
   }
 
   &__value {
-    font-size: 0.97rem;
-    font-weight: 600;
+    font-size: var(--font-size-value);
+    font-weight: var(--font-weight-semibold);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
 
     &.card-rarity-badge {
-      font-size: 0.76rem;
+      font-size: var(--font-size-badge);
       padding: 0.42rem 0.75rem;
     }
   }
@@ -158,7 +158,7 @@
     background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--border-radius-pill);
-    color: rgba(255, 255, 255, 0.72);
+    color: var(--font-color-secondary);
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem 0.75rem;
@@ -168,13 +168,13 @@
     text-align: center;
 
     span {
-      font-size: 0.85rem;
+      font-size: var(--font-size-paragraph-sm);
     }
 
     strong {
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 700;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-button);
+      font-weight: var(--font-weight-bold);
     }
   }
 
@@ -200,9 +200,9 @@
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--border-radius);
     box-shadow: 0 0.6rem 1.5rem rgba(0, 0, 0, 0.28);
-    color: var(--text);
-    font-size: 0.7rem;
-    font-weight: 600;
+    color: var(--font-color-primary);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-semibold);
     padding: 0.4rem 0.6rem;
     position: absolute;
     right: 0;
@@ -215,9 +215,9 @@
     background: rgba(255, 255, 255, 0.035);
     border: 1px solid rgba(203, 213, 225, 0.18);
     border-radius: var(--border-radius-pill);
-    color: var(--text-soft);
+    color: var(--font-color-secondary);
     flex: 0 0 auto;
-    font-size: 0.72rem;
+    font-size: var(--font-size-badge);
     line-height: 1;
     padding: 0.48rem 0.7rem;
     white-space: nowrap;
@@ -273,7 +273,7 @@
     border-radius: var(--border-radius);
     padding: 0;
     text-align: left;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--font-color-body);
 
     p {
       margin: 0;
@@ -282,91 +282,13 @@
   }
 
   &__page-error {
-    color: #f87171;
+    color: var(--font-color-error);
+    padding: 1rem;
+    text-align: center;
   }
 
   &__page--prices {
   }
-
-  &__stored-prices {
-    width: 100%;
-  }
-
-  &__stored-price-sources {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  &__stored-price-source { background: var(--bg2); border: var(--border); border-radius: var(--border-radius); display: flex; flex-direction: column; padding: 1.2rem; }
-  &__stored-price-source-header { align-items: center; display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
-  &__stored-price-source-header h3 { color: #fff; font-size: 1.4rem; margin: 0; }
-  &__stored-price-source-header small { color: var(--text); }
-  &__stored-price-source--tcgplayer &__stored-price-source-header h3 { color: var(--custom-color-orange); }
-  &__stored-price-source--cardmarket &__stored-price-source-header h3 { color: var(--custom-color-teal); }
-  &__stored-price-source-details { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.4rem; }
-  &__stored-price-source-icon { align-items: center; background: #f97316; border-radius: var(--border-radius); color: #fff; display: none; flex: 0 0 1.9rem; font-size: 0.7rem; font-weight: 800; height: 1.9rem; justify-content: center; width: 1.9rem; }
-  &__stored-price-source--cardmarket &__stored-price-source-icon { background: #10b981; }
-  &__stored-price-source-details a { align-items: center; border: 1px solid currentColor; border-radius: var(--border-radius-pill); color: var(--custom-color-orange); display: inline-flex; font-size: 0.65rem; font-weight: 700; gap: 0.25rem; line-height: 1; padding: 0.25rem 0.45rem; text-decoration: none; }
-  &__stored-price-source-details a:hover { background: color-mix(in srgb, var(--custom-color-orange) 10%, transparent); }
-  &__stored-price-summary { margin-left: auto; text-align: right; }
-  &__stored-price-summary strong { color: #fff; display: block; font-family: vars.$price-value-font-family; font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: vars.$price-value-letter-spacing; line-height: 1; }
-  &__stored-price-source--cardmarket &__stored-price-source-details a { color: var(--custom-color-teal); }
-  &__stored-price-source--cardmarket &__stored-price-source-details a:hover { background: color-mix(in srgb, var(--custom-color-teal) 10%, transparent); }
-
-  &__stored-price-groups { align-content: start; display: grid; gap: 1.5rem; grid-auto-rows: max-content; }
-  &__stored-price-groups h4 { border-bottom: 1px solid #3f3f46; box-sizing: border-box; color: #a1a1aa; font-size: 0.7rem; height: 1.5rem; letter-spacing: 0.12em; line-height: 1rem; margin: 0 0 0.5rem; padding-bottom: 0.5rem; text-transform: uppercase; }
-
-  &__stored-price-unavailable {
-    align-items: center;
-    border-bottom: 1px solid #3f3f46;
-    border-top: 1px solid #3f3f46;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.35rem;
-    justify-content: center;
-    min-height: 8rem;
-    padding: 1.5rem;
-    text-align: center;
-
-    strong { color: #d4d4d8; font-size: 0.9rem; }
-    span { color: var(--muted); font-size: 0.75rem; }
-  }
-
-  &__stored-price {
-    align-items: center;
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-    padding: 0.25rem 0;
-    font-weight: 500;
-
-    span { color: #d4d4d8; font-size: 0.85rem; }
-    strong { color: #fff; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; font-weight: 400; letter-spacing: vars.$price-value-letter-spacing; }
-    &--highlight {
-      background: var(--bg2);
-      border-radius: var(--border-radius);
-      margin: 0.3rem -0.5rem 0;
-      padding: 0.5rem;
-    }
-    &--highlight span, &--highlight strong { font-weight: 700; }
-  }
-
-  &__stored-price-source--tcgplayer &__stored-price--highlight {
-    background: var(--bg2);
-  }
-  &__stored-price-source--cardmarket &__stored-price--highlight {
-    background: var(--bg2);
-  }
-
-  &__price-legend-source { align-content: start; border-top: 1px solid #3f3f46; display: grid; gap: 0.35rem; margin-top: auto; padding-top: 1.5rem; }
-  &__price-legend-source h3 { color: #fff; font-size: 0.85rem; margin: 0 0 0.15rem; }
-  &__price-legend-header { align-items: center; display: flex; gap: 0.5rem; margin-bottom: 0.15rem; }
-  &__price-legend-header h3 { margin: 0; }
-  &__price-legend-source p { color: #a1a1aa; font-size: 0.75rem; margin: 0; }
-  &__price-legend-source strong { color: #fff; }
-  &__stored-price-updated { color: #71717a; font-size: 0.75rem; margin: 1.5rem 0 0; text-align: center; }
 
   &__just-tcg-output {
     max-width: 72rem;
@@ -427,6 +349,5 @@
       max-width: none;
     }
 
-    &__stored-price-sources { grid-template-columns: 1fr; }
   }
 }

@@ -7,7 +7,7 @@
   position: relative;
   box-sizing: border-box;
   background: var(--bg2);
-  color: var(--text);
+  color: var(--font-color-primary);
   border-radius: var(--border-radius);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: 0.2s ease;
@@ -20,8 +20,8 @@
   h2 {
     min-height: 3rem;
     margin: 0;
-    font-size: 1.1em;
-    line-height: 1.5;
+    font-size: var(--font-size-h4);
+    line-height: var(--font-leading-normal);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;

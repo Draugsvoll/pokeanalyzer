@@ -2,10 +2,10 @@
   padding: 2rem;
   max-width: 72rem;
   margin: 0 auto;
-  color: #f3f4f6;
+  color: var(--font-color-body);
 
   .profile__card {
-    color: var(--text);
+    color: var(--font-color-primary);
     overflow: hidden;
     border-radius: var(--border-radius);
     margin-top: 1rem;
@@ -27,9 +27,9 @@
     display: grid;
     place-items: center;
     background: var(--bg2);
-    color: #fff;
-    font-size: 2rem;
-    font-weight: 800;
+    color: var(--font-color-primary);
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-extrabold);
   }
 
   .profile__identity {
@@ -63,7 +63,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid #f87171;
+      outline: 2px solid var(--font-color-error);
       outline-offset: 2px;
     }
   }
@@ -73,14 +73,14 @@
     min-width: 0;
 
     h2 {
-      color: #fff;
+      color: var(--font-color-primary);
       font-size: clamp(1.35rem, 3vw, 1.8rem);
-      line-height: 1.15;
+      line-height: var(--font-leading-tight);
       margin: 0;
     }
 
     p {
-      color: rgba(255, 255, 255, 0.62);
+      color: var(--font-color-muted);
       margin: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -103,8 +103,8 @@
     border-radius: var(--border-radius-pill);
     color: #6ee7b7;
     display: inline-flex;
-    font-size: 0.66rem;
-    font-weight: 700;
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-bold);
     gap: 0.25rem;
     padding: 0.25rem 0.45rem;
 
@@ -122,22 +122,22 @@
       background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: var(--border-radius-pill);
-      color: rgba(255, 255, 255, 0.48);
-      font-size: 0.68rem;
+      color: var(--font-color-faint);
+      font-size: var(--font-size-badge);
       padding: 0.38rem 0.65rem;
     }
 
     > span strong {
-      color: rgba(255, 255, 255, 0.78);
-      font-weight: 600;
+      color: var(--font-color-secondary);
+      font-weight: var(--font-weight-semibold);
     }
   }
 
   .profile__eyebrow {
-    color: rgba(255, 255, 255, 0.56);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
     text-transform: uppercase;
   }
 
@@ -182,9 +182,9 @@
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--border-radius-pill);
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--font-color-secondary);
     display: inline-flex;
-    font-size: 0.7rem;
+    font-size: var(--font-size-overline);
     gap: 0.4rem;
     padding: 0.3rem 0.55rem;
     text-transform: capitalize;
@@ -210,15 +210,15 @@
     margin-top: 1.55rem;
 
     h3 {
-      color: #fff;
-      font-size: 1.75rem;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-price-lg);
       line-height: 1;
       margin: 0 0 0.45rem;
     }
 
     p {
-      color: rgba(255, 255, 255, 0.58);
-      font-size: 0.8rem;
+      color: var(--font-color-muted);
+      font-size: var(--font-size-label);
       margin: 0;
     }
   }
@@ -249,12 +249,12 @@
   }
 
   .profile__period {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--font-color-faint);
     display: block;
-    font-size: 0.72rem;
+    font-size: var(--font-size-badge);
     margin-top: 1.4rem;
 
-    strong { color: rgba(255, 255, 255, 0.78); }
+    strong { color: var(--font-color-secondary); }
   }
 
   .profile__credits-total {
@@ -264,12 +264,18 @@
     margin-top: 0.8rem;
 
     strong {
-      color: #fff;
-      font-size: 2rem;
+      color: var(--font-color-primary);
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-price-lg);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-bold);
       line-height: 1;
     }
 
-    span { color: rgba(255, 255, 255, 0.45); font-size: 0.85rem; }
+    span {
+      color: var(--font-color-faint);
+      font-size: var(--font-size-paragraph-sm);
+    }
   }
 
   .profile__credits-progress {
@@ -293,13 +299,13 @@
     gap: 0.35rem;
 
     > span {
-      color: rgba(255, 255, 255, 0.54);
+      color: var(--font-color-muted);
       display: flex;
-      font-size: 0.72rem;
+      font-size: var(--font-size-badge);
       justify-content: space-between;
     }
 
-    strong { color: rgba(255, 255, 255, 0.84); }
+    strong { color: var(--font-color-secondary); }
   }
 
   .profile__plan-actions {
@@ -311,8 +317,8 @@
     align-self: start;
 
     h3 {
-      color: #fff;
-      font-size: 1.1rem;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h4);
       margin: 0.4rem 0;
     }
 
@@ -332,16 +338,16 @@
     margin-top: 1.25rem;
 
     span {
-      color: rgba(255, 255, 255, 0.68);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-overline);
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--font-tracking-wide);
       text-transform: uppercase;
     }
 
     small {
-      color: rgba(255, 255, 255, 0.34);
-      font-size: 0.68rem;
+      color: var(--font-color-faint);
+      font-size: var(--font-size-badge);
     }
 
     &--one-time {
@@ -354,9 +360,9 @@
 
   .profile__purchase-divider {
     align-items: center;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--font-color-faint);
     display: flex;
-    font-size: 0.68rem;
+    font-size: var(--font-size-badge);
     gap: 0.75rem;
     margin: 1rem 0;
     text-transform: uppercase;
@@ -386,7 +392,7 @@
       rgba(11, 11, 18, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: var(--border-radius);
-    color: var(--text);
+    color: var(--font-color-primary);
     display: flex;
     flex-direction: column;
     min-height: 13.5rem;
@@ -450,7 +456,7 @@
       .profile__purchase-icon {
         background: rgba(245, 158, 11, 0.1);
         border-color: rgba(245, 158, 11, 0.22);
-        color: #fbbf24;
+        color: var(--font-color-warning);
       }
 
       .profile__purchase-name {
@@ -489,14 +495,14 @@
     }
 
     strong {
-      color: #fff;
-      font-size: 1.05rem;
-      line-height: 1.25;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h4);
+      line-height: var(--font-leading-snug);
     }
 
     small {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 0.7rem;
+      color: var(--font-color-faint);
+      font-size: var(--font-size-overline);
       line-height: 1.35;
       margin-top: 0.25rem;
     }
@@ -518,22 +524,22 @@
   }
 
   .profile__purchase-name {
-    color: rgba(255, 255, 255, 0.62);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wide);
     margin-bottom: 0.35rem;
   }
 
   .profile__purchase-card > strong {
-    color: #fff;
-    font-size: 1.05rem;
-    line-height: 1.25;
+    color: var(--font-color-primary);
+    font-size: var(--font-size-h4);
+    line-height: var(--font-leading-snug);
   }
 
   .profile__purchase-card > small {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.7rem;
+    color: var(--font-color-faint);
+    font-size: var(--font-size-overline);
     line-height: 1.35;
     margin-top: 0.25rem;
   }
@@ -544,8 +550,8 @@
     border-radius: var(--border-radius);
     color: #c7d2fe;
     cursor: pointer;
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-bold);
     margin-top: auto;
     padding: 0.45rem 0.65rem;
     text-align: left;
@@ -554,7 +560,7 @@
 
     &:hover:not(:disabled) {
       background: rgba(129, 140, 248, 0.2);
-      color: #fff;
+      color: var(--font-color-primary);
       transform: translateY(-1px);
     }
 
@@ -579,8 +585,8 @@
     padding-top: 1rem;
 
     > span {
-      color: rgba(255, 255, 255, 0.48);
-      font-size: 0.72rem;
+      color: var(--font-color-faint);
+      font-size: var(--font-size-badge);
       margin-right: auto;
     }
   }
@@ -596,7 +602,7 @@
       border: 1px solid rgba(129, 140, 248, 0.2);
       border-radius: var(--border-radius-pill);
       color: #c7d2fe;
-      font-size: 0.72rem;
+      font-size: var(--font-size-badge);
       padding: 0.35rem 0.65rem;
     }
 
@@ -631,15 +637,15 @@
     width: 100%;
 
     h2 {
-      color: #fff;
-      font-size: 1.3rem;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h3);
       margin: 0.45rem 0 0.7rem;
     }
 
     p {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 0.82rem;
-      line-height: 1.6;
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-label);
+      line-height: var(--font-leading-relaxed);
       margin: 0;
     }
   }
@@ -655,7 +661,7 @@
   .profile__plan-dialog-error {
     color: #fca5a5;
     display: block;
-    font-size: 0.75rem;
+    font-size: var(--font-size-caption);
     margin-top: 0.8rem;
   }
 

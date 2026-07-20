@@ -43,6 +43,7 @@ import {
 } from "../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 import { CardFeatureHeader } from "./components/CardFeatureHeader";
+import { LoadingState } from "../../components/loadingState/LoadingState";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const integerFormatter = new Intl.NumberFormat("en-US");
@@ -83,7 +84,7 @@ const AI_Features: AI_feature[] = [
     title: "Markedspriser",
     description: "TCGPlayer og Cardmarket",
     icon: LineChart,
-    color: "teal",
+    color: "orange",
     creditFeature: "price_analysis",
     headerLabel: "Market prices",
   },
@@ -92,7 +93,7 @@ const AI_Features: AI_feature[] = [
     title: "Samlerverdi",
     description: "AI-rangering for samlere",
     icon: Gem,
-    color: "yellow",
+    color: "blue",
     creditFeature: "collector_analysis",
     headerLabel: "Collector analysis",
   },
@@ -101,7 +102,7 @@ const AI_Features: AI_feature[] = [
     title: "eBay solgte",
     description: "Nylig solgte kort",
     icon: BadgeDollarSign,
-    color: "orange",
+    color: "teal",
     creditFeature: "ebay_sold",
     headerLabel: "eBay sold listings",
   },
@@ -497,7 +498,7 @@ export default function PokemonDetails() {
   if (loading) {
     return (
       <div className="card-view card-view--status">
-        <p>Loading Pokémon...</p>
+        <LoadingState>Loading Pokémon...</LoadingState>
       </div>
     );
   }
@@ -655,6 +656,7 @@ export default function PokemonDetails() {
         className={`card-view__page ui-render-fade${
           activeView === "prices" ? " card-view__page--prices" : ""
         }`}
+        style={activeFeature ? getCustomColors(activeFeature.color) : undefined}
         aria-live="polite"
       >
 
@@ -670,7 +672,6 @@ export default function PokemonDetails() {
 
         {activeView === "empty_view" && (
           <div className="card-view__empty-view" aria-hidden="true">
-            Empty view
           </div>
         )}
         {activeView === "ebay_sold" && (

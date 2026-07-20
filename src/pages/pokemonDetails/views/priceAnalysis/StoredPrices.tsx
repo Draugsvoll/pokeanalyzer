@@ -1,10 +1,14 @@
 import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
+import "./StoredPrices.scss";
 
 type FlatPriceField = { label: string; value: number | string };
 
 function formatLabel(value: string) {
-  return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function flatten(value: unknown, parent = ""): FlatPriceField[] {
@@ -19,7 +23,11 @@ function flatten(value: unknown, parent = ""): FlatPriceField[] {
 
 function formatPrice(value: number | string, currency: "USD" | "EUR") {
   return typeof value === "number"
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency, currencyDisplay: "narrowSymbol" }).format(value)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        currencyDisplay: "narrowSymbol",
+      }).format(value)
     : value;
 }
 
@@ -42,27 +50,161 @@ function getSafeSourceUrl(value: string | undefined) {
 }
 
 function group(fields: FlatPriceField[], splitReverse = false) {
-  const groups = Object.entries(fields.reduce<Record<string, FlatPriceField[]>>((result, field) => {
-    const parts = field.label.split(" · ");
-    const reverse = splitReverse && field.label.startsWith("Reverse Holo ");
-    const name = reverse ? "Reverse Holo" : parts.length > 1 ? parts.shift() ?? "Prices" : "Prices";
-    (result[name] ??= []).push({
-      ...field,
-      label: reverse ? field.label.replace(/^Reverse Holo /, "") : parts.join(" · ") || field.label,
-    });
-    return result;
-  }, {}));
+  const groups = Object.entries(
+    fields.reduce<Record<string, FlatPriceField[]>>((result, field) => {
+      const parts = field.label.split(" · ");
+      const reverse = splitReverse && field.label.startsWith("Reverse Holo ");
+      const name = reverse
+        ? "Reverse Holo"
+        : parts.length > 1
+          ? (parts.shift() ?? "Prices")
+          : "Prices";
+      (result[name] ??= []).push({
+        ...field,
+        label: reverse
+          ? field.label.replace(/^Reverse Holo /, "")
+          : parts.join(" · ") || field.label,
+      });
+      return result;
+    }, {}),
+  );
 
-  return groups.map(([name, values]) => [name, [...values].sort((a, b) => Number(/market|trend/i.test(b.label)) - Number(/market|trend/i.test(a.label)))] as const);
+  return groups.map(
+    ([name, values]) =>
+      [
+        name,
+        [...values].sort(
+          (a, b) =>
+            Number(/market|trend/i.test(b.label)) - Number(/market|trend/i.test(a.label)),
+        ),
+      ] as const,
+  );
+}
+
+type SourceCardProps = {
+  accent: "tcgplayer" | "cardmarket";
+  title: string;
+  region: string;
+  url: string | null;
+  heroPrice: string;
+  heroLabel: string;
+  groups: ReturnType<typeof group>;
+  currency: "USD" | "EUR";
+  highlight: RegExp;
+  hasPrices: boolean;
+  legend: { term: string; text: string }[];
+  cardName: string;
+};
+
+function SourceCard({
+  accent,
+  title,
+  region,
+  url,
+  heroPrice,
+  heroLabel,
+  groups,
+  currency,
+  highlight,
+  hasPrices,
+  legend,
+  cardName,
+}: SourceCardProps) {
+  return (
+    <article className={`stored-prices__source stored-prices__source--${accent}`}>
+      <header className="stored-prices__header">
+        <div className="stored-prices__identity">
+          <h3>{title}</h3>
+          <div className="stored-prices__meta">
+            <span className="stored-prices__region">{region}</span>
+            {url && (
+              <a
+                className="stored-prices__link"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`View ${cardName} on ${title}`}
+              >
+                View source
+                <ExternalLink aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="stored-prices__hero">
+          <strong className="stored-prices__hero-price">{heroPrice}</strong>
+          <span className="stored-prices__hero-label">{heroLabel}</span>
+        </div>
+      </header>
+
+      {hasPrices ? (
+        <div className="stored-prices__groups">
+          {groups.map(([name, fields], groupIndex) => (
+            <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
+              <h4>{name === "Prices" ? null : name}</h4>
+              {fields.map((field) => (
+                <div
+                  className={`stored-prices__price${
+                    highlight.test(field.label) ? " stored-prices__price--highlight" : ""
+                  }`}
+                  key={`${name}-${groupIndex}-${field.label}`}
+                >
+                  <span>{field.label}</span>
+                  <strong>{formatPrice(field.value, currency)}</strong>
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="stored-prices__empty">
+          <strong>Price data unavailable</strong>
+          <span>{title} did not return usable pricing for this card.</span>
+        </div>
+      )}
+
+      <footer className="stored-prices__legend">
+        {legend.map((item) => (
+          <p key={item.term}>
+            <strong>{item.term}:</strong> {item.text}
+          </p>
+        ))}
+      </footer>
+    </article>
+  );
+}
+
+function fieldLeafName(label: string) {
+  return label
+    .split(" · ")
+    .at(-1)
+    ?.replace(/^(?:Reverse Holo|Holo) /, "");
 }
 
 export function StoredPrices({ card }: { card: PokemonCard }) {
-  const tcgFields = flatten(card.tcgplayer?.prices).filter(hasNonZeroPrice);
-  const hidden = new Set(["Low Price", "Low", "German Pro Low", "Suggested Price", "Low Price Ex Plus", "Avg1"]);
-  const cardmarketFields = flatten(card.cardmarket?.prices).filter(hasNonZeroPrice).filter((field) => {
-    const name = field.label.split(" · ").at(-1)?.replace(/^(?:Reverse Holo|Holo) /, "");
-    return !name || !hidden.has(name);
-  });
+  const tcgHidden = new Set(["Direct Low"]);
+  const tcgFields = flatten(card.tcgplayer?.prices)
+    .filter(hasNonZeroPrice)
+    .filter((field) => {
+      const name = fieldLeafName(field.label);
+      return !name || !tcgHidden.has(name);
+    });
+
+  const cardmarketHidden = new Set([
+    "Low Price",
+    "Low",
+    "German Pro Low",
+    "Suggested Price",
+    "Low Price Ex Plus",
+    "Avg1",
+  ]);
+  const cardmarketFields = flatten(card.cardmarket?.prices)
+    .filter(hasNonZeroPrice)
+    .filter((field) => {
+      const name = fieldLeafName(field.label);
+      return !name || !cardmarketHidden.has(name);
+    });
+
   const hasTcgplayerSource = Boolean(card.tcgplayer);
   const hasCardmarketSource = Boolean(card.cardmarket);
   if (!hasTcgplayerSource && !hasCardmarketSource) return null;
@@ -73,62 +215,59 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
   const cardmarketTrend = cardmarketFields.find((field) => /trend price$/i.test(field.label));
   const tcgplayerUrl = getSafeSourceUrl(card.tcgplayer?.url);
   const cardmarketUrl = getSafeSourceUrl(card.cardmarket?.url);
-
-  const sourceDetails = (market: string, url: string | null, source: string) => (
-    <div className="card-view__stored-price-source-details">
-      <small>{market}</small>
-      {url && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`View ${card.name} on ${source}`}
-        >
-          View source
-          <ExternalLink size={12} aria-hidden="true" />
-        </a>
-      )}
-    </div>
-  );
-
-  const renderGroups = (groups: ReturnType<typeof group>, currency: "USD" | "EUR", highlight: RegExp) => (
-    <div className="card-view__stored-price-groups">
-      {groups.map(([name, fields]) => (
-        <section key={name}>
-          <h4>{name === "Prices" ? null : name}</h4>
-          {fields.map((field) => (
-            <div className={`card-view__stored-price${highlight.test(field.label) ? " card-view__stored-price--highlight" : ""}`} key={`${name}-${field.label}`}>
-              <span>{field.label}</span><strong>{formatPrice(field.value, currency)}</strong>
-            </div>
-          ))}
-        </section>
-      ))}
-    </div>
-  );
-
-  const unavailablePrices = (source: string) => (
-    <div className="card-view__stored-price-unavailable">
-      <strong>Price data unavailable</strong>
-      <span>{source} did not return usable pricing for this card.</span>
-    </div>
-  );
+  const updatedAt = card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt;
 
   return (
-    <div className="card-view__stored-prices">
-      <div className="card-view__stored-price-sources">
-        {hasTcgplayerSource && <section className="card-view__stored-price-source card-view__stored-price-source--tcgplayer">
-          <div className="card-view__stored-price-source-header"><span className="card-view__stored-price-source-icon" aria-hidden="true">T</span><div><h3>TCGPlayer</h3>{sourceDetails("US Market", tcgplayerUrl, "TCGPlayer")}</div><div className="card-view__stored-price-summary"><strong>{tcgMarket ? formatPrice(tcgMarket.value, "USD") : "—"}</strong></div></div>
-          {tcgFields.length > 0 ? renderGroups(tcgGroups, "USD", /market/i) : unavailablePrices("TCGPlayer")}
-          <aside className="card-view__price-legend-source card-view__price-legend-source--tcgplayer"><div className="card-view__price-legend-header"></div><p><strong>Market Price:</strong> Average based on recent sales</p><p><strong>Low/Mid/High:</strong> Current listing range</p></aside>
-        </section>}
-        {hasCardmarketSource && <section className="card-view__stored-price-source card-view__stored-price-source--cardmarket">
-          <div className="card-view__stored-price-source-header"><span className="card-view__stored-price-source-icon" aria-hidden="true">C</span><div><h3>Cardmarket</h3>{sourceDetails("EU Market", cardmarketUrl, "Cardmarket")}</div><div className="card-view__stored-price-summary"><strong>{cardmarketTrend ? formatPrice(cardmarketTrend.value, "EUR") : "—"}</strong></div></div>
-          {cardmarketFields.length > 0 ? renderGroups(cardmarketGroups, "EUR", /trend/i) : unavailablePrices("Cardmarket")}
-          <aside className="card-view__price-legend-source card-view__price-legend-source--cardmarket"><div className="card-view__price-legend-header"></div><p><strong>Trend Price:</strong> Algorithmic market value</p><p><strong>Average Sell Price:</strong> Low volume cards can have drastic price fluctuations.</p></aside>
-        </section>}
+    <div className="stored-prices">
+      <div className="stored-prices__grid">
+        {hasTcgplayerSource && (
+          <SourceCard
+          accent="tcgplayer"
+          title="TCGPlayer"
+          region="US Market"
+          url={tcgplayerUrl}
+          heroPrice={tcgMarket ? formatPrice(tcgMarket.value, "USD") : "—"}
+          heroLabel="Market Price"
+          groups={tcgGroups}
+            currency="USD"
+            highlight={/market/i}
+            hasPrices={tcgFields.length > 0}
+            cardName={card.name}
+            legend={[
+              { term: "Market Price", text: "Average based on recent sales" },
+              { term: "Low/Mid/High", text: "Current listing range" },
+            ]}
+            />
+          )}
+          {hasCardmarketSource && (
+            <SourceCard
+              accent="cardmarket"
+              title="Cardmarket"
+              region="EU Market"
+              url={cardmarketUrl}
+              heroPrice={
+                cardmarketTrend ? formatPrice(cardmarketTrend.value, "EUR") : "—"
+              }
+              heroLabel="Trend Price"
+              groups={cardmarketGroups}
+              currency="EUR"
+              highlight={/trend/i}
+              hasPrices={cardmarketFields.length > 0}
+              cardName={card.name}
+              legend={[
+                { term: "Trend Price", text: "Algorithmic market value." },
+                {
+                  term: "Average Sell Price",
+                  text: "Low volume cards can have drastic price fluctuations.",
+                },
+              ]}
+            />
+          )}
       </div>
 
-      {(card.tcgplayer?.updatedAt || card.cardmarket?.updatedAt) && <p className="card-view__stored-price-updated">Prices fluctuate quickly • Data updated {card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt}</p>}
+      {updatedAt && (
+        <p className="stored-prices__updated">Data updated {updatedAt}</p>
+      )}
     </div>
   );
 }

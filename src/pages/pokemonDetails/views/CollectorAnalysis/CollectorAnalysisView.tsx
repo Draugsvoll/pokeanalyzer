@@ -2,6 +2,7 @@ import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-r
 import type { CSSProperties } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
@@ -54,7 +55,7 @@ export default function CollectorAnalysis({
 }: CollectorAnalysisProps) {
   const { loading, error, response } = grokRequest;
 
-  if (loading) return <p className="collector-ranking__state">Building collector report...</p>;
+  if (loading) return <LoadingState>Building collector report...</LoadingState>;
   if (error) return <p className="card-view__page-error">{error}</p>;
   if (!response) return null;
 

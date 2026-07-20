@@ -9,7 +9,9 @@ type JustTcgVariant = {
   printing: string;
   price?: number;
   allTimeHigh?: number;
+  allTimeHighDate?: string;
   allTimeLow?: number;
+  allTimeLowDate?: string;
 };
 
 type JustTcgVariantGroup = {
@@ -30,6 +32,31 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function optionalDateString(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // Epoch seconds vs milliseconds
+    const ms = value < 1e12 ? value * 1000 : value;
+    const date = new Date(ms);
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+  return undefined;
+}
+
+/** Subtle stamp: "12 Mar 2024" */
+function formatPriceStamp(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
@@ -64,7 +91,13 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
             : "Unknown printing",
         price: optionalNumber(variant.price),
         allTimeHigh: optionalNumber(variant.maxPriceAllTime),
+        allTimeHighDate: optionalDateString(
+          variant.maxPriceAllTimeDate ?? variant.maxPriceAllTime_date,
+        ),
         allTimeLow: optionalNumber(variant.minPriceAllTime),
+        allTimeLowDate: optionalDateString(
+          variant.minPriceAllTimeDate ?? variant.minPriceAllTime_date,
+        ),
       }));
 
     return Object.entries(
@@ -93,8 +126,58 @@ function formatUsd(value: number | undefined): string {
   }).format(value);
 }
 
+const UPDATED_AT_KEYS = [
+  "updated",
+  "updatedAt",
+  "updated_at",
+  "last_updated",
+  "lastUpdated",
+  "priceUpdatedAt",
+  "price_updated_at",
+] as const;
+
+function readUpdatedAt(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  for (const key of UPDATED_AT_KEYS) {
+    const field = value[key];
+    if (typeof field === "string" && field.trim()) return field.trim();
+  }
+  return null;
+}
+
+function getJustTcgUpdatedAt(response: unknown): string | null {
+  const topLevel = readUpdatedAt(response);
+  if (topLevel) return topLevel;
+
+  if (!isRecord(response) || !Array.isArray(response.data)) return null;
+
+  for (const card of response.data) {
+    const cardUpdated = readUpdatedAt(card);
+    if (cardUpdated) return cardUpdated;
+    if (!isRecord(card) || !Array.isArray(card.variants)) continue;
+    for (const variant of card.variants) {
+      const variantUpdated = readUpdatedAt(variant);
+      if (variantUpdated) return variantUpdated;
+    }
+  }
+
+  return null;
+}
+
+function formatUpdatedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}/${month}/${day}`;
+}
+
 export function JustTcgVariants({ response }: JustTcgVariantsProps) {
   const groups = parseVariantGroups(response);
+  const updatedAt =
+    getJustTcgUpdatedAt(response) ?? new Date().toISOString().slice(0, 10);
 
   if (!groups.length) {
     return <p className="just-tcg-variants__empty">No JustTCG variants were returned.</p>;
@@ -103,7 +186,7 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
   return (
     <div className="just-tcg-variants ui-render-fade">
       <header className="just-tcg-variants__source-header">
-        <h2 className="app-subheader">JustTCG (Aggregator of price data)</h2>
+        <h2 className="app-subheader">Just_TCG (Aggregator of price data)</h2>
       </header>
       {groups.map(({ id, pokemonName, printing, setName, variants }) => {
         const reverse = printing.toLowerCase().includes("reverse");
@@ -148,6 +231,8 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
                     const belowPercent = canCalculateBelowAth
                       ? (belowAmount! / variant.allTimeHigh!) * 100
                       : undefined;
+                    const athDate = formatPriceStamp(variant.allTimeHighDate);
+                    const atlDate = formatPriceStamp(variant.allTimeLowDate);
 
                     return (
                       <tr key={variant.id}>
@@ -160,8 +245,26 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
                             <><span>-{formatUsd(belowAmount)}</span><small>({belowPercent!.toFixed(1)}%)</small></>
                           )}
                         </td>
-                        <td className="just-tcg-variants__high">{formatUsd(variant.allTimeHigh)}</td>
-                        <td className="just-tcg-variants__low">{formatUsd(variant.allTimeLow)}</td>
+                        <td className="just-tcg-variants__high">
+                          <span className="just-tcg-variants__stat">
+                            <span className="just-tcg-variants__stat-value">
+                              {formatUsd(variant.allTimeHigh)}
+                            </span>
+                            {athDate && (
+                              <small className="just-tcg-variants__stat-date">{athDate}</small>
+                            )}
+                          </span>
+                        </td>
+                        <td className="just-tcg-variants__low">
+                          <span className="just-tcg-variants__stat">
+                            <span className="just-tcg-variants__stat-value">
+                              {formatUsd(variant.allTimeLow)}
+                            </span>
+                            {atlDate && (
+                              <small className="just-tcg-variants__stat-date">{atlDate}</small>
+                            )}
+                          </span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -171,6 +274,9 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
           </section>
         );
       })}
+      <p className="just-tcg-variants__updated">
+        Data updated {formatUpdatedAt(updatedAt)}
+      </p>
     </div>
   );
 }

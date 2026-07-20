@@ -1,0 +1,120 @@
+/* ==========================================================================
+   GLOBAL ELEMENT STYLES
+   Default look for tags + shared type utility classes.
+   Depends on variables from _variables.scss (loaded first in index.scss).
+   ========================================================================== */
+
+/* ----- Headings ----- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--font-color-primary);
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-tight);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  letter-spacing: var(--font-tracking-tight);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+}
+
+h5,
+h6 {
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ----- Body / inline ----- */
+p {
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-regular);
+  padding:0.5rem;
+}
+
+span {
+  color: inherit;
+  font-family: inherit;
+  letter-spacing: inherit;
+  font-size: var(--font-size-label);
+}
+
+small {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-normal);
+}
+
+label {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-normal);
+}
+
+strong,
+b {
+  color: var(--font-color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+em,
+i {
+  font-style: italic;
+}
+
+a {
+  color: inherit;
+  letter-spacing: var(--font-tracking-normal);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family-base);
+  letter-spacing: var(--font-tracking-normal);
+}
+
+/* Section labels (e.g. Market Snapshot, Other market sources) */
+.app-subheader {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-overline);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-wider);
+  line-height: var(--font-leading-normal);
+  margin: 0;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+/* Shared interactive card hover (database results, eBay sold, etc.) */
+.card-hover {
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    border: var(--border-hover);
+    box-shadow: var(--hover-shadow);
+  }
+}

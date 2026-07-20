@@ -35,7 +35,7 @@
 }
 
 .error {
-  color: red;
+  color: var(--font-color-error);
   margin-top: 0.7rem;
 }
 
@@ -45,9 +45,9 @@
 
 .login-divider {
   align-items: center;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--font-color-muted);
   display: flex;
-  font-size: 0.8rem;
+  font-size: var(--font-size-label);
   gap: 0.75rem;
   margin-bottom: 1rem;
 

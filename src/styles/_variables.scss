@@ -1,2 +1,108 @@
-$price-value-letter-spacing: 0.02rem;
+/* ==========================================================================
+   GLOBAL CSS VARIABLES
+   Single source of truth for colors, type, chrome, and shared tokens.
+   ========================================================================== */
+
+:root {
+  /* ----- Surfaces / chrome ----- */
+  --bg: #191724;
+  --bg2: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--custom-color-purple) 7%, rgba(255, 255, 255, 0.045)) 0%,
+    rgba(255, 255, 255, 0.018) 72%
+  );
+  --bg3: linear-gradient(
+    135deg,
+    rgba(32, 35, 46, 0.9) 0%,
+    rgba(22, 24, 31, 0.92) 52%,
+    rgba(11, 12, 16, 0.94) 100%
+  );
+
+  --primary-color: #2b3252;
+  --primary-hover: #303757;
+  --custom-color-purple: #a855f7;
+  --custom-color-teal: #14b8a6;
+  --custom-color-yellow: #facc15;
+  --custom-color-orange: #fb923c;
+  --custom-color-pink: #f43f5e;
+  --custom-color-blue: #1b95c9;
+
+  --border: 1px solid #334155;
+  --border-hover: 1px solid #3d4b5f;
+  --border-divider: rgba(255, 255, 255, 0.065);
+  --border-radius: 12px;
+  --border-radius-pill: 999px;
+  --border-radius-round: 50%;
+  --hover-lift: -2px;
+  --hover-shadow: 0 0 14px rgba(168, 85, 247, 0.1);
+
+  /* Shared data-row padding (JustTCG table, grading market rows, etc.) */
+  --padding-row: 0.85rem 0.65rem;
+
+  /* ----- Font families ----- */
+  --font-family-base: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-family-price: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* ----- Font colors ----- */
+  --font-color-primary: #ffffff;
+  --font-color-body: #ececf3;
+  --font-color-secondary: #cbd5e1;
+  --font-color-muted: #94a3b8;
+  --font-color-faint: #71717a;
+  --font-color-error: #f87171;
+  --font-color-success: #34d399;
+  --font-color-warning: #fbbf24;
+
+  /* ----- Font sizes ----- */
+  --font-size-display: 2.5rem;
+  --font-size-h1: 2rem;
+  --font-size-h2: 1.5rem;
+  --font-size-h3: 1.2rem;
+  --font-size-h4: 0.95rem;
+  --font-size-paragraph: 0.95rem;
+  --font-size-paragraph-sm: 0.85rem;
+  --font-size-label: 0.78rem;
+  --font-size-value: 0.95rem;
+  --font-size-caption: 0.75rem;
+  --font-size-badge: 0.68rem;
+  --font-size-overline: 0.7rem;
+  --font-size-nav: 0.95rem;
+  --font-size-button: 0.9rem;
+  --font-size-price: 1rem;
+  --font-size-price-md: 1.4rem;
+  --font-size-price-lg: 1.85rem;
+  --font-size-price-xl: 2.35rem;
+
+  /* ----- Font weights ----- */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ----- Letter spacing ----- */
+  --font-tracking-tight: -0.02em;
+  --font-tracking-normal: 0.01em;
+  --font-tracking-wide: 0.06em;
+  --font-tracking-wider: 0.1em;
+
+  /* ----- Line heights ----- */
+  --font-leading-tight: 1.15;
+  --font-leading-snug: 1.3;
+  --font-leading-normal: 1.5;
+  --font-leading-relaxed: 1.65;
+
+  /* ----- Legacy aliases (prefer --font-* above) ----- */
+  --text: var(--font-color-primary);
+  --text-h: var(--font-color-primary);
+  --text-grey-tint: #eef0f3;
+  --text-soft: var(--font-color-secondary);
+  --muted: var(--font-color-muted);
+  --font-size-title: var(--font-size-h4);
+  --font-size-subtitle: var(--font-size-paragraph-sm);
+}
+
+/* SCSS aliases for @use in component stylesheets if needed */
+$price-value-letter-spacing: 0.06em;
 $price-value-font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

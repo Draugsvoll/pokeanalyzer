@@ -1,5 +1,13 @@
-import { BadgeDollarSign, Bolt, ChartNoAxesCombined, CircleDollarSign, Gavel, Info, ReceiptText } from "lucide-react";
+import {
+  BadgeDollarSign,
+  Bolt,
+  ChartNoAxesCombined,
+  CircleDollarSign,
+  Gavel,
+  ReceiptText,
+} from "lucide-react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./WorthGradingView.scss";
 
 type WorthGradingViewProps = { grokRequest: GrokRequestState };
@@ -30,7 +38,7 @@ function getMarketValue(market: Record<string, string | number>, label: string) 
 export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
 
-  if (loading) return <p className="worth-grading-view__state">Researching grading value...</p>;
+  if (loading) return <LoadingState>Researching grading value...</LoadingState>;
   if (error) return <p className="card-view__page-error">{error}</p>;
   if (!response) return null;
 
@@ -48,35 +56,44 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
   return (
     <section className="worth-grading-view ui-render-fade">
-      <div className="worth-grading-view__verdict">
-        <div className="worth-grading-view__eyebrow"><Gavel aria-hidden="true" /> Final verdict</div>
-        <h2>{data.verdict ?? "Grading verdict unavailable"}</h2>
-        <p>{data.summary}</p>
-      </div>
 
       <div className="worth-grading-view__summary">
         <div className="worth-grading-view__section-heading">
-          <h3>Quick Summary</h3><span>Current market</span>
+          <h3>Market snapshot</h3>
+          <span>Current values</span>
         </div>
-        <div className="worth-grading-view__market">
+        <div className="worth-grading-view__card worth-grading-view__market">
           {marketRows.map(({ label, key, Icon, tone }) => (
-            <div className={`worth-grading-view__market-row worth-grading-view__market-row--${tone}`} key={key}>
-              <div><Icon aria-hidden="true" /><strong>{label}</strong></div>
+            <div
+              className={`worth-grading-view__market-row worth-grading-view__market-row--${tone}`}
+              key={key}
+            >
+              <div>
+                <Icon aria-hidden="true" />
+                <strong>{label}</strong>
+              </div>
               <span>{getMarketValue(market, key)}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="worth-grading-view__bottom-line">
-        <Info aria-hidden="true" />
-        <div><h3>Bottom Line</h3><p>{data.summary}</p></div>
-      </div>
+      <article className="worth-grading-view__card worth-grading-view__panel">
+        <span className="worth-grading-view__eyebrow">
+          <Gavel aria-hidden="true" /> Verdict
+        </span>
+        <h2>{data.verdict ?? "Grading verdict unavailable"}</h2>
+        {data.summary && <p>{data.summary}</p>}
+      </article>
 
-      <div className="worth-grading-view__action">
-        <Bolt aria-hidden="true" />
-        <div><strong>TL;DR</strong><p>{data.action ?? data.verdict}</p></div>
-      </div>
+      <article className="worth-grading-view__card worth-grading-view__panel">
+        <span className="worth-grading-view__eyebrow worth-grading-view__eyebrow--action">
+          <Bolt aria-hidden="true" /> Summary
+        </span>
+        <p className="worth-grading-view__panel-body">
+          {data.action ?? data.verdict}
+        </p>
+      </article>
     </section>
   );
 }

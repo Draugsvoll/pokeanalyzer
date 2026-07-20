@@ -1,5 +1,5 @@
 .portfolio {
-  color: #f3f4f6;
+  color: var(--font-color-body);
   margin: 0 auto;
   max-width: 72rem;
   padding: 2rem;
@@ -19,10 +19,10 @@
   }
 
   &__eyebrow {
-    color: rgba(255, 255, 255, 0.56);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
     text-transform: uppercase;
   }
 
@@ -46,8 +46,8 @@
     padding: 0.75rem 1rem;
 
     span {
-      color: rgba(255, 255, 255, 0.62);
-      font-size: 0.75rem;
+      color: var(--font-color-muted);
+      font-size: var(--font-size-caption);
     }
 
     select {
@@ -57,14 +57,14 @@
         linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: var(--border-radius-pill);
-      color: #fff;
+      color: var(--font-color-primary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.8rem;
+      font-size: var(--font-size-label);
       min-width: 10.75rem;
       padding: 0.45rem 1.7rem 0.45rem 0.75rem;
 
-      option { background-color: #24232d; color: #fff; }
+      option { background-color: #24232d; color: var(--font-color-primary); }
       &:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.5); outline-offset: 2px; }
     }
   }
@@ -82,14 +82,17 @@
 
     span,
     small {
-      color: rgba(255, 255, 255, 0.62);
-      font-size: 0.75rem;
+      color: var(--font-color-muted);
+      font-size: var(--font-size-caption);
     }
 
     strong {
-      color: #fff;
-      font-size: 1.4rem;
-      font-weight: 700;
+      color: var(--font-color-primary);
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-price-md);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--font-tracking-wide);
       line-height: 1.15;
     }
   }
@@ -108,15 +111,15 @@
 
     label {
       align-items: center;
-      color: #fff;
+      color: var(--font-color-primary);
       cursor: pointer;
       display: flex;
-      font-size: 0.75rem;
+      font-size: var(--font-size-caption);
       gap: 0.3rem;
       opacity: 0.58;
       transition: opacity 0.15s ease;
 
-      &:has(input:checked) { font-weight: 700; opacity: 1; }
+      &:has(input:checked) { font-weight: var(--font-weight-bold); opacity: 1; }
     }
 
     input { accent-color: #fff; cursor: pointer; margin: 0; }
@@ -127,7 +130,7 @@
     border: 1px solid rgba(255, 91, 20, 0.45);
     border-radius: var(--border-radius-pill);
     color: #ff651f !important;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     line-height: 1;
     margin: 0;
     padding: 0.35rem 0.7rem;
@@ -142,7 +145,7 @@
     text-align: center;
 
     h2 { margin: 0; }
-    p { color: rgba(255, 255, 255, 0.58); margin-bottom: 0; }
+    p { color: var(--font-color-muted); margin-bottom: 0; }
   }
 
   .grid-view-container {
@@ -190,7 +193,7 @@
     background: rgba(10, 10, 16, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--border-radius-round);
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--font-color-secondary);
     cursor: pointer;
     display: flex;
     height: 2rem;
@@ -205,13 +208,13 @@
 
   &__quantity-button:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    color: var(--font-color-primary);
   }
 
   &__remove-card:hover {
     background: rgba(127, 29, 29, 0.9);
     border-color: rgba(248, 113, 113, 0.7);
-    color: #fff;
+    color: var(--font-color-primary);
   }
 
   &__quantity {
@@ -221,9 +224,9 @@
     border-left: 0;
     border-right: 0;
     box-sizing: border-box;
-    color: var(--text);
-    font-size: 0.8rem;
-    font-weight: 700;
+    color: var(--font-color-primary);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-bold);
     height: 2rem;
     padding: 0;
     text-align: center;
@@ -249,18 +252,22 @@
     white-space: nowrap;
     z-index: 5;
 
-    span { color: var(--text); font-size: 0.75rem; padding: 0 0.25rem; }
+    span {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-caption);
+      padding: 0 0.25rem;
+    }
 
     button {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: var(--border-radius);
-      color: var(--text);
+      color: var(--font-color-primary);
       cursor: pointer;
-      font-size: 0.7rem;
+      font-size: var(--font-size-overline);
       padding: 0.3rem 0.5rem;
 
-      &:first-of-type { background: #087354; border-color: transparent; color: #fff; }
+      &:first-of-type { background: #087354; border-color: transparent; color: var(--font-color-primary); }
       &:hover:not(:disabled) { filter: brightness(1.15); }
       &:disabled { cursor: not-allowed; opacity: 0.4; }
     }

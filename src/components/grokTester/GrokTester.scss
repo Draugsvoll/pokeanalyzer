@@ -6,7 +6,7 @@
   padding: 2rem;
 
   h1 {
-    font-size: 2rem;
+    font-size: var(--font-size-h1);
   }
 }
 
@@ -17,12 +17,12 @@
   background: var(--bg2);
   border: var(--border);
   border-radius: var(--border-radius);
-  color: var(--text);
+  color: var(--font-color-primary);
   font: inherit;
   padding: 1rem;
 
   &:focus {
-    outline: 0.125rem solid var(--muted);
+    outline: 0.125rem solid var(--font-color-muted);
     outline-offset: 0.125rem;
   }
 }
@@ -37,7 +37,7 @@
 }
 
 .grok-tester__error {
-  color: #fca5a5;
+  color: var(--font-color-error);
 }
 
 .grok-tester__response {
@@ -47,11 +47,11 @@
   padding: 1rem;
 
   h2 {
-    font-size: 1.2rem;
+    font-size: var(--font-size-h3);
   }
 
   p {
-    color: var(--text);
+    color: var(--font-color-primary);
     white-space: pre-wrap;
   }
 }

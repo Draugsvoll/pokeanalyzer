@@ -1,10 +1,9 @@
-@use "../../../../../styles/variables" as vars;
-
 .just-tcg-variants {
   display: grid;
-  gap: 2rem;
+  gap: 2.5rem;
   grid-template-columns: 1fr;
   margin: 0 auto;
+  margin-top:1rem;
   max-width: 72rem;
   width: 100%;
 
@@ -12,16 +11,16 @@
     align-items: center;
     display: flex;
     grid-column: 1 / -1;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-bottom: -1rem;
-    margin-top:3rem;
-    margin-left:auto;
-    margin-right:auto;
+    margin-top: 1.5rem;
     padding: 0 0.25rem;
+    text-align: left;
+    width: 100%;
 
     span {
-      color: #71717a;
-      font-size: 0.72rem;
+      color: var(--font-color-faint);
+      font-size: var(--font-size-badge);
     }
   }
 
@@ -43,7 +42,7 @@
 
   &__section > header {
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+    border-bottom: 1px solid var(--border-divider);
     display: flex;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
@@ -63,8 +62,8 @@
     border-radius: var(--border-radius-pill);
     color: var(--variant-accent);
     display: flex;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-semibold);
     gap: 0.5rem;
     padding: 0.3rem 0.9rem;
   }
@@ -77,22 +76,22 @@
     min-width: 0;
 
     i {
-      color: #626575;
+      color: var(--font-color-faint);
       font-style: normal;
     }
   }
 
   &__set-name {
-    color: #a1a1aa;
-    font-size: 0.8rem;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-label);
     overflow-wrap: anywhere;
   }
 
   &__pokemon-name {
-    color: var(--text);
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.2;
+    color: var(--font-color-primary);
+    font-size: var(--font-size-price);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-snug);
     overflow-wrap: anywhere;
   }
 
@@ -101,28 +100,99 @@
     background: rgba(255, 255, 255, 0.035);
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: var(--border-radius-pill);
-    color: #a1a1aa;
-    font-size: 0.68rem;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-badge);
     padding: 0.3rem 0.6rem;
     white-space: nowrap;
   }
   &__table-wrap { padding: 0.25rem; }
   table { border-collapse: collapse; table-layout: fixed; width: 100%; }
-  th, td { overflow-wrap: anywhere; padding: 0.85rem 0.65rem; text-align: right; white-space: normal; }
-  th { color: #a1a1aa; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.02em; }
+  th, td { overflow-wrap: anywhere; padding: var(--padding-row); text-align: right; white-space: normal; }
+  th {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-normal);
+  }
   th:first-child, td:first-child { text-align: left; }
-  tbody td:first-child { font-weight: 500; }
-  td { color: #f4f4f5; font-size: 0.875rem; }
-  tbody tr + tr { border-top: 1px solid rgba(63, 63, 70, 0.5); }
+  tbody td:first-child { font-weight: var(--font-weight-medium); }
+  td {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph-sm);
+  }
+  tbody tr + tr { border-top: 1px solid var(--border-divider); }
   tbody tr:hover td { background: rgba(63, 66, 71, 0.22); }
-  &__current { color: #fff !important; font-family: vars.$price-value-font-family; font-size: 1rem !important; font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: vars.$price-value-letter-spacing; }
-  &__below { color: #fbbf24 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; }
+  /* Between cell type (paragraph-sm) and full price size */
+  &__current {
+    color: var(--font-color-primary) !important;
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-paragraph) !important;
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.03rem;
+  }
+  &__below {
+    color: var(--font-color-warning) !important;
+    font-family: var(--font-family-price);
+    font-variant-numeric: tabular-nums;
+  }
   &__below span, &__below small { display: block; }
-  &__below span { letter-spacing: vars.$price-value-letter-spacing; }
-  &__below small { color: rgba(251, 191, 36, 0.7); font-size: 0.7rem; }
-  &__high { color: #34d399 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
-  &__low { color: #f87171 !important; font-family: vars.$price-value-font-family; font-variant-numeric: tabular-nums; letter-spacing: vars.$price-value-letter-spacing; }
-  &__empty { color: #a1a1aa; }
+  &__below span {
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.03rem;
+  }
+  &__below small {
+    color: color-mix(in srgb, var(--font-color-warning) 70%, transparent);
+    font-size: var(--font-size-badge);
+  }
+  &__high {
+    color: var(--font-color-success) !important;
+    font-family: var(--font-family-price);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03rem;
+  }
+  &__low {
+    color: var(--font-color-error) !important;
+    font-family: var(--font-family-price);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03rem;
+  }
+
+  /* Price + optional date stamp (ATH / ATL) */
+  &__stat {
+    align-items: flex-end;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  &__stat-value {
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.03rem;
+    line-height: 1.1;
+  }
+
+  &__stat-date {
+    color: var(--font-color-faint);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-badge);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-regular);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: 1;
+  }
+
+  &__empty { color: var(--font-color-muted); }
+
+  &__updated {
+    color: var(--font-color-faint);
+    font-size: var(--font-size-caption);
+    grid-column: 1 / -1;
+    margin: 0.25rem 0 0;
+    text-align: center;
+  }
 }
 
 @media (max-width: 40rem) {

@@ -20,6 +20,7 @@ import {
   useAbortableRequest,
 } from "../../../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
+import { LoadingState } from "../../../../components/loadingState/LoadingState";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -176,12 +177,16 @@ export default function EbaySoldView({
     loadSoldListings();
   }, [card.id, isCurrentRequest, onSubscriptionChange, startRequest]);
 
-  if (loading) return <p>Loading eBay sold listings...</p>;
+  if (loading) {
+    return <LoadingState>Loading eBay sold listings...</LoadingState>;
+  }
   if (error) return <p className="card-view__page-error">{error}</p>;
 
   const results = getVisibleEbayCompResults(response);
 
-  if (!results.length) return <p>No eBay sold listings found.</p>;
+  if (!results.length) {
+    return <p className="ebay-sold-view__state">No eBay sold listings found.</p>;
+  }
 
   const sortedResults = sortOrder === "default"
     ? results
@@ -240,7 +245,10 @@ export default function EbaySoldView({
           const hasListingUrl = Boolean(url && /^https?:\/\//i.test(url));
 
           return (
-            <article key={url ?? `${title}-${index}`} className="ebay-sold-view__result">
+            <article
+              key={url ?? `${title}-${index}`}
+              className="ebay-sold-view__result card-hover"
+            >
               <div className="ebay-sold-view__visual">
                 <div className="ebay-sold-view__media">
                   {result.thumbnailUrl ? (

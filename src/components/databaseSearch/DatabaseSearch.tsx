@@ -165,7 +165,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           {results.map((card) => (
             <article
               key={card.id}
-              className="database-card"
+              className="database-card card-hover"
               role="button"
               tabIndex={0}
               onClick={() => handleClick(card)}

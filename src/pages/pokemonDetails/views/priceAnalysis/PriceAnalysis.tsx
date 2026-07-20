@@ -4,6 +4,7 @@ import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
 import { StoredPrices } from "./StoredPrices";
+import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
@@ -71,7 +72,7 @@ function PriceField({ label, value }: { label: string; value: unknown }) {
 function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokRequest">) {
   const { loading, error, response } = grokRequest;
 
-  if (loading) return <p>Asking Grok...</p>;
+  if (loading) return <LoadingState>Asking Grok...</LoadingState>;
   if (error) return <p className="card-view__page-error">{error}</p>;
   if (!response) return null;
 
@@ -88,7 +89,7 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
     <section className="grok-price-analysis ui-render-fade">
       {marketData.length > 0 && (
         <div>
-          <h2 className="grok-price-analysis__section-title app-subheader">Other market sources</h2>
+          <h2 className="app-subheader">Other market sources</h2>
           <div className="grok-price-analysis__markets">
           {marketData.map((market, index) => {
             const source = text(market.source);
@@ -190,7 +191,9 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
 function JustTcgPriceAnalysis({
   justTcgRequest,
 }: Pick<PriceAnalysisProps, "justTcgRequest">) {
-  if (justTcgRequest.loading) return <p>Fetching JustTCG prices...</p>;
+  if (justTcgRequest.loading) {
+    return <LoadingState>Fetching JustTCG prices...</LoadingState>;
+  }
 
   return (
     <>

@@ -14,12 +14,12 @@
   }
 
   h2 {
-    font-size: 2.5rem;
-    letter-spacing: 0.03rem;
+    font-size: 2rem;
+    letter-spacing: var(--font-tracking-tight);
   }
 
   > p {
-    color: var(--muted);
+    color: var(--font-color-muted);
     margin-bottom: 2rem;
   }
 }
@@ -29,13 +29,13 @@
   gap: 0.5rem;
   padding: var(--padding) 1.5rem;
   border-radius: var(--border-radius);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--font-size-button);
+  font-weight: var(--font-weight-semibold);
   transition: all 0.2s ease;
   cursor: pointer;
   background: transparent;
   border: var(--border);
-  color: white;
+  color: var(--font-color-primary);
 
   &:hover {
     background: var(--bg2);
@@ -59,7 +59,7 @@
   border-radius: var(--border-radius);
   padding: 0.9rem;
   text-align: left;
-  color: var(--muted);
+  color: var(--font-color-muted);
   transition:
     border-color 0.16s ease,
     box-shadow 0.16s ease,
@@ -80,22 +80,13 @@
 .database-card {
   background: var(--bg2);
   border-radius: var(--border-radius);
-  border:var(--border);
-  cursor: pointer;
+  border: var(--border);
   display: grid;
   grid-template-columns: 8.9rem minmax(0, 1fr);
   overflow: hidden;
   padding: 1.0rem;
   position: relative;
   text-align: left;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    border: var(--border-hover);
-    box-shadow: var(--hover-shadow);
-  }
 
   &:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--custom-color-purple) 15%, transparent);
@@ -132,15 +123,15 @@
     > div { min-width: 0; }
 
     h3 {
-      color: var(--text);
-      font-size: var(--font-size-title);
-      line-height: 1.2;
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h4);
+      line-height: var(--font-leading-snug);
       margin-top: 0.25rem;
     }
 
     p {
-      color: var(--text-soft);
-      font-size: var(--font-size-subtitle);
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-paragraph-sm);
       margin-top: 0.3rem;
     }
   }
@@ -155,8 +146,19 @@
     padding: 1rem 0 0;
 
     div { min-width: 0; }
-    dt { color: var(--muted); font-size: var(--font-size-label); margin-bottom: 0rem; }
-    dd { color: rgba(255, 255, 255, 0.86); font-size: var(--font-size-value); font-weight: 500; margin: 0; overflow-wrap: anywhere; }
+    dt {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-label);
+      font-weight: var(--font-weight-medium);
+      margin-bottom: 0rem;
+    }
+    dd {
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-value);
+      font-weight: var(--font-weight-medium);
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
   }
 
 }
