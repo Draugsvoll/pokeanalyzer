@@ -38,7 +38,7 @@
     align-items: flex-start;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.9rem;
+    border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -56,7 +56,7 @@
         linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.72) 50%) right 0.85rem center / 0.35rem 0.35rem no-repeat,
         linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 999px;
+      border-radius: var(--border-radius-pill);
       color: #fff;
       cursor: pointer;
       font: inherit;
@@ -72,7 +72,7 @@
   &__estimated-value {
     background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.9rem;
+    border-radius: var(--border-radius);
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
@@ -125,7 +125,7 @@
   &__missing-price-data {
     background: #17161d;
     border: 1px solid rgba(255, 91, 20, 0.45);
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     color: #ff651f !important;
     font-weight: 500;
     line-height: 1;
@@ -137,7 +137,7 @@
   &__empty {
     background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 1rem;
+    border-radius: var(--border-radius);
     padding: 2rem;
     text-align: center;
 
@@ -189,7 +189,7 @@
     align-items: center;
     background: rgba(10, 10, 16, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
+    border-radius: var(--border-radius-round);
     color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
     display: flex;
@@ -237,7 +237,7 @@
     align-items: center;
     background: var(--bg2);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 0.75rem;
+    border-radius: var(--border-radius);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     display: flex;
     gap: 0.4rem;
@@ -254,7 +254,7 @@
     button {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 0.45rem;
+      border-radius: var(--border-radius);
       color: var(--text);
       cursor: pointer;
       font-size: 0.7rem;

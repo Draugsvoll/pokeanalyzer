@@ -7,7 +7,7 @@
   .profile__card {
     color: var(--text);
     overflow: hidden;
-    border-radius: 1.25rem;
+    border-radius: var(--border-radius);
     margin-top: 1rem;
     border: var(--border);
     box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.22);
@@ -17,7 +17,7 @@
     flex: 0 0 auto;
     width: 4.75rem;
     height: 4.75rem;
-    border-radius: 999px;
+    border-radius: var(--border-radius-round);
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 0 0 0.4rem rgba(255, 255, 255, 0.035);
@@ -100,7 +100,7 @@
     align-items: center;
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(52, 211, 153, 0.18);
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     color: #6ee7b7;
     display: inline-flex;
     font-size: 0.66rem;
@@ -121,7 +121,7 @@
     > span {
       background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
+      border-radius: var(--border-radius-pill);
       color: rgba(255, 255, 255, 0.48);
       font-size: 0.68rem;
       padding: 0.38rem 0.65rem;
@@ -155,7 +155,7 @@
   .profile__credits-card,
   .profile__plan-actions {
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1rem;
+    border-radius: var(--border-radius);
   }
 
   .profile__plan-card,
@@ -181,7 +181,7 @@
     align-items: center;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     color: rgba(255, 255, 255, 0.7);
     display: inline-flex;
     font-size: 0.7rem;
@@ -191,7 +191,7 @@
 
     i {
       background: currentColor;
-      border-radius: 999px;
+      border-radius: var(--border-radius-round);
       height: 0.4rem;
       width: 0.4rem;
     }
@@ -228,7 +228,7 @@
     align-items: center;
     background: rgba(129, 140, 248, 0.13);
     border: 1px solid rgba(129, 140, 248, 0.2);
-    border-radius: 0.75rem;
+    border-radius: var(--border-radius);
     color: #a5b4fc;
     display: inline-flex;
     justify-content: center;
@@ -274,14 +274,14 @@
 
   .profile__credits-progress {
     background: var(--bg2);
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     height: 0.35rem;
     margin: 0.85rem 0;
     overflow: hidden;
 
     span {
       background: linear-gradient(90deg, #6366f1, #a78bfa);
-      border-radius: inherit;
+      border-radius: var(--border-radius-pill);
       display: block;
       height: 100%;
       transition: width 0.25s ease;
@@ -385,7 +385,7 @@
       linear-gradient(145deg, rgba(99, 102, 241, 0.09), transparent 65%),
       rgba(11, 11, 18, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 0.9rem;
+    border-radius: var(--border-radius);
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -506,7 +506,7 @@
     align-items: center;
     background: rgba(129, 140, 248, 0.12);
     border: 1px solid rgba(129, 140, 248, 0.2);
-    border-radius: 0.7rem;
+    border-radius: var(--border-radius);
     color: #a5b4fc;
     display: inline-flex;
     height: 2.25rem;
@@ -541,7 +541,7 @@
   .profile__purchase-cta {
     background: rgba(129, 140, 248, 0.12);
     border: 0;
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     color: #c7d2fe;
     cursor: pointer;
     font-size: 0.72rem;
@@ -594,7 +594,7 @@
     small {
       background: rgba(99, 102, 241, 0.08);
       border: 1px solid rgba(129, 140, 248, 0.2);
-      border-radius: 999px;
+      border-radius: var(--border-radius-pill);
       color: #c7d2fe;
       font-size: 0.72rem;
       padding: 0.35rem 0.65rem;
@@ -624,7 +624,7 @@
       radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.09), transparent 16rem),
       #22212b;
     border: 1px solid rgba(255, 255, 255, 0.13);
-    border-radius: 1rem;
+    border-radius: var(--border-radius);
     box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.45);
     max-width: 30rem;
     padding: 1.4rem;

@@ -17,7 +17,7 @@
 
 .signup-form {
   padding: 1.5rem;
-  border-radius: 14px;
+  border-radius: var(--border-radius);
   width: 20rem;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -27,7 +27,7 @@
     padding: 0.75rem;
     margin-bottom: 0.75rem;
     border: 1px solid #ddd;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     outline: none;
     transition: 0.2s;
 
@@ -41,7 +41,7 @@
     padding: 0.8rem;
     background: var(--primary-color);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     font-weight: bold;
     cursor: pointer;
     transition: 0.2s;
@@ -81,7 +81,7 @@
 .error-message {
   color: #c62828;
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   margin-bottom: 0.75rem;
   font-size: 1rem;
 }
@@ -91,7 +91,7 @@
   background: var(--bg2);
   color: #2e7d32;
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   margin-bottom: 0.75rem;
   font-size: 1rem;
 }

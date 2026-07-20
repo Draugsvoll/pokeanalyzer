@@ -221,6 +221,22 @@ export default function PokemonDetails() {
     });
   }
 
+  function scrollToDatabaseSearch() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const databaseSearch = document.querySelector<HTMLElement>(
+          ".card-view__page .database-search",
+        );
+        if (!databaseSearch) return;
+
+        window.scrollTo({
+          top: window.scrollY + databaseSearch.getBoundingClientRect().top - 200,
+          behavior: "smooth",
+        });
+      });
+    });
+  }
+
   function showPortfolioConfirmation(message: string) {
     window.clearTimeout(portfolioConfirmationTimerRef.current);
     setPortfolioConfirmation(message);
@@ -533,6 +549,13 @@ export default function PokemonDetails() {
                   title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
                 >
                   <Star aria-hidden="true" />
+                  <span>
+                    {updatingPortfolio
+                      ? "Updating..."
+                      : cardIsSaved
+                        ? "In portfolio"
+                        : "Add to portfolio"}
+                  </span>
                 </Button>
                 {portfolioConfirmation && (
                   <span className="card-view__portfolio-confirmation" role="status">
@@ -569,7 +592,7 @@ export default function PokemonDetails() {
                 onClick={() => {
                   abortActiveRequest();
                   setActiveView("search_card");
-                  scrollToFeatureButtons();
+                  scrollToDatabaseSearch();
                 }}
                 aria-pressed={activeView === "search_card"}
               >

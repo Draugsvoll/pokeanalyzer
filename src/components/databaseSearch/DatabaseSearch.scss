@@ -1,5 +1,4 @@
 .database-preview {
---border-radius:18px;
 --padding:0.9rem;
 
   width: 100%;
@@ -81,17 +80,21 @@
 .database-card {
   background: var(--bg2);
   border-radius: var(--border-radius);
+  border:var(--border);
   cursor: pointer;
   display: grid;
-  grid-template-columns: 9.3rem minmax(0, 1fr);
+  grid-template-columns: 8.9rem minmax(0, 1fr);
   overflow: hidden;
   padding: 1.0rem;
   position: relative;
   text-align: left;
-  transition: transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
-    transform: translateY(var(--hover-lift));
+    border: var(--border-hover);
+    box-shadow: var(--hover-shadow);
   }
 
   &:focus-visible {
@@ -102,7 +105,7 @@
   &__image {
     align-self: start;
     background: rgba(0, 0, 0, 0.18);
-    border-radius: 0.85rem;
+    border-radius: var(--border-radius);
     overflow: hidden;
     width:7rem;
 
@@ -153,7 +156,7 @@
 
     div { min-width: 0; }
     dt { color: var(--muted); font-size: var(--font-size-label); margin-bottom: 0rem; }
-    dd { color: rgba(255, 255, 255, 0.86); font-size: var(--font-size-value); font-weight: 650; margin: 0; overflow-wrap: anywhere; }
+    dd { color: rgba(255, 255, 255, 0.86); font-size: var(--font-size-value); font-weight: 500; margin: 0; overflow-wrap: anywhere; }
   }
 
 }

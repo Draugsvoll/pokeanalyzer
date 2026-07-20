@@ -27,7 +27,7 @@
   align-items: center;
   background: rgba(17, 17, 26, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
+  border-radius: var(--border-radius-pill);
   box-shadow: 0 0.3rem 0.9rem rgba(0, 0, 0, 0.28);
   color: rgba(255, 255, 255, 0.92);
   display: inline-flex;
@@ -115,7 +115,7 @@
   z-index: 10;
   background: rgba(0, 0, 0, 0.6);
   border: none;
-  border-radius: 999rem;
+  border-radius: var(--border-radius-round);
   padding: 0.5rem;
   cursor: pointer;
   display: flex;

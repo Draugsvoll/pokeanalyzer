@@ -33,7 +33,15 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     navigateToPokemonCard(navigate, card);
 
     if (location.pathname.startsWith("/card")) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      requestAnimationFrame(() => {
+        const cardView = document.querySelector<HTMLElement>(".card-view");
+        if (!cardView) return;
+
+        window.scrollTo({
+          behavior: "smooth",
+          top: window.scrollY + cardView.getBoundingClientRect().top - 50,
+        });
+      });
     }
   };
 

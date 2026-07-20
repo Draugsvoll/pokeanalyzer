@@ -150,7 +150,12 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
       uid,
       "ebay_sold",
       async () => {
-        const response = await fetchEbayComps(context.cardNameAndSet, signal);
+        const ebayQuery = [
+          context.cardNameAndSet,
+          context.rarity,
+          context.cardNumber,
+        ].filter(Boolean).join(" ");
+        const response = await fetchEbayComps(ebayQuery, signal);
         const storedResponse = await saveCardGrokResponse(
           cardId,
           feature.storageKey,

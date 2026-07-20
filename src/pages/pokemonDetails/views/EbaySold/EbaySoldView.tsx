@@ -28,6 +28,13 @@ type EbaySoldViewProps = {
   onSubscriptionChange?: (subscription: UserSubscription) => void;
 };
 
+type EbaySortOrder =
+  | "default"
+  | "price-asc"
+  | "price-desc"
+  | "date-desc"
+  | "date-asc";
+
 const FEATURED_FIELDS = new Set([
   "url",
   "title",
@@ -80,6 +87,30 @@ function formatFieldLabel(value: string) {
   return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 }
 
+function getNumericSoldPrice(result: EbayCompResult) {
+  const price = getField(result, "soldPrice");
+  if (!price) return null;
+
+  const numericPrice = Number(price.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(numericPrice) ? numericPrice : null;
+}
+
+function getEndedAtTimestamp(result: EbayCompResult) {
+  const endedAt = getField(result, "endedAt");
+  if (!endedAt) return null;
+
+  const timestamp = Date.parse(endedAt);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function formatHeadline(value: string) {
+  return value
+    .toLocaleLowerCase("en-US")
+    .split(/([\s-]+)/)
+    .map((word) => word.replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase("en-US")))
+    .join("");
+}
+
 export default function EbaySoldView({
   card,
   onSubscriptionChange,
@@ -87,6 +118,7 @@ export default function EbaySoldView({
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sortOrder, setSortOrder] = useState<EbaySortOrder>("default");
   const { isCurrentRequest, startRequest } = useAbortableRequest();
   useEffect(() => {
     async function loadSoldListings() {
@@ -96,6 +128,7 @@ export default function EbaySoldView({
       setLoading(true);
       setError("");
       setResponse(null);
+      setSortOrder("default");
 
       try {
         const res = await authenticatedFetch(`${API_URL}/ebay?${params.toString()}`, {
@@ -150,10 +183,44 @@ export default function EbaySoldView({
 
   if (!results.length) return <p>No eBay sold listings found.</p>;
 
+  const sortedResults = sortOrder === "default"
+    ? results
+    : [...results].sort((firstResult, secondResult) => {
+        const sortingByDate = sortOrder === "date-desc" || sortOrder === "date-asc";
+        const firstValue = sortingByDate
+          ? getEndedAtTimestamp(firstResult)
+          : getNumericSoldPrice(firstResult);
+        const secondValue = sortingByDate
+          ? getEndedAtTimestamp(secondResult)
+          : getNumericSoldPrice(secondResult);
+
+        if (firstValue === null && secondValue === null) return 0;
+        if (firstValue === null) return 1;
+        if (secondValue === null) return -1;
+
+        return sortOrder === "price-asc" || sortOrder === "date-asc"
+          ? firstValue - secondValue
+          : secondValue - firstValue;
+      });
+
   return (
     <div className="ebay-sold-view ui-render-fade">
-      <div className="ebay-sold-view__results">
-        {results.map((result, index) => {
+      <div className="ebay-sold-view__sorting">
+        <label htmlFor="ebay-sold-sort">Sort by</label>
+        <select
+          id="ebay-sold-sort"
+          value={sortOrder}
+          onChange={(event) => setSortOrder(event.target.value as EbaySortOrder)}
+        >
+          <option value="default">Default</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="date-desc">Newest</option>
+          <option value="date-asc">Oldest</option>
+        </select>
+      </div>
+      <div className="ebay-sold-view__results ui-render-fade" key={sortOrder}>
+        {sortedResults.map((result, index) => {
           const title = getField(result, "title") ?? "eBay sold listing";
           const url = getField(result, "url");
           const condition = getField(result, "condition");
@@ -182,22 +249,12 @@ export default function EbaySoldView({
                     <Gavel aria-hidden="true" />
                   )}
                 </div>
-                {hasListingUrl && (
-                  <a
-                    className="ebay-sold-view__sale-link"
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View sale <ExternalLink aria-hidden="true" />
-                  </a>
-                )}
               </div>
 
               <div className="ebay-sold-view__content">
                 <header className="ebay-sold-view__header">
                   <div>
-                    <h3>{title}</h3>
+                    <h3>{formatHeadline(title)}</h3>
                     <div className="ebay-sold-view__badges">
                       {condition && (
                         <span className="ebay-sold-view__condition">{condition}</span>
@@ -209,16 +266,29 @@ export default function EbaySoldView({
                     </div>
                   </div>
                   <div className="ebay-sold-view__price">
-                    <small>Sold for</small>
-                    <strong>{soldPrice}</strong>
+                    <div className="ebay-sold-view__price-row">
+                      <div className="ebay-sold-view__sold-badge">
+                        <small>Sold</small>
+                      </div>
+                      <strong>{soldPrice}</strong>
+                    </div>
+                    {hasListingUrl && (
+                      <a
+                        className="ebay-sold-view__sale-link"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View sale <ExternalLink aria-hidden="true" />
+                      </a>
+                    )}
                   </div>
                 </header>
 
                 <div className="ebay-sold-view__details">
                   {seller && (
                     <div>
-                      <ShieldCheck aria-hidden="true" />
-                      <span>Seller<strong>{seller}</strong></span>
+                      <span>Seller<strong><ShieldCheck aria-hidden="true" />{seller}</strong></span>
                     </div>
                   )}
                   {sellerPositive && (
@@ -233,8 +303,7 @@ export default function EbaySoldView({
                   )}
                   {location && (
                     <div>
-                      <MapPin aria-hidden="true" />
-                      <span>Item location<strong>{location}</strong></span>
+                      <span>Item location<strong><MapPin aria-hidden="true" />{location}</strong></span>
                     </div>
                   )}
                 </div>

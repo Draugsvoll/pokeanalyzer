@@ -2,8 +2,8 @@
   align-items: center;
   background: rgba(250, 204, 21, 0.12);
   border: 1px solid rgba(250, 204, 21, 0.08);
-  border-radius: 999px;
-  color: #facc15;
+  border-radius: var(--border-radius-pill);
+  color: var(--custom-color-yellow);
   display: inline-flex;
   font-size: var(--font-size-badge);
   font-weight: 750;

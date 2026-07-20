@@ -1,20 +1,53 @@
 .ebay-sold-view {
+  &__sorting {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+
+    label {
+      color: var(--muted);
+      font-size: var(--font-size-label);
+    }
+
+    select {
+      background: #24232d;
+      border: var(--border);
+      border-radius: var(--border-radius);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: var(--font-size-value);
+      padding: 0.45rem 0.7rem;
+
+      option {
+        background: #24232d;
+        color: var(--text);
+      }
+    }
+  }
+
   &__results { display: grid; gap: 1.25rem; }
 
   &__result {
     background: var(--bg2);
-    border-radius: 1.25rem;
+    border: var(--border);
+    border-radius: var(--border-radius);
 
     display: grid;
     gap: 1.25rem;
     grid-template-columns: max-content minmax(0, 1fr);
     overflow: hidden;
-    padding: 1.25rem;
+    padding: 1.9rem;
     position: relative;
-    transition: transform 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
 
     &:hover {
-      transform: translateY(var(--hover-lift));
+      border: var(--border-hover);
+      box-shadow: var(--hover-shadow);
     }
 
     &::before {
@@ -38,7 +71,7 @@
   &__media {
     background: rgba(0, 0, 0, 0.18);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.9rem;
+    border-radius: var(--border-radius);
     min-height: 9rem;
     min-width: 7rem;
     overflow: hidden;
@@ -47,8 +80,8 @@
 
     > img {
       display: block;
-      height: 9rem;
-      max-width: 14rem;
+      max-height: 9.5rem;
+      max-width: 8rem;
       object-fit: contain;
       width: auto;
     }
@@ -78,8 +111,7 @@
     h3 {
       color: var(--text);
       font-size: var(--font-size-title);
-      line-height: 1.45;
-      margin: 0.3rem 0 0;
+      font-weight: 500;
     }
   }
 
@@ -93,7 +125,7 @@
       align-items: center;
       background: color-mix(in srgb, var(--custom-color-teal) 7%, transparent);
       border: 1px solid color-mix(in srgb, var(--custom-color-teal) 20%, rgba(255, 255, 255, 0.06));
-      border-radius: 999px;
+      border-radius: var(--border-radius-pill);
       color: color-mix(in srgb, var(--custom-color-teal) 42%, rgba(255, 255, 255, 0.72));
       display: inline-flex;
       font-size: var(--font-size-badge);
@@ -107,51 +139,65 @@
 
   &__sale-link {
     align-items: center;
-    align-self: center;
-    color: color-mix(in srgb, var(--custom-color-purple) 72%, white);
+    color: var(--text-soft);
     cursor: pointer;
     display: inline-flex;
     font-size: var(--font-size-label);
     font-weight: 600;
     gap: 0.4rem;
     text-decoration: none;
-    transition: color 0.16s ease;
     white-space: nowrap;
 
     svg { height: 0.75rem; width: 0.75rem; }
 
     &:hover {
-      color: color-mix(in srgb, var(--custom-color-purple) 88%, white);
       text-decoration: underline;
     }
   }
 
   &__price {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
     flex: 0 0 auto;
+    gap: 0.25rem;
     text-align: right;
+  }
+
+  &__sold-badge {
+    align-items: center;
+    border-radius: var(--border-radius-pill);
+    display: inline-flex;
+    gap: 0.4rem;
+    padding: 0.3rem 0.55rem;
 
     small {
-      color: var(--muted);
-      display: block;
-      font-size: var(--font-size-label);
-      margin-bottom: 0.2rem;
-      text-transform: uppercase;
+      color: color-mix(in srgb, var(--custom-color-orange) 50%, rgba(255, 255, 255, 0.72));
+      font-size: var(--font-size-badge);
+      margin: 0;
     }
 
-    strong {
-      color: var(--custom-color-teal);
-      font-size: 1.55rem;
-      line-height: 1;
-      text-shadow: 0 0 1rem color-mix(in srgb, var(--custom-color-teal) 18%, transparent);
-      white-space: nowrap;
-    }
+  }
+
+  &__price-row > strong {
+    color: var(--custom-color-teal);
+    font-size: 1.55rem;
+    line-height: 1;
+    text-shadow: 0 0 1rem color-mix(in srgb, var(--custom-color-teal) 18%, transparent);
+    white-space: nowrap;
+  }
+
+  &__price-row {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
   }
 
   &__details {
     display: grid;
     // gap: 0.75rem 1rem;
-    grid-template-columns: minmax(10rem, 1.5fr) repeat(3, minmax(0, 1fr));
-    margin-top: 1rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 0.3rem;
     padding: 0.85rem 0;
 
     > div {
@@ -173,9 +219,19 @@
     }
 
     strong {
+      align-items: center;
       color: rgba(255, 255, 255, 0.82);
+      display: flex;
       font-size: var(--font-size-value);
+      gap: 0.2rem;
       overflow-wrap: anywhere;
+
+      svg {
+        color: var(--custom-color-teal);
+        flex: 0 0 auto;
+        height: 0.95rem;
+        width: 0.95rem;
+      }
     }
 
   }
@@ -197,7 +253,7 @@
     &__media > img { height: 7rem; max-width: 10rem; }
     &__header { flex-direction: column; gap: 0.8rem; }
     &__badges { flex-wrap: wrap; }
-    &__price { text-align: left; }
+    &__price { align-items: flex-start; text-align: left; }
     &__details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 

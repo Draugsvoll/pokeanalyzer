@@ -76,6 +76,7 @@ export async function getCardGrokContext(
   const set = isJsonObject(card.set) ? card.set : null;
   const cardName = typeof card.name === "string" ? card.name.trim() : "";
   const setName = typeof set?.name === "string" ? set.name.trim() : "";
+  const rarity = typeof card.rarity === "string" ? card.rarity.trim() : "";
   const rawCardNumber = card.number;
   const cardNumber =
     typeof rawCardNumber === "string"
@@ -88,6 +89,7 @@ export async function getCardGrokContext(
     cardName,
     cardNameAndSet: [cardName, setName].filter(Boolean).join(" "),
     cardNumber,
+    rarity,
     setName,
     storedResponse: getFreshFeatureResponse(card, storageKey, reuseDays),
   };

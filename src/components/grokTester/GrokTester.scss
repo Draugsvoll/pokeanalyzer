@@ -16,7 +16,7 @@
   resize: vertical;
   background: var(--bg2);
   border: var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--border-radius);
   color: var(--text);
   font: inherit;
   padding: 1rem;
@@ -43,7 +43,7 @@
 .grok-tester__response {
   background: var(--bg2);
   border: var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--border-radius);
   padding: 1rem;
 
   h2 {
