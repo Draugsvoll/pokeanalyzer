@@ -77,16 +77,18 @@
 }
 
 /* ----- Market snapshot ----- */
-.worth-grading-view__summary {
+.worth-grading-view__market {
   display: grid;
-  gap: 0.65rem;
+  overflow: hidden;
 }
 
-.worth-grading-view__section-heading {
+.worth-grading-view__market-header {
   align-items: baseline;
+  border-bottom: 1px solid var(--border-divider);
   display: flex;
+  gap: 0.75rem;
   justify-content: space-between;
-  padding: 0 0.1rem;
+  padding: 0.95rem 1.15rem 0.85rem;
 
   h3 {
     color: var(--font-color-muted);
@@ -103,9 +105,9 @@
   }
 }
 
-.worth-grading-view__market {
-  overflow: hidden;
-  padding: 0.25rem;
+.worth-grading-view__market-body {
+  display: grid;
+  padding: 0.15rem 0.25rem 0.25rem;
 }
 
 .worth-grading-view__market-row {
@@ -114,7 +116,7 @@
   gap: 1rem;
   justify-content: space-between;
   min-width: 0;
-  padding: 1.1rem 0.8rem;
+  padding: 1.1rem 0.9rem;
 
   &:not(:last-child) {
     border-bottom: 1px solid var(--border-divider);
@@ -143,19 +145,22 @@
     width: 1rem;
   }
 
-  /* Same price treatment as stored-prices / JustTCG */
+  /* Match JustTCG ATH/ATL price value type */
   > span {
     color: var(--font-color-primary);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-price);
+    font-size: var(--font-size-paragraph);
     font-variant-numeric: tabular-nums;
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--font-tracking-wide);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.03rem;
     line-height: 1.1;
     text-align: right;
     white-space: nowrap;
-    font-size:var(--font-size-price);
   }
+}
+
+.worth-grading-view__market-row--default > span {
+  color: var(--font-color-primary);
 }
 
 .worth-grading-view__market-row--amber > span {
@@ -163,17 +168,22 @@
 }
 
 .worth-grading-view__market-row--green {
-  svg,
+  svg {
+    color: var(--font-color-success);
+  }
+
   > span {
     color: var(--font-color-success);
   }
 }
 
 .worth-grading-view__market-row--red {
-  svg,
+  svg {
+    color: var(--font-color-error);
+  }
+
   > span {
     color: var(--font-color-error);
-    font-size:0.9rem;
   }
 }
 

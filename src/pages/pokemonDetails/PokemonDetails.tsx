@@ -411,6 +411,14 @@ export default function PokemonDetails() {
 
   useEffect(() => {
     abortActiveRequest();
+    // New card (e.g. from in-page database search): leave feature panels
+    setActiveView("empty_view");
+    setGrokResponse("");
+    setGrokError("");
+    setGrokLoading(false);
+    setJustTcgResult(null);
+    setJustTcgError("");
+    setJustTcgLoading(false);
   }, [abortActiveRequest, id]);
 
   useEffect(() => () => {
@@ -619,12 +627,18 @@ export default function PokemonDetails() {
       <div ref={featureButtonsRef} className="card-view__actions feature-buttons__row">
         {AI_Features.map((aiFeature) => {
           const Icon = aiFeature.icon;
+          const isFeatureLoading =
+            activeView === aiFeature.view &&
+            (grokLoading ||
+              (aiFeature.view === "prices" && justTcgLoading));
 
           return (
             <button
               key={aiFeature.view}
               type="button"
-              className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}`}
+              className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}${
+                isFeatureLoading ? " is-loading" : ""
+              }`}
               style={getCustomColors(aiFeature.color)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleFeatureClick(aiFeature)}
@@ -632,13 +646,19 @@ export default function PokemonDetails() {
                 loadingSubscription ||
                 updatingCredits ||
                 grokLoading ||
+                justTcgLoading ||
                 featureCooldown ||
                 creditsRemaining < 1
               }
               aria-pressed={activeView === aiFeature.view}
+              aria-busy={isFeatureLoading}
             >
               <span className="feature-button__icon" aria-hidden="true">
-                <Icon size={22} strokeWidth={2} />
+                {isFeatureLoading ? (
+                  <span className="feature-button__spinner" />
+                ) : (
+                  <Icon size={22} strokeWidth={2} />
+                )}
               </span>
               <span className="feature-button__text">
                 <span className="feature-button__title">{aiFeature.title}</span>

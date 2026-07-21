@@ -129,10 +129,11 @@ Your response must be in a valid json format as shown below.
 dont subtract from the score because you cant do physical tests on it,
 just make note a note of it in limitations. if user dont supply the back of the card,
 explain how much that is shaving off the final score (inside the limitation field).
-If the image is hard to read, dont just make assumptions. Note what was hard to scan,
-what assumption you made and mention it in the response.
+If the image is hard to read, dont just make assumptions. Note what was hard to scan and
+what assumption you made, and mention it in the response.
 
-Use the format as shown in example response below:
+Use the format as shown in example response below. Your entire response shall only be the valid JSON object.
+No extra text before or after.
 
 {
   "authenticity": {
@@ -206,11 +207,60 @@ Use the format as shown in example response below:
 `
 
 const psaGrading: string = `
-Do a objective and honest PSA grading for the following card in a professional manner.
-Take your time, be strict and honest. If its hard to read details on the image,
-lean towards the conservative side of scoring. If something was hard to measure on the image,
-mention it in the response and what assumptions you made. Give reasoning for every sub-score.
-All the scores must align with your reasoning. Overall Score at top
+Do a PSA grading of this pokemon card. Be as strict and thorough as a professional grader.
+Be objective about the card. If the image has limitations where its hard to determine condition,
+assume its in average condition. Also mention everything about the image that limits your
+grading process. Scan the image as detailed as possible so no details gets lost in the process.
+Don't invent anything about the condition.
+
+Give a roughly estimated score for each category: Centering, Corners, Edges, Surface.
+
+Give a summarized report (Don't mention you did something because that's what i told you).
+It should be a user friendly report to read.
+
+Your response should be ONLY a valid JSON format — no markdown fences, no commentary
+before or after.
+
+Use exactly this structure example (field names and nesting must match):
+
+{
+  "overall": {
+    "grade": 7,
+    "condition_label": "Near Mint"
+  },
+  "condition_report": [
+    {
+      "category": "Centering",
+      "score": 8,
+      "comment": "Left/right and top/bottom borders are reasonably balanced on the front. The yellow border shows no extreme leftover or tight cuts. It appears roughly in the 55/45 to 60/40 range (acceptable for higher grades but not perfect 50/50 or better). No measurable tilt or diamond cut visible in the photo."
+    },
+    {
+      "category": "Corners",
+      "score": 7,
+      "comment": "All four corners retain good overall shape with no major fraying, folds, or large chips. Under close inspection of the image, the tips show mild softening/rounding rather than razor sharpness, with possible tiny whitening beginning to appear (especially noticeable on the lower corners against the yellow border). No crushed or peeled corners."
+    },
+    {
+      "category": "Edges",
+      "score": 7,
+      "comment": "Edges are mostly clean and straight. Minor edge wear and slight whitening are visible in places along the yellow border (particularly left and bottom edges), consistent with light handling. No deep nicks, paper loss, or rough cuts stand out. The black inner border around the artwork box looks intact."
+    },
+    {
+      "category": "Surface",
+      "score": 7,
+      "comment": "The holofoil pattern in the artwork window displays solid shine and the classic Base Set sparkle without large scratches, scuffs, or clouding immediately obvious. The non-holo areas appear clean with readable text, solid ink, and no major print defects, stains, or creases. Minor surface haze or factory print texture may be present but is hard to fully separate from photo artifacts."
+    }
+  ],
+  "summary": "This Venusaur presents as a solid Near Mint example with attractive eye appeal for a Base Set holo. It shows light, honest handling wear primarily in the form of mild corner softening and edge whitening rather than damage. The holo remains bright and the card is free of creases, heavy scratches, stains, or structural issues. Centering is good without being exceptional. It does not reach Gem Mint (PSA 10) or Mint (PSA 9) standards due to the visible corner/edge wear and lack of pristine surface/corner sharpness. It sits comfortably above Excellent-Mint territory.",
+  "image_limitations": [
+    "Single front-only photo (back condition completely unknown — back centering, whitening, scratches, or stamps cannot be evaluated).",
+    "Resolution and compression limit detection of fine surface scratches, hairlines, print lines, or micro-wear on the holo and borders.",
+    "Direct lighting + holofoil glare can mask or mimic light surface wear.",
+    "Card appears to be under plastic (sleeve or toploader), which softens fine detail and can hide or add reflections.",
+    "No raking/angled light photos to reveal surface texture, indentations, or subtle dents.",
+    "Exact border measurements (in mm or %) and corner magnification are not possible.",
+    "Color accuracy and any potential fading are harder to judge under the photo's lighting."
+  ],
+}
 `.trim();
 
 

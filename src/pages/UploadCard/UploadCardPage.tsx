@@ -13,7 +13,7 @@ import {
 const API_URL = import.meta.env.VITE_API_URL;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-type AnalysisType = "identify" | "psa" | "authenticity";
+type AnalysisType = "psa" | "authenticity";
 type CardSide = "front" | "back";
 
 type CardImage = {
@@ -27,7 +27,6 @@ const uploadOptions = [
     heading: "Front Side",
     badge: "Required",
     badgeClassName: "card-grader__badge--required",
-    headingNote: "High quality photo recommended",
     prompt: "Upload front",
     promptNote: "PNG, JPG up to 10MB",
     showDropHint: true,
@@ -46,21 +45,12 @@ const uploadOptions = [
   heading: string;
   badge: string;
   badgeClassName: string;
-  headingNote?: string;
   prompt: string;
   promptNote: string;
   showDropHint: boolean;
 }>;
 
 const analysisOptions = [
-  {
-    type: "identify",
-    endpoint: "/grok/identify-card",
-    label: "Identify Card",
-    loadingLabel: "Identifying...",
-    buttonClassName: "card-grader__identify-button",
-    includeBackImage: false,
-  },
   {
     type: "psa",
     endpoint: "/grok/psa-grade",
@@ -86,7 +76,7 @@ const analysisOptions = [
   loadingLabel: string;
   buttonClassName: string;
   includeBackImage: boolean;
-  ResultView?: React.ComponentType<{ error: string; result: string }>;
+  ResultView: React.ComponentType<{ error: string; result: string }>;
 }>;
 
 function readFileAsDataUrl(file: File) {
@@ -105,7 +95,6 @@ export default function UploadCardPage() {
     back: { file: null, previewUrl: "" },
   });
   const [result, setResult] = useState("");
-  const [identifyResult, setIdentifyResult] = useState("");
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisType>("psa");
   const [error, setError] = useState("");
   const [activeRequest, setActiveRequest] = useState<AnalysisType | null>(null);
@@ -116,7 +105,6 @@ export default function UploadCardPage() {
 
   const resetResults = () => {
     setResult("");
-    setIdentifyResult("");
     setError("");
   };
 
@@ -167,10 +155,9 @@ export default function UploadCardPage() {
     if (!frontFile || activeRequest !== null) return;
 
     setActiveRequest(type);
-    if (option.ResultView) setSelectedAnalysis(type);
+    setSelectedAnalysis(type);
     setError("");
-    if (type === "identify") setIdentifyResult("");
-    if (option.ResultView) setResult("");
+    setResult("");
 
     try {
       const signal = startRequest();
@@ -200,9 +187,19 @@ export default function UploadCardPage() {
         );
       }
 
-      const text = typeof data?.text === "string" ? data.text : "";
-      if (type === "identify") setIdentifyResult(text);
-      if (option.ResultView) setResult(text);
+      // API usually returns a string; if the model/path already gave an object, keep it usable.
+      let text = "";
+      if (typeof data?.text === "string") {
+        text = data.text;
+      } else if (data?.text != null && typeof data.text === "object") {
+        console.warn("[UploadCard] response.text was an object; stringifying for ResultView", data.text);
+        text = JSON.stringify(data.text);
+      } else if (data?.text != null) {
+        console.warn("[UploadCard] unexpected response.text type", typeof data.text, data.text);
+        text = String(data.text);
+      }
+
+      setResult(text);
     } catch (scanError) {
       if (isAbortError(scanError)) return;
       setError(
@@ -219,7 +216,7 @@ export default function UploadCardPage() {
     <div className="card-grader">
       <header className="card-grader__header">
         <h1>Analyze Your Card</h1>
-        <p>Get a PSA grade estimate and authenticity check</p>
+        <p>Get an estimated PSA Grade or Authenticity score</p>
       </header>
       <div className="card-grader__upload">
         <div className="card-grader__upload-grid">
@@ -231,7 +228,6 @@ export default function UploadCardPage() {
                 <div className="card-grader__side-heading">
                   <strong>{option.heading}</strong>
                   <span className={`card-grader__badge ${option.badgeClassName}`}>{option.badge}</span>
-                  {option.headingNote && <small>{option.headingNote}</small>}
                 </div>
                 <label
                   className={`card-grader__dropzone${draggingSide === option.side ? " card-grader__dropzone--dragging" : ""}`}
@@ -280,12 +276,8 @@ export default function UploadCardPage() {
 
       </div>
 
-      {identifyResult && (
-        <h2 className="card-grader__identify-result">{identifyResult}</h2>
-      )}
-
       {analysisOptions.map(({ type, ResultView }) =>
-        selectedAnalysis === type && ResultView ? (
+        selectedAnalysis === type ? (
           <ResultView key={type} error={error} result={result} />
         ) : null
       )}

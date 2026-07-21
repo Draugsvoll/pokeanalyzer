@@ -57,12 +57,12 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   return (
     <section className="worth-grading-view ui-render-fade">
 
-      <div className="worth-grading-view__summary">
-        <div className="worth-grading-view__section-heading">
+      <div className="worth-grading-view__card worth-grading-view__market">
+        <header className="worth-grading-view__market-header">
           <h3>Market snapshot</h3>
           <span>Current values</span>
-        </div>
-        <div className="worth-grading-view__card worth-grading-view__market">
+        </header>
+        <div className="worth-grading-view__market-body">
           {marketRows.map(({ label, key, Icon, tone }) => (
             <div
               className={`worth-grading-view__market-row worth-grading-view__market-row--${tone}`}

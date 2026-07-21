@@ -2,20 +2,27 @@
   grid-template-columns: minmax(22rem, 36rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
-  max-width:40rem;
-  margin:auto;
+  max-width: var(--content-width);
+  margin: auto;
+  width: 100%;
 }
 
 .card-grader__upload-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  display: flex;
+  gap: 1.25rem;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .card-grader__upload-side {
+  --width:23rem;
   display: grid;
+  flex: 0 1 var(--width);
+  max-width: var(--width);
   gap: 0.4rem;
   position: relative;
+  width: 100%;
 
   > span {
     color: var(--muted);
@@ -42,10 +49,11 @@
   overflow: hidden;
   place-items: center;
   transition: background 0.2s ease, border-color 0.2s ease;
+  width: 100%;
 
   &:hover {
     background: rgba(255, 255, 255, 0.03);
-    border-color: var(--text);
+    border-color: var(--font-color-muted);
   }
 
   input {
@@ -120,26 +128,97 @@
 .card-grader__btn-row {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 2rem;
 
   .app-btn {
+    --btn-accent: var(--custom-color-blue);
+
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--btn-accent) 22%, rgba(255, 255, 255, 0.05)) 0%,
+      color-mix(in srgb, var(--btn-accent) 10%, rgba(255, 255, 255, 0.02)) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--btn-accent) 32%, rgba(255, 255, 255, 0.08));
+    border-radius: var(--border-radius);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0.4rem 1.1rem rgba(0, 0, 0, 0.14);
+    color: var(--font-color-primary);
+    font-size: var(--font-size-button);
+    font-weight: var(--font-weight-semibold);
+    gap: 0.55rem;
+    letter-spacing: var(--font-tracking-normal);
+    min-height: 3.25rem;
+    padding: 0.85rem 1rem;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
     width: 100%;
+
+    svg {
+      color: var(--btn-accent);
+      flex: 0 0 auto;
+      height: 1.1rem;
+      stroke-width: 2;
+      width: 1.1rem;
+    }
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--btn-accent) 30%, rgba(255, 255, 255, 0.06)) 0%,
+        color-mix(in srgb, var(--btn-accent) 14%, rgba(255, 255, 255, 0.03)) 100%
+      );
+      border-color: color-mix(in srgb, var(--btn-accent) 48%, transparent);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0.55rem 1.35rem rgba(0, 0, 0, 0.2),
+        0 0 0 1px color-mix(in srgb, var(--btn-accent) 14%, transparent);
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--btn-accent);
+      outline-offset: 2px;
+    }
+
+    /* Keep full visual styling when disabled (e.g. no image yet) */
+    &:disabled {
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--btn-accent) 22%, rgba(255, 255, 255, 0.05)) 0%,
+        color-mix(in srgb, var(--btn-accent) 10%, rgba(255, 255, 255, 0.02)) 100%
+      );
+      border-color: color-mix(in srgb, var(--btn-accent) 32%, rgba(255, 255, 255, 0.08));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 0.4rem 1.1rem rgba(0, 0, 0, 0.14);
+      color: var(--font-color-primary);
+      cursor: not-allowed;
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
-.card-grader__button {
-  margin-top: 1rem;
-  width: 100%;
+.card-grader__estimate-button {
+  --btn-accent: var(--custom-color-teal);
+}
 
-  svg {
-    height: 1rem;
-    width: 1rem;
-  }
+.card-grader__auth-button {
+  --btn-accent: var(--custom-color-purple);
 }
 
 .card-grader__spin {
   animation: card-grader-spin 0.8s linear infinite;
+  color: var(--btn-accent);
 }
 
 @keyframes card-grader-spin {
@@ -152,12 +231,34 @@
 .card-grader {
   display: grid;
   grid-template-columns: 1fr;
-  max-width: 47em;
+  max-width: var(--content-width);
 }
 
 .card-grader__header {
-  h1 { font-size: clamp(2rem, 5vw, 2.7rem); line-height: 1.05; margin: 0; }
-  p { color: var(--muted); font-size: 1.05rem; margin: 0.45rem 0 1.25rem; }
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  margin: 0 0 1.25rem;
+  text-align: center;
+  width: 100%;
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 2.7rem);
+    letter-spacing: var(--font-tracking-tight);
+    line-height: 1.05;
+    margin: 0;
+    text-align: center;
+  }
+
+  p {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-paragraph);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: var(--font-leading-normal);
+    margin: 0;
+    max-width: 28rem;
+    text-align: center;
+  }
 }
 
 .card-grader__upload { background: transparent; border: 0; margin-top: 0; padding: 0; }
@@ -170,9 +271,8 @@
   display: flex;
   gap: 0.65rem;
   min-height: 1.5rem;
-
-  small { color: var(--muted); margin-left: auto; }
 }
+
 
 .card-grader__badge {
   border-radius: var(--border-radius);
@@ -209,32 +309,19 @@
   svg { height: 1.6rem; width: 1.6rem; }
 }
 
-.card-grader__btn-row .app-btn {
-  border-radius: var(--border-radius);
-  font-size: 1rem;
-  min-height: 3.8rem;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 1;
-  }
-}
-
-.card-grader__estimate-button { background: #087354 !important; border: 0 !important; }
-.card-grader__identify-button { background: #1d4ed8 !important; border: 0 !important; }
-.card-grader__auth-button { background: rgba(255, 255, 255, 0.04) !important; }
-
-.card-grader__identify-result {
-  font-size: 1.25rem;
-  line-height: 1.4;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
 @media (max-width: 44rem) {
   .card-grader,
-  .card-grader__upload-grid,
   .card-grader__btn-row {
     grid-template-columns: 1fr;
+  }
+
+  .card-grader__upload-grid {
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .card-grader__upload-side {
+    flex: 1 1 auto;
+    max-width: none;
   }
 }

@@ -2,14 +2,14 @@
   display: grid;
   gap: 0.5rem;
   justify-items: center;
-  margin: 0 0 1.35rem;
+  margin: 1.1rem 0 1.35rem;
   text-align: center;
 
   &__label {
     align-items: center;
     color: var(--feature-accent);
     display: inline-flex;
-    font-size: var(--font-size-button);
+    font-size: 0.9rem;
     font-weight: var(--font-weight-bold);
     gap: 0.4rem;
     letter-spacing: var(--font-tracking-wider);

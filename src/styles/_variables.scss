@@ -39,6 +39,9 @@
   /* Shared data-row padding (JustTCG table, grading market rows, etc.) */
   --padding-row: 0.85rem 0.65rem;
 
+  /* Shared content column width (/card shell, upload analyzer, feature pages) */
+  --content-width: 48rem;
+
   /* ----- Font families ----- */
   --font-family-base: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -47,7 +50,7 @@
   /* ----- Font colors ----- */
   --font-color-primary: #ffffff;
   --font-color-body: #ececf3;
-  --font-color-secondary: #cbd5e1;
+  --font-color-secondary: #dde1e6;
   --font-color-muted: #94a3b8;
   --font-color-faint: #71717a;
   --font-color-error: #f87171;
@@ -60,7 +63,7 @@
   --font-size-h2: 1.5rem;
   --font-size-h3: 1.2rem;
   --font-size-h4: 0.95rem;
-  --font-size-paragraph: 0.95rem;
+  --font-size-paragraph: 0.92rem;
   --font-size-paragraph-sm: 0.85rem;
   --font-size-label: 0.78rem;
   --font-size-value: 0.95rem;

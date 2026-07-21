@@ -1,16 +1,297 @@
-.card-grader__result {
-  min-height: 14rem;
+/* PSA estimate — teal theme; grade number keeps score-tone color only */
+
+.psa-estimate {
+  --psa-theme: var(--custom-color-teal);
+
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
 }
 
-.card-grader__empty {
-  color: var(--muted);
+.psa-estimate__empty,
+.psa-estimate__error,
+.psa-estimate__raw {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
 }
 
-.card-grader__error {
-  color: #fca5a5;
+.psa-estimate__empty {
+  color: var(--font-color-muted);
 }
 
-.card-grader__grok-result {
-  line-height: 1.65;
+.psa-estimate__error {
+  color: var(--font-color-error);
+}
+
+.psa-estimate__raw {
+  color: var(--font-color-secondary);
+  text-align: left;
   white-space: pre-wrap;
+}
+
+.psa-estimate__section {
+  display: grid;
+  gap: 0.7rem;
+
+  .app-subheader {
+    margin: 0 0 0.1rem;
+    padding-left: 0.15rem;
+  }
+}
+
+/* ----- Overall grade panel (chrome = teal; score text keeps tone) ----- */
+
+.psa-estimate__verdict {
+  align-items: stretch;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--psa-theme) 10%, transparent) 0%,
+      transparent 42%
+    ),
+    var(--bg2);
+  border: 1px solid color-mix(in srgb, var(--psa-theme) 22%, rgba(255, 255, 255, 0.08));
+  border-radius: var(--border-radius);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0.75rem 2rem rgba(0, 0, 0, 0.18);
+  display: grid;
+  gap: 1.15rem 1.5rem;
+  grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
+  overflow: hidden;
+  padding: 1.25rem 1.35rem;
+  position: relative;
+
+  &::before {
+    background: linear-gradient(
+      180deg,
+      var(--psa-theme),
+      color-mix(in srgb, var(--psa-theme) 30%, transparent)
+    );
+    border-radius: 999px;
+    content: "";
+    height: 68%;
+    left: 0;
+    opacity: 0.9;
+    position: absolute;
+    top: 16%;
+    width: 3px;
+  }
+}
+
+.psa-estimate__grade {
+  align-content: center;
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+  min-width: 6.5rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.65rem;
+}
+
+.psa-estimate__grade-value {
+  font-family: var(--font-family-price);
+  font-size: var(--font-size-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-tight);
+  line-height: 0.95;
+  white-space: nowrap;
+
+  &--green {
+    color: var(--font-color-success);
+    text-shadow: 0 0 0.75rem color-mix(in srgb, var(--font-color-success) 16%, transparent);
+  }
+
+  &--amber {
+    color: var(--font-color-warning);
+    text-shadow: 0 0 0.75rem color-mix(in srgb, var(--font-color-warning) 16%, transparent);
+  }
+
+  &--red {
+    color: var(--font-color-error);
+    text-shadow: 0 0 0.75rem color-mix(in srgb, var(--font-color-error) 16%, transparent);
+  }
+}
+
+.psa-estimate__condition {
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+.psa-estimate__summary {
+  align-self: center;
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-normal);
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  white-space: pre-wrap;
+}
+
+/* ----- Shared card surface (condition + limitations) ----- */
+
+.psa-estimate__grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.psa-estimate__card {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--psa-theme) 7%, transparent) 0%,
+      transparent 48%
+    ),
+    var(--bg2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 1.05rem 1.3rem;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &::before {
+    background: var(--psa-theme);
+    border-radius: 999px 999px 0 0;
+    content: "";
+    height: 2px;
+    left: 1rem;
+    opacity: 0.75;
+    position: absolute;
+    right: 1rem;
+    top: 0;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--psa-theme) 28%, rgba(255, 255, 255, 0.1));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0.6rem 1.4rem rgba(0, 0, 0, 0.16);
+  }
+
+  > h4 {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: 1.25;
+    margin: 0;
+    padding: 0;
+  }
+
+  > p {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-regular);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: var(--font-leading-normal);
+    margin: 0;
+    padding: 0;
+  }
+
+  ul {
+    display: grid;
+    gap: 0.55rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-regular);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: var(--font-leading-normal);
+    margin: 0;
+    padding-left: 1rem;
+    position: relative;
+
+    &::before {
+      background: color-mix(in srgb, var(--psa-theme) 65%, var(--font-color-faint));
+      border-radius: 50%;
+      content: "";
+      height: 0.28rem;
+      left: 0.1rem;
+      position: absolute;
+      top: 0.55em;
+      width: 0.28rem;
+    }
+  }
+}
+
+.psa-estimate__card-header {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+
+  h4 {
+    color: var(--font-color-primary);
+    flex: 1 1 auto;
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: 1.25;
+    margin: 0;
+    min-width: 0;
+    padding: 0;
+  }
+}
+
+.psa-estimate__score {
+  align-items: baseline;
+  background: color-mix(in srgb, var(--psa-theme) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--psa-theme) 24%, transparent);
+  border-radius: var(--border-radius-pill);
+  color: var(--psa-theme);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--font-family-price);
+  font-size: var(--font-size-paragraph);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+  gap: 0.12rem;
+  letter-spacing: 0.02rem;
+  line-height: 1;
+  padding: 0.32rem 0.55rem;
+  white-space: nowrap;
+
+  span {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+  }
+}
+
+@media (max-width: 40rem) {
+  .psa-estimate__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .psa-estimate__verdict {
+    grid-template-columns: 1fr;
+    padding-top: 1.15rem;
+  }
+
+  .psa-estimate__grade {
+    min-width: 0;
+    padding-left: 0.35rem;
+  }
 }

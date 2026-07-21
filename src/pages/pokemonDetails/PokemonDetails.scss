@@ -27,7 +27,7 @@
     backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    width: 48rem;
+    width: var(--content-width);
     max-width: 100%;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--border-radius);
@@ -136,8 +136,8 @@
 
   &__actions {
     width: 100%;
-    max-width: 47rem;
-    justify-content: center;
+    max-width: var(--content-width);
+    justify-content: space-between;
     scroll-margin-top: 1rem;
 
     .feature-button {
@@ -266,7 +266,7 @@
 
   &__page {
     width: 100%;
-    max-width: 47rem;
+    max-width: var(--content-width);
     min-height: 10rem;
     background: transparent;
     backdrop-filter: blur(16px);

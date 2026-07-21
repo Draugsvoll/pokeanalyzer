@@ -6,7 +6,8 @@
   justify-content: center;
   line-height: 1;
   margin-inline: auto;
-  padding: 1rem;
+  /* Sit closer under feature headers */
+  padding: 0.35rem 0.5rem 0.85rem;
   text-align: center;
   width: 100%;
 }

@@ -51,34 +51,59 @@
   &__heading {
     align-items: center;
     display: flex;
-    gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.65rem 0.85rem;
     min-width: 0;
+  }
+
+  /* Quiet source stamp — secondary to printing badge + card name */
+  &__brand {
+    color: var(--font-color-faint);
+    flex: 0 0 auto;
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
+    line-height: 1;
+    padding-right: 0.15rem;
+    text-transform: uppercase;
   }
 
   &__printing {
     align-items: center;
-    background: var(--bg2);
-    border: 1px solid color-mix(in srgb, var(--variant-accent) 18%, transparent);
+    background: color-mix(in srgb, var(--variant-accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--variant-accent) 28%, transparent);
     border-radius: var(--border-radius-pill);
     color: var(--variant-accent);
     display: flex;
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-semibold);
-    gap: 0.5rem;
-    padding: 0.3rem 0.9rem;
+    flex: 0 0 auto;
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-bold);
+    gap: 0.4rem;
+    letter-spacing: var(--font-tracking-wide);
+    line-height: 1;
+    padding: 0.35rem 0.7rem;
   }
 
   &__identity {
     align-items: baseline;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.4rem 0.5rem;
     min-width: 0;
+    padding-left: 0.15rem;
 
     i {
       color: var(--font-color-faint);
       font-style: normal;
     }
+  }
+
+  &__card-number {
+    color: var(--font-color-secondary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-label);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-medium);
   }
 
   &__set-name {

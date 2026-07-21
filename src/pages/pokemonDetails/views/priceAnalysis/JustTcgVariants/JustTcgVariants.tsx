@@ -17,6 +17,7 @@ type JustTcgVariant = {
 type JustTcgVariantGroup = {
   id: string;
   pokemonName: string;
+  cardNumber: string;
   printing: string;
   setName: string;
   variants: JustTcgVariant[];
@@ -74,6 +75,12 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
       typeof card.set_name === "string" && card.set_name
         ? card.set_name
         : "Unknown set";
+    const cardNumber =
+      typeof card.number === "string" && card.number.trim()
+        ? card.number.trim()
+        : typeof card.number === "number" && Number.isFinite(card.number)
+          ? String(card.number)
+          : "";
     const variants = card.variants
       .filter(isRecord)
       .map((variant, variantIndex) => ({
@@ -108,6 +115,7 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
     ).map(([printing, groupedVariants]) => ({
       id: `${cardId}-${printing}`,
       pokemonName,
+      cardNumber,
       printing,
       setName,
       variants: [...groupedVariants].sort(
@@ -188,7 +196,7 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
       <header className="just-tcg-variants__source-header">
         <h2 className="app-subheader">Just_TCG (Aggregator of price data)</h2>
       </header>
-      {groups.map(({ id, pokemonName, printing, setName, variants }) => {
+      {groups.map(({ id, pokemonName, cardNumber, printing, setName, variants }) => {
         const reverse = printing.toLowerCase().includes("reverse");
 
         return (
@@ -198,9 +206,19 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
           >
             <header>
               <div className="just-tcg-variants__heading">
-                <div className="just-tcg-variants__printing"><Layers3 aria-hidden="true" /><span>{printing}</span></div>
+                <span className="just-tcg-variants__brand">JustTCG</span>
+                <div className="just-tcg-variants__printing">
+                  <Layers3 aria-hidden="true" />
+                  <span>{printing}</span>
+                </div>
                 <div className="just-tcg-variants__identity">
                   <strong className="just-tcg-variants__pokemon-name">{pokemonName}</strong>
+                  {cardNumber && (
+                    <>
+                      <i aria-hidden="true">•</i>
+                      <span className="just-tcg-variants__card-number">{cardNumber}</span>
+                    </>
+                  )}
                   <i aria-hidden="true">•</i>
                   <span className="just-tcg-variants__set-name">{setName}</span>
                 </div>
