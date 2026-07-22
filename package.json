@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "server": "tsx watch server/index.ts",
-    "start": "concurrently \"npm run dev\" \"npm run server\"",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "start": "echo 'Use Railway start command'",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
