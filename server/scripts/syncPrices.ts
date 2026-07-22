@@ -1,21 +1,12 @@
-import { db } from "../db/db.js";
+import { dbRun } from "../db/db.js";
 import { logError } from "../security/logging.js";
 import type { PokemonTcgApiCard } from "../types/PokemonTcgApiCard";
 import { getCardsPage, waitBetweenRequests, PAGE_SIZE } from "../services/pokemonTcgApi";
 
 type SqlParam = string | number | null;
 
-function run(sql: string, params: SqlParam[] = []): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, (err: Error | null) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
 async function insertPriceSnapshot(card: PokemonTcgApiCard): Promise<void> {
-  await run(
+  await dbRun(
     `
     INSERT OR REPLACE INTO price_snapshots
     (
@@ -34,7 +25,7 @@ async function insertPriceSnapshot(card: PokemonTcgApiCard): Promise<void> {
       JSON.stringify(card.cardmarket?.prices ?? null),
       card.tcgplayer?.updatedAt ?? null,
       card.cardmarket?.updatedAt ?? null,
-    ]
+    ] as SqlParam[],
   );
 }
 

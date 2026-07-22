@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { db } from "./db/db.js";
+import { dbAll, dbGet } from "./db/db.js";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
@@ -182,24 +182,21 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
 });
 
 // FETCH ALL CARDS
-app.get("/api/cards", (_req, res) => {
-  db.all(
-    `
-    SELECT raw_json
-    FROM cards
-    LIMIT 10
-    `,
-    [],
-    (err, rows: { raw_json: string }[]) => {
-      if (err) {
-        logError("Failed to fetch cards", err);
-        res.status(500).json({ error: "Failed to fetch cards" });
-        return;
-      }
-      const cards = rows.map((row) => JSON.parse(row.raw_json));
-      res.json(cards);
-    }
-  );
+app.get("/api/cards", async (_req, res) => {
+  try {
+    const rows = await dbAll<{ raw_json: string }>(
+      `
+      SELECT raw_json
+      FROM cards
+      LIMIT 10
+      `,
+    );
+    const cards = rows.map((row) => JSON.parse(String(row.raw_json)));
+    res.json(cards);
+  } catch (err) {
+    logError("Failed to fetch cards", err);
+    res.status(500).json({ error: "Failed to fetch cards" });
+  }
 });
 
 app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, res) => {
@@ -226,7 +223,7 @@ app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, re
 });
 
 // SEARCH FUNCTION
-app.get("/api/cards/search", (req, res) => {
+app.get("/api/cards/search", async (req, res) => {
   const pokemonName =
     typeof req.query.pokemonName === "string" ? req.query.pokemonName.trim() : "";
   const setName =
@@ -303,40 +300,36 @@ app.get("/api/cards/search", (req, res) => {
     LIMIT 20
   `;
 
-  db.all(sql, params, (err, rows: { raw_json: string }[]) => {
-    if (err) {
-      logError("Card search failed", err);
-      res.status(500).json({ error: "Card search failed" });
-      return;
-    }
-
-    const cards = rows.map((row) => JSON.parse(row.raw_json));
+  try {
+    const rows = await dbAll<{ raw_json: string }>(sql, params);
+    const cards = rows.map((row) => JSON.parse(String(row.raw_json)));
     res.json(cards);
-  });
+  } catch (err) {
+    logError("Card search failed", err);
+    res.status(500).json({ error: "Card search failed" });
+  }
 });
 
 // FETCH SINGLE CARD BY ID
-app.get("/api/cards/:id", (req, res) => {
-  db.get(
-    `
-    SELECT raw_json
-    FROM cards
-    WHERE id = ?
-    `,
-    [req.params.id],
-    (err, row: { raw_json: string } | undefined) => {
-      if (err) {
-        logError("Failed to fetch card", err);
-        res.status(500).json({ error: "Failed to fetch card" });
-        return;
-      }
-      if (!row) {
-        res.status(404).json({ error: "Card not found" });
-        return;
-      }
-      res.json(JSON.parse(row.raw_json));
+app.get("/api/cards/:id", async (req, res) => {
+  try {
+    const row = await dbGet<{ raw_json: string }>(
+      `
+      SELECT raw_json
+      FROM cards
+      WHERE id = ?
+      `,
+      [req.params.id],
+    );
+    if (!row) {
+      res.status(404).json({ error: "Card not found" });
+      return;
     }
-  );
+    res.json(JSON.parse(String(row.raw_json)));
+  } catch (err) {
+    logError("Failed to fetch card", err);
+    res.status(500).json({ error: "Failed to fetch card" });
+  }
 });
 
 const PORT = process.env.PORT || 3001;

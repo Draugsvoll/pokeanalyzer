@@ -1,6 +1,6 @@
 import { Router, type Response } from "express";
 import rateLimit from "express-rate-limit";
-import { db } from "../db.js";
+import { dbGet } from "../db.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "../../security/auth.js";
 import { logError } from "../../security/logging.js";
 import { adminDb } from "../../subscriptions/firebaseAdmin.js";
@@ -53,34 +53,20 @@ function getQuantity(value: unknown) {
   return quantity;
 }
 
-function getCardFromDatabase(cardId: string): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    db.get(
-      "SELECT raw_json FROM cards WHERE id = ?",
-      [cardId],
-      (error, row: { raw_json: string } | undefined) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        if (!row) {
-          reject(new PortfolioHttpError("Card not found", 404));
-          return;
-        }
+async function getCardFromDatabase(cardId: string): Promise<Record<string, unknown>> {
+  const row = await dbGet<{ raw_json: string }>(
+    "SELECT raw_json FROM cards WHERE id = ?",
+    [cardId],
+  );
+  if (!row) {
+    throw new PortfolioHttpError("Card not found", 404);
+  }
 
-        try {
-          const card: unknown = JSON.parse(row.raw_json);
-          if (!card || typeof card !== "object" || Array.isArray(card)) {
-            reject(new Error(`Invalid stored card ${cardId}`));
-            return;
-          }
-          resolve(card as Record<string, unknown>);
-        } catch (error) {
-          reject(error);
-        }
-      },
-    );
-  });
+  const card: unknown = JSON.parse(String(row.raw_json));
+  if (!card || typeof card !== "object" || Array.isArray(card)) {
+    throw new Error(`Invalid stored card ${cardId}`);
+  }
+  return card as Record<string, unknown>;
 }
 
 function portfolioCardRef(uid: string, cardId: string) {

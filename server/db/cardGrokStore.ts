@@ -1,4 +1,4 @@
-import { db } from "./db.js";
+import { dbGet, dbRun } from "./db.js";
 
 type JsonObject = Record<string, unknown>;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -18,30 +18,18 @@ function parseJsonObject(value: string): JsonObject | null {
   }
 }
 
-function readCard(cardId: string): Promise<JsonObject | null> {
-  return new Promise((resolve, reject) => {
-    db.get(
-      "SELECT raw_json FROM cards WHERE id = ?",
-      [cardId],
-      (error, row: { raw_json: string } | undefined) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        if (!row) {
-          resolve(null);
-          return;
-        }
+async function readCard(cardId: string): Promise<JsonObject | null> {
+  const row = await dbGet<{ raw_json: string }>(
+    "SELECT raw_json FROM cards WHERE id = ?",
+    [cardId],
+  );
+  if (!row) return null;
 
-        const card = parseJsonObject(row.raw_json);
-        if (!card) {
-          reject(new Error(`Card ${cardId} contains invalid JSON`));
-          return;
-        }
-        resolve(card);
-      },
-    );
-  });
+  const card = parseJsonObject(String(row.raw_json));
+  if (!card) {
+    throw new Error(`Card ${cardId} contains invalid JSON`);
+  }
+  return card;
 }
 
 function getFreshFeatureResponse(
@@ -115,27 +103,18 @@ export async function saveCardGrokResponse(
   };
   const jsonPath = `$.grok.${storageKey}`;
 
-  await new Promise<void>((resolve, reject) => {
-    db.run(
-      `
-      UPDATE cards
-      SET raw_json = json_set(raw_json, ?, json(?))
-      WHERE id = ?
-      `,
-      [jsonPath, JSON.stringify(storedResponse), cardId],
-      function onUpdate(error) {
-        if (error) {
-          reject(error);
-          return;
-        }
-        if (this.changes !== 1) {
-          reject(new Error(`Card ${cardId} was not updated`));
-          return;
-        }
-        resolve();
-      },
-    );
-  });
+  const result = await dbRun(
+    `
+    UPDATE cards
+    SET raw_json = json_set(raw_json, ?, json(?))
+    WHERE id = ?
+    `,
+    [jsonPath, JSON.stringify(storedResponse), cardId],
+  );
+
+  if (result.changes !== 1) {
+    throw new Error(`Card ${cardId} was not updated`);
+  }
 
   return storedResponse;
 }

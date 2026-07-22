@@ -1,26 +1,22 @@
 // npx tsx server/scripts/checkDb.ts
-import { db } from "../db/db.js";
+import { dbGet } from "../db/db.js";
 import { logError } from "../security/logging.js";
 
-db.get("SELECT COUNT(*) AS count FROM cards", (err, row: { count: number }) => {
-  if (err) {
-    logError("Failed to count cards", err);
-    return;
+async function checkDb() {
+  try {
+    const cards = await dbGet<{ count: number | bigint }>(
+      "SELECT COUNT(*) AS count FROM cards",
+    );
+    console.log(`Cards: ${cards?.count ?? 0}`);
+
+    const prices = await dbGet<{ count: number | bigint }>(
+      "SELECT COUNT(*) AS count FROM price_snapshots",
+    );
+    console.log(`Price snapshots: ${prices?.count ?? 0}`);
+  } catch (err) {
+    logError("Failed to check database", err);
+    process.exitCode = 1;
   }
+}
 
-  console.log(`Cards: ${row.count}`);
-
-  db.get(
-    "SELECT COUNT(*) AS count FROM price_snapshots",
-    (err2, row2: { count: number }) => {
-    if (err2) {
-      logError("Failed to count price snapshots", err2);
-      return;
-    }
-
-    console.log(`Price snapshots: ${row2.count}`);
-
-      db.close();
-    },
-  );
-});
+void checkDb();

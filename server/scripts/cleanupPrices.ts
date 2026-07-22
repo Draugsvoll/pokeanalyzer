@@ -1,18 +1,9 @@
 // sletter gamle prisdata intervaller så vi ikke får millioner av rows
-import { db } from "../db/db.js";
+import { dbRun } from "../db/db.js";
 import { logError } from "../security/logging.js";
 
-function run(sql: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.run(sql, (err: Error | null) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
 async function cleanupPrices(): Promise<void> {
-  await run(`
+  await dbRun(`
     DELETE FROM price_snapshots
     WHERE recorded_at < date('now', '-30 days')
   `);
