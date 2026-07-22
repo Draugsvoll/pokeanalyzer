@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "server": "tsx watch server/index.ts",
-    "start": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
