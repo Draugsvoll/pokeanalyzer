@@ -7,6 +7,7 @@
     "dev": "vite",
     "server": "tsx watch server/index.ts",
     "start": "concurrently \"npm run dev\" \"npm run server\"",
+    "start:prod": "node server-prod.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
