@@ -10,7 +10,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:frontend": "vite build"
+    "build:frontend": "vite build",
+    "start": "node server.js"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
