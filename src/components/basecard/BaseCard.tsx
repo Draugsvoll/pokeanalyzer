@@ -4,11 +4,15 @@ import "./BaseCard.scss";
 type BaseCardProps = {
   children: React.ReactNode;
   onClick?: () => void;
+  className?: string;
 };
 
-export default function BaseCard({ children, onClick }: BaseCardProps) {
+export default function BaseCard({ children, onClick, className }: BaseCardProps) {
   return (
-    <div className="base-card" onClick={onClick}>
+    <div
+      className={["base-card", className].filter(Boolean).join(" ")}
+      onClick={onClick}
+    >
       {children}
     </div>
   );

@@ -149,18 +149,27 @@
   }
 
   .grid-view-container {
-    column-gap: 1rem;
+    column-gap: 0rem;
     row-gap: 2rem;
   }
 
   &__card {
     align-items: center;
     display: flex;
+    overflow: visible;
     position: relative;
     transition: transform 0.2s ease;
+    z-index: 0;
 
     &:hover { transform: translateY(var(--hover-lift)); }
     .base-card:hover { transform: none; }
+
+    /* Lift whole card row when source menu is open (beats sibling stacking) */
+    &:has(.base-card--source-open),
+    &:has(.pokemon-card__source-panel),
+    &:focus-within {
+      z-index: 90;
+    }
 
     &:hover .portfolio__card-actions,
     &:focus-within .portfolio__card-actions,

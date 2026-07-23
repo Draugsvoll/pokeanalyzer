@@ -6,7 +6,7 @@ import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
-import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
+import { getFirstTcgPlayerMarketEntry } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
 
 type EstimatedValueSource = "tcgplayer" | "cardmarket";
@@ -17,7 +17,7 @@ function getEstimatedCardPrice(
   source: EstimatedValueSource,
 ) {
   if (source === "tcgplayer") {
-    return getTcgPlayerMarketPrice(card.tcgplayer?.prices);
+    return getFirstTcgPlayerMarketEntry(card.tcgplayer?.prices)?.price;
   }
 
   return card.cardmarket?.prices.trendPrice;
