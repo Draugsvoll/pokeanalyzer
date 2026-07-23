@@ -86,14 +86,14 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
         {data.summary && <p>{data.summary}</p>}
       </article>
 
-      <article className="worth-grading-view__card worth-grading-view__panel">
+      {/* <article className="worth-grading-view__card worth-grading-view__panel">
         <span className="worth-grading-view__eyebrow worth-grading-view__eyebrow--action">
           <Bolt aria-hidden="true" /> Summary
         </span>
         <p className="worth-grading-view__panel-body">
           {data.action ?? data.verdict}
         </p>
-      </article>
+      </article> */}
     </section>
   );
 }

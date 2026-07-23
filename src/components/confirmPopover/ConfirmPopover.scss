@@ -1,0 +1,36 @@
+/* Shared popover surface — same chrome as the price Source radio panel */
+.ui-popover-surface {
+  background: color-mix(in srgb, var(--bg) 94%, #1a1826);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.38);
+  color: var(--font-color-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-normal);
+}
+
+/* Compact confirm action strip — buttons use standard `.app-btn` */
+.ui-confirm-popover {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.55rem 0.85rem;
+  white-space: nowrap;
+  z-index: 5;
+
+  &__label {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+    padding: 0 0.25rem;
+  }
+
+  /* Slightly denser than full-page buttons so the strip stays compact */
+  &__action.app-btn {
+    font-size: var(--font-size-overline);
+    padding: 0.35rem 0.65rem;
+  }
+}

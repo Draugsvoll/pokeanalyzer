@@ -248,3 +248,20 @@ export function pickDefaultCardPriceOption(
     options.find((option) => option.source === preferredSource) ?? options[0]
   );
 }
+
+/** Selected option id → price option, else default for the card. */
+export function resolveCardPriceOption(
+  card: {
+    tcgplayer?: TCGPlayer | null;
+    cardmarket?: CardMarket | null;
+  },
+  selectedOptionId?: string | null,
+  preferredSource: CardPriceSource = "tcgplayer",
+): CardPriceOption | undefined {
+  const options = listCardPriceOptions(card);
+  if (selectedOptionId) {
+    const selected = options.find((option) => option.id === selectedOptionId);
+    if (selected) return selected;
+  }
+  return pickDefaultCardPriceOption(options, preferredSource);
+}

@@ -137,7 +137,6 @@
   color: var(--font-color-muted);
   flex: 0 1 auto;
   font-size: var(--font-size-overline);
-  font-weight: var(--font-weight-semibold);
   letter-spacing: var(--font-tracking-wide);
   line-height: 1.2;
   min-height: 1.2em;
@@ -194,22 +193,32 @@
   opacity: 0.9;
 }
 
-.pokemon-card__source-panel {
-  background: color-mix(in srgb, var(--bg) 94%, #1a1826);
-  border: var(--border);
-  border-radius: var(--border-radius);
-  box-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.38);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 15.5rem;
-  padding: 0.45rem;
+/* Anchored to the Source button; size = panel only so it never shifts when confirm mounts */
+.pokemon-card__source-flyout {
   position: absolute;
   right: 0;
   top: calc(100% + 0.3rem);
-  width: max-content;
-  max-width: min(18rem, 70vw);
   z-index: 100;
+}
+
+/* Surface comes from shared `.ui-popover-surface` */
+.pokemon-card__source-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: min(18rem, 70vw);
+  min-width: 15.5rem;
+  padding: 0.45rem;
+  position: relative;
+  width: max-content;
+}
+
+/* Position only — chrome from shared ConfirmPopover */
+.pokemon-card__source-confirm {
+  bottom: calc(100% + 0.45rem);
+  left: 0;
+  position: absolute;
+  z-index: 1;
 }
 
 .pokemon-card__source-option {
@@ -241,6 +250,11 @@
   &.is-selected {
     background: rgba(255, 255, 255, 0.08);
     color: var(--font-color-primary);
+  }
+
+  &.is-pending:not(.is-selected) {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   }
 }
 

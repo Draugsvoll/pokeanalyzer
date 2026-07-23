@@ -19,7 +19,7 @@ export default function App() {
         <Route path="signup" element={<SignUp />} />
         <Route path="profile" element={<Profile />} />
         <Route path="portfolio" element={<Portfolio />} />
-        <Route path="uploadcard" element={<CardGrader />} />
+        {/* <Route path="uploadcard" element={<CardGrader />} /> */}
 
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import BaseCard from "../basecard/BaseCard";
+import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { useNavigate } from "react-router-dom";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
@@ -16,29 +17,50 @@ type PokemonCardProps = {
   card: PokemonCardType;
   priceSource?: CardPriceSource;
   quantity?: number;
+  /** Saved selection (controlled). Do not pass a pending id here. */
+  selectedPriceOptionId?: string | null;
+  /** Fires when user picks a different radio — parent should open confirm only */
+  onPriceOptionChange?: (optionId: string) => void;
+  /** Pending option waiting for confirm (does not change displayed price yet) */
+  pendingPriceOptionId?: string | null;
+  onConfirmPriceOption?: () => void | Promise<void>;
+  onCancelPriceOption?: () => void;
+  confirmingPriceOption?: boolean;
 };
 
 export function PokemonCard({
   card,
   priceSource = "tcgplayer",
   quantity = 1,
+  selectedPriceOptionId,
+  onPriceOptionChange,
+  pendingPriceOptionId = null,
+  onConfirmPriceOption,
+  onCancelPriceOption,
+  confirmingPriceOption = false,
 }: PokemonCardProps) {
   const navigate = useNavigate();
   const sourcePanelId = useId();
   const pricingRef = useRef<HTMLDivElement>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [internalOptionId, setInternalOptionId] = useState<string | null>(null);
+
+  const isControlled = selectedPriceOptionId !== undefined;
+  const requiresConfirm = Boolean(onConfirmPriceOption);
+  const selectedOptionId = isControlled ? selectedPriceOptionId : internalOptionId;
 
   const priceOptions = useMemo(() => listCardPriceOptions(card), [card]);
 
   useEffect(() => {
-    setSelectedOptionId((current) => {
+    if (isControlled) return;
+
+    setInternalOptionId((current) => {
       if (current && priceOptions.some((option) => option.id === current)) {
         return current;
       }
       return pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null;
     });
-  }, [priceOptions, priceSource]);
+  }, [isControlled, priceOptions, priceSource]);
 
   useEffect(() => {
     if (!sourceOpen) return;
@@ -47,12 +69,13 @@ export function PokemonCard({
       const target = event.target as Node | null;
       if (pricingRef.current && target && !pricingRef.current.contains(target)) {
         setSourceOpen(false);
+        onCancelPriceOption?.();
       }
     };
 
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [sourceOpen]);
+  }, [sourceOpen, onCancelPriceOption]);
 
   const activeOption: CardPriceOption | undefined =
     priceOptions.find((option) => option.id === selectedOptionId) ??
@@ -68,12 +91,30 @@ export function PokemonCard({
   const canPickSource = priceOptions.length > 0;
 
   const selectOption = (optionId: string) => {
-    setSelectedOptionId(optionId);
+    // Already saved selection — ignore
+    if (optionId === activeOption?.id) {
+      onCancelPriceOption?.();
+      return;
+    }
+
+    if (requiresConfirm) {
+      // Keep panel open; parent shows confirm; display stays on saved price
+      onPriceOptionChange?.(optionId);
+      return;
+    }
+
+    if (!isControlled) setInternalOptionId(optionId);
+    onPriceOptionChange?.(optionId);
     setSourceOpen(false);
   };
 
   const handleCardClick = () => {
     navigateToPokemonCard(navigate, card);
+  };
+
+  const closeSource = () => {
+    setSourceOpen(false);
+    onCancelPriceOption?.();
   };
 
   return (
@@ -129,7 +170,10 @@ export function PokemonCard({
                   className={`pokemon-card__source-toggle${sourceOpen ? " is-open" : ""}`}
                   aria-expanded={sourceOpen}
                   aria-controls={sourcePanelId}
-                  onClick={() => setSourceOpen((open) => !open)}
+                  onClick={() => {
+                    if (sourceOpen) closeSource();
+                    else setSourceOpen(true);
+                  }}
                 >
                   <span>Source</span>
                   <span className="pokemon-card__source-chevron" aria-hidden="true">
@@ -138,47 +182,73 @@ export function PokemonCard({
                 </button>
 
                 {sourceOpen && (
-                  <div
-                    id={sourcePanelId}
-                    className="pokemon-card__source-panel ui-render-fade"
-                    role="radiogroup"
-                    aria-label="Price source"
-                  >
-                    {priceOptions.map((option) => {
-                      const inputId = `${sourcePanelId}-${option.id}`;
-                      const checked = option.id === activeOption?.id;
-                      const pretext = getCardPriceSourceLabel(option.source);
+                  <div className="pokemon-card__source-flyout ui-render-fade">
+                    <div
+                      id={sourcePanelId}
+                      className="pokemon-card__source-panel ui-popover-surface"
+                      role="radiogroup"
+                      aria-label="Price source"
+                    >
+                      {priceOptions.map((option) => {
+                        const inputId = `${sourcePanelId}-${option.id}`;
+                        const checked = option.id === activeOption?.id;
+                        const isPending = option.id === pendingPriceOptionId;
+                        const pretext = getCardPriceSourceLabel(option.source);
 
-                      return (
-                        <label
-                          key={option.id}
-                          htmlFor={inputId}
-                          className={`pokemon-card__source-option${checked ? " is-selected" : ""}`}
-                        >
-                          <input
-                            id={inputId}
-                            type="radio"
-                            name={`${sourcePanelId}-price`}
-                            value={option.id}
-                            checked={checked}
-                            onChange={() => selectOption(option.id)}
-                          />
-                          <span className="pokemon-card__source-option-label">
-                            <span
-                              className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
-                            >
-                              {pretext}
+                        return (
+                          <label
+                            key={option.id}
+                            htmlFor={inputId}
+                            className={[
+                              "pokemon-card__source-option",
+                              checked ? "is-selected" : "",
+                              isPending ? "is-pending" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                          >
+                            <input
+                              id={inputId}
+                              type="radio"
+                              name={`${sourcePanelId}-price`}
+                              value={option.id}
+                              checked={checked}
+                              onChange={() => selectOption(option.id)}
+                            />
+                            <span className="pokemon-card__source-option-label">
+                              <span
+                                className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
+                              >
+                                {pretext}
+                              </span>
+                              <span className="pokemon-card__source-option-name">
+                                {option.label}
+                              </span>
                             </span>
-                            <span className="pokemon-card__source-option-name">
-                              {option.label}
+                            <span className="pokemon-card__source-option-price">
+                              {option.currencySymbol}{option.price}
                             </span>
-                          </span>
-                          <span className="pokemon-card__source-option-price">
-                            {option.currencySymbol}{option.price}
-                          </span>
-                        </label>
-                      );
-                    })}
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {pendingPriceOptionId && (
+                      <ConfirmPopover
+                        className="pokemon-card__source-confirm"
+                        label="Update?"
+                        confirmLabel="OK"
+                        aria-label="Confirm price source change"
+                        confirming={confirmingPriceOption}
+                        onConfirm={() => {
+                          void (async () => {
+                            await onConfirmPriceOption?.();
+                            setSourceOpen(false);
+                          })();
+                        }}
+                        onCancel={() => onCancelPriceOption?.()}
+                      />
+                    )}
                   </div>
                 )}
               </div>

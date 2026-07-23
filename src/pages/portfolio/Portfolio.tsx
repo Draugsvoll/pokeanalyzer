@@ -1,29 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
 import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
-import { getFirstTcgPlayerMarketEntry } from "../../utils/pokemonPricing";
+import { resolveCardPriceOption } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
 
-type EstimatedValueSource = "tcgplayer" | "cardmarket";
-type PortfolioSort = "default" | "price_desc" | "price_asc";
+const money = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-function getEstimatedCardPrice(
-  card: PokemonCardType,
-  source: EstimatedValueSource,
-) {
-  if (source === "tcgplayer") {
-    return getFirstTcgPlayerMarketEntry(card.tcgplayer?.prices)?.price;
-  }
-
-  return card.cardmarket?.prices.trendPrice;
-}
-
-function getPortfolioCardQuantity(card: PokemonCardType) {
+function cardQuantity(card: PokemonCardType) {
   const quantity = Number(card.quantity ?? 1);
   return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1;
 }
@@ -31,7 +23,11 @@ function getPortfolioCardQuantity(card: PokemonCardType) {
 export default function Portfolio() {
   const { user, loading: authLoading } = useAuth();
   const { portfolio, loadingPortfolio } = usePortfolioCache();
-  const { removePokemonFromPortfolio, updatePokemonQuantity } = usePokemonPortfolio();
+  const {
+    removePokemonFromPortfolio,
+    updatePokemonQuantity,
+    updatePokemonPriceSource,
+  } = usePokemonPortfolio();
   const [updatingQuantityId, setUpdatingQuantityId] = useState<string | null>(null);
   const [pendingQuantity, setPendingQuantity] = useState<{
     cardId: string;
@@ -41,50 +37,30 @@ export default function Portfolio() {
     cardId: string;
     cardName: string;
   } | null>(null);
-  const [estimatedValueSource, setEstimatedValueSource] =
-    useState<EstimatedValueSource>("tcgplayer");
-  const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("default");
+  const [pendingPriceSource, setPendingPriceSource] = useState<{
+    cardId: string;
+    priceSource: string;
+  } | null>(null);
+  const [updatingPriceSourceId, setUpdatingPriceSourceId] = useState<string | null>(
+    null,
+  );
 
-  const { estimatedCollectionValue, missingPriceCount } = useMemo(() => (
-    portfolio.reduce(
-      (summary, card) => {
-        const quantity = getPortfolioCardQuantity(card);
-        const marketPrice = getEstimatedCardPrice(card, estimatedValueSource);
+  // Sum each card's selected price × quantity (USD / EUR kept separate)
+  const { totalUsd, totalEur } = useMemo(() => {
+    let totalUsd = 0;
+    let totalEur = 0;
 
-        if (marketPrice == null) {
-          summary.missingPriceCount += quantity;
-        } else {
-          summary.estimatedCollectionValue += marketPrice * quantity;
-        }
+    for (const card of portfolio) {
+      const option = resolveCardPriceOption(card, card.priceSource);
+      if (!option) continue;
 
-        return summary;
-      },
-      { estimatedCollectionValue: 0, missingPriceCount: 0 },
-    )
-  ), [estimatedValueSource, portfolio]);
-  const missingPriceMessage = missingPriceCount === 0
-    ? null
-    : `${missingPriceCount} card${missingPriceCount === 1 ? "" : "s"} missing price`;
-  const estimatedCollectionValueLabel = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: estimatedValueSource === "tcgplayer" ? "USD" : "EUR",
-  }).format(estimatedCollectionValue);
-  const sortedPortfolio = useMemo(() => {
-    if (portfolioSort === "default") return portfolio;
+      const line = option.price * cardQuantity(card);
+      if (option.currencySymbol === "$") totalUsd += line;
+      else totalEur += line;
+    }
 
-    return [...portfolio].sort((firstCard, secondCard) => {
-      const firstPrice = getEstimatedCardPrice(firstCard, estimatedValueSource);
-      const secondPrice = getEstimatedCardPrice(secondCard, estimatedValueSource);
-
-      if (firstPrice == null && secondPrice == null) return 0;
-      if (firstPrice == null) return 1;
-      if (secondPrice == null) return -1;
-
-      return portfolioSort === "price_desc"
-        ? secondPrice - firstPrice
-        : firstPrice - secondPrice;
-    });
-  }, [estimatedValueSource, portfolio, portfolioSort]);
+    return { totalUsd, totalEur };
+  }, [portfolio]);
 
   const requestQuantityChange = (card: PokemonCardType, amount: number) => {
     if (updatingQuantityId) return;
@@ -114,24 +90,37 @@ export default function Portfolio() {
     setPendingRemoval(null);
   };
 
+  const confirmPriceSourceChange = async () => {
+    if (!pendingPriceSource) return;
+
+    setUpdatingPriceSourceId(pendingPriceSource.cardId);
+    const ok = await updatePokemonPriceSource(
+      pendingPriceSource.cardId,
+      pendingPriceSource.priceSource,
+    );
+    setUpdatingPriceSourceId(null);
+    if (ok) setPendingPriceSource(null);
+  };
+
   useEffect(() => {
-    if (!pendingQuantity && !pendingRemoval) return;
+    if (!pendingQuantity && !pendingRemoval && !pendingPriceSource) return;
 
     const cancelWhenClickingOutside = (event: PointerEvent) => {
       const target = event.target;
       if (
         target instanceof Element &&
         target.closest(
-          ".portfolio__quantity-confirm, .portfolio__quantity-control, .portfolio__quantity-display",
+          ".ui-confirm-popover, .portfolio__quantity-control, .portfolio__quantity-display, .pokemon-card__source, .pokemon-card__source-flyout",
         )
       ) return;
       setPendingQuantity(null);
       setPendingRemoval(null);
+      setPendingPriceSource(null);
     };
 
     document.addEventListener("pointerdown", cancelWhenClickingOutside);
     return () => document.removeEventListener("pointerdown", cancelWhenClickingOutside);
-  }, [pendingQuantity, pendingRemoval]);
+  }, [pendingQuantity, pendingRemoval, pendingPriceSource]);
 
   if (authLoading || loadingPortfolio) {
     return <main className="portfolio portfolio--status ui-render-fade" key="loading"><h1>Loading collection...</h1></main>;
@@ -148,51 +137,39 @@ export default function Portfolio() {
           <span className="portfolio__eyebrow">Portfolio</span>
           <h1>My collection</h1>
         </div>
-        <div className="portfolio__tools">
-          <label className="portfolio__sort">
-            <span>Sort</span>
-            <select
-              value={portfolioSort}
-              onChange={(event) => setPortfolioSort(event.target.value as PortfolioSort)}
-            >
-              <option value="default">Default</option>
-              <option value="price_desc">Price high to low</option>
-              <option value="price_asc">Price low to high</option>
-            </select>
-          </label>
-          <div className="portfolio__estimated-value">
-            <div className="portfolio__estimated-value-row">
-              <span>Price source</span>
-              <div className="portfolio__estimated-value-options" aria-label="Estimated value source">
-                <label>
-                  <input
-                    type="radio"
-                    name="estimated-value-source"
-                    checked={estimatedValueSource === "tcgplayer"}
-                    onChange={() => setEstimatedValueSource("tcgplayer")}
-                  />
-                  TCGPlayer
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="estimated-value-source"
-                    checked={estimatedValueSource === "cardmarket"}
-                    onChange={() => setEstimatedValueSource("cardmarket")}
-                  />
-                  Cardmarket
-                </label>
-              </div>
+        {portfolio.length > 0 && (
+          <div className="portfolio__total" aria-live="polite">
+            <div className="portfolio__total-heading">
+              <span className="portfolio__total-label">Collection value</span>
+              <span className="portfolio__total-hint">
+              </span>
             </div>
-            <div className="portfolio__estimated-value-row">
-              <span>Estimated value</span>
-              <strong>{estimatedCollectionValueLabel}</strong>
+            <div className="portfolio__total-amounts">
+              {totalUsd > 0 && (
+                <span className="portfolio__total-chip portfolio__total-chip--usd">
+                  <small>TCG · USD</small>
+                  <strong>${money.format(totalUsd)}</strong>
+                </span>
+              )}
+              {totalUsd > 0 && totalEur > 0 && (
+                <span className="portfolio__total-plus" aria-hidden="true">
+                  +
+                </span>
+              )}
+              {totalEur > 0 && (
+                <span className="portfolio__total-chip portfolio__total-chip--eur">
+                  <small>Cardmarket · EUR</small>
+                  <strong>€{money.format(totalEur)}</strong>
+                </span>
+              )}
+              {totalUsd <= 0 && totalEur <= 0 && (
+                <span className="portfolio__total-chip portfolio__total-chip--empty">
+                  <strong>—</strong>
+                </span>
+              )}
             </div>
-            {missingPriceMessage && (
-              <small className="portfolio__missing-price-data">{missingPriceMessage}</small>
-            )}
           </div>
-        </div>
+        )}
       </header>
 
       {portfolio.length === 0 ? (
@@ -202,20 +179,42 @@ export default function Portfolio() {
         </div>
       ) : (
         <GridView>
-          {sortedPortfolio.map((card) => (
+          {portfolio.map((card) => (
             <div
               key={card.id}
               className={`portfolio__card${
-                pendingQuantity?.cardId === card.id || pendingRemoval?.cardId === card.id
+                pendingQuantity?.cardId === card.id ||
+                pendingRemoval?.cardId === card.id ||
+                pendingPriceSource?.cardId === card.id
                   ? " portfolio__card--confirming"
                   : ""
               }`}
             >
-              <PokemonCard
-                card={card}
-                priceSource={estimatedValueSource}
-                quantity={card.quantity}
-              />
+              <div className="portfolio__card-main">
+                <PokemonCard
+                  card={card}
+                  quantity={card.quantity}
+                  selectedPriceOptionId={card.priceSource ?? null}
+                  pendingPriceOptionId={
+                    pendingPriceSource?.cardId === card.id
+                      ? pendingPriceSource.priceSource
+                      : null
+                  }
+                  confirmingPriceOption={updatingPriceSourceId === card.id}
+                  onPriceOptionChange={(optionId) => {
+                    if (optionId === (card.priceSource ?? null)) {
+                      setPendingPriceSource(null);
+                      return;
+                    }
+                    setPendingPriceSource({
+                      cardId: card.id,
+                      priceSource: optionId,
+                    });
+                  }}
+                  onConfirmPriceOption={confirmPriceSourceChange}
+                  onCancelPriceOption={() => setPendingPriceSource(null)}
+                />
+              </div>
               <div className="portfolio__card-actions ui-fade">
                 <div className="portfolio__quantity-control">
                   <button
@@ -240,20 +239,19 @@ export default function Portfolio() {
                       : card.quantity ?? 1}
                   />
                   {pendingQuantity?.cardId === card.id && (
-                    <div
+                    <ConfirmPopover
                       className="portfolio__quantity-confirm"
-                      role="dialog"
+                      confirmLabel="Update"
                       aria-label="Confirm quantity change"
-                    >
-                      <button
-                        type="button"
-                        disabled={pendingQuantity.quantity === (card.quantity ?? 1)}
-                        onClick={confirmQuantityChange}
-                      >
-                        Update
-                      </button>
-                      <button type="button" onClick={() => setPendingQuantity(null)}>Cancel</button>
-                    </div>
+                      confirmDisabled={
+                        pendingQuantity.quantity === (card.quantity ?? 1)
+                      }
+                      confirming={updatingQuantityId === card.id}
+                      onConfirm={() => {
+                        void confirmQuantityChange();
+                      }}
+                      onCancel={() => setPendingQuantity(null)}
+                    />
                   )}
                 </div>
                 <div className="portfolio__quantity-control">
@@ -282,15 +280,16 @@ export default function Portfolio() {
                     <X aria-hidden="true" />
                   </button>
                   {pendingRemoval?.cardId === card.id && (
-                    <div
+                    <ConfirmPopover
                       className="portfolio__quantity-confirm"
-                      role="dialog"
+                      label="Delete?"
+                      confirmLabel="OK"
                       aria-label="Confirm card removal"
-                    >
-                      <span>Delete?</span>
-                      <button type="button" onClick={confirmRemoval}>OK</button>
-                      <button type="button" onClick={() => setPendingRemoval(null)}>Cancel</button>
-                    </div>
+                      onConfirm={() => {
+                        void confirmRemoval();
+                      }}
+                      onCancel={() => setPendingRemoval(null)}
+                    />
                   )}
                 </div>
               </div>

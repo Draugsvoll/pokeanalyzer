@@ -8,6 +8,7 @@ export type PortfolioContextType = {
   addToPortfolioCache: (card: PokemonCard) => void;
   removeFromPortfolioCache: (cardId: string) => void;
   updatePortfolioQuantityCache: (cardId: string, quantity: number) => void;
+  updatePortfolioPriceSourceCache: (cardId: string, priceSource: string) => void;
   isCardSaved: (cardId: string) => boolean;
 };
 

@@ -35,4 +35,6 @@ export type PokemonCard = {
     worth_grading?: Record<string, unknown> & { timestamp: string };
   };
   quantity?: number;
+  /** Selected price option id, e.g. "tcgplayer:holofoil" | "cardmarket:trendPrice" */
+  priceSource?: string;
 };

@@ -53,6 +53,19 @@ function getQuantity(value: unknown) {
   return quantity;
 }
 
+const PRICE_SOURCE_PATTERN = /^(tcgplayer|cardmarket):[A-Za-z0-9._-]{1,80}$/;
+
+function getPriceSource(value: unknown) {
+  const priceSource = typeof value === "string" ? value.trim() : "";
+  if (!PRICE_SOURCE_PATTERN.test(priceSource)) {
+    throw new PortfolioHttpError(
+      "priceSource must look like tcgplayer:variant or cardmarket:field",
+      400,
+    );
+  }
+  return priceSource;
+}
+
 async function getCardFromDatabase(cardId: string): Promise<Record<string, unknown>> {
   const row = await dbGet<{ raw_json: string }>(
     "SELECT raw_json FROM cards WHERE id = ?",
@@ -114,6 +127,25 @@ router.patch("/cards/:cardId/quantity", async (req, res) => {
     res.json({ cardId, quantity });
   } catch (error) {
     sendPortfolioError(res, error, "Failed to update portfolio quantity");
+  }
+});
+
+router.patch("/cards/:cardId/price-source", async (req, res) => {
+  try {
+    const uid = getAuthenticatedUid(res);
+    const cardId = getCardId(req.params.cardId);
+    const priceSource = getPriceSource(req.body?.priceSource);
+    const cardRef = portfolioCardRef(uid, cardId);
+    const cardSnap = await cardRef.get();
+
+    if (!cardSnap.exists) {
+      throw new PortfolioHttpError("Portfolio card not found", 404);
+    }
+
+    await cardRef.update({ priceSource });
+    res.json({ cardId, priceSource });
+  } catch (error) {
+    sendPortfolioError(res, error, "Failed to update portfolio price source");
   }
 });
 

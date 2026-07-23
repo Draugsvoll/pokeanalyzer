@@ -79,21 +79,6 @@
 
 }
 
-.general-news__trend-number {
-  align-items: center;
-  background: rgba(99, 102, 241, 0.11);
-  border: 1px solid rgba(129, 140, 248, 0.26);
-  border-radius: var(--border-radius);
-  color: #a5b4fc;
-  display: flex;
-  flex: 0 0 2.25rem;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-extrabold);
-  height: 2.25rem;
-  justify-content: center;
-  line-height: 1;
-}
-
 .general-news__trend-content {
   flex: 1;
   min-width: 0;
@@ -195,11 +180,6 @@
   .general-news__trend {
     gap: 0.85rem;
     padding: 1.15rem;
-  }
-
-  .general-news__trend-number {
-    flex-basis: 2rem;
-    height: 2rem;
   }
 
   .general-news__trend-heading {

@@ -5,13 +5,18 @@ import { logClientError } from "../../utils/logClientError";
 import {
   addPortfolioCard,
   removePortfolioCard,
+  updatePortfolioCardPriceSource,
   updatePortfolioCardQuantity,
 } from "../../services/portfolioApi";
 
 export function usePokemonPortfolio() {
   const { user: authUser } = useAuth();
-  const { addToPortfolioCache, removeFromPortfolioCache, updatePortfolioQuantityCache } =
-    usePortfolioCache();
+  const {
+    addToPortfolioCache,
+    removeFromPortfolioCache,
+    updatePortfolioQuantityCache,
+    updatePortfolioPriceSourceCache,
+  } = usePortfolioCache();
 
   const savePokemonToPortfolio = async (card: PokemonCard) => {
     if (!authUser) return false;
@@ -63,5 +68,28 @@ export function usePokemonPortfolio() {
     }
   };
 
-  return { savePokemonToPortfolio, removePokemonFromPortfolio, updatePokemonQuantity };
+  const updatePokemonPriceSource = async (
+    cardId: string,
+    priceSource: string,
+  ) => {
+    if (!authUser || !priceSource.trim()) return false;
+
+    try {
+      // Same order as quantity: wait for Firebase, then update cache
+      await updatePortfolioCardPriceSource(cardId, priceSource);
+      updatePortfolioPriceSourceCache(cardId, priceSource);
+      return true;
+    } catch (error) {
+      logClientError("Failed to update card price source", error);
+      alert("Failed to update price source.");
+      return false;
+    }
+  };
+
+  return {
+    savePokemonToPortfolio,
+    removePokemonFromPortfolio,
+    updatePokemonQuantity,
+    updatePokemonPriceSource,
+  };
 }

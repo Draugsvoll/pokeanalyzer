@@ -135,9 +135,6 @@ export const GeneralNews: React.FC = () => {
                   className="general-news__trend"
                   key={item.headline ?? item.url ?? index}
                 >
-                  <div className="general-news__trend-number" aria-hidden="true">
-                    {index + 1}
-                  </div>
                   <div className="general-news__trend-content">
                     <div className="general-news__trend-heading">
                       {item.headline && <h2>{item.headline}</h2>}

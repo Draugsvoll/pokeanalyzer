@@ -308,25 +308,27 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-You are an expert Pokémon TCG collector and market analyst.
-I will give you a specific Pokémon card. Your task is to analyze whether it's worth
-getting PSA graded and provide a clear, collector-focused response. Use reliable sources.
+You are a PSA grader for pokemon cards.
+You need to analyze if it makes financial sense to get a card PSA graded.
+Assume the card is in the area of average to good condition, and then see if the numbers
+involved makes it profitable.
 
 
 Do the following:
 
-1. Research the current market values (raw + PSA 8/9/10).
-2. Research grading costs and realistic ROI.
-3. Give a direct, honest and objective recommendation.
+1. Research the current market values (raw + PSA 8/9/10). Only use reliable sources.
+  Fint out how sales volume are for the card.
+2. Research grading costs, fees etc
+3. Give a recommendation
 
 Specifially for prices on (raw + PSA 8/9/10), make it an estimated average price-range.
 for example "$32-$38". In grading cost, mention the things you included for the number
 in the form of summary/keywords, place the text before the number. Must be under 10 words.
 
 Return a clean JSON object with exactly these keys:
-- verdict: A short, direct conclusion (1 sentence)
+- verdict: A short, direct conclusion (1 sentence). Don't mention sales volume in this field.
 - market_summary: An object containing raw value, PSA 8, PSA 9, PSA 10, and grading cost
-- summary: A clear explanation of your reasoning
+- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read, dont use too many details and prices.
 - action: A concise summary. 1-3 sentences. Keep it straight to the point and only valueable information.
 
 Card to analyze:
@@ -335,46 +337,28 @@ Card to analyze:
 
 export const getBiggestMovers: string =
 `
-You are a Pokémon TCG market analyst.
+can you summarize each card in The Biggest Price Spikes in Pokémon this Week from
+TCG (english single cards)? use the most recent you can find. Since we are summarizing, only
+mention the most important or valuable things.
+The most important part is the actual price-spike values mentioned by
+the author. Preferably mention the price spikes early in the summary.
+Shorten the content for each card to 3-5 sentences.
 
-Your task is to extract Pokémon card price data from the latest TCGplayer "Biggest Price Spikes" report.
+- report_link is url to the report you used.
+- spike_summar summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.
 
-Use only the latest published report.
+Return only a valid JSON format as the one below. No text added before or after.
 
-Extract every Pokémon card listed in the report.
-
-Rules
-
-- Use the report's Open and Last prices exactly as shown.
-- If the dollar or percentage change is not shown, calculate it from Open and Last.
-- If a field is unavailable, return null.
-- Do not guess missing values.
-- Keep the cards in the same ranking order as the report.
-- Return prices and percentages as JSON numbers (no $, %, commas, or + signs).
-- card_number should be an integer when available, otherwise null.
-- source_name should always be "TCGplayer".
-- source_title should be the report title (e.g. "Biggest Price Spikes").
-- source_url should be the direct URL of that report.
-- Use the same source_name, source_title, and source_url on every object.
-
-Return ONLY a valid JSON array. No text before or after. Every object must match this schema exactly (same keys, same types):
-
-[
-  {
-    "rank": 1,
-    "card_name": "Pikachu & Zekrom-GX",
-    "set_name": "Team Up",
-    "card_number": null,
-    "open_price": 40.82,
-    "last_price": 99.49,
-    "price_change_dollar": 58.67,
-    "price_change_percent": 143.7,
-    "reason": "Demand increased following recent Pokémon TCG announcements.",
-    "source_name": "TCGplayer",
-    "source_title": "Biggest Price Spikes",
-    "source_url": "https://..."
-  }
-]
+{
+  "report_link": "",
+  "cards": [
+    {
+      "rank": "",
+      "card_name": "",
+      "summary": "",
+    }
+  ]
+}
 `
 
 export const getGeneralNewsPrompt: string =

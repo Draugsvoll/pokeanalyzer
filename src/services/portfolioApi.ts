@@ -45,3 +45,16 @@ export function updatePortfolioCardQuantity(cardId: string, quantity: number) {
     },
   );
 }
+
+export function updatePortfolioCardPriceSource(
+  cardId: string,
+  priceSource: string,
+) {
+  return portfolioRequest<{ cardId: string; priceSource: string }>(
+    `/cards/${encodeURIComponent(cardId)}/price-source`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ priceSource }),
+    },
+  );
+}
