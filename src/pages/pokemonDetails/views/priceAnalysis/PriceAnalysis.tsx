@@ -72,7 +72,7 @@ function PriceField({ label, value }: { label: string; value: unknown }) {
 function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokRequest">) {
   const { loading, error, response } = grokRequest;
 
-  if (loading) return <LoadingState>Asking AI...</LoadingState>;
+  if (loading) return <LoadingState>Researching sources...</LoadingState>;
   if (error) return <p className="card-view__page-error">{error}</p>;
   if (!response) return null;
 

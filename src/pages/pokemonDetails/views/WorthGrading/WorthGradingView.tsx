@@ -47,7 +47,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
   const market = data.market_summary ?? {};
   const marketRows = [
-    { label: "Raw (NM)", key: "raw value", Icon: CircleDollarSign, tone: "default" },
+    { label: "Raw ", key: "raw value", Icon: CircleDollarSign, tone: "default" },
     { label: "PSA 8", key: "PSA 8", Icon: ChartNoAxesCombined, tone: "amber" },
     { label: "PSA 9", key: "PSA 9", Icon: ChartNoAxesCombined, tone: "amber" },
     { label: "PSA 10", key: "PSA 10", Icon: BadgeDollarSign, tone: "green" },

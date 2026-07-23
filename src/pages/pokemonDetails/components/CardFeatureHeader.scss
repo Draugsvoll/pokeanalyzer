@@ -11,7 +11,7 @@
     display: inline-flex;
     font-size: 0.9rem;
     font-weight: var(--font-weight-bold);
-    gap: 0.4rem;
+    gap: 0.45rem;
     letter-spacing: var(--font-tracking-wider);
     text-transform: uppercase;
 
@@ -19,6 +19,23 @@
       flex: 0 0 auto;
       height: 0.9rem;
       width: 0.9rem;
+    }
+
+    .card-feature-header__spinner {
+      animation: card-feature-header-spin 0.75s linear infinite;
+      border: 2px solid color-mix(in srgb, var(--feature-accent) 22%, transparent);
+      border-radius: 50%;
+      border-top-color: var(--feature-accent);
+      display: inline-block;
+      flex: 0 0 auto;
+      height: 0.85rem;
+      width: 0.85rem;
+    }
+  }
+
+  @keyframes card-feature-header-spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 

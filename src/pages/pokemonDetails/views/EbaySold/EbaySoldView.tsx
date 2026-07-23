@@ -48,6 +48,7 @@ const FEATURED_FIELDS = new Set([
   "sellerpositivepercent",
   "sellerfeedbackscore",
   "itemlocation",
+  "listingtype",
 ]);
 
 function getField(result: EbayCompResult, key: string) {

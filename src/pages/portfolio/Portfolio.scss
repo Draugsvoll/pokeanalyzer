@@ -238,14 +238,14 @@
 
   &__quantity-confirm {
     align-items: center;
-    background: var(--bg2);
+    background: var(--bg3);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: var(--border-radius);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     display: flex;
     gap: 0.4rem;
     left: calc(100% + 0.55rem);
-    padding: 0.45rem;
+    padding: 0.6rem 1.2rem;
     position: absolute;
     top: 50%;
     transform: translateY(-50%);

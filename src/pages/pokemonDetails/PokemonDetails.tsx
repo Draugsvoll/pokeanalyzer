@@ -216,7 +216,7 @@ export default function PokemonDetails() {
       if (!featureButtons) return;
 
       window.scrollTo({
-        top: window.scrollY + featureButtons.getBoundingClientRect().top + 80,
+        top: window.scrollY + featureButtons.getBoundingClientRect().top - 120,
         behavior: "smooth",
       });
     });

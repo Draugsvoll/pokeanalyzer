@@ -9,6 +9,7 @@ type CardFeatureHeaderProps = {
   color: CustomColors;
   icon: LucideIcon;
   label: string;
+  loading?: boolean;
 };
 
 function formatCardNumber(card: PokemonCard, cardNumber?: string) {
@@ -28,6 +29,7 @@ export function CardFeatureHeader({
   color,
   icon: Icon,
   label,
+  loading,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
   const metadata = [
@@ -41,6 +43,7 @@ export function CardFeatureHeader({
       style={getCustomColors(color)}
     >
       <span className="card-feature-header__label">
+        {loading && <span className="card-feature-header__spinner" aria-hidden="true" />}
         <Icon aria-hidden="true" />
         {label}
       </span>

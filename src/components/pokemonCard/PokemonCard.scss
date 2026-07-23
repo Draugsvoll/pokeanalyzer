@@ -62,17 +62,18 @@
   align-items: baseline;
   display: flex;
   gap: 0.35rem;
-  margin: 0;
+  margin: 0.1rem 0 0;
   padding: 0;
   width: 100%;
 
   span {
     color: var(--font-color-primary);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-price);
+    font-size: var(--font-size-price-md);
     font-variant-numeric: tabular-nums;
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--font-tracking-wide);
+    font-weight: var(--font-weight-extrabold);
+    letter-spacing: var(--font-tracking-tight);
+    line-height: 1.15;
   }
 
   small {

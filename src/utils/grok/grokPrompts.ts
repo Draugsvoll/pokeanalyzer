@@ -208,10 +208,10 @@ No extra text before or after.
 
 const psaGrading: string = `
 Do a PSA grading of this pokemon card. Be as strict and thorough as a professional grader.
-Be objective about the card. If the image has limitations where its hard to determine condition,
-assume its in average condition. Also mention everything about the image that limits your
-grading process. Scan the image as detailed as possible so no details gets lost in the process.
-Don't invent anything about the condition.
+Be objective about the card. If the image has limitations where its hard to determine condition
+on a detail, assume its closer to an average condition. Also mention everything about the image
+that limits your grading process. Scan the image as detailed as possible so no details gets lost
+in the process. Don't invent anything about the condition.
 
 Give a roughly estimated score for each category: Centering, Corners, Edges, Surface.
 
@@ -270,8 +270,8 @@ You are a professional pokemon collector, and you are hired to rank cards for se
 collectors. you need to rank a card professionally. Take your time,
 get as much data as possible, from as many trustworthy sources as possible.
 give it a score from 1-100 where 100 would be the most desired card among collectors.
-You must reasearch as deeply as possible before estimating the card,
-because you often give a different score for the same card.
+You must reasearch as deeply as possible (using reliable sources) before estimating the card,
+to avoid giving different scores to the same card when asked again later.
 
 You must justify exactly WHY it was given its score. a collector should walk away
 understanding exactly why it deserved that score and feeling more educated about the card.
@@ -309,19 +309,25 @@ Now rank this card:
 const isWorthGrading: string =
 `
 You are an expert Pokémon TCG collector and market analyst.
-I will give you a specific Pokémon card. Your task is to analyze whether it is worth
-getting PSA graded and provide a clear, collector-focused response.
+I will give you a specific Pokémon card. Your task is to analyze whether it's worth
+getting PSA graded and provide a clear, collector-focused response. Use reliable sources.
+
 
 Do the following:
 
 1. Research the current market values (raw + PSA 8/9/10).
 2. Research grading costs and realistic ROI.
-3. Give a direct, honest recommendation.
+3. Give a direct, honest and objective recommendation.
+
+Specifially for prices on (raw + PSA 8/9/10), make it an estimated average price-range.
+for example "$32-$38". In grading cost, mention the things you included for the number
+in the form of summary/keywords, place the text before the number. Must be under 10 words.
+
 Return a clean JSON object with exactly these keys:
 - verdict: A short, direct conclusion (1 sentence)
 - market_summary: An object containing raw value, PSA 8, PSA 9, PSA 10, and grading cost
 - summary: A clear explanation of your reasoning
-- action: A concise, actionable summary for the collector
+- action: A concise summary. 1-3 sentences. Keep it straight to the point and only valueable information.
 
 Card to analyze:
 
@@ -329,82 +335,76 @@ Card to analyze:
 
 export const getBiggestMovers: string =
 `
-Summarize the biggest price movements in pokemon-cards for the last 7days.
-1 section for biggest gainers, and 1 for biggest losers.
+You are a Pokémon TCG market analyst.
 
-use this workflow:
--Scan TCGMetric for biggest movers.
--Verify the move using TCGplayer Market Price.
+Your task is to extract Pokémon card price data from the latest TCGplayer "Biggest Price Spikes" report.
 
-Return only a valid JSON format as in the example response below.
+Use only the latest published report.
 
-Get 5-10 cards for both biggest gainers and losers.
+Extract every Pokémon card listed in the report.
 
-"notes" field should mention the price before and after, and try to explain what caused the price movement. If you dont have enough reliable data to explain why the price moved, then dont mention it.
+Rules
 
-{
-  "report_title": "Pokémon TCG Price Movers",
-  "period": "July 6 – July 13, 2026",
-  "top_gainers": [
-    {
-      "rank": 1,
-      "card": "Tyranitar V",
-      "set": "Fusion Strike",
-      "change": "+70–80%",
-      "notes": "TCGPlayer market price rose from $0.99 to $4.01. The price move was caused by hype from the big event"
-    },
-  ],
-  "top_losers": [
-    {
-      "rank": 1,
-      "card": "Primarina GX",
-      "set": "Sun & Moon",
-      "change": "-75–85%",
-      "notes": "TCGPlayer market price fell from $6.92 to $3.80 (-82%)."
-    },
-  ],
-  "market_context": "The Pokémon TCG singles market showed notable volatility over
-  the past ~30 days (mid-June to early July 2026), with strong gains concentrated
-  in Illustration Rares from newer sets like Black Bolt and White Flare, while older
-  GX/ex cards and certain trainers from Sun & Moon and other eras saw sharp declines.
-  Data derived from TCGPlayer market prices tracked by DigitalTQ."
-}
+- Use the report's Open and Last prices exactly as shown.
+- If the dollar or percentage change is not shown, calculate it from Open and Last.
+- If a field is unavailable, return null.
+- Do not guess missing values.
+- Keep the cards in the same ranking order as the report.
+- Return prices and percentages as JSON numbers (no $, %, commas, or + signs).
+- card_number should be an integer when available, otherwise null.
+- source_name should always be "TCGplayer".
+- source_title should be the report title (e.g. "Biggest Price Spikes").
+- source_url should be the direct URL of that report.
+- Use the same source_name, source_title, and source_url on every object.
+
+Return ONLY a valid JSON array. No text before or after. Every object must match this schema exactly (same keys, same types):
+
+[
+  {
+    "rank": 1,
+    "card_name": "Pikachu & Zekrom-GX",
+    "set_name": "Team Up",
+    "card_number": null,
+    "open_price": 40.82,
+    "last_price": 99.49,
+    "price_change_dollar": 58.67,
+    "price_change_percent": 143.7,
+    "reason": "Demand increased following recent Pokémon TCG announcements.",
+    "source_name": "TCGplayer",
+    "source_title": "Biggest Price Spikes",
+    "source_url": "https://..."
+  }
+]
 `
 
 export const getGeneralNewsPrompt: string =
 `
-You are an expert Pokémon TCG collector community analyst.
+You are an expert researcher for serious Pokémon TCG collectors and investors.
+Provide the latest and most important news from the past 30 days only.
+Focus on: major set announcements, valuable card reveals, population report updates,
+price spikes/crashes, grading news, tournaments, scandals, official PSA/Beckett/CGC updates,
+and high-value sales. Use reliable sources.
 
-Your task is to research and summarize the **latest trends** in the Pokémon TCG collector
-community the last 7days. Use reliable sources.
+Respond strictly in this JSON format (no extra text outside the JSON):
 
-Output **only valid JSON** in this exact structure:
+{ "date": "YYYY-MM-DD", "items":
+ [
+{ "headline": "Short headline",
+  "summary": "1-4 sentence summary",
+   "action": ["Bullet point 1 if valuable", "Bullet point 2"],
+   "url": "https://direct-article-link.com" }
+    ]
+ }
 
-{
-  "overview": "1-2 sentence overview of the current state of the Pokémon TCG collector community.",
-  "overall_sentiment": "One concise sentence about the current mood/sentiment in the community."
-  "trends": [
-    {
-      "number": 1,
-      "title": "Short Trend Title",
-      "label": "new release",
-      "context": "1-2 sentences giving context about this trend/news.",
-      "points": [
-        "Key point 1",
-        "Key point 2"
-      ]
-    }
-  ],
-}
+ Rules: Limit to top 5-8 items. "action" array: only 1-3 bullets if they add real value
+ (why important + how to act); leave empty array [] if redundant or minor.
 
-Instructions:
-- you can create more key points if needed.
-- Research and use the most recent Pokémon TCG news (focus on new sets, releases, promos, market trends, and collector activity).
-- Choose accurate short labels (examples: "new release", "anniversary", "market", "promos", "retail", "accessories", "events").
-- Keep "context" field to 1-2 informative sentences.
-- Use engaging but professional tone.
-- Do not include any explanations or text outside the JSON.
-- Current date reference: July 2026.
+ Include "url" only if it's a direct link to a specific article.
+ Never use a link thats just a generel site or news section, only if its a specified article.
+ Dont put links to youtube videos. The url link must be the actual http link so user can see
+the source. Prioritize high-impact news for serious collectors/investors.
+Use today's date for reference.
+
 `
 
 export function isWorthGradingPrompt(cardNameAndSet: string): string {

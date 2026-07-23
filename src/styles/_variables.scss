@@ -6,6 +6,7 @@
 :root {
   /* ----- Surfaces / chrome ----- */
   --bg: #191724;
+  --bg3:#292639;
   --bg2: linear-gradient(
     145deg,
     color-mix(in srgb, var(--custom-color-purple) 7%, rgba(255, 255, 255, 0.045)) 0%,
@@ -27,7 +28,7 @@
   --custom-color-pink: #f43f5e;
   --custom-color-blue: #1b95c9;
 
-  --border: 1px solid #334155;
+  --border: 1px solid #2e334f;
   --border-hover: 1px solid #3d4b5f;
   --border-divider: rgba(255, 255, 255, 0.065);
   --border-radius: 12px;
