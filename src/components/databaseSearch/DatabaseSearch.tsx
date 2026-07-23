@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../button/Button";
 import type { PokemonCard } from "../../types/pokemon";
@@ -12,10 +13,19 @@ const integerFormatter = new Intl.NumberFormat("en-US");
 
 type DatabaseSearchProps = {
   autoFocusName?: boolean;
+  /** Compact fields-only layout for inside the card shell */
+  embedded?: boolean;
+  /** When set, results render into this element (e.g. below the card shell) */
+  resultsPortalEl?: HTMLElement | null;
+  /** Hide/close the search UI (embedded card view) */
+  onHide?: () => void;
 };
 
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
+  embedded = false,
+  resultsPortalEl = null,
+  onHide,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -112,9 +122,16 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   };
 
   return (
-    <section className="database-preview" id="database-search">
-      <h2>Pokémon Database</h2>
-      <p>Søk blant 20.000+ kort og se globale markedsdata.</p>
+    <section
+      className={`database-preview${embedded ? " database-preview--embedded" : ""}`}
+      id="database-search"
+    >
+      {!embedded && (
+        <>
+          <h2>Pokémon Database</h2>
+          <p>Søk blant 20.000+ kort og se globale markedsdata.</p>
+        </>
+      )}
       <div className="database-search-container">
         <input
           className="database-search"
@@ -145,9 +162,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           onKeyDown={handleSearchKeyDown}
           placeholder="Number"
         />
-        <Button className="btn-secondary" onClick={handleClearSearch}>
-          Tøm
-        </Button>
         <Button
           className="btn-secondary"
           onClick={handleSearch}
@@ -155,69 +169,87 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         >
           Søk
         </Button>
+        {onHide ? (
+          <Button className="btn-secondary" onClick={onHide}>
+            Close
+          </Button>
+        ) : (
+          <Button className="btn-secondary" onClick={handleClearSearch}>
+            Tøm
+          </Button>
+        )}
       </div>
 
-      {results.length > 0 && (
-        <div
-          className="search-results ui-render-fade"
-          key={resultRenderKey}
-        >
-          {results.map((card) => (
-            <article
-              key={card.id}
-              className="database-card card-hover"
-              role="button"
-              tabIndex={0}
-              onClick={() => handleClick(card)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  handleClick(card);
-                }
-              }}
-            >
-              <div className="database-card__image">
-                <img src={card.images?.small} alt={card.name} />
-              </div>
-              <div className="database-card__content">
-                <header className="database-card__header">
-                  <div>
-                    <h3>{card.name}</h3>
-                    <p>{card.set?.name}</p>
-                  </div>
-                  {card.rarity && (
-                    <span className="card-rarity-badge">{card.rarity}</span>
-                  )}
-                </header>
+      {(() => {
+        if (results.length === 0) return null;
 
-                <dl className="database-card__metadata">
-                  <div>
-                    <dt>Number</dt>
-                    <dd>
-                      {card.number && card.set.printedTotal !== undefined
-                        ? `${card.number} / ${integerFormatter.format(card.set.printedTotal)}`
-                        : card.number ?? "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Set cards</dt>
-                    <dd>{card.set.printedTotal ?? "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>Artist</dt>
-                    <dd>{card.artist ?? "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>Series</dt>
-                    <dd>{card.set?.series ?? "—"}</dd>
-                  </div>
-                </dl>
+        const resultsNode = (
+          <div
+            className="search-results ui-render-fade"
+            key={resultRenderKey}
+          >
+            {results.map((card) => (
+              <article
+                key={card.id}
+                className="database-card card-hover"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleClick(card)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleClick(card);
+                  }
+                }}
+              >
+                <div className="database-card__image">
+                  <img src={card.images?.small} alt={card.name} />
+                </div>
+                <div className="database-card__content">
+                  <header className="database-card__header">
+                    <div>
+                      <h3>{card.name}</h3>
+                      <p>{card.set?.name}</p>
+                    </div>
+                    {card.rarity && (
+                      <span className="card-rarity-badge">{card.rarity}</span>
+                    )}
+                  </header>
 
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+                  <dl className="database-card__metadata">
+                    <div>
+                      <dt>Number</dt>
+                      <dd>
+                        {card.number && card.set.printedTotal !== undefined
+                          ? `${card.number} / ${integerFormatter.format(card.set.printedTotal)}`
+                          : card.number ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Set cards</dt>
+                      <dd>{card.set.printedTotal ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Artist</dt>
+                      <dd>{card.artist ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Series</dt>
+                      <dd>{card.set?.series ?? "—"}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </article>
+            ))}
+          </div>
+        );
+
+        if (resultsPortalEl) {
+          return createPortal(resultsNode, resultsPortalEl);
+        }
+
+        return resultsNode;
+      })()}
     </section>
   );
 };

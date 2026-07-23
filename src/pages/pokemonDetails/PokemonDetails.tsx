@@ -63,7 +63,6 @@ type CardInfoField = {
 type ActiveView =
   | "empty_view"
   | "collector_analysis"
-  | "search_card"
   | "ebay_sold"
   | "prices"
   | "worth_grading";
@@ -176,6 +175,9 @@ export default function PokemonDetails() {
   const { id } = useParams();
   const featureButtonsRef = useRef<HTMLDivElement>(null);
   const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
+  const [searchResultsHost, setSearchResultsHost] = useState<HTMLDivElement | null>(
+    null,
+  );
   const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
   const [card, setCard] = useState<PokemonCard | null>(cachedCard);
   const [loading, setLoading] = useState(!cachedCard && Boolean(id));
@@ -183,6 +185,7 @@ export default function PokemonDetails() {
     cachedCard?.images?.large ?? cachedCard?.images?.small
   );
   const [activeView, setActiveView] = useState<ActiveView>("empty_view");
+  const [showCardSearch, setShowCardSearch] = useState(false);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
@@ -218,22 +221,6 @@ export default function PokemonDetails() {
       window.scrollTo({
         top: window.scrollY + featureButtons.getBoundingClientRect().top - 120,
         behavior: "smooth",
-      });
-    });
-  }
-
-  function scrollToDatabaseSearch() {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const databaseSearch = document.querySelector<HTMLElement>(
-          ".card-view__page .database-search",
-        );
-        if (!databaseSearch) return;
-
-        window.scrollTo({
-          top: window.scrollY + databaseSearch.getBoundingClientRect().top - 200,
-          behavior: "smooth",
-        });
       });
     });
   }
@@ -413,6 +400,7 @@ export default function PokemonDetails() {
     abortActiveRequest();
     // New card (e.g. from in-page database search): leave feature panels
     setActiveView("empty_view");
+    setShowCardSearch(false);
     setGrokResponse("");
     setGrokError("");
     setGrokLoading(false);
@@ -535,81 +523,97 @@ export default function PokemonDetails() {
     <div className="card-view">
       <div className="card-view__panel-wrap">
         <div className="card-view__shell">
-          <div className="card-view__image-side">
-            <img
-              key={card.id}
-              className="card-view__image ui-render-fade"
-              src={cardImageSrc}
-              alt={card.name}
-            />
-          </div>
+          <div className="card-view__details">
+            <div className="card-view__image-side">
+              <img
+                key={card.id}
+                className="card-view__image ui-render-fade"
+                src={cardImageSrc}
+                alt={card.name}
+              />
+            </div>
 
-          <div className="card-view__info-side">
-            <div className="card-view__title-row">
-              <h2 className="card-view__title">{card.name}</h2>
-              <div className="card-view__portfolio-control">
+            <div className="card-view__info-side">
+              <div className="card-view__title-row">
+                <h2 className="card-view__title">{card.name}</h2>
+                <div className="card-view__portfolio-control">
+                  <Button
+                    className={`card-view__portfolio-button${cardIsSaved ? " is-saved" : ""}`}
+                    disabled={updatingPortfolio}
+                    onClick={handlePortfolioToggle}
+                    aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                    aria-pressed={cardIsSaved}
+                    aria-busy={updatingPortfolio}
+                    title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                  >
+                    <Star aria-hidden="true" />
+                    <span>
+                      {updatingPortfolio
+                        ? "Updating..."
+                        : cardIsSaved
+                          ? "In portfolio"
+                          : "Add to portfolio"}
+                    </span>
+                  </Button>
+                  {portfolioConfirmation && (
+                    <span className="card-view__portfolio-confirmation" role="status">
+                      {portfolioConfirmation}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {card.set?.name && (
+                <p className="card-view__title-set">
+                  <i aria-hidden="true">•</i>
+                  {card.set.name}
+                </p>
+              )}
+
+              <div className="card-view__info-grid">
+                {infoFields.map((field) => (
+                  <div key={field.label} className="card-view__info-item">
+                    <span className="card-view__label">{field.label}</span>
+                    <span
+                      className={`card-view__value${
+                        field.highlight ? " card-rarity-badge" : ""
+                      }`}
+                    >
+                      {field.value ?? "N/A"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card-view__info-actions">
                 <Button
-                  className={`card-view__portfolio-button${cardIsSaved ? " is-saved" : ""}`}
-                  disabled={updatingPortfolio}
-                  onClick={handlePortfolioToggle}
-                  aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
-                  aria-pressed={cardIsSaved}
-                  aria-busy={updatingPortfolio}
-                  title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                  className="card-view__change-card"
+                  onClick={() => setShowCardSearch((open) => !open)}
+                  aria-expanded={showCardSearch}
                 >
-                  <Star aria-hidden="true" />
-                  <span>
-                    {updatingPortfolio
-                      ? "Updating..."
-                      : cardIsSaved
-                        ? "In portfolio"
-                        : "Add to portfolio"}
-                  </span>
+                  <span>{showCardSearch ? "Cancel" : "Change card"}</span>
                 </Button>
-                {portfolioConfirmation && (
-                  <span className="card-view__portfolio-confirmation" role="status">
-                    {portfolioConfirmation}
-                  </span>
-                )}
               </div>
             </div>
-            {card.set?.name && (
-              <p className="card-view__title-set">
-                <i aria-hidden="true">•</i>
-                {card.set.name}
-              </p>
-            )}
-
-            <div className="card-view__info-grid">
-              {infoFields.map((field) => (
-                <div key={field.label} className="card-view__info-item">
-                  <span className="card-view__label">{field.label}</span>
-                  <span
-                    className={`card-view__value${
-                      field.highlight ? " card-rarity-badge" : ""
-                    }`}
-                  >
-                    {field.value ?? "N/A"}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="card-view__info-actions">
-              <Button
-                className="card-view__change-card"
-                onClick={() => {
-                  abortActiveRequest();
-                  setActiveView("search_card");
-                  scrollToDatabaseSearch();
-                }}
-                aria-pressed={activeView === "search_card"}
-              >
-                <span>Change card</span>
-              </Button>
-            </div>
           </div>
+
+          {showCardSearch && (
+            <div className="card-view__search ui-render-fade">
+              <DatabaseSearch
+                autoFocusName
+                embedded
+                resultsPortalEl={searchResultsHost}
+                onHide={() => setShowCardSearch(false)}
+              />
+            </div>
+          )}
         </div>
+
+        {showCardSearch && (
+          <div
+            ref={setSearchResultsHost}
+            className="card-view__search-results-host"
+          />
+        )}
       </div>
 
       <div className="card-view__credit-note">
@@ -711,7 +715,6 @@ export default function PokemonDetails() {
           }}
           />
         )}
-        {activeView === "search_card" && <DatabaseSearch />}
         {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis grokRequest={grokRequest} />

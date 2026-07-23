@@ -17,7 +17,9 @@
   }
 
   &__panel-wrap {
+    align-items: center;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     width: 100%;
   }
@@ -29,10 +31,34 @@
     flex-direction: column;
     width: var(--content-width);
     max-width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border:var(--border);
+    border: var(--border);
     border-radius: var(--border-radius);
     overflow: hidden;
+  }
+
+  /* Image + info row; shell stays column so search can sit under both */
+  &__details {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* Search fields only — results portal below the shell */
+  &__search {
+    border-top: 1px solid var(--border-divider);
+    padding: 1rem 1.25rem 1.15rem;
+    width: 100%;
+  }
+
+  &__search-results-host {
+    max-width: 100%;
+    margin-top: 0.85rem;
+    width: var(--content-width);
+
+    .search-results {
+      margin: 0;
+      max-width: none;
+    }
   }
 
   &__image-side {
@@ -307,7 +333,7 @@
 }
 
 @media (min-width: 48rem) {
-  .card-view__shell {
+  .card-view__details {
     flex-direction: row;
     align-items: stretch;
   }
@@ -332,6 +358,19 @@
 
     &__shell {
       width: 100%;
+    }
+
+    &__search {
+      padding: 0.9rem 1rem 1rem;
+
+      .database-search-container {
+        flex-wrap: wrap;
+      }
+
+      .database-search {
+        flex: 1 1 calc(50% - 0.4rem);
+        min-width: 6rem;
+      }
     }
 
     &__info-side {
