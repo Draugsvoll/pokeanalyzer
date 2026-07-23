@@ -87,6 +87,11 @@ router.post("/", async (req: Request, res: Response) => {
       throw new CreditHttpError("Invalid Grok feature", 400);
     }
 
+    const adminUid = process.env.ADMIN_UID?.trim();
+    if (feature === "market_news" && (!adminUid || uid !== adminUid)) {
+      throw new CreditHttpError("Admin access required", 403);
+    }
+
     let prompt = requestedPrompt;
     let cardGrokTarget: { cardId: string; storageKey: string } | null = null;
     const cardGrokFeature = getCardGrokFeature(feature);

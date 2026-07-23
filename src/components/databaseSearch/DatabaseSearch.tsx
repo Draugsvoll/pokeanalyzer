@@ -17,15 +17,12 @@ type DatabaseSearchProps = {
   embedded?: boolean;
   /** When set, results render into this element (e.g. below the card shell) */
   resultsPortalEl?: HTMLElement | null;
-  /** Hide/close the search UI (embedded card view) */
-  onHide?: () => void;
 };
 
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
   resultsPortalEl = null,
-  onHide,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,15 +166,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         >
           Søk
         </Button>
-        {onHide ? (
-          <Button className="btn-secondary" onClick={onHide}>
-            Close
-          </Button>
-        ) : (
-          <Button className="btn-secondary" onClick={handleClearSearch}>
-            Tøm
-          </Button>
-        )}
+        <Button className="btn-secondary" onClick={handleClearSearch}>
+          Tøm
+        </Button>
       </div>
 
       {(() => {

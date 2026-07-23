@@ -1,7 +1,4 @@
-import { useMemo, useState } from "react";
-import Button from "../../../button/Button";
-import { askGrok } from "../../../../utils/grok/grokClient";
-import { getBiggestMovers } from "../../../../utils/grok/grokPrompts";
+import biggestMovers from "../../../../data/news/biggestMovers.json";
 import "./BiggestMovers.scss";
 
 type Mover = {
@@ -15,124 +12,19 @@ type MoversPayload = {
   cards: Mover[];
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function asString(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return "";
-}
-
-function parseMover(item: unknown): Mover | null {
-  if (!isRecord(item)) return null;
-
-  const mover: Mover = {
-    rank: asString(item.rank) || undefined,
-    card_name: asString(item.card_name) || asString(item.card) || undefined,
-    summary:
-      asString(item.summary) ||
-      asString(item.reason) ||
-      asString(item.notes) ||
-      undefined,
-  };
-
-  return mover.rank || mover.card_name || mover.summary ? mover : null;
-}
-
-function parseMoversPayload(response: string): MoversPayload | null {
-  try {
-    const cleaned = response.replace(/^```(?:json)?\s*|\s*```$/gi, "").trim();
-    const parsed: unknown = JSON.parse(cleaned);
-
-    // Preferred: { report_link, cards: [...] }
-    if (isRecord(parsed) && Array.isArray(parsed.cards)) {
-      const cards = parsed.cards
-        .map(parseMover)
-        .filter((item): item is Mover => item !== null);
-
-      if (!cards.length && !asString(parsed.report_link)) return null;
-
-      return {
-        report_link: asString(parsed.report_link) || undefined,
-        cards,
-      };
-    }
-
-    // Fallbacks for older shapes
-    const rawList = Array.isArray(parsed)
-      ? parsed
-      : isRecord(parsed) && Array.isArray(parsed.items)
-        ? parsed.items
-        : isRecord(parsed) && (parsed.card_name || parsed.summary || parsed.rank)
-          ? [parsed]
-          : null;
-
-    if (!rawList) return null;
-
-    const cards = rawList
-      .map(parseMover)
-      .filter((item): item is Mover => item !== null);
-
-    return cards.length > 0 ? { cards } : null;
-  } catch {
-    return null;
-  }
-}
-
-function formatPrettyJson(response: string): string {
-  try {
-    return JSON.stringify(
-      JSON.parse(response.replace(/^```(?:json)?\s*|\s*```$/gi, "").trim()),
-      null,
-      2,
-    );
-  } catch {
-    return response;
-  }
-}
-
 export function BiggestMovers() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [response, setResponse] = useState("");
-
-  const generateBiggestMovers = async () => {
-    if (loading) return;
-
-    setLoading(true);
-    setError("");
-    setResponse("");
-
-    const result = await askGrok(getBiggestMovers, "market_news");
-
-    if (result.ok) setResponse(result.text);
-    else setError(result.error);
-
-    setLoading(false);
-  };
-
-  const payload = useMemo(
-    () => (response ? parseMoversPayload(response) : null),
-    [response],
-  );
+  const payload = biggestMovers as MoversPayload;
 
   const cards = payload?.cards ?? [];
   const reportLink = payload?.report_link;
 
   return (
-    <section className="biggest-gainers">
+    <section className="biggest-gainers ui-render-fade">
       <header className="biggest-gainers__header">
-        <Button disabled={loading} onClick={generateBiggestMovers}>
-          {loading ? "Generating..." : "Get biggest movers"}
-        </Button>
+        <h1 className="biggest-gainers__title">
+          Biggest weekly movers from TCG
+        </h1>
       </header>
-
-      {error && <p className="biggest-gainers__error">{error}</p>}
-      {response && !payload && (
-        <div className="biggest-gainers__raw">{response}</div>
-      )}
 
       {!!cards.length && (
         <div className="biggest-gainers__list">
@@ -143,7 +35,7 @@ export function BiggestMovers() {
 
             return (
               <article
-                className="biggest-gainers__card card-hover"
+                className="biggest-gainers__card"
                 key={`${index}-${item.rank ?? ""}-${item.card_name ?? "card"}`}
               >
                 <div className="biggest-gainers__body">
@@ -186,11 +78,6 @@ export function BiggestMovers() {
         </div>
       )}
 
-      {response && (
-        <pre className="biggest-gainers__raw-json">
-          {formatPrettyJson(response)}
-        </pre>
-      )}
     </section>
   );
 }

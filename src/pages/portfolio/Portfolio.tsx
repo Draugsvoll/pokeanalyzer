@@ -139,34 +139,26 @@ export default function Portfolio() {
         </div>
         {portfolio.length > 0 && (
           <div className="portfolio__total" aria-live="polite">
-            <div className="portfolio__total-heading">
-              <span className="portfolio__total-label">Collection value</span>
-              <span className="portfolio__total-hint">
-              </span>
-            </div>
-            <div className="portfolio__total-amounts">
-              {totalUsd > 0 && (
-                <span className="portfolio__total-chip portfolio__total-chip--usd">
-                  <small>TCG · USD</small>
-                  <strong>${money.format(totalUsd)}</strong>
+            <span className="portfolio__total-label">Collection value</span>
+            <div className="portfolio__total-markets">
+              <div className="portfolio__total-market portfolio__total-market--usd">
+                <span className="portfolio__total-market-label">TCG · USD</span>
+                <strong className="portfolio__total-market-value">
+                  {totalUsd > 0 ? `$${money.format(totalUsd)}` : "—"}
+                </strong>
+              </div>
+              <div
+                className="portfolio__total-market-divider"
+                aria-hidden="true"
+              />
+              <div className="portfolio__total-market portfolio__total-market--eur">
+                <span className="portfolio__total-market-label">
+                  Cardmarket · EUR
                 </span>
-              )}
-              {totalUsd > 0 && totalEur > 0 && (
-                <span className="portfolio__total-plus" aria-hidden="true">
-                  +
-                </span>
-              )}
-              {totalEur > 0 && (
-                <span className="portfolio__total-chip portfolio__total-chip--eur">
-                  <small>Cardmarket · EUR</small>
-                  <strong>€{money.format(totalEur)}</strong>
-                </span>
-              )}
-              {totalUsd <= 0 && totalEur <= 0 && (
-                <span className="portfolio__total-chip portfolio__total-chip--empty">
-                  <strong>—</strong>
-                </span>
-              )}
+                <strong className="portfolio__total-market-value">
+                  {totalEur > 0 ? `€${money.format(totalEur)}` : "—"}
+                </strong>
+              </div>
             </div>
           </div>
         )}

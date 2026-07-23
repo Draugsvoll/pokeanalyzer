@@ -24,12 +24,10 @@ export const Header: React.FC = () => {
    <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
         <div className="nav-container">
           <Link to="/" className="logo">
-          <div className="logo">
-            <span>PokéAnalyzer</span>
-          </div>
+            <span className="logo__text">PokéAnalyzer</span>
           </Link>
           <div className="nav-links">
-            <Link to="/">Utforsk kort</Link>
+            <Link to="/search">Utforsk kort</Link>
           </div>
           <div className="btn-container">
             {user ? (

@@ -38,18 +38,25 @@
 
 
 .logo {
-  font-size: var(--font-size-price-lg);
-  font-weight: var(--font-weight-extrabold);
-  display: flex;
   align-items: center;
+  display: inline-flex;
   gap: 0.5rem;
-}
-.logo,
-.logo:visited,
-.logo:hover,
-.logo:active {
-  color: inherit;
   text-decoration: none;
+
+  &:visited,
+  &:hover,
+  &:active {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+.logo__text {
+  color: var(--font-color-primary);
+  font-size: var(--font-size-h3);
+  font-weight: 800;
+  letter-spacing: var(--font-tracking-tight);
+  line-height: 1;
 }
 
 .nav-links a {

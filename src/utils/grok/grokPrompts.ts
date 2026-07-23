@@ -337,12 +337,10 @@ Card to analyze:
 
 export const getBiggestMovers: string =
 `
-can you summarize each card in The Biggest Price Spikes in Pokémon this Week from
-TCG (english single cards)? use the most recent you can find. Since we are summarizing, only
-mention the most important or valuable things.
-The most important part is the actual price-spike values mentioned by
-the author. Preferably mention the price spikes early in the summary.
-Shorten the content for each card to 3-5 sentences.
+Please summarize each card in The Biggest Price Spikes in Pokémon this Week from
+TCG (english single cards)? use the most recent you can find. Always remember to include all the
+price values mentioned in the article. For every card you must mention the price values from the article.
+Keep things conscise and to the point. The summary should be about 3-5 sentences for each card.
 
 - report_link is url to the report you used.
 - spike_summar summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.

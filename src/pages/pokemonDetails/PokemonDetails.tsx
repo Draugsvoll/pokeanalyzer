@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { BadgeDollarSign, Gem, LineChart, Star, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeDollarSign,
+  Gem,
+  LineChart,
+  Plus,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
 import "./PokemonDetails.scss";
 import "./components/CardRarityBadge.scss";
 import "../../components/welcomeView/WelcomeView.scss";
@@ -590,7 +598,17 @@ export default function PokemonDetails() {
                   onClick={() => setShowCardSearch((open) => !open)}
                   aria-expanded={showCardSearch}
                 >
-                  <span>{showCardSearch ? "Cancel" : "Change card"}</span>
+                  {showCardSearch ? (
+                    <>
+                      <ArrowLeft size={16} strokeWidth={2.25} aria-hidden="true" />
+                      <span>Close</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} strokeWidth={2.25} aria-hidden="true" />
+                      <span>Change card</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -602,7 +620,6 @@ export default function PokemonDetails() {
                 autoFocusName
                 embedded
                 resultsPortalEl={searchResultsHost}
-                onHide={() => setShowCardSearch(false)}
               />
             </div>
           )}

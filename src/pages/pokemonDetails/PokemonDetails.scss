@@ -216,6 +216,16 @@
   &__change-card,
   &__portfolio-button { margin: 0; }
 
+  &__change-card {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.4rem;
+
+    svg {
+      flex: 0 0 auto;
+    }
+  }
+
   &__portfolio-control {
     flex: 0 0 auto;
     position: relative;

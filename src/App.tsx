@@ -8,6 +8,7 @@ import Portfolio from "./pages/portfolio/Portfolio";
 import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
 import CardGrader from "./pages/UploadCard/UploadCardPage";
+import Admin from "./pages/admin/Admin";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="signup" element={<SignUp />} />
         <Route path="profile" element={<Profile />} />
         <Route path="portfolio" element={<Portfolio />} />
+        <Route path="admin" element={<Admin />} />
         {/* <Route path="uploadcard" element={<CardGrader />} /> */}
 
         <Route path="*" element={<NotFound />} />
