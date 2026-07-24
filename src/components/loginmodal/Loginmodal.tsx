@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Loginmodal.scss";
 import Button from "../button/Button";
 import { login, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
+import { useNotification } from "../../context/notificationContextValue";
 
 type ModalProps = {
   isOpen: boolean;
@@ -18,8 +19,19 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const { showNotification } = useNotification();
 
   if (!isOpen) return null;
+
+  const finishLogin = () => {
+    onClose();
+    showNotification("Du er nå logget inn.");
+
+    if (location.pathname === "/" || location.pathname === "/portfolio") {
+      navigate("/portfolio", { replace: true });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +39,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
     setLoading(true);
     try {
       await login(email, password);
-      onClose();
-      navigate("/profile", { replace: true });
+      finishLogin();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Innlogging mislyktes.");
     } finally {
@@ -43,8 +54,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
     setLoading(true);
     try {
       await signInWithGoogle();
-      onClose();
-      navigate("/profile", { replace: true });
+      finishLogin();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Google-innlogging mislyktes.");
     } finally {
@@ -55,26 +65,28 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   return createPortal(
     <div className="login-overlay">
       <section
-        className="login-modal"
+        className="login-modal auth-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
       >
-        <header className="login-modal__header">
-          <span className="login-modal__eyebrow">Welcome back</span>
+        <header className="auth-card__header">
+          <span className="auth-card__eyebrow">Velkommen tilbake</span>
           <h2 id="login-modal-title">Logg inn</h2>
-          <p>Access your collection and account.</p>
+          <p>Få tilgang til samlingen og kontoen din.</p>
         </header>
 
-        <GoogleLoginButton
-          disabled={loading}
-          onClick={() => void handleGoogleLogin()}
-        />
+        <div className="auth-card__google">
+          <GoogleLoginButton
+            disabled={loading}
+            onClick={() => void handleGoogleLogin()}
+          />
+        </div>
 
-        <div className="login-divider"><span>eller</span></div>
+        <div className="auth-divider"><span>eller</span></div>
 
-        <form className="login-modal__form" onSubmit={handleLogin}>
-          <label className="login-modal__field">
+        <form className="auth-form" onSubmit={handleLogin}>
+          <label className="auth-field">
             <span>E-post</span>
             <input
               type="email"
@@ -86,7 +98,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
             />
           </label>
 
-          <label className="login-modal__field">
+          <label className="auth-field">
             <span>Passord</span>
             <input
               type="password"
@@ -100,22 +112,24 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
 
           <Button
             type="submit"
+            variant="auth"
+            size="large"
+            fullWidth
             disabled={loading}
-            className="login-modal__submit"
           >
             {loading ? "Logger inn..." : "Logg inn"}
           </Button>
         </form>
 
         {error && (
-          <p className="login-modal__error" role="alert">
+          <p className="auth-notice auth-notice--error" role="alert">
             {error}
           </p>
         )}
 
-        <Button onClick={onClose} className="login-modal__close">
-          Lukk
-        </Button>
+        <div className="login-modal__close">
+          <Button size="large" fullWidth onClick={onClose}>Lukk</Button>
+        </div>
       </section>
     </div>,
     document.body,

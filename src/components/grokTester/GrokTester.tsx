@@ -55,8 +55,8 @@ export default function GrokTester() {
       />
 
       <Button
-        className="grok-tester__button"
         variant="primary"
+        fitContent
         onClick={handleAskGrok}
         disabled={!question.trim() || isLoading}
       >
@@ -69,7 +69,7 @@ export default function GrokTester() {
         <div className="grok-tester__response-header">
           <h2>Response</h2>
           <Button
-            className="grok-tester__copy-button"
+            size="small"
             onClick={handleCopyResponse}
             disabled={!response}
           >

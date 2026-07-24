@@ -29,7 +29,6 @@
   }
 
   &__total {
-    background: var(--bg2);
     border: var(--border);
     border-radius: var(--border-radius);
     display: flex;
@@ -46,7 +45,7 @@
 
   &__total-label {
     color: var(--font-color-primary);
-    font-size: var(--font-size-overline);
+    font-size: var(--font-size-paragraph-sm);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-wider);
     text-transform: uppercase;

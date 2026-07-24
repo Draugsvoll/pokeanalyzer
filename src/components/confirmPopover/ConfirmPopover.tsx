@@ -51,7 +51,7 @@ export function ConfirmPopover({
       )}
       <Button
         variant="default"
-        className="ui-confirm-popover__action"
+        size="small"
         disabled={confirming || confirmDisabled}
         onClick={onConfirm}
       >
@@ -59,7 +59,7 @@ export function ConfirmPopover({
       </Button>
       <Button
         variant="default"
-        className="ui-confirm-popover__action"
+        size="small"
         disabled={confirming}
         onClick={onCancel}
       >

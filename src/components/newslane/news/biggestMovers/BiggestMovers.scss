@@ -84,11 +84,11 @@
   }
 
   &:hover {
-    border: 1px solid color-mix(in srgb, var(--trend-accent) 42%, #3d4b5f);
-    box-shadow:
-      var(--hover-shadow),
-      0 1rem 2.5rem rgba(2, 6, 23, 0.2),
-      0 0 1.25rem color-mix(in srgb, var(--trend-accent) 12%, transparent);
+    // border: 1px solid color-mix(in srgb, var(--trend-accent) 42%, #3d4b5f);
+    // box-shadow:
+    //   var(--hover-shadow),
+    //   0 1rem 2.5rem rgba(2, 6, 23, 0.2),
+    //   0 0 1.25rem color-mix(in srgb, var(--trend-accent) 12%, transparent);
   }
 }
 

@@ -1,5 +1,6 @@
 const XAI_RESPONSES_URL = "https://api.x.ai/v1/responses";
 const DEFAULT_GROK_MODEL = "grok-4.3";
+const MAX_GROK_ATTEMPTS = 2;
 
 type GrokResponse = {
   output_text?: string;
@@ -81,13 +82,49 @@ async function requestGrokResponse(
   input: GrokInputMessage[],
   signal?: AbortSignal,
 ) {
+  const apiKey = getXaiApiKey();
+
+  for (let attempt = 1; attempt <= MAX_GROK_ATTEMPTS; attempt += 1) {
+    try {
+      return await requestGrokResponseOnce(input, apiKey, signal);
+    } catch (error) {
+      const shouldRetry =
+        attempt < MAX_GROK_ATTEMPTS &&
+        !signal?.aborted &&
+        isRetryableGrokError(error);
+
+      if (!shouldRetry) throw error;
+      console.warn("Grok request failed; retrying once");
+    }
+  }
+
+  throw new GrokApiError("Grok query request failed");
+}
+
+function isRetryableGrokError(error: unknown) {
+  if (error instanceof GrokApiError) {
+    return error.statusCode === 408 || error.statusCode === 429 || error.statusCode >= 500;
+  }
+
+  return (
+    error instanceof TypeError ||
+    (error instanceof DOMException && error.name === "TimeoutError") ||
+    error instanceof SyntaxError
+  );
+}
+
+async function requestGrokResponseOnce(
+  input: GrokInputMessage[],
+  apiKey: string,
+  signal?: AbortSignal,
+) {
   const requestSignal = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(120_000)])
     : AbortSignal.timeout(120_000);
   const response = await fetch(XAI_RESPONSES_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getXaiApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

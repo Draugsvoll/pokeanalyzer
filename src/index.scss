@@ -2,6 +2,7 @@
 
 @use "styles/variables";
 @use "styles/elements";
+@use "styles/auth-form";
 
 :root {
   font-family: var(--font-family-base);

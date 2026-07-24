@@ -1,6 +1,5 @@
 import {
   BadgeDollarSign,
-  Bolt,
   ChartNoAxesCombined,
   CircleDollarSign,
   Gavel,
@@ -59,7 +58,10 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
       <div className="worth-grading-view__card worth-grading-view__market">
         <header className="worth-grading-view__market-header">
-          <h3>Market snapshot</h3>
+          <h3>
+            <ChartNoAxesCombined aria-hidden="true" />
+            Market prices
+          </h3>
           <span>Current values</span>
         </header>
         <div className="worth-grading-view__market-body">

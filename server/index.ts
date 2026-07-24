@@ -43,7 +43,7 @@ if (trustProxySetting === "true") {
 app.disable("x-powered-by");
 
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 per minutt
+  windowMs: 60 * 1000,
   max: 200, // per minutt
   standardHeaders: true,
   legacyHeaders: false,

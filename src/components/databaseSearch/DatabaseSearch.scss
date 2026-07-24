@@ -45,24 +45,6 @@
   }
 }
 
-.btn-secondary {
-  display: inline-flex;
-  gap: 0.5rem;
-  padding: var(--padding) 1.5rem;
-  border-radius: var(--border-radius);
-  font-size: var(--font-size-button);
-  font-weight: var(--font-weight-semibold);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  background: transparent;
-  border: var(--border);
-  color: var(--font-color-primary);
-
-  &:hover {
-    background: var(--bg2);
-  }
-}
-
 .database-search-container {
   align-items: center;
   display: flex;

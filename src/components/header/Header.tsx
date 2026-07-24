@@ -38,17 +38,17 @@ export const Header: React.FC = () => {
               <Link to="/profile">
                 Min Konto
               </Link>
-              <Button className="btn" onClick={logout}>
+              <Button onClick={logout}>
                 Logg ut
               </Button>
               </>
             ) : (
               <>
-                <Button className="btn" onClick={() => navigate("/signup")}>
+                <Button onClick={() => navigate("/signup")}>
                   signup
                 </Button>
 
-                <Button className="btn" onClick={() => setOpen(true)}>
+                <Button onClick={() => setOpen(true)}>
                   Logg inn
                 </Button>
               </>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeDollarSign,
@@ -181,6 +181,9 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
 
 export default function PokemonDetails() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const cardViewRef = useRef<HTMLDivElement>(null);
   const featureButtonsRef = useRef<HTMLDivElement>(null);
   const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
   const [searchResultsHost, setSearchResultsHost] = useState<HTMLDivElement | null>(
@@ -462,6 +465,41 @@ export default function PokemonDetails() {
   }, [id]);
 
   useEffect(() => {
+    const navigationState = location.state as {
+      card?: PokemonCard;
+      scrollToCardView?: boolean;
+    } | null;
+
+    if (
+      !navigationState?.scrollToCardView ||
+      !card ||
+      card.id !== id
+    ) {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      const cardView = cardViewRef.current;
+      if (!cardView) return;
+
+      window.scrollTo({
+        behavior: "smooth",
+        top: window.scrollY + cardView.getBoundingClientRect().top - 50,
+      });
+      navigate(location.pathname, {
+        preventScrollReset: true,
+        replace: true,
+        state: {
+          ...navigationState,
+          scrollToCardView: false,
+        },
+      });
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [card, id, location.pathname, location.state, navigate]);
+
+  useEffect(() => {
     let image: HTMLImageElement | null = null;
     const imageTimer = window.setTimeout(() => {
       if (!card) {
@@ -528,7 +566,7 @@ export default function PokemonDetails() {
 
   // RENDERING
   return (
-    <div className="card-view">
+    <div ref={cardViewRef} className="card-view">
       <div className="card-view__panel-wrap">
         <div className="card-view__shell">
           <div className="card-view__details">
@@ -546,7 +584,7 @@ export default function PokemonDetails() {
                 <h2 className="card-view__title">{card.name}</h2>
                 <div className="card-view__portfolio-control">
                   <Button
-                    className={`card-view__portfolio-button${cardIsSaved ? " is-saved" : ""}`}
+                    variant="portfolio"
                     disabled={updatingPortfolio}
                     onClick={handlePortfolioToggle}
                     aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
@@ -594,7 +632,6 @@ export default function PokemonDetails() {
 
               <div className="card-view__info-actions">
                 <Button
-                  className="card-view__change-card"
                   onClick={() => setShowCardSearch((open) => !open)}
                   aria-expanded={showCardSearch}
                 >

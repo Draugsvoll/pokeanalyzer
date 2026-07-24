@@ -56,7 +56,6 @@ const analysisOptions = [
     endpoint: "/grok/psa-grade",
     label: "Get PSA Estimate",
     loadingLabel: "Analyzing...",
-    buttonClassName: "card-grader__estimate-button",
     includeBackImage: true,
     ResultView: PsaEstimateResultView,
   },
@@ -65,7 +64,6 @@ const analysisOptions = [
     endpoint: "/grok/authenticity-check",
     label: "Check Authenticity",
     loadingLabel: "Checking...",
-    buttonClassName: "card-grader__auth-button",
     includeBackImage: true,
     ResultView: AuthenticityResultView,
   },
@@ -74,7 +72,6 @@ const analysisOptions = [
   endpoint: string;
   label: string;
   loadingLabel: string;
-  buttonClassName: string;
   includeBackImage: boolean;
   ResultView: React.ComponentType<{ error: string; result: string }>;
 }>;
@@ -263,7 +260,8 @@ export default function UploadCardPage() {
             return (
               <Button
                 key={option.type}
-                className={option.buttonClassName}
+                variant="primary"
+                fullWidth
                 disabled={actionDisabled}
                 onClick={() => runAnalysis(option)}
               >

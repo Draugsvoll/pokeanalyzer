@@ -189,10 +189,12 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          <Button className="profile__logout" onClick={logout}>
-            <LogOut aria-hidden="true" />
-            Log out
-          </Button>
+          <div className="profile__logout-slot">
+            <Button variant="danger" fullWidth onClick={logout}>
+              <LogOut aria-hidden="true" />
+              Log out
+            </Button>
+          </div>
         </header>
 
         <section className="profile__subscription">
@@ -380,6 +382,7 @@ export default function Profile() {
               <div className="profile__billing-tools">
                 <span>Already subscribed? Manage your payment details and membership.</span>
                 <Button
+                  grow
                   disabled={updatingSubscription}
                   onClick={() => void openBillingPortal()}
                 >
@@ -390,6 +393,7 @@ export default function Profile() {
                   subscription.stripeSubscriptionId &&
                   !subscription.cancelAtPeriodEnd && (
                     <Button
+                      grow
                       disabled={updatingSubscription}
                       onClick={() => void cancelAtPeriodEnd()}
                     >
@@ -442,6 +446,7 @@ export default function Profile() {
             )}
             <div className="profile__plan-dialog-actions">
               <Button
+                grow
                 autoFocus
                 disabled={updatingSubscription}
                 onClick={() => setConfirmFreeSwitch(false)}
@@ -449,7 +454,8 @@ export default function Profile() {
                 Keep {subscription.planName}
               </Button>
               <Button
-                className="profile__confirm-free-button"
+                grow
+                variant="warning"
                 disabled={updatingSubscription}
                 onClick={() => {
                   void cancelAtPeriodEnd().then((wasScheduled) => {

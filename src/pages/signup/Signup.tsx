@@ -14,6 +14,7 @@ import type { UserUpload } from "../../types/user.types";
 import { signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import { logClientError } from "../../utils/logClientError";
+import { useNotification } from "../../context/notificationContextValue";
 
 export default function SignUpForm() {
   const [formData, setFormData] = useState({
@@ -26,7 +27,8 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -79,6 +81,7 @@ export default function SignUpForm() {
 
     try {
       await signInWithGoogle();
+      showNotification("Du er nå logget inn.");
       navigate("/profile");
     } catch (err: unknown) {
       logClientError("Google sign-in failed", err);
@@ -89,30 +92,96 @@ export default function SignUpForm() {
   };
 
   return (
-    <div className="signup-container">
-      <h1>Pokémon Marketplace</h1>
-      <p>Opprett konto for kjøp, salg og bytte av Pokémon-kort.</p>
+    <div className="signup-page">
+      <section className="signup-card auth-card" aria-labelledby="signup-title">
+        <header className="auth-card__header">
+          <span className="auth-card__eyebrow">Ny samler</span>
+          <h1 id="signup-title">Opprett konto</h1>
+          <p>Opprett en konto og begynn å bygge samlingen din.</p>
+        </header>
 
-      <form className="signup-form" onSubmit={handleSubmit}>
-        <GoogleLoginButton
-          disabled={loading}
-          onClick={() => void handleGoogleSignIn()}
-        />
+        <div className="auth-card__google">
+          <GoogleLoginButton
+            disabled={loading}
+            onClick={() => void handleGoogleSignIn()}
+          />
+        </div>
 
-        <div className="signup-divider"><span>eller</span></div>
+        <div className="auth-divider"><span>eller</span></div>
 
-        <input name="firstName" placeholder="Navn (valgfritt)" value={formData.firstName} onChange={handleChange} />
-        <input name="email" type="email" placeholder="E-post" value={formData.email} onChange={handleChange} required />
-        <br />
-        <input name="password" type="password" placeholder="Passord" value={formData.password} onChange={handleChange} required />
-        <input name="confirmPassword" type="password" placeholder="Gjenta passord" value={formData.confirmPassword} onChange={handleChange} required />
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>Navn (valgfritt)</span>
+            <input
+              name="firstName"
+              placeholder="Navnet ditt"
+              value={formData.firstName}
+              onChange={handleChange}
+              autoComplete="name"
+            />
+          </label>
 
-        <Button type="submit" disabled={loading} variant="primary">
-          {loading ? "Oppretter konto..." : "Opprett konto"}
-        </Button>
-      </form>
+          <label className="auth-field">
+            <span>E-post</span>
+            <input
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              autoComplete="email"
+              required
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Passord</span>
+            <input
+              name="password"
+              type="password"
+              placeholder="Velg et passord"
+              value={formData.password}
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Gjenta passord</span>
+            <input
+              name="confirmPassword"
+              type="password"
+              placeholder="Gjenta passordet"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          {error && (
+            <p className="auth-notice auth-notice--error" role="alert">
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-notice auth-notice--success" role="status">
+              {success}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            variant="auth"
+            size="large"
+            fullWidth
+            disabled={loading}
+          >
+            {loading ? "Oppretter konto..." : "Opprett konto"}
+          </Button>
+        </form>
+      </section>
     </div>
   );
 }

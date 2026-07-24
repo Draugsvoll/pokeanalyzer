@@ -46,26 +46,10 @@
     min-width: 0;
   }
 
-  .profile__logout {
-    background: rgba(248, 113, 113, 0.07);
-    border: 1px solid rgba(248, 113, 113, 0.16);
-    color: #fca5a5;
+  .profile__logout-slot {
     flex: 0 0 auto;
     margin-left: 1.25rem;
     white-space: nowrap;
-
-    svg { height: 1rem; width: 1rem; }
-
-    &:hover {
-      background: rgba(248, 113, 113, 0.13);
-      border-color: rgba(248, 113, 113, 0.28);
-      color: #fecaca;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--font-color-error);
-      outline-offset: 2px;
-    }
   }
 
   .profile__identity-copy {
@@ -665,12 +649,6 @@
     margin-top: 0.8rem;
   }
 
-  .profile__confirm-free-button {
-    background: rgba(245, 158, 11, 0.13);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    color: #fcd34d;
-  }
-
   @media (max-width: 60rem) {
     .profile__purchase-options {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -695,7 +673,7 @@
       width: 100%;
     }
 
-    .profile__logout {
+    .profile__logout-slot {
       margin-left: 0;
       width: 100%;
     }
@@ -715,14 +693,6 @@
 
     .profile__top-up-row > .profile__purchase-card {
       width: 100%;
-    }
-
-    .profile__billing-tools {
-      .app-btn { flex: 1 1 auto; }
-    }
-
-    .profile__plan-dialog-actions .app-btn {
-      flex: 1 1 auto;
     }
 
   }

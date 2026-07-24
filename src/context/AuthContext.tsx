@@ -11,6 +11,7 @@ import {
 
 import { auth } from "../firebase";
 import { AuthContext } from "./authContextValue";
+import { useNotification } from "./notificationContextValue";
 import { getPortfolioCacheKey, getUserProfileSessionKey } from "../utils/cache";
 
 export function AuthProvider({
@@ -20,6 +21,7 @@ export function AuthProvider({
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -36,6 +38,7 @@ export function AuthProvider({
       sessionStorage.removeItem(getUserProfileSessionKey(user.uid));
     }
     await signOut(auth);
+    showNotification("Du er nå logget ut.");
   };
 
   return (

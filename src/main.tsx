@@ -5,15 +5,18 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.scss'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { PortfolioProvider } from './context/PortfolioCacheContext.tsx'
+import { NotificationProvider } from './context/NotificationContext.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-    <AuthProvider>
-      <PortfolioProvider>
-        <App />
-      </PortfolioProvider>
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <PortfolioProvider>
+            <App />
+          </PortfolioProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

@@ -1,5 +1,4 @@
 import Button from "../button/Button";
-import "./GoogleLoginButton.scss";
 
 type GoogleLoginButtonProps = {
   disabled?: boolean;
@@ -8,7 +7,13 @@ type GoogleLoginButtonProps = {
 
 export function GoogleLoginButton({ disabled, onClick }: GoogleLoginButtonProps) {
   return (
-    <Button className="google-login-button" disabled={disabled} onClick={onClick}>
+    <Button
+      variant="google"
+      size="large"
+      fullWidth
+      disabled={disabled}
+      onClick={onClick}
+    >
       <svg aria-hidden="true" viewBox="0 0 24 24">
         <path fill="#4285f4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.06H12v3.89h5.38a4.6 4.6 0 0 1-2 3.02v2.52h3.24c1.9-1.75 2.98-4.32 2.98-7.37Z" />
         <path fill="#34a853" d="M12 22c2.7 0 4.98-.9 6.63-2.4l-3.24-2.52c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.6A10 10 0 0 0 12 22Z" />

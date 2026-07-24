@@ -31,9 +31,15 @@ export function preloadPokemonImage(url?: string): void {
 
 export function navigateToPokemonCard(
   navigate: NavigateFunction,
-  card: PokemonCard
+  card: PokemonCard,
+  options?: { scrollToCardView?: boolean },
 ): void {
   setSelectedPokemonCache(card);
   preloadPokemonImage(card.images?.large ?? card.images?.small);
-  navigate(`/card/${card.id}`, { state: { card } });
+  navigate(`/card/${card.id}`, {
+    state: {
+      card,
+      ...(options?.scrollToCardView && { scrollToCardView: true }),
+    },
+  });
 }

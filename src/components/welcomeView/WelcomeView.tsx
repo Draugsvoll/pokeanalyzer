@@ -13,13 +13,11 @@ export const WelcomeView: React.FC = () => {
       <section className="hero">
         <h1>Analyser og samle Pokémon-kort</h1>
         <p>Søk i kortdatabasen, sjekk markedspriser og bygg din portefølje.</p>
-        <Button
-          variant="primary"
-          className="hero__cta"
-          onClick={() => navigate("/search")}
-        >
-          Find a card
-        </Button><br />
+        <div className="hero__cta-wrap">
+          <Button variant="hero" size="large" onClick={() => navigate("/search")}>
+            Find a card
+          </Button>
+        </div>
       </section>
 
       <section className="info-cards">

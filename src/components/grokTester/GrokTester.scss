@@ -32,10 +32,6 @@
   gap: 0.5rem;
 }
 
-.grok-tester__button {
-  width: fit-content;
-}
-
 .grok-tester__error {
   color: var(--font-color-error);
 }
@@ -62,8 +58,4 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.5rem;
-}
-
-.grok-tester__copy-button {
-  padding: 0.5rem 0.9rem;
 }

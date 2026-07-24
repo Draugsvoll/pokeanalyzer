@@ -37,19 +37,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const [canSearch, setCanSearch] = useState(true);
 
   const handleClick = (card: PokemonCard) => {
-    navigateToPokemonCard(navigate, card);
-
-    if (location.pathname.startsWith("/card")) {
-      requestAnimationFrame(() => {
-        const cardView = document.querySelector<HTMLElement>(".card-view");
-        if (!cardView) return;
-
-        window.scrollTo({
-          behavior: "smooth",
-          top: window.scrollY + cardView.getBoundingClientRect().top - 50,
-        });
-      });
-    }
+    navigateToPokemonCard(navigate, card, {
+      scrollToCardView: location.pathname.startsWith("/card"),
+    });
   };
 
   async function handleSearch() {
@@ -160,13 +150,13 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           placeholder="Number"
         />
         <Button
-          className="btn-secondary"
+          variant="secondary"
           onClick={handleSearch}
           disabled={!canSearch || isSearching}
         >
           Søk
         </Button>
-        <Button className="btn-secondary" onClick={handleClearSearch}>
+        <Button variant="secondary" onClick={handleClearSearch}>
           Tøm
         </Button>
       </div>
