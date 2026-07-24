@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
+  ArrowDown,
   BadgeDollarSign,
   Gem,
   LineChart,
-  Plus,
+  Search,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -53,9 +53,10 @@ import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 import { CardFeatureHeader } from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import { useAuth } from "../../context/authContextValue";
+import { formatCardNumber } from "../../utils/formatCardNumber";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const integerFormatter = new Intl.NumberFormat("en-US");
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
@@ -149,18 +150,10 @@ function formatReleaseDate(value: string | undefined) {
 }
 
 function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
-  const printedTotal = card.set?.printedTotal;
-  const cardNumber = card.number && printedTotal !== undefined
-    ? `${card.number} / ${integerFormatter.format(printedTotal)}`
-    : card.number;
-  const setSize = printedTotal === undefined
-    ? undefined
-    : integerFormatter.format(printedTotal);
-
   return [
     { label: "Series", value: card.set?.series },
     { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
-    { label: "Kortnummer", value: cardNumber },
+    { label: "Kortnummer", value: formatCardNumber(card) },
     { label: "Set Total Cards", value: card.set.total },
     { label: "Artist", value: card.artist },
     { label: "Release Date", value: formatReleaseDate(card.set?.releaseDate) },
@@ -213,6 +206,7 @@ export default function PokemonDetails() {
     isCurrentRequest,
     startRequest,
   } = useAbortableRequest();
+  const { user: authUser } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
   const { isCardSaved } = usePortfolioCache();
   const {
@@ -249,14 +243,20 @@ export default function PokemonDetails() {
   async function handlePortfolioToggle() {
     if (!card || updatingPortfolio) return;
 
+    if (!authUser) {
+      showPortfolioConfirmation("Du må være logget inn for å lagre kort.");
+      return;
+    }
+
     const cardWasSaved = isCardSaved(card.id);
     setUpdatingPortfolio(true);
     try {
-      if (cardWasSaved) {
-        await removePokemonFromPortfolio(card.id, false);
-      } else {
-        await savePokemonToPortfolio(card);
-      }
+      const success = cardWasSaved
+        ? await removePokemonFromPortfolio(card.id, false)
+        : await savePokemonToPortfolio(card);
+
+      if (!success) return;
+
       showPortfolioConfirmation(
         cardWasSaved ? "Removed from portfolio" : "Added to portfolio"
       );
@@ -639,12 +639,12 @@ export default function PokemonDetails() {
                 >
                   {showCardSearch ? (
                     <>
-                      <ArrowLeft size={16} strokeWidth={2.25} aria-hidden="true" />
-                      <span>Close</span>
+                      <ArrowDown size={16} strokeWidth={2.25} aria-hidden="true" />
+                      <span>Hide</span>
                     </>
                   ) : (
                     <>
-                      <Plus size={16} strokeWidth={2.25} aria-hidden="true" />
+                      <Search size={16} strokeWidth={2.25} aria-hidden="true" />
                       <span>Change card</span>
                     </>
                   )}

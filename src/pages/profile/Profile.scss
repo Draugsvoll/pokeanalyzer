@@ -285,7 +285,6 @@
     > span {
       color: var(--font-color-muted);
       display: flex;
-      font-size: var(--font-size-badge);
       justify-content: space-between;
     }
 
@@ -528,13 +527,16 @@
   }
 
   .profile__purchase-cta {
+    align-items: center;
     background: rgba(129, 140, 248, 0.12);
     border: 0;
     border-radius: var(--border-radius);
     color: #c7d2fe;
     cursor: pointer;
+    display: inline-flex;
     font-size: var(--font-size-button);
     font-weight: var(--font-weight-semibold);
+    justify-content: center;
     letter-spacing: var(--font-tracking-button);
     margin-top: auto;
     min-height: 2.375rem;
@@ -563,20 +565,30 @@
     }
   }
 
+  .profile__purchase-spinner {
+    animation: profile-purchase-spin 0.75s linear infinite;
+    border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+    border-radius: var(--border-radius-round);
+    border-top-color: currentColor;
+    box-sizing: border-box;
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
+
+  @keyframes profile-purchase-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .profile__billing-tools {
     align-items: center;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
+    justify-content: flex-end;
     margin-top: 1rem;
     padding-top: 1rem;
-
-    > span {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-paragraph-sm);
-      margin-right: auto;
-    }
   }
 
   .profile__billing-notices {

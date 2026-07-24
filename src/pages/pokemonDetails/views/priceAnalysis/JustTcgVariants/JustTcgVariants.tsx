@@ -188,7 +188,24 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
     getJustTcgUpdatedAt(response) ?? new Date().toISOString().slice(0, 10);
 
   if (!groups.length) {
-    return <p className="just-tcg-variants__empty">No JustTCG variants were returned.</p>;
+    return (
+      <div className="just-tcg-variants ui-render-fade">
+        <header className="just-tcg-variants__source-header">
+          <h2 className="app-subheader">Just_TCG (Aggregator of price data)</h2>
+        </header>
+        <section className="just-tcg-variants__section just-tcg-variants__section--empty">
+          <header>
+            <div className="just-tcg-variants__heading">
+              <span className="just-tcg-variants__brand">JustTCG</span>
+            </div>
+          </header>
+          <div className="just-tcg-variants__empty">
+            <strong>Price data unavailable</strong>
+            <span>JustTCG did not return usable pricing for this card.</span>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (

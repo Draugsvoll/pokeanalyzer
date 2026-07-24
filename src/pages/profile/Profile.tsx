@@ -331,6 +331,7 @@ export default function Profile() {
                           : !canStartMembershipCheckout && !canManageBilling)
                       }
                       onClick={() => void planAction()}
+                      aria-busy={updatingSubscription && !planIsCurrent && !switchToFreeIsScheduled}
                     >
                       {planIsCurrent
                         ? "Current plan"
@@ -339,7 +340,12 @@ export default function Profile() {
                             ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
                             : "Switch scheduled"
                         : updatingSubscription
-                          ? "Opening checkout..."
+                          ? (
+                            <span
+                              className="profile__purchase-spinner"
+                              aria-label="Opening checkout"
+                            />
+                          )
                           : isFreePlan
                             ? "Switch to Free"
                           : useBillingPortal
@@ -372,34 +378,33 @@ export default function Profile() {
                   className="profile__purchase-cta"
                   disabled={!canUseMembership || updatingCredits}
                   onClick={() => void topUpCredits()}
+                  aria-busy={updatingCredits}
                 >
-                  {updatingCredits ? "Opening checkout..." : "Buy extra credits"}
+                  {updatingCredits ? (
+                    <span
+                      className="profile__purchase-spinner"
+                      aria-label="Opening checkout"
+                    />
+                  ) : (
+                    "Buy extra credits"
+                  )}
                 </button>
               </article>
             </div>
 
-            {canManageBilling && (
+            {canUseMembership &&
+              subscription &&
+              subscription.planId !== "free" &&
+              subscription.stripeSubscriptionId &&
+              !subscription.cancelAtPeriodEnd && (
               <div className="profile__billing-tools">
-                <span>Already subscribed? Manage your payment details and membership.</span>
                 <Button
-                  grow
+                  variant="danger"
                   disabled={updatingSubscription}
-                  onClick={() => void openBillingPortal()}
+                  onClick={() => void cancelAtPeriodEnd()}
                 >
-                  Manage billing
+                  Cancel subscription
                 </Button>
-                {canUseMembership &&
-                  subscription.planId !== "free" &&
-                  subscription.stripeSubscriptionId &&
-                  !subscription.cancelAtPeriodEnd && (
-                    <Button
-                      grow
-                      disabled={updatingSubscription}
-                      onClick={() => void cancelAtPeriodEnd()}
-                    >
-                      Cancel subscription
-                    </Button>
-                )}
               </div>
             )}
 

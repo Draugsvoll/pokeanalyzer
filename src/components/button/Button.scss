@@ -63,8 +63,8 @@
   border: var(--border);
   border-radius: var(--border-radius);
   color: var(--font-color-primary);
-  min-height: 2.375rem;
-  min-width:7rem;
+  min-height: 2.5rem;
+  min-width: 7.5rem;
   padding: 0.6rem 0.98rem;
 
   &:focus-visible {
@@ -77,11 +77,22 @@
   }
 }
 
+.app-btn-xsmall {
+   background: transparent;
+  border: var(--border);
+  color: var(--font-color-primary);
+  min-width:5.5rem;
+
+  &:hover:not(:disabled) {
+    background: var(--bg2);
+  }
+
+}
 .app-btn--secondary {
   background: transparent;
   border: var(--border);
   color: var(--font-color-primary);
-  min-width:5rem;
+  min-width:7.5rem;
 
   &:hover:not(:disabled) {
     background: var(--bg2);
@@ -137,8 +148,7 @@
     0 3px 10px color-mix(in srgb, var(--custom-color-blue) 14%, transparent),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: #ffffff;
-  font-size: var(--font-size-button);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-price);
 
   &:hover:not(:disabled) {
     box-shadow:
@@ -195,6 +205,13 @@
 .app-btn--small {
   font-size: var(--font-size-overline);
   min-height: 0;
+  padding: 0.35rem 0.65rem;
+}
+
+.app-btn--xsmall {
+  font-size: var(--font-size-overline);
+  min-height: 0;
+  min-width: 5rem;
   padding: 0.35rem 0.65rem;
 }
 

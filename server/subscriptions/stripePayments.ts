@@ -136,7 +136,7 @@ async function validateMembershipPrice(
   if (
     !price.active ||
     price.currency.toUpperCase() !== plan.currency ||
-    price.unit_amount !== plan.price * 100 ||
+    price.unit_amount !== Math.round(plan.price * 100) ||
     price.recurring?.interval !== "month" ||
     price.recurring.interval_count !== 1
   ) {
@@ -1052,6 +1052,11 @@ export async function createBillingPortal(_req: Request, res: Response) {
     });
     res.json({ portalUrl: session.url });
   } catch (error) {
+    res.status(500).json({
+    message: error.message,
+    code: error.code,
+    type: error.type,
+  });
     logError("Failed to create billing portal", error);
     sendPaymentError(res, error, "Portal failed");
   }

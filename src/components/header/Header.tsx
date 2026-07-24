@@ -19,12 +19,12 @@ export const Header: React.FC = () => {
 
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
-  
+
   return (
    <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
         <div className="nav-container">
           <Link to="/" className="logo">
-            <span className="logo__text">PokéAnalyzer</span>
+            <span className="logo__text">Pokélyzer</span>
           </Link>
           <div className="nav-links">
             <Link to="/search">Utforsk kort</Link>

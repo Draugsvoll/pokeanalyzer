@@ -38,6 +38,7 @@ export function ConfirmPopover({
       className={[
         "ui-popover-surface",
         "ui-confirm-popover",
+        "ui-render-fade",
         className,
       ]
         .filter(Boolean)
@@ -51,7 +52,7 @@ export function ConfirmPopover({
       )}
       <Button
         variant="default"
-        size="small"
+        size="xsmall"
         disabled={confirming || confirmDisabled}
         onClick={onConfirm}
       >
@@ -59,7 +60,7 @@ export function ConfirmPopover({
       </Button>
       <Button
         variant="default"
-        size="small"
+        size="xsmall"
         disabled={confirming}
         onClick={onCancel}
       >

@@ -24,6 +24,22 @@
     margin-bottom: 2rem;
   }
 
+  /* /search: fields on top, actions centered under */
+  .database-search-container {
+    flex-direction: column;
+    gap: 1.8rem;
+    max-width: min(38rem, 100%);
+  }
+
+  .database-search-fields {
+    width: 100%;
+  }
+
+  .database-search-actions {
+    width: 100%;
+  }
+
+  /* Card details: keep compact single row */
   &--embedded {
     margin: 0;
     max-width: none;
@@ -31,57 +47,147 @@
     text-align: left;
 
     .database-search-container {
-      justify-content: space-between;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 0.45rem;
       margin: 0;
       max-width: none;
       width: 100%;
     }
 
-    .database-search {
-      flex: 1 1 0;
+    .database-search-fields {
+      flex: 1 1 auto;
       min-width: 0;
+      width: auto;
+    }
+
+    .database-search-actions {
+      flex: 0 0 auto;
       width: auto;
     }
   }
 }
 
 .database-search-container {
+  --database-control-height: 2.85rem;
+
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
   justify-content: center;
   margin: 2rem auto 0;
-  max-width: 100%;
-  width: fit-content;
+  width: 100%;
+}
 
-  > .app-btn {
-    align-self: stretch;
+.database-search-fields {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.database-search-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
+
+  .app-btn {
+    box-sizing: border-box;
+    height: var(--database-control-height);
+    min-height: var(--database-control-height);
+    min-width: 5.5rem;
+    padding-bottom: 0;
+    padding-top: 0;
+  }
+}
+
+.database-search-spinner {
+  animation: database-search-spin 0.75s linear infinite;
+  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: var(--border-radius-round);
+  border-top-color: currentColor;
+  box-sizing: border-box;
+  display: block;
+  height: 1rem;
+  width: 1rem;
+}
+
+@keyframes database-search-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 .database-search {
-  width: 8rem;
-  background: var(--bg2);
+  box-sizing: border-box;
+  height: var(--database-control-height);
+  min-width: 0;
+  width: 100%;
+  /* Light transparent wash — barely lifted from the page */
+  background: rgba(255, 255, 255, 0.035);
   border: var(--border);
   border-radius: var(--border-radius);
-  padding: 0.82rem;
+  color: var(--font-color-primary);
+  line-height: 1.2;
+  padding: 0 0.9rem;
   text-align: left;
-  color: var(--font-color-muted);
   transition:
+    background-color var(--delay-short) ease,
     border-color var(--delay-short) ease,
-    box-shadow var(--delay-short) ease,
-    filter var(--delay-short) ease;
+    box-shadow var(--delay-short) ease;
+
+  &--number {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &::placeholder {
+    color: var(--font-color-secondary);
+    opacity: 0.58;
+  }
 
   &:hover:not(:focus) {
-    border-color: rgba(148, 163, 184, 0.32);
-    filter: brightness(1.08);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(148, 163, 184, 0.28);
   }
 
   &:focus {
+    background: rgba(255, 255, 255, 0.08);
     border-color: color-mix(in srgb, var(--custom-color-purple) 55%, rgba(148, 163, 184, 0.45));
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--custom-color-purple) 13%, transparent);
     outline: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .database-search-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .database-preview--embedded {
+    .database-search-container {
+      flex-wrap: wrap;
+    }
+
+    .database-search-fields {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+
+    .database-search-actions {
+      flex: 1 1 100%;
+      justify-content: center;
+      width: 100%;
+
+      .app-btn {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .database-preview:not(.database-preview--embedded) {
+    .database-search-actions .app-btn {
+      flex: 1 1 0;
+    }
   }
 }
 
@@ -132,16 +238,17 @@
 
     h3 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-h4);
       line-height: var(--font-leading-snug);
       margin-top: 0.25rem;
     }
 
     p {
-      color: var(--font-color-secondary);
+      color: var(--font-color-muted);
       font-size: var(--font-size-paragraph-sm);
+      font-weight: var(--font-weight-bold);
+      line-height: var(--font-leading-snug);
       margin-top: 0.3rem;
-      padding-left:0;
+      padding-left: 0;
     }
   }
 
@@ -169,7 +276,6 @@
       overflow-wrap: anywhere;
     }
   }
-
 }
 
 .search-results {

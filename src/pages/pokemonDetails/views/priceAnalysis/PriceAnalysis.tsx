@@ -195,16 +195,15 @@ function JustTcgPriceAnalysis({
     return <LoadingState>Fetching JustTCG prices...</LoadingState>;
   }
 
-  return (
-    <>
-      {justTcgRequest.error && (
-        <p className="card-view__page-error">{justTcgRequest.error}</p>
-      )}
-      {justTcgRequest.response !== null && (
-        <JustTcgVariants response={justTcgRequest.response} />
-      )}
-    </>
-  );
+  if (justTcgRequest.error) {
+    return <p className="card-view__page-error">{justTcgRequest.error}</p>;
+  }
+
+  if (justTcgRequest.response === null) {
+    return null;
+  }
+
+  return <JustTcgVariants response={justTcgRequest.response} />;
 }
 
 export function PriceAnalysis({

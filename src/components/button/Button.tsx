@@ -15,7 +15,7 @@ type ButtonProps = Omit<
     | "primary"
     | "secondary"
     | "warning";
-  size?: "small" | "medium" | "large";
+  size?: "xsmall" | "small" | "medium" | "large";
   fullWidth?: boolean;
   fitContent?: boolean;
   grow?: boolean;

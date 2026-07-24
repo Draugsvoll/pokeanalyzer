@@ -46,20 +46,28 @@ export default function Portfolio() {
   );
 
   // Sum each card's selected price × quantity (USD / EUR kept separate)
-  const { totalUsd, totalEur } = useMemo(() => {
+  const { totalUsd, totalEur, cardsUsd, cardsEur } = useMemo(() => {
     let totalUsd = 0;
     let totalEur = 0;
+    let cardsUsd = 0;
+    let cardsEur = 0;
 
     for (const card of portfolio) {
+      const quantity = cardQuantity(card);
       const option = resolveCardPriceOption(card, card.priceSource);
       if (!option) continue;
 
-      const line = option.price * cardQuantity(card);
-      if (option.currencySymbol === "$") totalUsd += line;
-      else totalEur += line;
+      const line = option.price * quantity;
+      if (option.currencySymbol === "$") {
+        totalUsd += line;
+        cardsUsd += quantity;
+      } else {
+        totalEur += line;
+        cardsEur += quantity;
+      }
     }
 
-    return { totalUsd, totalEur };
+    return { totalUsd, totalEur, cardsUsd, cardsEur };
   }, [portfolio]);
 
   const requestQuantityChange = (card: PokemonCardType, amount: number) => {
@@ -142,7 +150,12 @@ export default function Portfolio() {
             <span className="portfolio__total-label">Collection value</span>
             <div className="portfolio__total-markets">
               <div className="portfolio__total-market portfolio__total-market--usd">
-                <span className="portfolio__total-market-label">TCG · USD</span>
+                <div className="portfolio__total-market-heading">
+                  <span className="portfolio__total-market-label">TCG Player · USD</span>
+                  <span className="badge-small portfolio__total-count">
+                    {cardsUsd} {cardsUsd === 1 ? "card" : "cards"}
+                  </span>
+                </div>
                 <strong className="portfolio__total-market-value">
                   {totalUsd > 0 ? `$${money.format(totalUsd)}` : "—"}
                 </strong>
@@ -152,9 +165,14 @@ export default function Portfolio() {
                 aria-hidden="true"
               />
               <div className="portfolio__total-market portfolio__total-market--eur">
-                <span className="portfolio__total-market-label">
-                  Cardmarket · EUR
-                </span>
+                <div className="portfolio__total-market-heading">
+                  <span className="portfolio__total-market-label">
+                    Cardmarket · EUR
+                  </span>
+                  <span className="badge-small portfolio__total-count">
+                    {cardsEur} {cardsEur === 1 ? "card" : "cards"}
+                  </span>
+                </div>
                 <strong className="portfolio__total-market-value">
                   {totalEur > 0 ? `€${money.format(totalEur)}` : "—"}
                 </strong>
@@ -233,7 +251,8 @@ export default function Portfolio() {
                   {pendingQuantity?.cardId === card.id && (
                     <ConfirmPopover
                       className="portfolio__quantity-confirm"
-                      confirmLabel="Update"
+                      label="Update?"
+                      confirmLabel="OK"
                       aria-label="Confirm quantity change"
                       confirmDisabled={
                         pendingQuantity.quantity === (card.quantity ?? 1)

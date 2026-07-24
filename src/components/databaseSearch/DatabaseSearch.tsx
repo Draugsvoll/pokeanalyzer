@@ -4,12 +4,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../button/Button";
 import type { PokemonCard } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
+import { formatCardNumber } from "../../utils/formatCardNumber";
 import "./DatabaseSearch.scss";
 import "../../pages/pokemonDetails/components/CardRarityBadge.scss";
 import { logClientError } from "../../utils/logClientError";
 
 const API_URL = import.meta.env.VITE_API_URL;
-const integerFormatter = new Intl.NumberFormat("en-US");
 
 type DatabaseSearchProps = {
   autoFocusName?: boolean;
@@ -120,45 +120,56 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         </>
       )}
       <div className="database-search-container">
-        <input
-          className="database-search"
-          autoFocus={autoFocusName}
-          value={pokemonName}
-          onChange={(e) => setPokemonName(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Name"
-        />
-        <input
-          className="database-search"
-          value={setName}
-          onChange={(e) => setSetName(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Set"
-        />
-        <input
-          className="database-search"
-          value={setSeries}
-          onChange={(e) => setSetSeries(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Series"
-        />
-        <input
-          className="database-search"
-          value={cardNumber}
-          onChange={(e) => setCardNumber(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Number"
-        />
-        <Button
-          variant="secondary"
-          onClick={handleSearch}
-          disabled={!canSearch || isSearching}
-        >
-          Søk
-        </Button>
-        <Button variant="secondary" onClick={handleClearSearch}>
-          Tøm
-        </Button>
+        <div className="database-search-fields" role="group" aria-label="Search filters">
+          <input
+            className="database-search"
+            autoFocus={autoFocusName}
+            value={pokemonName}
+            onChange={(e) => setPokemonName(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Name"
+          />
+          <input
+            className="database-search"
+            value={setName}
+            onChange={(e) => setSetName(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Set"
+          />
+          <input
+            className="database-search"
+            value={setSeries}
+            onChange={(e) => setSetSeries(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Series"
+          />
+          <input
+            className="database-search database-search--number"
+            value={cardNumber}
+            onChange={(e) => setCardNumber(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Number"
+          />
+        </div>
+        <div className="database-search-actions">
+          <Button
+            onClick={handleSearch}
+            disabled={!canSearch || isSearching}
+            aria-busy={isSearching || undefined}
+          >
+            {isSearching ? (
+              <span
+                className="database-search-spinner"
+                aria-label="Søker"
+              />
+            ) : (
+              "Søk"
+            )}
+          </Button>
+          <Button variant="secondary" onClick={handleClearSearch}>
+            Tøm
+          </Button>
+        </div>
       </div>
 
       {(() => {
@@ -200,11 +211,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   <dl className="database-card__metadata">
                     <div>
                       <dt>Number</dt>
-                      <dd>
-                        {card.number && card.set.printedTotal !== undefined
-                          ? `${card.number} / ${integerFormatter.format(card.set.printedTotal)}`
-                          : card.number ?? "—"}
-                      </dd>
+                      <dd>{formatCardNumber(card) ?? "—"}</dd>
                     </div>
                     <div>
                       <dt>Set cards</dt>

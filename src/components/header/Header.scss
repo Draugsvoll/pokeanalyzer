@@ -61,21 +61,46 @@
 
 .nav-links a {
   color: var(--font-color-secondary);
-  margin: 0 1.2rem;
-  text-decoration: none;
+  display: inline-block;
   font-size: var(--font-size-nav);
   font-weight: var(--font-weight-medium);
-  transition: color var(--delay-short);
+  margin: 0 1.2rem;
+  text-decoration: none;
+  transition: color var(--delay-short) ease;
 }
 
 .nav-links a:hover {
-  color: var(--primary-color);
+  color: var(--font-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .btn-container {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+
+  > a {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-nav);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition: color var(--delay-short) ease;
+
+    &:hover {
+      color: var(--font-color-primary);
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    &:visited {
+      color: var(--font-color-secondary);
+    }
+
+    &:visited:hover {
+      color: var(--font-color-primary);
+    }
+  }
 }
 
 @media (max-width: 760px) {

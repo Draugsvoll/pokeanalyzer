@@ -38,8 +38,14 @@
 
   /* Image + info row; shell stays column so search can sit under both */
   &__details {
+    align-items: center;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    gap: 1.25rem;
+    justify-content: space-evenly;
+    /* Horizontal padding while stacked; cleared on desktop row layout */
+    padding: 1.5rem;
     width: 100%;
   }
 
@@ -62,10 +68,11 @@
   }
 
   &__image-side {
-    padding: 1.5rem;
     display: flex;
+    flex: 0 0 auto;
     justify-content: center;
     align-items: center;
+    padding: 0;
   }
 
   &__image {
@@ -82,14 +89,15 @@
   }
 
   &__info-side {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    padding: 2rem;
-    padding-top: 1.7rem;
+    box-sizing: border-box;
     display: flex;
+    flex: 0 1 auto;
     flex-direction: column;
-    flex: 1 1 auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0;
+    /* Stacked: fill details row. Desktop width set in min-width media query. */
+    width: 100%;
   }
 
   &__title {
@@ -114,12 +122,15 @@
 
   &__title-set {
     align-items: center;
-    color: var(--font-color-secondary);
+    color: var(--font-color-muted);
     display: flex;
-    font-size: var(--font-size-paragraph);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-snug);
     text-align: left;
-    padding:0;
-    padding-bottom:0.3rem;
+    padding: 0;
+    padding-bottom: 0.3rem;
+    margin: 0.3rem 0;
 
     i {
       display: none;
@@ -349,21 +360,23 @@
 
 @media (min-width: 48rem) {
   .card-view__details {
-    flex-direction: row;
     align-items: stretch;
-  }
-
-  .card-view__info-side {
-    box-sizing: border-box;
-    flex: 0 0 50%;
-    width: 50%;
+    flex-direction: row;
+    gap: 0;
+    justify-content: space-evenly;
+    padding-inline: 0;
   }
 
   .card-view__image-side {
-    box-sizing: border-box;
-    flex: 0 0 50%;
-    min-width: 0;
-    width: 50%;
+    flex: 0 0 auto;
+  }
+
+  .card-view__info-side {
+    /* flex-basis (not width alone) sizes flex items — keep these in sync */
+    --width:23rem;
+    flex: 0 0 var(--width);
+    max-width: var(--width);
+    width: var(--width);
   }
 }
 
@@ -375,23 +388,21 @@
       width: 100%;
     }
 
+    &__details {
+      padding: 1.25rem 1rem;
+    }
+
     &__search {
       padding: 0.9rem 1rem 1rem;
 
-      .database-search-container {
-        flex-wrap: wrap;
-      }
-
-      .database-search {
-        flex: 1 1 calc(50% - 0.4rem);
-        min-width: 6rem;
+      .database-search-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
     &__info-side {
-      padding: 1.5rem;
       min-width: 0;
-      flex: 1 1 auto;
+      width: 100%;
     }
 
     &__info-grid {

@@ -118,3 +118,64 @@ textarea {
     box-shadow: var(--hover-shadow);
   }
 }
+
+/* Small outline badge (variants, counts, etc.) */
+.badge-small {
+  align-items: center;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--border-radius-pill);
+  box-sizing: border-box;
+  color: var(--font-color-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--font-family-base);
+  font-size: .68rem;
+  font-weight: var(--font-weight-semibold);
+  gap: 0.2rem;
+  height: 1.35rem;
+  justify-content: center;
+  line-height: 1;
+  letter-spacing: 0.02rem;
+  margin: 0;
+  max-height: 1.35rem;
+  max-width: 100%;
+  min-height: 1.35rem;
+  overflow: hidden;
+  padding: 0 0.6rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  /* Defeat global `span { font-size: label }` on nested content */
+  > * {
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: 1;
+  }
+
+  /* Market chips: color only, no fill/border (shared) */
+  &--tcgplayer,
+  &--cardmarket {
+    background: transparent;
+    border-color: transparent;
+    font-weight: var(--font-weight-bold);
+    padding: 0;
+  }
+
+  &--tcgplayer {
+    color: color-mix(in srgb, var(--custom-color-orange) 82%, white);
+  }
+
+  &--cardmarket {
+    color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
+  }
+}
+
+

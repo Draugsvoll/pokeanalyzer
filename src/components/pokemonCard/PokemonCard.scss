@@ -74,62 +74,40 @@
 .pokemon-card__price {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
   margin: 0;
   min-width: 0;
   width: 100%;
 }
 
 .pokemon-card__price-row {
-  align-items: baseline;
+  align-items: center;
   display: flex;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  justify-content: space-between;
   min-width: 0;
   width: 100%;
 }
 
 .pokemon-card__price-value {
   color: var(--font-color-primary);
+  flex: 0 0 auto;
   font-family: var(--font-family-price);
   font-size: var(--font-size-price-md);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   letter-spacing: 0;
   line-height: 1.15;
-  min-width: 0;
-}
-
-.pokemon-card__price-source {
-  border: 1px solid transparent;
-  border-radius: var(--border-radius-pill);
-  flex: 0 0 auto;
-  font-size: 0.62rem;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--font-tracking-wide);
-  line-height: 1.2;
-  padding: 0.18rem 0.45rem;
-
-  /* Orange = TCG, teal = Cardmarket */
-  &--tcgplayer {
-    background: color-mix(in srgb, var(--custom-color-orange) 14%, transparent);
-    border-color: color-mix(in srgb, var(--custom-color-orange) 30%, transparent);
-    color: color-mix(in srgb, var(--custom-color-orange) 82%, white);
-  }
-
-  &--cardmarket {
-    background: color-mix(in srgb, var(--custom-color-teal) 14%, transparent);
-    border-color: color-mix(in srgb, var(--custom-color-teal) 28%, transparent);
-    color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
-  }
+  white-space: nowrap;
 }
 
 .pokemon-card__variant-row {
   align-items: center;
   display: flex;
   gap: 0.5rem;
+  justify-content: space-between;
+  margin-top: 0.2rem;
   min-width: 0;
   width: 100%;
-  margin-top:0.2rem;
 }
 
 .pokemon-card__price-variant {
@@ -145,6 +123,21 @@
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  /* badge-small: content-sized, can shrink with ellipsis (does not grow) */
+  &.badge-small {
+    align-self: center;
+    display: block;
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-height: 1.35rem;
+    min-width: 0;
+    overflow: hidden;
+    padding-block: 0.28rem;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .pokemon-card__source {
@@ -154,43 +147,61 @@
 
 .pokemon-card__source-toggle {
   align-items: center;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--border-radius-pill);
-  color: var(--font-color-faint);
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--font-color-muted);
   cursor: pointer;
   display: inline-flex;
-  font: inherit;
-  font-size: 0.6rem;
-  font-weight: var(--font-weight-regular);
-  gap: 0.15rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  padding: 0.12rem 0.28rem 0.12rem 0.35rem;
-  padding:0.2rem 0.45rem;
-  transition:
-    background var(--delay-short) ease,
-    border-color var(--delay-short) ease,
-    color var(--delay-short) ease;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-overline);
+  gap: 0.2rem;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0.15rem 0;
+  transition: color var(--delay-short) ease;
 
   &:hover,
   &.is-open {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.14);
-    color: var(--font-color-muted);
+    color: var(--font-color-secondary);
   }
 
   &:focus-visible {
+    border-radius: 0.2rem;
     outline: 2px solid rgba(255, 255, 255, 0.35);
     outline-offset: 2px;
   }
+
+  /* Defeat global span font-size */
+  > span {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+  }
+}
+
+/* Only the "Source" text — not market badges or other UI */
+.pokemon-card__source-label {
+  color: var(--font-color-muted);
+}
+
+.pokemon-card__source-toggle:hover .pokemon-card__source-label,
+.pokemon-card__source-toggle.is-open .pokemon-card__source-label {
+  color: var(--font-color-secondary);
 }
 
 .pokemon-card__source-chevron {
-  font-size: 0.72rem;
-  font-weight: var(--font-weight-medium);
-  line-height: 1;
-  opacity: 0.9;
+  color: var(--font-color-muted);
+  display: inline-block;
+  flex: 0 0 auto;
+  font-size: 0.55rem;
+  opacity: 0.85;
+  transform: translateY(-0.02rem);
+}
+
+.pokemon-card__source-toggle:hover .pokemon-card__source-chevron,
+.pokemon-card__source-toggle.is-open .pokemon-card__source-chevron {
+  color: var(--font-color-secondary);
 }
 
 /* Anchored to the Source button; size = panel only so it never shifts when confirm mounts */
@@ -303,8 +314,9 @@
 
 .base-card .pokemon-card__name {
   font-size: var(--font-size-h4);
+  letter-spacing: var(--font-tracking-button);
   line-height: 1.4;
-  margin-top:0.3rem;
+  margin-top: 0.3rem;
 }
 
 .pokemon-card__set {

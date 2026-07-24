@@ -156,14 +156,18 @@ export function PokemonCard({
                 ? `${currencySymbol}${money.format(displayedPrice)}`
                 : "—"}
             </span>
-            <span className="pokemon-card__price-variant">
+            <span
+              className={`pokemon-card__price-variant${
+                variantLabel?.trim() ? " badge-small" : ""
+              }`}
+            >
               {variantLabel?.trim() ? variantLabel : "\u00A0"}
             </span>
           </div>
 
           <div className="pokemon-card__variant-row">
             <span
-              className={`pokemon-card__price-source pokemon-card__price-source--${
+              className={`badge-small badge-small--${
                 activeOption?.source ?? priceSource
               }`}
             >
@@ -182,7 +186,7 @@ export function PokemonCard({
                     else setSourceOpen(true);
                   }}
                 >
-                  <span>Source</span>
+                  <span className="pokemon-card__source-label">Source</span>
                   <span className="pokemon-card__source-chevron" aria-hidden="true">
                     {sourceOpen ? "▴" : "▾"}
                   </span>

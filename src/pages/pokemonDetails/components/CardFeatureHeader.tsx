@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import { getCustomColors, type CustomColors } from "../../../utils/customStylings";
+import { formatCardNumber } from "../../../utils/formatCardNumber";
 import "./CardFeatureHeader.scss";
 
 type CardFeatureHeaderProps = {
@@ -11,17 +12,6 @@ type CardFeatureHeaderProps = {
   label: string;
   loading?: boolean;
 };
-
-function formatCardNumber(card: PokemonCard, cardNumber?: string) {
-  const number = cardNumber ?? card.number;
-  if (!number || number.includes("/") || card.set?.printedTotal == null) return number;
-
-  const total = String(card.set.printedTotal);
-  const paddedNumber = /^\d+$/.test(number)
-    ? number.padStart(total.length, "0")
-    : number;
-  return `${paddedNumber}/${total}`;
-}
 
 export function CardFeatureHeader({
   card,
