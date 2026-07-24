@@ -54,6 +54,10 @@
   margin: 2rem auto 0;
   max-width: 100%;
   width: fit-content;
+
+  > .app-btn {
+    align-self: stretch;
+  }
 }
 
 .database-search {
@@ -61,13 +65,13 @@
   background: var(--bg2);
   border: var(--border);
   border-radius: var(--border-radius);
-  padding: 0.9rem;
+  padding: 0.82rem;
   text-align: left;
   color: var(--font-color-muted);
   transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    filter 0.16s ease;
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease,
+    filter var(--delay-short) ease;
 
   &:hover:not(:focus) {
     border-color: rgba(148, 163, 184, 0.32);

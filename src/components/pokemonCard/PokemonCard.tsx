@@ -13,6 +13,11 @@ import {
 } from "../../utils/pokemonPricing";
 import "./PokemonCard.scss";
 
+const money = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 type PokemonCardProps = {
   card: PokemonCardType;
   priceSource?: CardPriceSource;
@@ -147,7 +152,9 @@ export function PokemonCard({
         <div className="pokemon-card__price">
           <div className="pokemon-card__price-row">
             <span className="pokemon-card__price-value">
-              {displayedPrice != null ? `${currencySymbol}${displayedPrice}` : "—"}
+              {displayedPrice != null
+                ? `${currencySymbol}${money.format(displayedPrice)}`
+                : "—"}
             </span>
             <span className="pokemon-card__price-variant">
               {variantLabel?.trim() ? variantLabel : "\u00A0"}

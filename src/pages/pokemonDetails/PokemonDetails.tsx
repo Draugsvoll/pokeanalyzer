@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeDollarSign,
@@ -52,6 +52,7 @@ import {
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 import { CardFeatureHeader } from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
+import LoginModal from "../../components/loginmodal/Loginmodal";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const integerFormatter = new Intl.NumberFormat("en-US");
@@ -200,6 +201,7 @@ export default function PokemonDetails() {
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [portfolioConfirmation, setPortfolioConfirmation] = useState("");
   const [justTcgLoading, setJustTcgLoading] = useState(false);
@@ -251,7 +253,7 @@ export default function PokemonDetails() {
     setUpdatingPortfolio(true);
     try {
       if (cardWasSaved) {
-        await removePokemonFromPortfolio(card.id);
+        await removePokemonFromPortfolio(card.id, false);
       } else {
         await savePokemonToPortfolio(card);
       }
@@ -671,16 +673,46 @@ export default function PokemonDetails() {
       </div>
 
       <div className="card-view__credit-note">
-        <span>1 credit per analyse</span>
-        <strong>
+        <span className="card-view__credit-cost">
+          <strong>1 Credit</strong>
+          <span className="card-view__credit-meta">per analyse</span>
+        </span>
+        <span className="card-view__credit-divider" aria-hidden="true" />
+        <span className="card-view__credit-copy">
           {loadingSubscription
             ? "Laster credits..."
             : subscription
-              ? `${creditsRemaining} credits igjen`
-              : "Logg inn for å se credits"}
-        </strong>
-        {creditMessage && <small>{creditMessage}</small>}
+              ? (
+                <span className="card-view__credit-balance">
+                  {creditsRemaining} Credits left
+                </span>
+              )
+              : (
+                <>
+                  <button
+                    type="button"
+                    className="card-view__credit-link"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Login
+                  </button>
+                  {" or "}
+                  <Link className="card-view__credit-link" to="/signup">
+                    Sign Up
+                  </Link>
+                  {" for free credits"}
+                </>
+              )}
+        </span>
+        {creditMessage && (
+          <small className="card-view__credit-message">{creditMessage}</small>
+        )}
       </div>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
 
       <div ref={featureButtonsRef} className="card-view__actions feature-buttons__row">
         {AI_Features.map((aiFeature) => {

@@ -94,7 +94,7 @@
   font-size: var(--font-size-price-md);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
-  letter-spacing: var(--font-tracking-tight);
+  letter-spacing: 0;
   line-height: 1.15;
   min-width: 0;
 }
@@ -169,9 +169,9 @@
   padding: 0.12rem 0.28rem 0.12rem 0.35rem;
   padding:0.2rem 0.45rem;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    color 0.12s ease;
+    background var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    color var(--delay-short) ease;
 
   &:hover,
   &.is-open {
@@ -195,8 +195,9 @@
 
 /* Anchored to the Source button; size = panel only so it never shifts when confirm mounts */
 .pokemon-card__source-flyout {
+  left: 50%;
   position: absolute;
-  right: 0;
+  transform: translateX(-50%);
   top: calc(100% + 0.3rem);
   z-index: 100;
 }
@@ -232,7 +233,9 @@
   grid-template-columns: auto minmax(max-content, 1fr) auto;
   line-height: 1.25;
   padding: 0.45rem 0.55rem;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background var(--delay-short) ease,
+    color var(--delay-short) ease;
   white-space: nowrap;
 
   input {
@@ -341,7 +344,7 @@
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--delay-short) ease;
   &:hover {
     opacity: 1;
     visibility: visible;

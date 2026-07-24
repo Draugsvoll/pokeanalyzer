@@ -48,7 +48,7 @@
 }
 
 .biggest-gainers__card {
-  --trend-accent: var(--custom-color-teal);
+  --trend-accent: var(--news-accent, var(--custom-color-teal));
   cursor: default;
 
   background:

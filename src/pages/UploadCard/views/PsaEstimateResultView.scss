@@ -160,8 +160,8 @@
   padding: 1.05rem 1.3rem;
   position: relative;
   transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease;
 
   &::before {
     background: var(--psa-theme);
@@ -268,7 +268,7 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   gap: 0.12rem;
-  letter-spacing: 0.02rem;
+  letter-spacing: var(--font-tracking-button);
   line-height: 1;
   padding: 0.32rem 0.55rem;
   white-space: nowrap;

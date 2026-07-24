@@ -9,7 +9,9 @@
     --source-color: var(--custom-color-teal); --source-bg: rgba(56, 189, 248, 0.1);
     background: var(--bg2); border: var(--border); border-radius: var(--border-radius);
     display: flex; flex-direction: column; padding: 1.5rem;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition:
+      box-shadow var(--delay-short) ease,
+      transform var(--delay-short) ease;
     &:hover { box-shadow: 0 15px 20px -5px rgba(0, 0, 0, 0.35); transform: translateY(-2px); }
     &--orange { --source-color: var(--custom-color-orange); --source-bg: rgba(249, 115, 22, 0.1); }
     &--green { --source-color: var(--custom-color-teal); --source-bg: rgba(16, 185, 129, 0.1); }

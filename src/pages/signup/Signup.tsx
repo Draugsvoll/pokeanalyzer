@@ -5,6 +5,8 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   signOut,
+  validatePassword,
+  type PasswordValidationStatus,
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../firebase";
@@ -15,6 +17,36 @@ import { signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import { logClientError } from "../../utils/logClientError";
 import { useNotification } from "../../context/notificationContextValue";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getPasswordPolicyError(status: PasswordValidationStatus) {
+  const requirements: string[] = [];
+  const options = status.passwordPolicy.customStrengthOptions;
+
+  if (status.meetsMinPasswordLength === false) {
+    requirements.push(`minst ${options.minPasswordLength ?? 6} tegn`);
+  }
+  if (status.meetsMaxPasswordLength === false && options.maxPasswordLength) {
+    requirements.push(`maks ${options.maxPasswordLength} tegn`);
+  }
+  if (status.containsLowercaseLetter === false) {
+    requirements.push("en liten bokstav");
+  }
+  if (status.containsUppercaseLetter === false) {
+    requirements.push("en stor bokstav");
+  }
+  if (status.containsNumericCharacter === false) {
+    requirements.push("et tall");
+  }
+  if (status.containsNonAlphanumericCharacter === false) {
+    requirements.push("et spesialtegn");
+  }
+
+  return requirements.length
+    ? `Passordet må ha ${requirements.join(", ")}.`
+    : "Passordet oppfyller ikke kravene.";
+}
 
 export default function SignUpForm() {
   const [formData, setFormData] = useState({
@@ -42,22 +74,47 @@ export default function SignUpForm() {
     if (loading) return; // prevent double submit
     setError("");
     setSuccess("");
-    setLoading(true); // these 3 prevents err msg persist
+
+    const trimmedEmail = formData.email.trim();
+    if (!trimmedEmail) {
+      setError("Skriv inn e-postadressen din.");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError("Skriv inn en gyldig e-postadresse.");
+      return;
+    }
+    if (!formData.password) {
+      setError("Velg et passord.");
+      return;
+    }
+    if (!formData.confirmPassword) {
+      setError("Gjenta passordet.");
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passordene er ikke like.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (formData.password !== formData.confirmPassword) {
-        setError("Passordene er ikke like.");
+      const passwordStatus = await validatePassword(auth, formData.password);
+      if (!passwordStatus.isValid) {
+        setError(getPasswordPolicyError(passwordStatus));
         return;
       }
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        formData.email,
+        trimmedEmail,
         formData.password,
       );
       const userRef = doc(db, "users", userCredential.user.uid);
       const user: UserUpload = {
         uid: userCredential.user.uid,
         ...(formData.firstName.trim() && { firstName: formData.firstName.trim() }),
-        email: formData.email,
+        email: trimmedEmail,
         createdAt: serverTimestamp(),
       };
       await setDoc(userRef, user);
@@ -109,7 +166,7 @@ export default function SignUpForm() {
 
         <div className="auth-divider"><span>eller</span></div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label className="auth-field">
             <span>Navn (valgfritt)</span>
             <input
@@ -145,6 +202,7 @@ export default function SignUpForm() {
               autoComplete="new-password"
               required
             />
+            <small className="auth-field__hint">Minst 6 tegn.</small>
           </label>
 
           <label className="auth-field">

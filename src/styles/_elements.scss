@@ -110,8 +110,8 @@ textarea {
 .card-hover {
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease;
 
   &:hover {
     border: var(--border-hover);

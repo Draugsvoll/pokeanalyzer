@@ -22,7 +22,7 @@ export function BiggestMovers() {
     <section className="biggest-gainers ui-render-fade">
       <header className="biggest-gainers__header">
         <h1 className="biggest-gainers__title">
-          Biggest weekly movers from TCG
+          Weekly movers from TCG
         </h1>
       </header>
 

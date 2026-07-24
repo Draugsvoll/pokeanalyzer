@@ -70,6 +70,10 @@
 .auth-form {
   display: grid;
   gap: 0.9rem;
+
+  > .app-btn {
+    margin-block: 0.25rem;
+  }
 }
 
 .auth-field {
@@ -92,9 +96,9 @@
     outline: none;
     padding: 0.7rem 0.85rem;
     transition:
-      background-color 0.18s ease,
-      border-color 0.18s ease,
-      box-shadow 0.18s ease;
+      background-color var(--delay-short) ease,
+      border-color var(--delay-short) ease,
+      box-shadow var(--delay-short) ease;
     width: 100%;
 
     &::placeholder {
@@ -111,6 +115,12 @@
       );
     }
   }
+}
+
+.auth-field__hint {
+  color: var(--font-color-faint);
+  font-size: var(--font-size-caption);
+  line-height: var(--font-leading-snug);
 }
 
 .auth-notice {

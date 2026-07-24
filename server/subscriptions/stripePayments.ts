@@ -23,7 +23,7 @@ const MEMBERSHIP_PRICE_ENV: Record<Exclude<MembershipPlanId, "free">, string> = 
 
 const TOP_UP_PACKAGES = {
   credits_100: {
-    amount: 5,
+    amount: 3.99,
     credits: 100,
     currency: "USD",
     priceEnv: "STRIPE_TOPUP_100_PRICE_ID",
@@ -150,7 +150,7 @@ async function validateTopUpPrice(priceId: string, packageId: TopUpPackageId) {
   if (
     !price.active ||
     price.currency.toUpperCase() !== topUp.currency ||
-    price.unit_amount !== topUp.amount * 100 ||
+    price.unit_amount !== Math.round(topUp.amount * 100) ||
     price.recurring !== null
   ) {
     throw new PaymentHttpError("Stripe top-up price does not match the app package.", 503);
@@ -519,7 +519,7 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
   const topUp = packageId ? TOP_UP_PACKAGES[packageId] : undefined;
   const customerId = stripeCustomerId(session.customer);
   const customerUid = await findUidForCustomer(customerId);
-  const expectedAmount = topUp?.amount ? topUp.amount * 100 : 0;
+  const expectedAmount = topUp?.amount ? Math.round(topUp.amount * 100) : 0;
   const expectedCurrency = topUp?.currency ?? "";
   if (
     !uid ||

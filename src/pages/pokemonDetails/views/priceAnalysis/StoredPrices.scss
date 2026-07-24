@@ -69,7 +69,7 @@
     line-height: 1;
     padding: 0.28rem 0.5rem;
     text-decoration: none;
-    transition: background 0.15s ease;
+    transition: background var(--delay-short) ease;
 
     &:hover {
       background: color-mix(in srgb, var(--source-accent) 12%, transparent);

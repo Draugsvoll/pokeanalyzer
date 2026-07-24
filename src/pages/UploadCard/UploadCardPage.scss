@@ -48,7 +48,9 @@
   display: grid;
   overflow: hidden;
   place-items: center;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background var(--delay-short) ease,
+    border-color var(--delay-short) ease;
   width: 100%;
 
   &:hover {

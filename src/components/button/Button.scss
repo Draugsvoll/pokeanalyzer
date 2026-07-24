@@ -7,16 +7,17 @@
   border-radius: var(--border-radius);
   font-size: var(--font-size-button);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-button);
   cursor: pointer;
   user-select: none;
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    color 0.18s ease,
-    filter 0.18s ease,
-    opacity 0.12s ease,
-    transform 0.12s ease;
+    background-color var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease,
+    color var(--delay-short) ease,
+    filter var(--delay-short) ease,
+    opacity var(--delay-short) ease,
+    transform var(--delay-short) ease;
   border: none;
   background: transparent;
   color: var(--font-color-primary);
@@ -29,7 +30,7 @@
 }
 
 .app-btn:hover:not(:disabled) {
-  filter: brightness(1.025);
+  filter: brightness(1.15);
 }
 
 .app-btn:active { transform: translateY(1px); }
@@ -63,7 +64,8 @@
   border-radius: var(--border-radius);
   color: var(--font-color-primary);
   min-height: 2.375rem;
-  padding: 0.48rem 0.95rem;
+  min-width:7rem;
+  padding: 0.6rem 0.98rem;
 
   &:focus-visible {
     box-shadow: 0 0 0 3px color-mix(
@@ -79,6 +81,7 @@
   background: transparent;
   border: var(--border);
   color: var(--font-color-primary);
+  min-width:5rem;
 
   &:hover:not(:disabled) {
     background: var(--bg2);
@@ -123,38 +126,24 @@
 }
 
 .app-btn--hero {
-  min-width:10rem;
+  min-width:12rem;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--custom-color-purple) 72%, var(--primary-color)),
-    color-mix(in srgb, var(--custom-color-blue) 68%, var(--primary-color))
+    var(--custom-color-blue) 0%,
+    var(--custom-color-purple) 100%
   );
-  border: 1px solid color-mix(
-    in srgb,
-    var(--custom-color-purple) 42%,
-    rgba(255, 255, 255, 0.14)
-  );
+  border: 0;
   box-shadow:
-    0 0.5rem 1.25rem rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 3px 10px color-mix(in srgb, var(--custom-color-blue) 14%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: #ffffff;
   font-size: var(--font-size-button);
   font-weight: var(--font-weight-bold);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--custom-color-purple) 78%, var(--primary-color)),
-      color-mix(in srgb, var(--custom-color-blue) 74%, var(--primary-color))
-    );
-    border-color: color-mix(
-      in srgb,
-      var(--custom-color-purple) 52%,
-      rgba(255, 255, 255, 0.18)
-    );
     box-shadow:
-      0 0.6rem 1.4rem rgba(0, 0, 0, 0.26),
-      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      0 4px 14px color-mix(in srgb, var(--custom-color-blue) 20%, transparent),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     filter: brightness(1.025);
   }
 

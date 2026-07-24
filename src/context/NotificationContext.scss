@@ -2,7 +2,7 @@
   --notification-accent: var(--custom-color-purple);
 
   align-items: center;
-  animation: notification-enter 0.22s ease-out;
+  animation: notification-enter var(--delay-short) ease-out;
   background: color-mix(in srgb, var(--bg) 92%, var(--notification-accent));
   border: 1px solid color-mix(
     in srgb,
@@ -45,8 +45,8 @@
     justify-content: center;
     padding: 0;
     transition:
-      background-color 0.18s ease,
-      color 0.18s ease;
+      background-color var(--delay-short) ease,
+      color var(--delay-short) ease;
     width: 1.5rem;
 
     &:hover {
@@ -61,7 +61,7 @@
   }
 
   &--success {
-    --notification-accent: var(--custom-color-teal);
+    --notification-accent: var(--custom-color-purple);
   }
 
   &--error {

@@ -12,6 +12,8 @@ type ModalProps = {
   onClose: () => void;
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,9 +38,24 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Skriv inn e-postadressen din.");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError("Skriv inn en gyldig e-postadresse.");
+      return;
+    }
+    if (!password) {
+      setError("Skriv inn passordet ditt.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       finishLogin();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Innlogging mislyktes.");
@@ -63,12 +80,13 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   };
 
   return createPortal(
-    <div className="login-overlay">
+    <div className="login-overlay" onMouseDown={onClose}>
       <section
         className="login-modal auth-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="auth-card__header">
           <span className="auth-card__eyebrow">Velkommen tilbake</span>
@@ -85,7 +103,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
 
         <div className="auth-divider"><span>eller</span></div>
 
-        <form className="auth-form" onSubmit={handleLogin}>
+        <form className="auth-form" onSubmit={handleLogin} noValidate>
           <label className="auth-field">
             <span>E-post</span>
             <input

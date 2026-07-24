@@ -184,7 +184,7 @@ export default function Profile() {
               {profileName && <p>{profile.email}</p>}
               <div className="profile__identity-meta">
                 <span>
-                  Member since <strong>{formatTimestampDate(profile.createdAt)}</strong>
+                  Member since: <strong> {formatTimestampDate(profile.createdAt)}</strong>
                 </span>
               </div>
             </div>

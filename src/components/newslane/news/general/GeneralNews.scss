@@ -39,7 +39,7 @@
 }
 
 .general-news__trend {
-  --trend-accent: var(--custom-color-purple);
+  --trend-accent: var(--news-accent, var(--custom-color-purple));
 
   align-items: flex-start;
   background: var(--bg2);

@@ -7,14 +7,17 @@ type NewsCategory = "general" | "movers";
 
 const CATEGORIES: { id: NewsCategory; label: string }[] = [
   { id: "general", label: "Latest News" },
-  { id: "movers", label: "Biggest movers" },
+  { id: "movers", label: "Biggest Movers" },
 ];
 
 export function NewsLane() {
   const [activeCategory, setActiveCategory] = useState<NewsCategory>("general");
 
   return (
-    <section className="news-lane" aria-label="News">
+    <section
+      className={`news-lane news-lane--${activeCategory}`}
+      aria-label="News"
+    >
       <header className="news-lane__header">
         <h2 className="news-lane__title">Market news</h2>
         <nav className="news-lane__nav" aria-label="News category">

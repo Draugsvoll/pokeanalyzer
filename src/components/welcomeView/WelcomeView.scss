@@ -5,7 +5,7 @@
   section {
     max-width: 72rem;
     margin: 0 auto;
-    padding: 1.5rem 2rem;
+    padding: 1.5rem 0rem;
   }
 
   section + section {
@@ -102,10 +102,10 @@
   text-align: left;
   cursor: pointer;
   transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    background 0.18s ease;
+    transform var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease,
+    background var(--delay-short) ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -148,6 +148,7 @@
   overflow: hidden;
   padding: 1.25rem;
   position: relative;
+  isolation: isolate;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: var(--border-radius);
   background: linear-gradient(
@@ -160,19 +161,36 @@
   font: inherit;
   text-align: left;
   cursor: default;
-  transition:
-    box-shadow 0.18s ease,
-    background 0.18s ease;
+  transition: box-shadow var(--delay-short) ease;
+
+  &::before {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--feature-accent) 5%, transparent) 0%,
+      rgba(255, 255, 255, 0.008) 72%
+    );
+    content: "";
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity var(--delay-short) ease;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   &:hover {
     box-shadow:
       0 1rem 2.5rem rgba(0, 0, 0, 0.2),
       0 0 1.5rem color-mix(in srgb, var(--feature-accent) 8%, transparent);
-    background: linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--feature-accent) 11%, rgba(255, 255, 255, 0.05)) 0%,
-      rgba(255, 255, 255, 0.025) 72%
-    );
+
+    &::before {
+      opacity: 1;
+    }
   }
 }
 

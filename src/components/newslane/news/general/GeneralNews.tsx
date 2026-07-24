@@ -19,7 +19,7 @@ export const GeneralNews: React.FC = () => {
   return (
     <section className="general-news ui-render-fade">
       <header className="general-news__header">
-        <h1 className="general-news__title">Latest News</h1>
+        <h1 className="general-news__title">General News</h1>
       </header>
 
       {!!newsData?.items?.length && (

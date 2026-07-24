@@ -4,7 +4,7 @@
   border-radius: var(--border-radius);
   color: var(--accent);
   border: 0.125rem solid transparent;
-  transition: border-color 0.3s;
+  transition: border-color var(--delay-short);
   margin-bottom: 1.5rem;
 
   &:hover {
@@ -120,7 +120,7 @@
     align-items: center;
     gap: 0.5rem;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition: box-shadow var(--delay-short);
 
     &:hover {
       box-shadow: var(--shadow);

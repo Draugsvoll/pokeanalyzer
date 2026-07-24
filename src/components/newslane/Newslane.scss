@@ -1,9 +1,14 @@
 .news-lane {
+  --news-accent: var(--custom-color-purple);
+
   display: grid;
   gap: 1.75rem;
   margin: 0 auto;
-  max-width: var(--content-width); /* 48rem — same as eBay / details shell */
   width: 100%;
+}
+
+.news-lane--movers {
+  --news-accent: var(--custom-color-teal);
 }
 
 .news-lane__header {
@@ -11,14 +16,15 @@
   display: grid;
   gap: 0.85rem;
   padding-bottom: 1rem;
+  text-align: center;
 }
 
 .news-lane__title {
   color: var(--font-color-primary);
-  font-size: var(--font-size-h2);
+  font-size: clamp(2rem, 4vw, var(--font-size-display));
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-tight);
-  line-height: 1.2;
+  line-height: 1.08;
   margin: 0;
 }
 
@@ -27,6 +33,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 1.35rem;
+  justify-content: center;
 }
 
 .news-lane__link {
@@ -41,20 +48,25 @@
   padding: 0.15rem 0;
   position: relative;
   text-align: left;
-  transition: color 0.15s ease;
+  transition: color var(--delay-short) ease;
 
   &:hover {
     color: var(--font-color-secondary);
   }
 
   &--active {
-    color: var(--font-color-primary);
+    color: color-mix(in srgb, var(--news-accent) 78%, white);
     font-weight: var(--font-weight-semibold);
   }
 
   &--active::after {
-    background: var(--font-color-primary);
+    background: var(--news-accent);
     bottom: -0.2rem;
+    box-shadow: 0 0 0.65rem color-mix(
+      in srgb,
+      var(--news-accent) 50%,
+      transparent
+    );
     content: "";
     height: 2px;
     left: 0;

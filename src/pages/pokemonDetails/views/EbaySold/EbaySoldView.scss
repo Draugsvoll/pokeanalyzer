@@ -171,7 +171,7 @@
     font-size: var(--font-size-price-md);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
-    letter-spacing: 0.02rem;
+    letter-spacing: var(--font-tracking-button);
     line-height: 1;
     white-space: nowrap;
   }
