@@ -120,7 +120,7 @@ app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 
-app.get("/api/admin/check", requireVerifiedUser, (req, res) => {
+app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
   try {
     const uid = getAuthenticatedUid(res);
     const adminUid = process.env.ADMIN_UID?.trim();

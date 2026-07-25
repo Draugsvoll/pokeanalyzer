@@ -308,7 +308,7 @@ export default function Profile() {
                 <span style={{ width: `${creditPercentage}%` }} />
               </div>
               <div className="profile__credit-breakdown">
-                <span>Membership credits <strong>{membershipCreditsRemaining}/{membershipCreditsTotal}</strong></span>
+                <span>Monthly credits <strong>{membershipCreditsRemaining}/{membershipCreditsTotal}</strong></span>
                 <span>Extra credits <strong>{bonusCreditsRemaining}/{bonusCreditsTotal}</strong></span>
               </div>
             </article>

@@ -617,6 +617,7 @@ export default function PokemonDetails() {
               {card.set?.name && (
                 <p className="card-view__title-set">
                   <i aria-hidden="true">•</i>
+                  <img src={card.set.images?.symbol} alt={`${card.set.name} symbol`} />
                   {card.set.name}
                 </p>
               )}

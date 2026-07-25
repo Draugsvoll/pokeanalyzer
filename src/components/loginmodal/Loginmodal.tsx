@@ -31,7 +31,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
     showNotification("Du er nå logget inn.");
 
     if (location.pathname === "/" || location.pathname === "/portfolio") {
-      navigate("/portfolio", { replace: true });
+      navigate("/profile", { replace: true });
     }
   };
 
