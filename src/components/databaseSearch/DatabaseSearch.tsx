@@ -9,7 +9,7 @@ import "./DatabaseSearch.scss";
 import "../../pages/pokemonDetails/components/CardRarityBadge.scss";
 import { logClientError } from "../../utils/logClientError";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type DatabaseSearchProps = {
   autoFocusName?: boolean;

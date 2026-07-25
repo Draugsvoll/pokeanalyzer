@@ -410,18 +410,20 @@ async function syncSubscription(
       return;
     }
 
-    const currentCreditsTotal = Number(current?.membershipCreditsTotal ?? 0);
-    const currentCreditsUsed = Number(current?.membershipCreditsUsed ?? 0);
-    const isDowngrade = plan.credits < currentCreditsTotal;
-    const cappedCreditsUsed = Math.min(currentCreditsUsed, plan.credits);
+    const currentPeriodStart = current?.currentPeriodStart;
+
+    // Only reset credits on new billing cycle, not mid-cycle
+    const billingCycleChanged = currentPeriodStart && period.currentPeriodStart &&
+      currentPeriodStart.toMillis() !== period.currentPeriodStart.toMillis();
 
     transaction.set(subscriptionRef, {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       ...period,
-      ...(isDowngrade && {
-        membershipCreditsRemaining: Math.max(plan.credits - cappedCreditsUsed, 0),
+      ...(billingCycleChanged && {
+        // Reset credits on new billing cycle
+        membershipCreditsRemaining: plan.credits,
         membershipCreditsTotal: plan.credits,
-        membershipCreditsUsed: cappedCreditsUsed,
+        membershipCreditsUsed: 0,
       }),
       planId: plan.id,
       planName: plan.name,
@@ -1046,9 +1048,11 @@ export async function createBillingPortal(_req: Request, res: Response) {
     const uid = getAuthenticatedUid(res);
 
     const customer = await getOrCreateCustomer(uid);
+    const portalConfig = process.env.STRIPE_BILLING_PORTAL_CONFIG_ID;
     const session = await getStripe().billingPortal.sessions.create({
       customer,
       return_url: `${APP_URL}/profile`,
+      ...(portalConfig && { configuration: portalConfig }),
     });
     res.json({ portalUrl: session.url });
   } catch (error) {

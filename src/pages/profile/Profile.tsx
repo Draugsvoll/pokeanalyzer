@@ -258,12 +258,33 @@ export default function Profile() {
                   </p>
                 </div>
               </div>
-              {subscription?.currentPeriodEnd && (
-                <small className="profile__period">
-                  {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing date"}{" "}
-                  <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong>
-                  {subscription.cancelAtPeriodEnd && " · Cancelling"}
-                </small>
+              {(subscription?.currentPeriodEnd || (subscription && subscription.planId !== "free" && subscription.stripeSubscriptionId)) && (
+                <div className="profile__period-row">
+                  {subscription?.currentPeriodEnd && (
+                    <small className="profile__period">
+                      {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing date"}{" "}
+                      <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong>
+                      {subscription.cancelAtPeriodEnd && " · Cancelling"}
+                    </small>
+                  )}
+                  {subscription && subscription.planId !== "free" && subscription.stripeSubscriptionId && (
+                    <Button
+                      variant="secondary"
+                      disabled={updatingSubscription}
+                      onClick={() => void openBillingPortal()}
+                      aria-busy={updatingSubscription}
+                    >
+                      {updatingSubscription ? (
+                        <span
+                          className="profile__purchase-spinner"
+                          aria-label="Opening billing portal"
+                        />
+                      ) : (
+                        "Manage plan"
+                      )}
+                    </Button>
+                  )}
+                </div>
               )}
             </article>
 
@@ -303,6 +324,15 @@ export default function Profile() {
               <span>Membership plans</span>
               <small>Renews monthly</small>
             </div>
+
+            {(subscriptionMessage || creditMessage) && (
+              <div className="profile__billing-notices" aria-live="polite">
+                {subscriptionMessage && (
+                  <small>{subscriptionMessage}</small>
+                )}
+                {creditMessage && <small className="is-warning">{creditMessage}</small>}
+              </div>
+            )}
 
             <div className="profile__purchase-options">
               {planOptions.map((plan) => {
@@ -440,14 +470,6 @@ export default function Profile() {
               </div>
             )}
 
-            {(subscriptionMessage || creditMessage) && (
-              <div className="profile__billing-notices" aria-live="polite">
-                {subscriptionMessage && (
-                  <small>{subscriptionMessage}</small>
-                )}
-                {creditMessage && <small className="is-warning">{creditMessage}</small>}
-              </div>
-            )}
           </div>
         </section>
       </div>

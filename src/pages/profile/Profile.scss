@@ -187,6 +187,8 @@
       linear-gradient(135deg, rgba(79, 70, 229, 0.15), transparent 60%),
       rgba(255, 255, 255, 0.035);
     border-color: rgba(129, 140, 248, 0.28);
+    display: flex;
+    flex-direction: column;
   }
 
   .profile__section-heading {
@@ -270,9 +272,16 @@
     color: var(--font-color-faint);
     display: block;
     font-size: var(--font-size-badge);
-    margin-top: 1.4rem;
 
     strong { color: var(--font-color-secondary); }
+  }
+
+  .profile__period-row {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-top: 1.4rem;
   }
 
   .profile__credits-total {
