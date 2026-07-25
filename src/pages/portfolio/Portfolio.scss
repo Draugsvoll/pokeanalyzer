@@ -3,10 +3,33 @@
   margin: 0 auto;
   max-width: 72rem;
   padding: 2rem 0;
-  padding-bottom:8rem;
+  padding-bottom: 8rem;
 
   &--status {
     min-height: 50vh;
+  }
+
+  p {
+    margin-top: 0.75rem;
+    color: var(--font-color-body);
+    font-size: var(--font-size-body);
+    padding-left:0;
+  }
+
+  .portfolio__link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: white;
+    text-decoration: underline;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: opacity var(--delay-short) ease;
+    font: inherit;
+
+    &:hover {
+      opacity: 0.8;
+    }
   }
 
   &__header {

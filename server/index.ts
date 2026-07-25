@@ -120,6 +120,28 @@ app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 
+app.get("/api/admin/check", requireVerifiedUser, (req, res) => {
+  try {
+    const uid = getAuthenticatedUid(res);
+    const adminUid = process.env.ADMIN_UID?.trim();
+    
+    if (!adminUid) {
+      res.status(500).json({ message: "Admin UID not configured" });
+      return;
+    }
+
+    if (uid === adminUid) {
+      res.status(200).json({ isAdmin: true });
+    } else {
+      res.status(403).json({ message: "Not an admin" });
+    }
+  } catch (error) {
+    const statusCode = error instanceof Error && "statusCode" in error ? (error as any).statusCode : 401;
+    const message = error instanceof Error ? error.message : "Authentication failed";
+    res.status(statusCode).json({ message });
+  }
+});
+
 app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   const signal = getRequestAbortSignal(res);
   try {

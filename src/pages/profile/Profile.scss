@@ -4,6 +4,40 @@
   margin: 0 auto;
   color: var(--font-color-body);
 
+  p {
+    margin-top: 0.75rem;
+    color: var(--font-color-body);
+    font-size: var(--font-size-body);
+    padding-left:0;
+  }
+
+  a {
+    color: white;
+    text-decoration: underline;
+    font-weight: var(--font-weight-semibold);
+    transition: opacity var(--delay-short) ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  .profile__link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: white;
+    text-decoration: underline;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: opacity var(--delay-short) ease;
+    font: inherit;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
   .profile__card {
     color: var(--font-color-primary);
     overflow: hidden;
@@ -387,74 +421,230 @@
       box-shadow:
         0 0.9rem 2rem rgba(0, 0, 0, 0.16),
         0 0 1.5rem rgba(129, 140, 248, 0.08);
-      transform: translateY(-2px);
-    }
-
-    &.is-current {
-      border-color: rgba(52, 211, 153, 0.38);
-      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.08);
-      opacity: 1;
-
-      .profile__purchase-cta {
-        background: rgba(16, 185, 129, 0.12);
-        color: #6ee7b7;
-      }
-    }
-
-    &.is-scheduled {
-      border-color: rgba(245, 158, 11, 0.32);
-      opacity: 1;
-
-      .profile__purchase-cta {
-        background: rgba(245, 158, 11, 0.1);
-        color: #fcd34d;
-      }
     }
 
     &--free {
       background:
-        linear-gradient(145deg, rgba(16, 185, 129, 0.08), transparent 65%),
+        linear-gradient(145deg, color-mix(in srgb, var(--custom-color-teal) 8%, transparent), transparent 65%),
         rgba(11, 11, 18, 0.5);
+      border-color: color-mix(in srgb, var(--custom-color-teal) 35%, transparent);
 
       .profile__purchase-icon {
-        background: rgba(16, 185, 129, 0.1);
-        border-color: rgba(52, 211, 153, 0.2);
-        color: #6ee7b7;
+        background: color-mix(in srgb, var(--custom-color-teal) 12%, transparent);
+        border-color: color-mix(in srgb, var(--custom-color-teal) 22%, transparent);
+        color: var(--custom-color-teal);
+      }
+
+      .profile__purchase-name {
+        color: var(--custom-color-teal);
+      }
+
+      .profile__purchase-cta {
+        background: color-mix(in srgb, var(--custom-color-teal) 12%, transparent);
+        color: var(--custom-color-teal);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--custom-color-teal) 20%, transparent);
+          color: var(--custom-color-teal);
+        }
       }
 
       &:hover {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
-          0 0 1.5rem rgba(52, 211, 153, 0.08);
+          0 0 1.5rem color-mix(in srgb, var(--custom-color-teal) 8%, transparent);
+      }
+
+      &.is-current {
+        border-color: color-mix(in srgb, var(--custom-color-teal) 25%, transparent);
+        opacity: 0.75;
+        cursor: default;
+        pointer-events: none;
+
+        .profile__purchase-cta {
+          opacity: 0.6;
+          cursor: default;
+          pointer-events: none;
+        }
+      }
+
+      &.is-scheduled {
+        border-color: color-mix(in srgb, var(--custom-color-teal) 32%, transparent);
+        opacity: 1;
+
+        .profile__purchase-cta {
+          background: color-mix(in srgb, var(--custom-color-teal) 10%, transparent);
+          color: var(--custom-color-teal);
+        }
+      }
+    }
+
+    &--collector {
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--custom-color-blue) 8%, transparent), transparent 65%),
+        rgba(11, 11, 18, 0.5);
+      border-color: color-mix(in srgb, var(--custom-color-blue) 35%, transparent);
+
+      .profile__purchase-icon {
+        background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
+        border-color: color-mix(in srgb, var(--custom-color-blue) 22%, transparent);
+        color: var(--custom-color-blue);
+      }
+
+      .profile__purchase-name {
+        color: var(--custom-color-blue);
+      }
+
+      .profile__purchase-cta {
+        background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
+        color: var(--custom-color-blue);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
+          color: var(--custom-color-blue);
+        }
+      }
+
+      &:hover {
+        box-shadow:
+          0 0.9rem 2rem rgba(0, 0, 0, 0.16),
+          0 0 1.5rem color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
+      }
+
+      &.is-current {
+        border-color: color-mix(in srgb, var(--custom-color-blue) 25%, transparent);
+        opacity: 0.75;
+        cursor: default;
+        pointer-events: none;
+
+        .profile__purchase-cta {
+          opacity: 0.6;
+          cursor: default;
+          pointer-events: none;
+        }
+      }
+
+      &.is-scheduled {
+        border-color: color-mix(in srgb, var(--custom-color-blue) 32%, transparent);
+        opacity: 1;
+
+        .profile__purchase-cta {
+          background: color-mix(in srgb, var(--custom-color-blue) 10%, transparent);
+          color: var(--custom-color-blue);
+        }
+      }
+    }
+
+    &--pro {
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--custom-color-purple) 9%, transparent), transparent 65%),
+        rgba(11, 11, 18, 0.5);
+      border-color: color-mix(in srgb, var(--custom-color-purple) 35%, transparent);
+
+      .profile__purchase-icon {
+        background: color-mix(in srgb, var(--custom-color-purple) 12%, transparent);
+        border-color: color-mix(in srgb, var(--custom-color-purple) 22%, transparent);
+        color: var(--custom-color-purple);
+      }
+
+      .profile__purchase-name {
+        color: var(--custom-color-purple);
+      }
+
+      .profile__purchase-cta {
+        background: color-mix(in srgb, var(--custom-color-purple) 12%, transparent);
+        color: var(--custom-color-purple);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--custom-color-purple) 20%, transparent);
+          color: var(--custom-color-purple);
+        }
+      }
+
+      &:hover {
+        box-shadow:
+          0 0.9rem 2rem rgba(0, 0, 0, 0.16),
+          0 0 1.5rem color-mix(in srgb, var(--custom-color-purple) 8%, transparent);
+      }
+
+      &.is-current {
+        border-color: color-mix(in srgb, var(--custom-color-purple) 25%, transparent);
+        opacity: 0.75;
+        cursor: default;
+        pointer-events: none;
+
+        .profile__purchase-cta {
+          opacity: 0.6;
+          cursor: default;
+          pointer-events: none;
+        }
+      }
+
+      &.is-scheduled {
+        border-color: color-mix(in srgb, var(--custom-color-purple) 32%, transparent);
+        opacity: 1;
+
+        .profile__purchase-cta {
+          background: color-mix(in srgb, var(--custom-color-purple) 10%, transparent);
+          color: var(--custom-color-purple);
+        }
       }
     }
 
     &--top-up {
       background:
-        linear-gradient(145deg, rgba(245, 158, 11, 0.075), transparent 65%),
+        linear-gradient(145deg, color-mix(in srgb, var(--custom-color-orange) 8%, transparent), transparent 65%),
         rgba(11, 11, 18, 0.5);
-      border-color: rgba(245, 158, 11, 0.2);
-      box-shadow: inset 0 1px 0 rgba(245, 158, 11, 0.04);
+      border-color: color-mix(in srgb, var(--custom-color-orange) 22%, transparent);
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--custom-color-orange) 4%, transparent);
 
       .profile__purchase-icon {
-        background: rgba(245, 158, 11, 0.1);
-        border-color: rgba(245, 158, 11, 0.22);
-        color: var(--font-color-warning);
+        background: color-mix(in srgb, var(--custom-color-orange) 11%, transparent);
+        border-color: color-mix(in srgb, var(--custom-color-orange) 24%, transparent);
+        color: var(--custom-color-orange);
       }
 
       .profile__purchase-name {
-        color: rgba(253, 230, 138, 0.76);
+        color: color-mix(in srgb, var(--custom-color-orange) 84%, transparent);
       }
 
       .profile__purchase-cta {
-        background: rgba(245, 158, 11, 0.11);
-        color: #fcd34d;
+        background: color-mix(in srgb, var(--custom-color-orange) 12%, transparent);
+        color: var(--custom-color-orange);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--custom-color-orange) 20%, transparent);
+          color: var(--custom-color-orange);
+        }
       }
 
       &:hover {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
-          0 0 1.5rem rgba(245, 158, 11, 0.08);
+          0 0 1.5rem color-mix(in srgb, var(--custom-color-orange) 8%, transparent);
+      }
+
+      &.is-current {
+        border-color: color-mix(in srgb, var(--custom-color-orange) 25%, transparent);
+        opacity: 0.75;
+        cursor: default;
+        pointer-events: none;
+
+        .profile__purchase-cta {
+          opacity: 0.6;
+          cursor: default;
+          pointer-events: none;
+        }
+      }
+
+      &.is-scheduled {
+        border-color: color-mix(in srgb, var(--custom-color-orange) 32%, transparent);
+        opacity: 1;
+
+        .profile__purchase-cta {
+          background: color-mix(in srgb, var(--custom-color-orange) 10%, transparent);
+          color: var(--custom-color-orange);
+        }
       }
     }
   }
@@ -549,9 +739,8 @@
     width: 100%;
 
     &:hover:not(:disabled) {
-      background: rgba(129, 140, 248, 0.2);
+      background: rgba(129, 140, 248, 0.18);
       color: var(--font-color-primary);
-      transform: translateY(-1px);
     }
 
     &:focus-visible {

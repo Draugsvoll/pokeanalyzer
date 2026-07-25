@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
 import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
+import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
@@ -21,6 +23,7 @@ function cardQuantity(card: PokemonCardType) {
 }
 
 export default function Portfolio() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { portfolio, loadingPortfolio } = usePortfolioCache();
   const {
@@ -44,6 +47,7 @@ export default function Portfolio() {
   const [updatingPriceSourceId, setUpdatingPriceSourceId] = useState<string | null>(
     null,
   );
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Sum each card's selected price × quantity (USD / EUR kept separate)
   const { totalUsd, totalEur, cardsUsd, cardsEur } = useMemo(() => {
@@ -135,7 +139,28 @@ export default function Portfolio() {
   }
 
   if (!user) {
-    return <main className="portfolio portfolio--status ui-render-fade" key="logged-out"><h1>Log in to view your collection</h1></main>;
+    return (
+      <main className="portfolio portfolio--status ui-render-fade" key="logged-out">
+        <h1>Log in to view your collection</h1>
+        <p>
+          <button
+            onClick={() => navigate("/signup")}
+            className="portfolio__link"
+          >
+            Sign up
+          </button>
+          {" or "}
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="portfolio__link"
+          >
+            log in
+          </button>
+          {" to access your collection."}
+        </p>
+        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      </main>
+    );
   }
 
   return (

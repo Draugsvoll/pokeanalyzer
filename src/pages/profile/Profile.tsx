@@ -1,10 +1,12 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
 import "./Profile.scss";
 import { getUserProfileSessionKey } from "../../utils/cache";
 import Button from "../../components/button/Button";
+import LoginModal from "../../components/loginmodal/Loginmodal";
 import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
@@ -16,6 +18,7 @@ import {
 } from "../../subscriptions";
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user: authUser, loading: authLoading, logout } = useAuth();
   const {
     cancelAtPeriodEnd,
@@ -43,6 +46,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmFreeSwitch, setConfirmFreeSwitch] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
     subscription.status === "canceled" ||
@@ -63,6 +67,11 @@ export default function Profile() {
   const creditPercentage = creditsTotal > 0
     ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
     : 0;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   useEffect(() => {
     if (!confirmFreeSwitch) return;
@@ -133,13 +142,36 @@ export default function Profile() {
 
   if (authLoading || loading) return <h1>Loading...</h1>;
 
-  if (!authUser) return <h1>User not logged in</h1>;
+  if (!authUser) {
+    return (
+      <div className="profile">
+        <h1>User not logged in</h1>
+        <p>
+          <button
+            onClick={() => navigate("/signup")}
+            className="profile__link"
+          >
+            Sign up
+          </button>
+          {" or "}
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="profile__link"
+          >
+            log in
+          </button>
+          {" to access your profile."}
+        </p>
+        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      </div>
+    );
+  }
 
   if (error) {
     return (
       <div>
         <h1>{error}</h1>
-        <Button onClick={logout}>Log out</Button>
+        <Button onClick={handleLogout}>Log out</Button>
       </div>
     );
   }
@@ -148,7 +180,7 @@ export default function Profile() {
     return (
       <div>
         <h1>Logged in but no profile data found</h1>
-        <Button onClick={logout}>Log out</Button>
+        <Button onClick={handleLogout}>Log out</Button>
       </div>
     );
   }
@@ -190,7 +222,7 @@ export default function Profile() {
             </div>
           </div>
           <div className="profile__logout-slot">
-            <Button variant="danger" fullWidth onClick={logout}>
+            <Button variant="danger" fullWidth onClick={handleLogout}>
               <LogOut aria-hidden="true" />
               Log out
             </Button>
@@ -307,7 +339,7 @@ export default function Profile() {
                 return (
                   <article
                     key={plan.id}
-                    className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
+                    className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : plan.id === "collector" ? " profile__purchase-card--collector" : plan.id === "pro" ? " profile__purchase-card--pro" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
                   >
                     <span className="profile__purchase-icon" aria-hidden="true">
                       <PlanIcon />

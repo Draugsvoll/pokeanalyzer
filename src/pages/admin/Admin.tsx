@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/button/Button";
 import { useAuth } from "../../context/authContextValue";
 import { askGrok } from "../../utils/grok/grokClient";
@@ -9,8 +9,12 @@ import {
 import "./Admin.scss";
 import { Navigate } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [generatingNews, setGeneratingNews] = useState(false);
   const [generatedNews, setGeneratedNews] = useState("");
   const [newsMessage, setNewsMessage] = useState("");
@@ -19,7 +23,30 @@ export default function Admin() {
   const [generatedMovers, setGeneratedMovers] = useState("");
   const [moversMessage, setMoversMessage] = useState("");
   const [moversError, setMoversError] = useState("");
-  const adminUid = import.meta.env.VITE_ADMIN_UID;
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(`${API_URL}/api/admin/check`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setIsAdmin(res.ok);
+      } catch {
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const generateNews = async () => {
     if (generatingNews) return;
@@ -93,7 +120,15 @@ export default function Admin() {
     );
   }
 
-  if (!user || user.uid !== adminUid) {
+  if (checkingAdmin) {
+    return (
+      <main className="admin-page admin-page--status">
+        <h1>Checking permissions…</h1>
+      </main>
+    );
+  }
+
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

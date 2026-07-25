@@ -179,6 +179,7 @@ export default function PokemonDetails() {
   const navigate = useNavigate();
   const cardViewRef = useRef<HTMLDivElement>(null);
   const featureButtonsRef = useRef<HTMLDivElement>(null);
+  const changeCardButtonRef = useRef<HTMLButtonElement>(null);
   const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
   const [searchResultsHost, setSearchResultsHost] = useState<HTMLDivElement | null>(
     null,
@@ -222,11 +223,11 @@ export default function PokemonDetails() {
 
   function scrollToFeatureButtons() {
     requestAnimationFrame(() => {
-      const featureButtons = featureButtonsRef.current;
-      if (!featureButtons) return;
+      const changeCardButton = changeCardButtonRef.current;
+      if (!changeCardButton) return;
 
       window.scrollTo({
-        top: window.scrollY + featureButtons.getBoundingClientRect().top - 120,
+        top: window.scrollY + changeCardButton.getBoundingClientRect().top - 16,
         behavior: "smooth",
       });
     });
@@ -634,6 +635,7 @@ export default function PokemonDetails() {
 
               <div className="card-view__info-actions">
                 <Button
+                  ref={changeCardButtonRef}
                   onClick={() => setShowCardSearch((open) => !open)}
                   aria-expanded={showCardSearch}
                 >
