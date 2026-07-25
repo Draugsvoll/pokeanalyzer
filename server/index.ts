@@ -100,7 +100,13 @@ app.post(
   express.raw({ type: "application/json", limit: "256kb" }),
   stripeWebhookHandler,
 );
-app.use(limiter);
+app.use((req, res, next) => {
+  // Skip rate limiter for webhook endpoint to preserve raw body for signature verification
+  if (req.path === "/api/subscription/stripe/webhook") {
+    return next();
+  }
+  limiter(req, res, next);
+});
 app.use(attachRequestAbortSignal);
 app.use(
   "/grok",
