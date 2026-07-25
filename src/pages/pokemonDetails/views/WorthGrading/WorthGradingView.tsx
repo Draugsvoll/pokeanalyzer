@@ -59,7 +59,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
       <div className="worth-grading-view__card worth-grading-view__market">
         <header className="worth-grading-view__market-header">
           <h3>
-            <ChartNoAxesCombined aria-hidden="true" />
+            {/* <ChartNoAxesCombined aria-hidden="true" /> */}
             Market prices
           </h3>
           <span>Current values</span>

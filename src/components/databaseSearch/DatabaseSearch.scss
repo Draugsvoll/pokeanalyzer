@@ -27,7 +27,7 @@
   /* /search: fields on top, actions centered under */
   .database-search-container {
     flex-direction: column;
-    gap: 1.8rem;
+    gap: 1.5rem;
     max-width: min(38rem, 100%);
   }
 
@@ -98,6 +98,7 @@
     min-width: 5.5rem;
     padding-bottom: 0;
     padding-top: 0;
+    width: 6.5rem;
   }
 }
 
