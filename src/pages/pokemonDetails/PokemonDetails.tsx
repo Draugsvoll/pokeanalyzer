@@ -201,6 +201,7 @@ export default function PokemonDetails() {
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
+  const [ebayLoading, setEbayLoading] = useState(false);
   const [featureCooldown, setFeatureCooldown] = useState(false);
   const {
     abortActiveRequest,
@@ -344,10 +345,12 @@ export default function PokemonDetails() {
     setActiveView(aiFeature.view);
     scrollToFeatureButtons();
 
+    // ebay handles in its own component
     if (aiFeature.view === "ebay_sold") {
       return;
     }
 
+    //safety guard, must qualify the features
     if (
       aiFeature.view !== "prices" &&
       aiFeature.view !== "collector_analysis" &&
@@ -739,6 +742,7 @@ export default function PokemonDetails() {
                 updatingCredits ||
                 grokLoading ||
                 justTcgLoading ||
+                ebayLoading ||
                 featureCooldown ||
                 creditsRemaining < 1
               }
@@ -788,8 +792,9 @@ export default function PokemonDetails() {
         )}
         {activeView === "ebay_sold" && (
           <EbaySoldView
-          card={card}
-          onSubscriptionChange={updateSubscription}
+            card={card}
+            onSubscriptionChange={updateSubscription}
+            onLoadingChange={setEbayLoading}
           />
         )}
         {activeView === "prices" && (

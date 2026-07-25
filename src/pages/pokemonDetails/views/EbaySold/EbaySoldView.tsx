@@ -27,6 +27,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 type EbaySoldViewProps = {
   card: PokemonCard;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 type EbaySortOrder =
@@ -116,12 +117,18 @@ function formatHeadline(value: string) {
 export default function EbaySoldView({
   card,
   onSubscriptionChange,
+  onLoadingChange,
 }: EbaySoldViewProps) {
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sortOrder, setSortOrder] = useState<EbaySortOrder>("default");
   const { isCurrentRequest, startRequest } = useAbortableRequest();
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
+
   useEffect(() => {
     async function loadSoldListings() {
       const params = new URLSearchParams({ cardId: card.id });
