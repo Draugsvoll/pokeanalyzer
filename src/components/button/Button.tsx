@@ -21,7 +21,7 @@ type ButtonProps = Omit<
   grow?: boolean;
 };
 
-export default function Button({
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = "default",
   size = "medium",
   fullWidth = false,
@@ -31,7 +31,7 @@ export default function Button({
   type = "button",
   onMouseDown,
   ...rest
-}: ButtonProps) {
+}, ref) {
   const cls = [
     "app-btn",
     `app-btn--${variant}`,
@@ -43,6 +43,7 @@ export default function Button({
 
   return (
     <button
+      ref={ref}
       type={type}
       className={cls}
       onMouseDown={(e) => {
@@ -54,4 +55,6 @@ export default function Button({
       {children}
     </button>
   );
-}
+});
+
+export default Button;

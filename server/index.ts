@@ -124,7 +124,7 @@ app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
   try {
     const uid = getAuthenticatedUid(res);
     const adminUid = process.env.ADMIN_UID?.trim();
-    
+
     if (!adminUid) {
       res.status(500).json({ message: "Admin UID not configured" });
       return;
