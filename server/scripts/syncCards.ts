@@ -1,55 +1,36 @@
-import { dbRun } from "../db/db.js";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { logError } from "../security/logging.js";
-import type { PokemonTcgApiCard } from "../types/PokemonTcgApiCard";
-import { getCardsPage, waitBetweenRequests, PAGE_SIZE } from "../services/pokemonTcgApi";
+import { runUnifiedCardSync } from "./syncPrices.js";
+import { exitCodeForSyncStatus } from "./syncRunPolicy.js";
 
-type SqlParam = string | number | null;
+/**
+ * Compatibility entry point for existing schedules. Card metadata and prices
+ * are now intentionally synchronized together by the safe unified workflow.
+ */
+export async function syncCards() {
+  console.warn(
+    "syncCards is now an alias for the unified card/price sync. " +
+      "Schedule only one of sync:cards or sync:prices, never both.",
+  );
+  return runUnifiedCardSync();
+}
 
-async function insertCard(card: PokemonTcgApiCard): Promise<void> {
-  await dbRun(
-    `
-    INSERT OR REPLACE INTO cards
-    (id, number, name, set_id, set_name, image_small, image_large, raw_json, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `,
-    [
-      card.id,
-      card.number ?? null,
-      card.name,
-      card.set?.id ?? null,
-      card.set?.name ?? null,
-      card.images?.small ?? null,
-      card.images?.large ?? null,
-      JSON.stringify(card),
-    ] as SqlParam[],
+function isDirectRun(): boolean {
+  const entryPath = process.argv[1];
+  return Boolean(
+    entryPath &&
+      pathToFileURL(path.resolve(entryPath)).href === import.meta.url,
   );
 }
 
-async function syncCards(): Promise<void> {
-  let page = 1;
-  let totalInserted = 0;
-
-  while (true) {
-    console.log(`Fetching cards page ${page}`);
-
-    const cards = await getCardsPage(page);
-
-    for (const card of cards) {
-      await insertCard(card);
-      totalInserted++;
-    }
-
-    console.log(`Inserted ${totalInserted} cards so far`);
-
-    if (cards.length < PAGE_SIZE) break;
-
-    page++;
-    await waitBetweenRequests();
-  }
-
-  console.log("Done syncing cards");
+if (isDirectRun()) {
+  void syncCards()
+    .then((result) => {
+      process.exitCode = exitCodeForSyncStatus(result.status);
+    })
+    .catch((error: unknown) => {
+      logError("Unified card sync failed through syncCards", error);
+      process.exitCode = 1;
+    });
 }
-
-syncCards().catch((err: unknown) => {
-  logError("Card sync failed", err);
-});

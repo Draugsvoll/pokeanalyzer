@@ -52,20 +52,15 @@ export function PokemonCard({
 
   const isControlled = selectedPriceOptionId !== undefined;
   const requiresConfirm = Boolean(onConfirmPriceOption);
-  const selectedOptionId = isControlled ? selectedPriceOptionId : internalOptionId;
-
   const priceOptions = useMemo(() => listCardPriceOptions(card), [card]);
-
-  useEffect(() => {
-    if (isControlled) return;
-
-    setInternalOptionId((current) => {
-      if (current && priceOptions.some((option) => option.id === current)) {
-        return current;
-      }
-      return pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null;
-    });
-  }, [isControlled, priceOptions, priceSource]);
+  const validInternalOptionId =
+    internalOptionId &&
+    priceOptions.some((option) => option.id === internalOptionId)
+      ? internalOptionId
+      : pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null;
+  const selectedOptionId = isControlled
+    ? selectedPriceOptionId
+    : validInternalOptionId;
 
   useEffect(() => {
     if (!sourceOpen) return;

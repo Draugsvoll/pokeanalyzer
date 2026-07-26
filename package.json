@@ -10,7 +10,13 @@
     "start:prod": "node server-prod.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:init": "tsx server/db/init.ts",
+    "sync:prices": "tsx server/scripts/syncPrices.ts",
+    "sync:cards": "tsx server/scripts/syncCards.ts",
+    "prices:cleanup": "tsx server/scripts/cleanupPrices.ts",
+    "portfolio:compact": "tsx server/scripts/compactPortfolioEntries.ts",
+    "test:server": "tsx --test \"server/**/*.test.ts\""
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

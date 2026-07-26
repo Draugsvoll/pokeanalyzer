@@ -21,7 +21,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user: authUser, loading: authLoading, logout } = useAuth();
   const {
-    cancelAtPeriodEnd,
     loadingSubscription,
     membershipPlans,
     openBillingPortal,
@@ -32,7 +31,6 @@ export default function Profile() {
   } = useMembershipSubscription();
   const {
     bonusCreditsRemaining,
-    bonusCreditsTotal,
     creditMessage,
     creditsRemaining,
     creditsTotal,

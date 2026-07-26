@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
@@ -8,7 +8,9 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
-import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
+import { getHydratedPortfolio } from "../../services/portfolioApi";
+import type { PortfolioCard } from "../../types/portfolio";
+import { logClientError } from "../../utils/logClientError";
 import { resolveCardPriceOption } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
 
@@ -17,20 +19,25 @@ const money = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-function cardQuantity(card: PokemonCardType) {
+function cardQuantity(card: PortfolioCard) {
   const quantity = Number(card.quantity ?? 1);
   return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1;
 }
 
-export default function Portfolio() {
+function PortfolioForCurrentUser() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { portfolio, loadingPortfolio } = usePortfolioCache();
+  const { replacePortfolioReferences } = usePortfolioCache();
   const {
     removePokemonFromPortfolio,
     updatePokemonQuantity,
     updatePokemonPriceSource,
   } = usePokemonPortfolio();
+  const activePortfolioRequestRef = useRef(0);
+  const [portfolio, setPortfolio] = useState<PortfolioCard[]>([]);
+  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
+  const [portfolioError, setPortfolioError] = useState("");
+  const [missingCardIds, setMissingCardIds] = useState<string[]>([]);
   const [updatingQuantityId, setUpdatingQuantityId] = useState<string | null>(null);
   const [pendingQuantity, setPendingQuantity] = useState<{
     cardId: string;
@@ -48,6 +55,67 @@ export default function Portfolio() {
     null,
   );
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const loadPortfolio = useCallback(
+    async (signal?: AbortSignal) => {
+      const requestId = ++activePortfolioRequestRef.current;
+
+      if (!user) {
+        setPortfolio([]);
+        setMissingCardIds([]);
+        setPortfolioError("");
+        setLoadingPortfolio(false);
+        return;
+      }
+
+      setLoadingPortfolio(true);
+      setPortfolioError("");
+
+      try {
+        const response = await getHydratedPortfolio(user.uid, signal);
+        if (
+          signal?.aborted ||
+          requestId !== activePortfolioRequestRef.current
+        ) return;
+        setPortfolio(response.cards);
+        setMissingCardIds(response.missingCardIds);
+        replacePortfolioReferences(response.entries);
+      } catch (error) {
+        if (
+          signal?.aborted ||
+          requestId !== activePortfolioRequestRef.current
+        ) return;
+        logClientError("Failed to load portfolio cards", error);
+        setPortfolio([]);
+        setMissingCardIds([]);
+        setPortfolioError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load your collection.",
+        );
+      } finally {
+        if (
+          !signal?.aborted &&
+          requestId === activePortfolioRequestRef.current
+        ) {
+          setLoadingPortfolio(false);
+        }
+      }
+    },
+    [replacePortfolioReferences, user],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const initialize = window.setTimeout(() => {
+      void loadPortfolio(controller.signal);
+    }, 0);
+    return () => {
+      window.clearTimeout(initialize);
+      controller.abort();
+      activePortfolioRequestRef.current += 1;
+    };
+  }, [loadPortfolio]);
 
   // Sum each card's selected price × quantity (USD / EUR kept separate)
   const { totalUsd, totalEur, cardsUsd, cardsEur } = useMemo(() => {
@@ -74,7 +142,7 @@ export default function Portfolio() {
     return { totalUsd, totalEur, cardsUsd, cardsEur };
   }, [portfolio]);
 
-  const requestQuantityChange = (card: PokemonCardType, amount: number) => {
+  const requestQuantityChange = (card: PortfolioCard, amount: number) => {
     if (updatingQuantityId) return;
 
     const currentQuantity = pendingQuantity?.cardId === card.id
@@ -89,16 +157,28 @@ export default function Portfolio() {
   const confirmQuantityChange = async () => {
     if (!pendingQuantity) return;
 
-    setUpdatingQuantityId(pendingQuantity.cardId);
-    await updatePokemonQuantity(pendingQuantity.cardId, pendingQuantity.quantity);
+    const { cardId, quantity } = pendingQuantity;
+    setUpdatingQuantityId(cardId);
+    const updated = await updatePokemonQuantity(cardId, quantity);
     setUpdatingQuantityId(null);
+    if (!updated) return;
+
+    setPortfolio((current) =>
+      current.map((card) =>
+        card.id === cardId ? { ...card, quantity } : card,
+      ),
+    );
     setPendingQuantity(null);
   };
 
   const confirmRemoval = async () => {
     if (!pendingRemoval) return;
 
-    await removePokemonFromPortfolio(pendingRemoval.cardId, false);
+    const { cardId } = pendingRemoval;
+    const removed = await removePokemonFromPortfolio(cardId, false);
+    if (!removed) return;
+
+    setPortfolio((current) => current.filter((card) => card.id !== cardId));
     setPendingRemoval(null);
   };
 
@@ -111,7 +191,16 @@ export default function Portfolio() {
       pendingPriceSource.priceSource,
     );
     setUpdatingPriceSourceId(null);
-    if (ok) setPendingPriceSource(null);
+    if (!ok) return;
+
+    setPortfolio((current) =>
+      current.map((card) =>
+        card.id === pendingPriceSource.cardId
+          ? { ...card, priceSource: pendingPriceSource.priceSource }
+          : card,
+      ),
+    );
+    setPendingPriceSource(null);
   };
 
   useEffect(() => {
@@ -163,6 +252,24 @@ export default function Portfolio() {
     );
   }
 
+  if (portfolioError) {
+    return (
+      <main className="portfolio portfolio--status ui-render-fade" key="error">
+        <h1>Couldn&apos;t load your collection</h1>
+        <p>{portfolioError}</p>
+        <button
+          type="button"
+          className="portfolio__link"
+          onClick={() => {
+            void loadPortfolio();
+          }}
+        >
+          Try again
+        </button>
+      </main>
+    );
+  }
+
   return (
     <main className="portfolio ui-render-fade" key="collection">
       <header className="portfolio__header">
@@ -207,10 +314,27 @@ export default function Portfolio() {
         )}
       </header>
 
+      {missingCardIds.length > 0 && (
+        <p role="status">
+          {missingCardIds.length} saved{" "}
+          {missingCardIds.length === 1 ? "card is" : "cards are"} temporarily
+          unavailable. No portfolio entries were removed.
+        </p>
+      )}
+
       {portfolio.length === 0 ? (
         <div className="portfolio__empty">
-          <h2>No saved cards yet</h2>
-          <p>Cards you add to your portfolio will appear here.</p>
+          {missingCardIds.length > 0 ? (
+            <>
+              <h2>Saved cards temporarily unavailable</h2>
+              <p>Your portfolio references are still safely stored.</p>
+            </>
+          ) : (
+            <>
+              <h2>No saved cards yet</h2>
+              <p>Cards you add to your portfolio will appear here.</p>
+            </>
+          )}
         </div>
       ) : (
         <GridView>
@@ -335,4 +459,13 @@ export default function Portfolio() {
       )}
     </main>
   );
+}
+
+export default function Portfolio() {
+  const { user } = useAuth();
+
+  // Remount all hydrated cards, pending edits, and in-flight request state when
+  // the authenticated account changes. Data from one UID can never render in
+  // another UID's portfolio, even for a single transition frame.
+  return <PortfolioForCurrentUser key={user?.uid ?? "logged-out"} />;
 }

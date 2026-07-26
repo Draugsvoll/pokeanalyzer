@@ -3,6 +3,7 @@ import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
+import { PriceHistory } from "./PriceHistory";
 import { StoredPrices } from "./StoredPrices";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./PriceAnalysis.scss";
@@ -214,6 +215,7 @@ export function PriceAnalysis({
   return (
     <>
       <StoredPrices card={card} />
+      <PriceHistory cardId={card.id} />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </>

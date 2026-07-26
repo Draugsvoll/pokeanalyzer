@@ -12,7 +12,7 @@ import {
 import { auth } from "../firebase";
 import { AuthContext } from "./authContextValue";
 import { useNotification } from "./notificationContextValue";
-import { getPortfolioCacheKey, getUserProfileSessionKey } from "../utils/cache";
+import { getUserProfileSessionKey } from "../utils/cache";
 
 export function AuthProvider({
   children,
@@ -34,7 +34,6 @@ export function AuthProvider({
 
   const logout = async () => {
     if (user) {
-      localStorage.removeItem(getPortfolioCacheKey(user.uid));
       sessionStorage.removeItem(getUserProfileSessionKey(user.uid));
     }
     await signOut(auth);
