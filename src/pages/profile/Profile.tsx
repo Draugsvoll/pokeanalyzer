@@ -295,7 +295,7 @@ export default function Profile() {
               </div>
               <div className="profile__credit-breakdown">
                 <span>Monthly credits <strong>{membershipCreditsRemaining}/{membershipCreditsTotal}</strong></span>
-                <span>Extra credits <strong>{bonusCreditsRemaining}/{bonusCreditsTotal}</strong></span>
+                <span>Extra credits <strong>{bonusCreditsRemaining}</strong></span>
               </div>
             </article>
           </div>

@@ -119,11 +119,12 @@ export function useMembershipSubscription() {
 
   useEffect(() => {
     const checkoutState = new URLSearchParams(window.location.search).get("checkout");
-    if (!checkoutState || !user) return;
+    const portalState = new URLSearchParams(window.location.search).get("portal");
+    if ((!checkoutState && !portalState) || !user) return;
 
     window.history.replaceState({}, "", window.location.pathname);
 
-    if (checkoutState !== "success") return;
+    if (checkoutState !== "success" && portalState !== "return") return;
 
     const refreshTimers = [1200, 3500, 7000].map((delay) =>
       window.setTimeout(() => void refreshSubscription(true), delay)

@@ -416,8 +416,11 @@ async function syncSubscription(
     const billingCycleChanged = currentPeriodStart && period.currentPeriodStart &&
       currentPeriodStart.toMillis() !== period.currentPeriodStart.toMillis();
 
+    const isCanceledAtPeriodEnd = subscription.cancel_at !== null &&
+      subscription.cancel_at === subscription.items.data[0]?.current_period_end;
+
     transaction.set(subscriptionRef, {
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end || isCanceledAtPeriodEnd,
       ...period,
       ...(billingCycleChanged && {
         // Reset credits on new billing cycle
@@ -1051,7 +1054,7 @@ export async function createBillingPortal(_req: Request, res: Response) {
     const portalConfig = process.env.STRIPE_BILLING_PORTAL_CONFIG_ID;
     const session = await getStripe().billingPortal.sessions.create({
       customer,
-      return_url: `${APP_URL}/profile`,
+      return_url: `${APP_URL}/profile?portal=return`,
       ...(portalConfig && { configuration: portalConfig }),
     });
     res.json({ portalUrl: session.url });
