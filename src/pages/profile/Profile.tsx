@@ -45,7 +45,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmFreeSwitch, setConfirmFreeSwitch] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
@@ -72,19 +71,6 @@ export default function Profile() {
     await logout();
     navigate("/");
   };
-
-  useEffect(() => {
-    if (!confirmFreeSwitch) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !updatingSubscription) {
-        setConfirmFreeSwitch(false);
-      }
-    };
-
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [confirmFreeSwitch, updatingSubscription]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -343,12 +329,6 @@ export default function Profile() {
                   subscription?.planId !== "free" &&
                   subscription?.cancelAtPeriodEnd
                 );
-                const canSwitchToFree = Boolean(
-                  isFreePlan &&
-                  subscription?.planId !== "free" &&
-                  subscription?.stripeSubscriptionId &&
-                  !subscription?.cancelAtPeriodEnd
-                );
                 const useBillingPortal = Boolean(
                   !isFreePlan && !canStartMembershipCheckout && canManageBilling
                 );
@@ -359,8 +339,7 @@ export default function Profile() {
                     : Crown;
                 const planAction = () => {
                   if (isFreePlan) {
-                    setConfirmFreeSwitch(true);
-                    return;
+                    return openBillingPortal();
                   }
                   if (useBillingPortal) return openBillingPortal();
                   return startMembershipCheckout(plan.id);
@@ -389,7 +368,7 @@ export default function Profile() {
                         switchToFreeIsScheduled ||
                         updatingSubscription ||
                         (isFreePlan
-                          ? !canSwitchToFree
+                          ? !canManageBilling
                           : !canStartMembershipCheckout && !canManageBilling)
                       }
                       onClick={() => void planAction()}
@@ -463,7 +442,7 @@ export default function Profile() {
                 <Button
                   variant="danger"
                   disabled={updatingSubscription}
-                  onClick={() => void cancelAtPeriodEnd()}
+                  onClick={() => void openBillingPortal()}
                 >
                   Cancel subscription
                 </Button>
@@ -473,61 +452,6 @@ export default function Profile() {
           </div>
         </section>
       </div>
-
-      {confirmFreeSwitch && subscription && (
-        <div
-          className="profile__dialog-backdrop"
-          onMouseDown={() => {
-            if (!updatingSubscription) setConfirmFreeSwitch(false);
-          }}
-        >
-          <div
-            className="profile__plan-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="free-plan-dialog-title"
-            aria-describedby="free-plan-dialog-description"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <span className="profile__eyebrow">Confirm plan change</span>
-            <h2 id="free-plan-dialog-title">Switch to the Free plan?</h2>
-            <p id="free-plan-dialog-description">
-              Your {subscription.planName} plan will remain active
-              {subscription.currentPeriodEnd
-                ? ` until ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                : " until the end of the current billing period"}.
-              {" "}It will not renew after that, and your remaining extra credits will be preserved.
-            </p>
-            {subscriptionMessage && (
-              <small className="profile__plan-dialog-error" role="alert">
-                {subscriptionMessage}
-              </small>
-            )}
-            <div className="profile__plan-dialog-actions">
-              <Button
-                grow
-                autoFocus
-                disabled={updatingSubscription}
-                onClick={() => setConfirmFreeSwitch(false)}
-              >
-                Keep {subscription.planName}
-              </Button>
-              <Button
-                grow
-                variant="warning"
-                disabled={updatingSubscription}
-                onClick={() => {
-                  void cancelAtPeriodEnd().then((wasScheduled) => {
-                    if (wasScheduled) setConfirmFreeSwitch(false);
-                  });
-                }}
-              >
-                {updatingSubscription ? "Scheduling..." : "Switch to Free"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
