@@ -1,4 +1,10 @@
-import type { PokemonTcgApiPage } from "../services/pokemonTcgApi.js";
+type ApiPageMetadata = {
+  [key: string]: unknown;
+  count: number;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
 
 export const SYNC_RUN_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS sync_runs (
@@ -40,28 +46,62 @@ export type SyncWarning = {
   samples: string[];
 };
 
-export type CatalogCompletion = {
+export type SetCatalogCompletion = {
+  completedSets: number;
   expectedCards: number;
+  expectedCardPages: number;
+  expectedSets: number;
   fetchedCards: number;
   pagesStaged: number;
-  pageSize: number;
   uniqueCards: number;
 };
 
+export type SetDiscoveryCompletion = {
+  expectedSets: number;
+  fetchedSets: number;
+  pageSize: number;
+  pagesFetched: number;
+  uniqueSets: number;
+};
+
+export function registerUniqueId(
+  seenIds: Set<string>,
+  id: string,
+  scope: string,
+): void {
+  if (seenIds.has(id)) {
+    throw new Error(`${scope} returned duplicate ID ${id}`);
+  }
+  seenIds.add(id);
+}
+
+export function validateCardSetMembership(
+  cardId: string,
+  cardSetId: string | undefined,
+  requestedSetId: string,
+): void {
+  if (cardSetId !== requestedSetId) {
+    throw new Error(
+      `Card API set query ${requestedSetId} returned card ${cardId} from set ${String(cardSetId)}`,
+    );
+  }
+}
+
 export function validateStrictApiPage(
-  page: PokemonTcgApiPage,
+  page: ApiPageMetadata,
   requestedPage: number,
   expectedTotalCards: number | null,
+  scope = "Card API",
 ): number {
   if (page.totalCount <= 0) {
-    throw new Error("Card API reported an empty catalog");
+    throw new Error(`${scope} reported an empty catalog`);
   }
   if (
     expectedTotalCards !== null &&
     page.totalCount !== expectedTotalCards
   ) {
     throw new Error(
-      `Card API totalCount changed during the run (${expectedTotalCards} to ${page.totalCount})`,
+      `${scope} totalCount changed during the run (${expectedTotalCards} to ${page.totalCount})`,
     );
   }
 
@@ -72,34 +112,65 @@ export function validateStrictApiPage(
   );
   if (page.count !== expectedPageCount) {
     throw new Error(
-      `Card API page ${requestedPage} was incomplete: expected ${expectedPageCount}, received ${page.count}`,
+      `${scope} page ${requestedPage} was incomplete: expected ${expectedPageCount}, received ${page.count}`,
     );
   }
 
   return page.totalCount;
 }
 
-export function validateCatalogCompletion({
+export function validateSetCatalogCompletion({
+  completedSets,
   expectedCards,
+  expectedCardPages,
+  expectedSets,
   fetchedCards,
   pagesStaged,
-  pageSize,
   uniqueCards,
-}: CatalogCompletion): void {
-  const expectedPages = Math.ceil(expectedCards / pageSize);
+}: SetCatalogCompletion): void {
   if (
+    completedSets !== expectedSets ||
     fetchedCards !== expectedCards ||
     uniqueCards !== expectedCards ||
-    pagesStaged !== expectedPages
+    pagesStaged !== expectedCardPages
   ) {
     throw new Error(
-      "Catalog completeness validation failed: " +
+      "Set catalog completeness validation failed: " +
         JSON.stringify({
+          completedSets,
           expectedCards,
-          expectedPages,
+          expectedCardPages,
+          expectedSets,
           fetchedCards,
           pagesStaged,
           uniqueCards,
+        }),
+    );
+  }
+}
+
+export function validateSetDiscoveryCompletion({
+  expectedSets,
+  fetchedSets,
+  pageSize,
+  pagesFetched,
+  uniqueSets,
+}: SetDiscoveryCompletion): void {
+  const expectedPages = Math.ceil(expectedSets / pageSize);
+  if (
+    expectedSets <= 0 ||
+    fetchedSets !== expectedSets ||
+    uniqueSets !== expectedSets ||
+    pagesFetched !== expectedPages
+  ) {
+    throw new Error(
+      "Set discovery completeness validation failed: " +
+        JSON.stringify({
+          expectedPages,
+          expectedSets,
+          fetchedSets,
+          pagesFetched,
+          uniqueSets,
         }),
     );
   }

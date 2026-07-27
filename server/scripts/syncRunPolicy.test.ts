@@ -4,8 +4,11 @@ import { createClient } from "@libsql/client";
 import type { PokemonTcgApiCard } from "../types/PokemonTcgApiCard.js";
 import {
   exitCodeForSyncStatus,
+  registerUniqueId,
   SYNC_RUN_TABLE_SQL,
-  validateCatalogCompletion,
+  validateCardSetMembership,
+  validateSetCatalogCompletion,
+  validateSetDiscoveryCompletion,
   validateStrictApiPage,
 } from "./syncRunPolicy.js";
 
@@ -69,6 +72,45 @@ test("strict catalog policy rejects empty, short, and changing API catalogs", ()
   );
 });
 
+test("set traversal rejects duplicates and cross-set card leakage", () => {
+  const ids = new Set<string>();
+  registerUniqueId(ids, "base1-1", "Card API");
+  assert.throws(
+    () => registerUniqueId(ids, "base1-1", "Card API"),
+    /duplicate ID base1-1/,
+  );
+  assert.doesNotThrow(() =>
+    validateCardSetMembership("base1-1", "base1", "base1"),
+  );
+  assert.throws(
+    () => validateCardSetMembership("jungle-1", "jungle", "base1"),
+    /returned card jungle-1 from set jungle/,
+  );
+});
+
+test("set discovery requires every advertised set and page", () => {
+  assert.doesNotThrow(() =>
+    validateSetDiscoveryCompletion({
+      expectedSets: 300,
+      fetchedSets: 300,
+      pageSize: 250,
+      pagesFetched: 2,
+      uniqueSets: 300,
+    }),
+  );
+  assert.throws(
+    () =>
+      validateSetDiscoveryCompletion({
+        expectedSets: 300,
+        fetchedSets: 299,
+        pageSize: 250,
+        pagesFetched: 2,
+        uniqueSets: 299,
+      }),
+    /Set discovery completeness validation failed/,
+  );
+});
+
 test("strict catalog policy accepts only exact final totals", () => {
   const total = validateStrictApiPage(
     {
@@ -85,21 +127,25 @@ test("strict catalog policy accepts only exact final totals", () => {
   assert.equal(total, 300);
 
   assert.doesNotThrow(() =>
-    validateCatalogCompletion({
+    validateSetCatalogCompletion({
+      completedSets: 2,
       expectedCards: 300,
+      expectedCardPages: 3,
+      expectedSets: 2,
       fetchedCards: 300,
-      pagesStaged: 2,
-      pageSize: 250,
+      pagesStaged: 3,
       uniqueCards: 300,
     }),
   );
   assert.throws(
     () =>
-      validateCatalogCompletion({
+      validateSetCatalogCompletion({
+        completedSets: 2,
         expectedCards: 300,
+        expectedCardPages: 3,
+        expectedSets: 2,
         fetchedCards: 299,
-        pagesStaged: 2,
-        pageSize: 250,
+        pagesStaged: 3,
         uniqueCards: 299,
       }),
     /completeness validation failed/,

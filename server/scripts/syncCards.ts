@@ -13,10 +13,14 @@ import {
 import { assertDatabaseSchemaCompatible } from "../db/schemaValidation.js";
 import { logError } from "../security/logging.js";
 import {
-  getCardsPage,
-  PAGE_SIZE,
+  CARD_PAGE_SIZE,
+  getCardsForSetPage,
+  getGlobalCardCount,
+  getSetsPage,
+  SET_PAGE_SIZE,
   waitBetweenRequests,
 } from "../services/pokemonTcgApi.js";
+import type { PokemonTcgApiSet } from "../types/PokemonTcgApiSet.js";
 import {
   APPLY_CARDMARKET_PRICE_UPDATES_SQL,
   APPLY_DAILY_SNAPSHOTS_SQL,
@@ -49,7 +53,10 @@ import {
   safeSyncErrorMessage,
   SYNC_RUN_STARTED_INDEX_SQL,
   SYNC_RUN_TABLE_SQL,
-  validateCatalogCompletion,
+  registerUniqueId,
+  validateCardSetMembership,
+  validateSetCatalogCompletion,
+  validateSetDiscoveryCompletion,
   validateStrictApiPage,
   type SyncRunStatus,
   type SyncWarning,
@@ -128,7 +135,9 @@ export type CardSyncSummary = {
   cleanupDeleted: number;
   dryRun: boolean;
   expectedApiCards: number;
+  expectedApiSets: number;
   fetchedCards: number;
+  fetchedSets: number;
   finalCards: number;
   initialCards: number;
   insertedCards: number;
@@ -136,6 +145,7 @@ export type CardSyncSummary = {
   missingExistingCards: number;
   pagesStaged: number;
   priceOnlyCardUpdates: number;
+  setPagesFetched: number;
   snapshotDate: string;
   snapshotsPresent: number;
   stagedCards: number;
@@ -594,185 +604,280 @@ async function stageCompleteCatalog(
   warnings: SyncWarnings,
 ): Promise<Set<string>> {
   const seenCardIds = new Set<string>();
-  let expectedCards: number | null = null;
-  let page = 1;
+  let hasMadeApiRequest = false;
+
+  async function pacedApiRequest<T>(
+    request: () => Promise<T>,
+  ): Promise<T> {
+    if (hasMadeApiRequest) await waitBetweenRequests();
+    await renewLock(token);
+    const response = await request();
+    hasMadeApiRequest = true;
+    await renewLock(token);
+    return response;
+  }
+
+  const catalogCount = await pacedApiRequest(getGlobalCardCount);
+  summary.expectedApiCards = catalogCount.totalCount;
+  if (catalogCount.retryCount > 0) {
+    warnings.add(
+      "api_retries",
+      "API requests required retries before succeeding",
+      "global card count",
+      catalogCount.retryCount,
+    );
+  }
+
+  const sets: PokemonTcgApiSet[] = [];
+  const seenSetIds = new Set<string>();
+  let expectedSets: number | null = null;
+  let setPage = 1;
 
   while (true) {
-    await renewLock(token);
-    console.log(`Fetching card catalog page ${page}`);
-    const response = await getCardsPage(page);
-    expectedCards = validateStrictApiPage(
+    console.log(`Fetching set catalog page ${setPage}`);
+    const response = await pacedApiRequest(() => getSetsPage(setPage));
+    expectedSets = validateStrictApiPage(
       response,
-      page,
-      expectedCards,
+      setPage,
+      expectedSets,
+      "Sets API",
     );
-    summary.expectedApiCards = expectedCards;
+    summary.expectedApiSets = expectedSets;
+    summary.fetchedSets += response.data.length;
+    summary.setPagesFetched += 1;
 
     if (response.retryCount > 0) {
       warnings.add(
         "api_retries",
         "API requests required retries before succeeding",
-        `page ${page}`,
+        `sets page ${setPage}`,
         response.retryCount,
       );
     }
-
-    await renewLock(token);
-    const cards = response.data.map(sanitizeIncomingCard);
-    for (const card of cards) {
-      if (seenCardIds.has(card.id)) {
-        throw new Error(`Card API returned duplicate card ID ${card.id}`);
-      }
-      seenCardIds.add(card.id);
+    for (const set of response.data) {
+      registerUniqueId(seenSetIds, set.id, "Sets API");
+      sets.push(set);
     }
 
-    const storedCards = await loadStoredCards(
-      cards.map((card) => card.id),
-    );
-    const statements: SqlStatement[] = [];
-    const pageStats = {
-      cardmarketPriceChanges: 0,
-      insertedCards: 0,
-      metadataUpdates: 0,
-      priceOnlyCardUpdates: 0,
-      tcgplayerPriceChanges: 0,
-      unchangedCards: 0,
-    };
-
-    for (const incomingCard of cards) {
-      const stored = storedCards.get(incomingCard.id);
-      const existingCard = stored
-        ? parseStoredCard(stored.raw_json, incomingCard.id)
-        : undefined;
-      const incomingStates = getProviderPriceStates(
-        incomingCard as JsonObject,
-      );
-      const existingStates = existingCard
-        ? getProviderPriceStates(existingCard)
-        : null;
-
-      addProviderWarnings(
-        incomingCard.id,
-        "tcgplayer",
-        incomingStates.tcgplayer,
-        existingStates?.tcgplayer ?? null,
-        warnings,
-      );
-      addProviderWarnings(
-        incomingCard.id,
-        "cardmarket",
-        incomingStates.cardmarket,
-        existingStates?.cardmarket ?? null,
-        warnings,
-      );
-
-      const safeFullCard = buildSafeFullCard(
-        incomingCard,
-        existingCard,
-      );
-      let metadataChanged = false;
-      let tcgplayerChanged = false;
-      let cardmarketChanged = false;
-
-      if (!stored || !existingCard) {
-        pageStats.insertedCards += 1;
-        if (summary.initialCards > 0) {
-          warnings.add(
-            "new_cards_detected",
-            "Cards not present in the existing database were returned upstream and will be inserted",
-            incomingCard.id,
-          );
-        }
-      } else {
-        if (!existingStates) {
-          throw new Error(
-            `Existing price state was not loaded for ${incomingCard.id}`,
-          );
-        }
-        metadataChanged =
-          metadataSignature(existingCard) !==
-            metadataSignature(incomingCard as JsonObject) ||
-          columnsDiffer(
-            storedColumns(stored),
-            getCardColumns(incomingCard as JsonObject),
-          );
-        tcgplayerChanged = providerPriceChanged(
-          incomingStates.tcgplayer,
-          existingStates.tcgplayer,
-        );
-        cardmarketChanged = providerPriceChanged(
-          incomingStates.cardmarket,
-          existingStates.cardmarket,
-        );
-
-        if (metadataChanged) {
-          pageStats.metadataUpdates += 1;
-          warnings.add(
-            "metadata_changes_detected",
-            "Existing cards had upstream metadata changes; the complete upstream card will be stored while Grok remains protected",
-            incomingCard.id,
-          );
-        }
-        if (tcgplayerChanged) {
-          pageStats.tcgplayerPriceChanges += 1;
-        }
-        if (cardmarketChanged) {
-          pageStats.cardmarketPriceChanges += 1;
-        }
-        if (
-          !metadataChanged &&
-          (tcgplayerChanged || cardmarketChanged)
-        ) {
-          pageStats.priceOnlyCardUpdates += 1;
-        }
-        if (
-          !metadataChanged &&
-          !tcgplayerChanged &&
-          !cardmarketChanged
-        ) {
-          pageStats.unchangedCards += 1;
-        }
-      }
-
-      statements.push(
-        buildStageCardStatement(
-          runId,
-          safeFullCard,
-          incomingStates,
-          {
-            cardmarketChanged,
-            isNew: !stored,
-            metadataChanged,
-            tcgplayerChanged,
-          },
-        ),
-      );
-    }
-
-    await dbBatch(statements, "write");
-    summary.cardmarketPriceChanges +=
-      pageStats.cardmarketPriceChanges;
-    summary.insertedCards += pageStats.insertedCards;
-    summary.metadataUpdates += pageStats.metadataUpdates;
-    summary.priceOnlyCardUpdates += pageStats.priceOnlyCardUpdates;
-    summary.tcgplayerPriceChanges +=
-      pageStats.tcgplayerPriceChanges;
-    summary.unchangedCards += pageStats.unchangedCards;
-    summary.fetchedCards += cards.length;
-    summary.stagedCards += statements.length;
-    summary.pagesStaged += 1;
-    await renewLock(token);
-
-    if (summary.fetchedCards >= expectedCards) break;
-    page += 1;
-    await waitBetweenRequests();
+    if (summary.fetchedSets >= expectedSets) break;
+    setPage += 1;
   }
 
-  validateCatalogCompletion({
-    expectedCards,
+  if (expectedSets === null) {
+    throw new Error("Sets API did not provide a total set count");
+  }
+  validateSetDiscoveryCompletion({
+    expectedSets,
+    fetchedSets: summary.fetchedSets,
+    pageSize: SET_PAGE_SIZE,
+    pagesFetched: summary.setPagesFetched,
+    uniqueSets: sets.length,
+  });
+
+  let completedSets = 0;
+  let expectedCardPages = 0;
+
+  for (const set of sets) {
+    let expectedSetCards: number | null = null;
+    let fetchedSetCards = 0;
+    let page = 1;
+
+    while (true) {
+      console.log(`Fetching set ${set.id} page ${page}`);
+      const response = await pacedApiRequest(() =>
+        getCardsForSetPage(set.id, page),
+      );
+      expectedSetCards = validateStrictApiPage(
+        response,
+        page,
+        expectedSetCards,
+        `Card API set ${set.id}`,
+      );
+      if (page === 1) {
+        expectedCardPages += Math.ceil(
+          expectedSetCards / CARD_PAGE_SIZE,
+        );
+      }
+
+      if (response.retryCount > 0) {
+        warnings.add(
+          "api_retries",
+          "API requests required retries before succeeding",
+          `set ${set.id} page ${page}`,
+          response.retryCount,
+        );
+      }
+
+      const cards = response.data.map(sanitizeIncomingCard);
+      for (const card of cards) {
+        validateCardSetMembership(card.id, card.set?.id, set.id);
+        registerUniqueId(
+          seenCardIds,
+          card.id,
+          `Card API while fetching set ${set.id}`,
+        );
+      }
+
+      const storedCards = await loadStoredCards(
+        cards.map((card) => card.id),
+      );
+      const statements: SqlStatement[] = [];
+      const pageStats = {
+        cardmarketPriceChanges: 0,
+        insertedCards: 0,
+        metadataUpdates: 0,
+        priceOnlyCardUpdates: 0,
+        tcgplayerPriceChanges: 0,
+        unchangedCards: 0,
+      };
+
+      for (const incomingCard of cards) {
+        const stored = storedCards.get(incomingCard.id);
+        const existingCard = stored
+          ? parseStoredCard(stored.raw_json, incomingCard.id)
+          : undefined;
+        const incomingStates = getProviderPriceStates(
+          incomingCard as JsonObject,
+        );
+        const existingStates = existingCard
+          ? getProviderPriceStates(existingCard)
+          : null;
+
+        addProviderWarnings(
+          incomingCard.id,
+          "tcgplayer",
+          incomingStates.tcgplayer,
+          existingStates?.tcgplayer ?? null,
+          warnings,
+        );
+        addProviderWarnings(
+          incomingCard.id,
+          "cardmarket",
+          incomingStates.cardmarket,
+          existingStates?.cardmarket ?? null,
+          warnings,
+        );
+
+        const safeFullCard = buildSafeFullCard(
+          incomingCard,
+          existingCard,
+        );
+        let metadataChanged = false;
+        let tcgplayerChanged = false;
+        let cardmarketChanged = false;
+
+        if (!stored || !existingCard) {
+          pageStats.insertedCards += 1;
+          if (summary.initialCards > 0) {
+            warnings.add(
+              "new_cards_detected",
+              "Cards not present in the existing database were returned upstream and will be inserted",
+              incomingCard.id,
+            );
+          }
+        } else {
+          if (!existingStates) {
+            throw new Error(
+              `Existing price state was not loaded for ${incomingCard.id}`,
+            );
+          }
+          metadataChanged =
+            metadataSignature(existingCard) !==
+              metadataSignature(incomingCard as JsonObject) ||
+            columnsDiffer(
+              storedColumns(stored),
+              getCardColumns(incomingCard as JsonObject),
+            );
+          tcgplayerChanged = providerPriceChanged(
+            incomingStates.tcgplayer,
+            existingStates.tcgplayer,
+          );
+          cardmarketChanged = providerPriceChanged(
+            incomingStates.cardmarket,
+            existingStates.cardmarket,
+          );
+
+          if (metadataChanged) {
+            pageStats.metadataUpdates += 1;
+            warnings.add(
+              "metadata_changes_detected",
+              "Existing cards had upstream metadata changes; the complete upstream card will be stored while Grok remains protected",
+              incomingCard.id,
+            );
+          }
+          if (tcgplayerChanged) {
+            pageStats.tcgplayerPriceChanges += 1;
+          }
+          if (cardmarketChanged) {
+            pageStats.cardmarketPriceChanges += 1;
+          }
+          if (
+            !metadataChanged &&
+            (tcgplayerChanged || cardmarketChanged)
+          ) {
+            pageStats.priceOnlyCardUpdates += 1;
+          }
+          if (
+            !metadataChanged &&
+            !tcgplayerChanged &&
+            !cardmarketChanged
+          ) {
+            pageStats.unchangedCards += 1;
+          }
+        }
+
+        statements.push(
+          buildStageCardStatement(
+            runId,
+            safeFullCard,
+            incomingStates,
+            {
+              cardmarketChanged,
+              isNew: !stored,
+              metadataChanged,
+              tcgplayerChanged,
+            },
+          ),
+        );
+      }
+
+      await dbBatch(statements, "write");
+      summary.cardmarketPriceChanges +=
+        pageStats.cardmarketPriceChanges;
+      summary.insertedCards += pageStats.insertedCards;
+      summary.metadataUpdates += pageStats.metadataUpdates;
+      summary.priceOnlyCardUpdates += pageStats.priceOnlyCardUpdates;
+      summary.tcgplayerPriceChanges +=
+        pageStats.tcgplayerPriceChanges;
+      summary.unchangedCards += pageStats.unchangedCards;
+      summary.fetchedCards += cards.length;
+      summary.stagedCards += statements.length;
+      summary.pagesStaged += 1;
+      fetchedSetCards += cards.length;
+      await renewLock(token);
+
+      if (fetchedSetCards >= expectedSetCards) break;
+      page += 1;
+    }
+
+    if (
+      expectedSetCards === null ||
+      fetchedSetCards !== expectedSetCards
+    ) {
+      throw new Error(
+        `Set ${set.id} completeness validation failed: expected ${String(expectedSetCards)}, fetched ${fetchedSetCards}`,
+      );
+    }
+    completedSets += 1;
+  }
+
+  validateSetCatalogCompletion({
+    completedSets,
+    expectedCards: summary.expectedApiCards,
+    expectedCardPages,
+    expectedSets,
     fetchedCards: summary.fetchedCards,
     pagesStaged: summary.pagesStaged,
-    pageSize: PAGE_SIZE,
     uniqueCards: seenCardIds.size,
   });
   return seenCardIds;
@@ -806,7 +911,9 @@ export async function runCardSync(
     cleanupDeleted: 0,
     dryRun,
     expectedApiCards: 0,
+    expectedApiSets: 0,
     fetchedCards: 0,
+    fetchedSets: 0,
     finalCards: 0,
     initialCards: 0,
     insertedCards: 0,
@@ -814,6 +921,7 @@ export async function runCardSync(
     missingExistingCards: 0,
     pagesStaged: 0,
     priceOnlyCardUpdates: 0,
+    setPagesFetched: 0,
     snapshotDate: getSnapshotDate(timeZone),
     snapshotsPresent: 0,
     stagedCards: 0,
