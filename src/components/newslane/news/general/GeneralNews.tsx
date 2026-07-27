@@ -4,6 +4,7 @@ import "./GeneralNews.scss";
 
 type NewsItem = {
   headline?: string;
+  label?: string;
   summary?: string;
   action?: string[];
   url?: string;
@@ -32,6 +33,7 @@ export const GeneralNews: React.FC = () => {
               <div className="general-news__trend-content">
                 <div className="general-news__trend-heading">
                   {item.headline && <h2>{item.headline}</h2>}
+                  {item.label?.trim() && <span>{item.label.trim()}</span>}
                 </div>
 
                 {item.summary && <p>{item.summary}</p>}

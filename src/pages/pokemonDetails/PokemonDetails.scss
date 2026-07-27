@@ -234,9 +234,31 @@
   }
 
   &__credit-meta {
-    color: var(--font-color-muted);
+    color: color-mix(
+      in srgb,
+      var(--font-color-secondary) 76%,
+      var(--font-color-muted)
+    );
     font-size: var(--font-size-caption);
-    font-weight: var(--font-weight-medium, 500);
+    font-weight: var(--font-weight-regular);
+  }
+
+  &__credit-spinner {
+    animation: card-view-credit-spin 0.75s linear infinite;
+    border: 2px solid color-mix(in srgb, var(--custom-color-purple) 24%, transparent);
+    border-radius: var(--border-radius-round);
+    border-top-color: color-mix(in srgb, var(--custom-color-purple) 72%, white);
+    box-sizing: border-box;
+    display: inline-block;
+    height: 0.9rem;
+    vertical-align: -0.1rem;
+    width: 0.9rem;
+  }
+
+  @keyframes card-view-credit-spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   &__credit-divider {
@@ -249,8 +271,17 @@
   }
 
   &__credit-copy {
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-medium);
+    align-items: center;
+    color: color-mix(
+      in srgb,
+      var(--font-color-secondary) 76%,
+      var(--font-color-muted)
+    );
+    display: inline-flex;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-regular);
+    gap: 0.3rem;
+    white-space: nowrap;
   }
 
   &__credit-balance {

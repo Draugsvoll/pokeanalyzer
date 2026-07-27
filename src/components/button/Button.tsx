@@ -11,6 +11,7 @@ type ButtonProps = Omit<
     | "default"
     | "google"
     | "hero"
+    | "micro"
     | "portfolio"
     | "primary"
     | "secondary"
@@ -34,7 +35,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
 }, ref) {
   const cls = [
     "app-btn",
-    `app-btn--${variant}`,
+    variant === "default" ? "app-btn-pill" : `app-btn--${variant}`,
+    variant === "secondary" && "app-btn-pill",
     `app-btn--${size}`,
     fullWidth && "app-btn--full-width",
     fitContent && "app-btn--fit-content",

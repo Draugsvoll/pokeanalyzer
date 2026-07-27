@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
+import Button from "../../components/button/Button";
 import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
 import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
-import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
@@ -47,7 +47,6 @@ export default function Portfolio() {
   const [updatingPriceSourceId, setUpdatingPriceSourceId] = useState<string | null>(
     null,
   );
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Sum each card's selected price × quantity (USD / EUR kept separate)
   const { totalUsd, totalEur, cardsUsd, cardsEur } = useMemo(() => {
@@ -139,28 +138,7 @@ export default function Portfolio() {
   }
 
   if (!user) {
-    return (
-      <main className="portfolio portfolio--status ui-render-fade" key="logged-out">
-        <h1>Log in to view your collection</h1>
-        <p>
-          <button
-            onClick={() => navigate("/signup")}
-            className="portfolio__link"
-          >
-            Sign up
-          </button>
-          {" or "}
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="portfolio__link"
-          >
-            log in
-          </button>
-          {" to access your collection."}
-        </p>
-        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
-      </main>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -211,6 +189,10 @@ export default function Portfolio() {
         <div className="portfolio__empty">
           <h2>No saved cards yet</h2>
           <p>Cards you add to your portfolio will appear here.</p>
+          <Button onClick={() => navigate("/search")}>
+            <Search aria-hidden="true" />
+            Find cards
+          </Button>
         </div>
       ) : (
         <GridView>

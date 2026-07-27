@@ -16,22 +16,6 @@
     padding-left:0;
   }
 
-  .portfolio__link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: white;
-    text-decoration: underline;
-    font-weight: var(--font-weight-semibold);
-    cursor: pointer;
-    transition: opacity var(--delay-short) ease;
-    font: inherit;
-
-    &:hover {
-      opacity: 0.8;
-    }
-  }
-
   &__header {
     align-items: end;
     display: flex;
@@ -152,6 +136,10 @@
 
     h2 { margin: 0; }
     p { color: var(--font-color-muted); margin-bottom: 0; }
+
+    > .app-btn {
+      margin-top: 1rem;
+    }
   }
 
   .grid-view-container {

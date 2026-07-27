@@ -681,12 +681,18 @@ export default function PokemonDetails() {
       <div className="card-view__credit-note">
         <span className="card-view__credit-cost">
           <strong>1 Credit</strong>
-          <span className="card-view__credit-meta">per analyse</span>
+          <span className="card-view__credit-meta">per analysis</span>
         </span>
         <span className="card-view__credit-divider" aria-hidden="true" />
         <span className="card-view__credit-copy">
           {loadingSubscription
-            ? "Laster credits..."
+            ? (
+              <span
+                className="card-view__credit-spinner"
+                role="status"
+                aria-label="Laster credits"
+              />
+            )
             : subscription
               ? (
                 <span className="card-view__credit-balance">
@@ -695,16 +701,15 @@ export default function PokemonDetails() {
               )
               : (
                 <>
-                  <button
-                    type="button"
-                    className="card-view__credit-link"
+                  <Button
+                    variant="micro"
                     onClick={() => setShowLoginModal(true)}
                   >
-                    Login
-                  </button>
+                    Log in
+                  </Button>
                   {" or "}
                   <Link className="card-view__credit-link" to="/signup">
-                    Sign Up
+                    Sign up
                   </Link>
                   {" for free credits"}
                 </>
@@ -726,7 +731,8 @@ export default function PokemonDetails() {
           const isFeatureLoading =
             activeView === aiFeature.view &&
             (grokLoading ||
-              (aiFeature.view === "prices" && justTcgLoading));
+              (aiFeature.view === "prices" && justTcgLoading) ||
+              (aiFeature.view === "ebay_sold" && ebayLoading));
 
           return (
             <button

@@ -120,6 +120,10 @@ export default function Admin() {
     );
   }
 
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
   if (checkingAdmin) {
     return (
       <main className="admin-page admin-page--status">

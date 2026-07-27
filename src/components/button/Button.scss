@@ -58,14 +58,48 @@
   }
 }
 
-.app-btn--default {
+.app-btn--micro {
   background: var(--bg2);
   border: var(--border);
-  border-radius: var(--border-radius);
-  color: var(--font-color-primary);
+  border-radius: var(--border-radius-pill);
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1;
+  min-height: 1.6rem;
+  padding: 0.25rem 1rem;
+
+  &:hover:not(:disabled) {
+    background: var(--bg2);
+    border: var(--border-hover);
+    color: var(--font-color-primary);
+    filter: brightness(1.03);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(
+      in srgb,
+      var(--custom-color-purple) 16%,
+      transparent
+    );
+    outline: none;
+  }
+}
+
+.app-btn-pill {
+  background: var(--bg2);
+  border: var(--border);
+  border-radius: var(--border-radius-pill);
+  color: var(--font-color-secondary);
   min-height: 2.5rem;
   min-width: 7.5rem;
   padding: 0.6rem 0.98rem;
+
+  &:hover:not(:disabled) {
+    background: var(--bg2);
+    border: var(--border-hover);
+    color: var(--font-color-primary);
+    filter: brightness(1.03);
+  }
 
   &:focus-visible {
     box-shadow: 0 0 0 3px color-mix(
@@ -194,6 +228,44 @@
 
     svg { fill: currentColor; }
   }
+}
+
+.app-btn-pill--account {
+  font-size: var(--font-size-nav);
+  font-weight: var(--font-weight-medium);
+  gap: 0.5rem;
+  line-height: 1;
+  min-width: 0;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.app-btn-pill__avatar {
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--border-radius-round);
+  color: var(--font-color-primary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-extrabold);
+  height: 1.25rem;
+  justify-content: center;
+  line-height: 1;
+  object-fit: cover;
+  overflow: hidden;
+  vertical-align: middle;
+  width: 1.25rem;
+}
+
+.app-btn-pill__label {
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .app-btn--warning {

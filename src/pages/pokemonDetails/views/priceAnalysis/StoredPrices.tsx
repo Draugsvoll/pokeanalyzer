@@ -125,7 +125,7 @@ function SourceCard({
                 rel="noopener noreferrer"
                 aria-label={`View ${cardName} on ${title}`}
               >
-                View source
+                View Card
                 <ExternalLink aria-hidden="true" />
               </a>
             )}
