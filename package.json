@@ -12,10 +12,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "db:init": "tsx server/db/init.ts",
-    "sync:prices": "tsx server/scripts/syncPrices.ts",
+    "db:check": "tsx server/scripts/checkDb.ts",
     "sync:cards": "tsx server/scripts/syncCards.ts",
-    "prices:cleanup": "tsx server/scripts/cleanupPrices.ts",
-    "portfolio:compact": "tsx server/scripts/compactPortfolioEntries.ts",
+    "sync:cards:dry-run": "tsx server/scripts/syncCards.ts --dry-run",
     "test:server": "tsx --test \"server/**/*.test.ts\""
   },
   "dependencies": {

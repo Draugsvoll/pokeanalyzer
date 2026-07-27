@@ -92,7 +92,10 @@ async function readErrorMessage(response: Response) {
 }
 
 async function cardRequest(path: string, signal?: AbortSignal) {
-  const response = await fetch(`${API_URL}${path}`, { signal });
+  const response = await fetch(`${API_URL}${path}`, {
+    cache: "no-store",
+    signal,
+  });
   if (!response.ok) throw new Error(await readErrorMessage(response));
   return response.json() as Promise<unknown>;
 }

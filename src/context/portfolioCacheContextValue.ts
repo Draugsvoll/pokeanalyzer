@@ -3,6 +3,7 @@ import type { PortfolioReference } from "../types/portfolio";
 
 export type PortfolioContextType = {
   portfolioReferences: ReadonlyMap<string, PortfolioReference>;
+  portfolioReferencesError: string | null;
   loadingPortfolioReferences: boolean;
   refreshPortfolioReferences: () => Promise<void>;
   replacePortfolioReferences: (entries: PortfolioReference[]) => void;

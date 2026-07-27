@@ -19,7 +19,6 @@ type PortfolioReferenceState = {
 
 const EMPTY_PORTFOLIO_REFERENCES: ReadonlyMap<string, PortfolioReference> =
   new Map();
-const LEGACY_PORTFOLIO_CACHE_PREFIX = "userPortfolio_";
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth();
@@ -35,6 +34,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     });
   const [refreshingPortfolioReferences, setRefreshingPortfolioReferences] =
     useState(false);
+  const [portfolioReferencesError, setPortfolioReferencesError] =
+    useState<string | null>(null);
 
   const portfolioReferences =
     portfolioState.uid === authUid
@@ -50,6 +51,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
       dataRevisionRef.current += 1;
       successfullyLoadedUidRef.current = authUid;
+      setPortfolioReferencesError(null);
       setPortfolioState({
         uid: authUid,
         references: new Map(
@@ -68,6 +70,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     if (!requestedUid) {
       dataRevisionRef.current += 1;
       successfullyLoadedUidRef.current = null;
+      setPortfolioReferencesError(null);
       setPortfolioState({ uid: null, references: new Map() });
       setRefreshingPortfolioReferences(false);
       return;
@@ -75,6 +78,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
     try {
       setRefreshingPortfolioReferences(true);
+      setPortfolioReferencesError(null);
       const { entries } = await getPortfolioReferences(requestedUid);
       if (
         requestId !== activeRequestRef.current ||
@@ -89,6 +93,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         activeUidRef.current !== requestedUid
       ) return;
       logClientError("Failed to refresh portfolio", error);
+      setPortfolioReferencesError(
+        error instanceof Error
+          ? error.message
+          : "Portfolio references could not be loaded",
+      );
       setPortfolioState((current) =>
         current.uid === requestedUid
           ? current
@@ -144,21 +153,6 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, [authUid]);
 
   useEffect(() => {
-    try {
-      // Full-card portfolio caches are obsolete and can contain data from
-      // accounts previously used on this device. Remove every old key once.
-      for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
-        const key = window.localStorage.key(index);
-        if (key?.startsWith(LEGACY_PORTFOLIO_CACHE_PREFIX)) {
-          window.localStorage.removeItem(key);
-        }
-      }
-    } catch (error) {
-      logClientError("Failed to remove legacy portfolio caches", error);
-    }
-  }, []);
-
-  useEffect(() => {
     const initialize = window.setTimeout(() => {
       void refreshPortfolioReferences();
     }, 0);
@@ -173,6 +167,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     <PortfolioContext.Provider
       value={{
         portfolioReferences,
+        portfolioReferencesError,
         loadingPortfolioReferences,
         refreshPortfolioReferences,
         replacePortfolioReferences,

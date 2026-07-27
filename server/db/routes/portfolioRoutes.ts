@@ -87,28 +87,52 @@ function getPriceSource(value: unknown) {
   return priceSource;
 }
 
-function readStoredQuantity(value: unknown) {
-  const quantity = Number(value);
-  return Number.isSafeInteger(quantity) &&
-    quantity >= 1 &&
-    quantity <= MAX_QUANTITY
-    ? quantity
-    : 1;
-}
-
-function readStoredPriceSource(value: unknown) {
-  const priceSource = typeof value === "string" ? value.trim() : "";
-  return PRICE_SOURCE_PATTERN.test(priceSource) ? priceSource : undefined;
-}
-
-function toPortfolioEntry(
+function parseStoredPortfolioEntry(
   cardId: string,
-  data: Record<string, unknown> | undefined,
+  data: unknown,
 ): PortfolioEntry {
-  const priceSource = readStoredPriceSource(data?.priceSource);
+  if (!CARD_ID_PATTERN.test(cardId)) {
+    throw new Error("Stored portfolio entry has an invalid card ID");
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error(`Portfolio entry ${cardId} is not an object`);
+  }
+
+  const fields = data as Record<string, unknown>;
+  const unexpectedFields = Object.keys(fields).filter(
+    (field) => field !== "quantity" && field !== "priceSource",
+  );
+  if (unexpectedFields.length > 0) {
+    throw new Error(
+      `Portfolio entry ${cardId} contains unsupported fields`,
+    );
+  }
+  const quantity = fields.quantity;
+  if (
+    typeof quantity !== "number" ||
+    !Number.isSafeInteger(quantity) ||
+    quantity < 1 ||
+    quantity > MAX_QUANTITY
+  ) {
+    throw new Error(`Portfolio entry ${cardId} has an invalid quantity`);
+  }
+
+  let priceSource: string | undefined;
+  if (fields.priceSource !== undefined) {
+    if (
+      typeof fields.priceSource !== "string" ||
+      !PRICE_SOURCE_PATTERN.test(fields.priceSource.trim())
+    ) {
+      throw new Error(
+        `Portfolio entry ${cardId} has an invalid price source`,
+      );
+    }
+    priceSource = fields.priceSource.trim();
+  }
+
   return {
     cardId,
-    quantity: readStoredQuantity(data?.quantity),
+    quantity,
     ...(priceSource && { priceSource }),
   };
 }
@@ -129,30 +153,9 @@ function portfolioCollection(uid: string) {
 
 async function getPortfolioEntries(uid: string): Promise<PortfolioEntry[]> {
   const snapshot = await portfolioCollection(uid).get();
-  const entries: PortfolioEntry[] = [];
-  let invalidIdCount = 0;
-
-  for (const document of snapshot.docs) {
-    if (!CARD_ID_PATTERN.test(document.id)) {
-      invalidIdCount += 1;
-      continue;
-    }
-
-    entries.push(
-      toPortfolioEntry(
-        document.id,
-        document.data() as Record<string, unknown>,
-      ),
-    );
-  }
-
-  if (invalidIdCount > 0) {
-    console.warn(
-      `Ignored ${invalidIdCount} portfolio document(s) with invalid card IDs.`,
-    );
-  }
-
-  return entries;
+  return snapshot.docs.map((document) =>
+    parseStoredPortfolioEntry(document.id, document.data()),
+  );
 }
 
 async function getHydratedCards(entries: PortfolioEntry[]) {
@@ -171,19 +174,13 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
   }
 
   const cardsById = new Map<string, Record<string, unknown>>();
-  const invalidStoredCardIds = new Set<string>();
 
   for (const row of rows) {
     const cardId = String(row.id);
-    try {
-      const card = parsePublicStoredCard(String(row.raw_json));
-      delete card.quantity;
-      delete card.priceSource;
-      cardsById.set(cardId, card);
-    } catch (error) {
-      invalidStoredCardIds.add(cardId);
-      logError(`Failed to parse stored portfolio card ${cardId}`, error);
-    }
+    const card = parsePublicStoredCard(String(row.raw_json));
+    delete card.quantity;
+    delete card.priceSource;
+    cardsById.set(cardId, card);
   }
 
   const cards: Record<string, unknown>[] = [];
@@ -191,7 +188,7 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
 
   for (const entry of entries) {
     const card = cardsById.get(entry.cardId);
-    if (!card || invalidStoredCardIds.has(entry.cardId)) {
+    if (!card) {
       missingCardIds.push(entry.cardId);
       continue;
     }
@@ -267,10 +264,7 @@ router.post("/cards", portfolioWriteLimiter, async (req, res) => {
       if (existing.exists) {
         return {
           created: false,
-          entry: toPortfolioEntry(
-            cardId,
-            existing.data() as Record<string, unknown>,
-          ),
+          entry: parseStoredPortfolioEntry(cardId, existing.data()),
         };
       }
 
@@ -301,17 +295,12 @@ router.patch(
           throw new PortfolioHttpError("Portfolio card not found", 404);
         }
 
-        const existing = toPortfolioEntry(
+        const existing = parseStoredPortfolioEntry(
           cardId,
-          cardSnap.data() as Record<string, unknown>,
+          cardSnap.data(),
         );
         const updatedEntry = { ...existing, quantity };
-        transaction.set(cardRef, {
-          quantity: updatedEntry.quantity,
-          ...(updatedEntry.priceSource && {
-            priceSource: updatedEntry.priceSource,
-          }),
-        });
+        transaction.update(cardRef, { quantity });
         return updatedEntry;
       });
 
@@ -338,15 +327,12 @@ router.patch(
           throw new PortfolioHttpError("Portfolio card not found", 404);
         }
 
-        const existing = toPortfolioEntry(
+        const existing = parseStoredPortfolioEntry(
           cardId,
-          cardSnap.data() as Record<string, unknown>,
+          cardSnap.data(),
         );
         const updatedEntry = { ...existing, priceSource };
-        transaction.set(cardRef, {
-          quantity: updatedEntry.quantity,
-          priceSource: updatedEntry.priceSource,
-        });
+        transaction.update(cardRef, { priceSource });
         return updatedEntry;
       });
 

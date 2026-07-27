@@ -3,227 +3,50 @@ import test from "node:test";
 import { createClient } from "@libsql/client";
 import type { PokemonTcgApiCard } from "../types/PokemonTcgApiCard.js";
 import {
+  APPLY_CARDMARKET_PRICE_UPDATES_SQL,
+  APPLY_DAILY_SNAPSHOTS_SQL,
+  APPLY_METADATA_UPDATES_SQL,
+  APPLY_TCGPLAYER_PRICE_UPDATES_SQL,
   buildAcquireSyncLock,
-  buildFullCardUpsert,
-  buildPriceOnlyUpdate,
   buildReleaseSyncLock,
-  buildSnapshotUpsert,
-  getProviderPriceState,
+  buildSafeFullCard,
+  buildStageCardStatement,
+  CARD_APPLY_MISMATCH_COUNT_SQL,
+  CARD_SYNC_STAGE_TABLE_SQL,
+  getProviderPriceStates,
+  INSERT_NEW_CARDS_SQL,
   isJsonObject,
   metadataSignature,
+  PRICE_ONLY_APPLY_EXPECTATIONS_SQL,
   PRICE_HISTORY_CLEANUP_SQL,
-  preserveMissingCurrentPrices,
-  preserveOmittedCardFields,
+  providerPriceChanged,
   sanitizeIncomingCard,
+  SNAPSHOT_APPLY_MISMATCH_COUNT_SQL,
   SYNC_LOCK_TABLE_SQL,
 } from "./syncCardHelpers.js";
 
-test("incomplete upstream cards are rejected before they can erase metadata", () => {
-  assert.throws(
-    () =>
-      sanitizeIncomingCard({
-        id: "base1-1",
-        name: "Alakazam",
-      }),
-    /incomplete card/,
-  );
-
-  assert.doesNotThrow(() =>
-    sanitizeIncomingCard({
-      id: "base1-1",
-      images: {
-        large: "https://example.test/large.png",
-        small: "https://example.test/small.png",
-      },
-      name: "Alakazam",
-      number: "1",
-      set: {
-        id: "base1",
-        name: "Base",
-      },
-      supertype: "Pokémon",
-    }),
-  );
-});
-
-test("metadata comparison ignores current prices, provider dates, and Grok", () => {
-  const stored = {
-    id: "base1-1",
-    name: "Alakazam",
-    tcgplayer: {
-      url: "https://example.test/tcg",
-      updatedAt: "2026/07/25",
-      prices: { holofoil: { market: 10 } },
-    },
-    grok: { price_analysis: { summary: "keep me" } },
-  };
-  const incoming = {
-    tcgplayer: {
-      prices: { holofoil: { market: 12 } },
-      updatedAt: "2026/07/26",
-      url: "https://example.test/tcg",
-    },
-    name: "Alakazam",
-    id: "base1-1",
-  };
-
-  assert.equal(metadataSignature(stored), metadataSignature(incoming));
-  assert.notEqual(
-    metadataSignature(stored),
-    metadataSignature({ ...incoming, name: "Kadabra" }),
-  );
-});
-
-test("partial providers retain existing metadata and their last usable price", () => {
-  const existing = {
-    id: "base1-1",
-    name: "Alakazam",
-    tcgplayer: {
-      url: "https://example.test/old-tcg-url",
-      customProviderField: "retain",
-      updatedAt: "2026/07/25",
-      prices: { holofoil: { market: 10 } },
-    },
-  };
-  const incoming: PokemonTcgApiCard = {
-    id: "base1-1",
-    name: "Alakazam updated",
-    tcgplayer: {
-      // A temporarily partial provider object has neither URL nor prices.
-      updatedAt: "2026/07/26",
-    },
-  };
-
-  const merged = preserveMissingCurrentPrices(incoming, existing);
-  assert.equal(merged.tcgplayer?.url, "https://example.test/old-tcg-url");
-  assert.equal(
-    (merged.tcgplayer as Record<string, unknown>).customProviderField,
-    "retain",
-  );
-  assert.equal(merged.tcgplayer?.updatedAt, "2026/07/25");
-  assert.deepEqual(merged.tcgplayer?.prices, {
-    holofoil: { market: 10 },
-  });
-});
-
-test("omitted upstream fields cannot erase stored metadata or custom fields", () => {
-  const existing = {
-    abilities: [{ name: "Damage Swap" }],
-    appAnnotation: { reviewed: true },
+function completeCard(
+  overrides: Record<string, unknown> = {},
+): PokemonTcgApiCard {
+  return {
     id: "base1-1",
     images: {
-      large: "https://example.test/old-large.png",
-      small: "https://example.test/old-small.png",
+      large: "https://example.test/large.png",
+      small: "https://example.test/small.png",
     },
     name: "Alakazam",
     number: "1",
-    set: {
-      id: "base1",
-      images: { logo: "https://example.test/logo.png" },
-      name: "Base",
-    },
+    set: { id: "base1", name: "Base" },
     supertype: "Pokémon",
-  };
-  const incoming: PokemonTcgApiCard = {
-    id: "base1-1",
-    images: {
-      large: "https://example.test/new-large.png",
-      small: "https://example.test/new-small.png",
-    },
-    name: "Alakazam corrected",
-    number: "1",
-    set: {
-      id: "base1",
-      name: "Base",
-    },
-    supertype: "Pokémon",
-  };
+    ...overrides,
+  } as PokemonTcgApiCard;
+}
 
-  const merged = preserveOmittedCardFields(incoming, existing);
-  assert.equal(merged.name, "Alakazam corrected");
-  assert.equal(merged.images?.large, "https://example.test/new-large.png");
-  assert.deepEqual(merged.abilities, existing.abilities);
-  assert.deepEqual(merged.appAnnotation, existing.appAnnotation);
-  assert.deepEqual(merged.set?.images, existing.set.images);
-});
-
-test("metadata safety never merges stale variants or mismatched price dates", () => {
-  const existing = {
-    id: "base1-1",
-    name: "Alakazam",
-    tcgplayer: {
-      prices: {
-        holofoil: { market: 10 },
-        normal: { market: 8 },
-      },
-      updatedAt: "2026/07/25",
-      url: "https://example.test/tcg",
-    },
-  };
-  const changedWithPrices: PokemonTcgApiCard = {
-    id: "base1-1",
-    name: "Alakazam corrected",
-    tcgplayer: {
-      prices: { normal: { market: 9 } },
-      updatedAt: "2026/07/26",
-    },
-  };
-
-  const safeMetadata = preserveOmittedCardFields(
-    changedWithPrices,
-    existing,
-  );
-  const safePrices = preserveMissingCurrentPrices(safeMetadata, existing);
-  assert.deepEqual(safePrices.tcgplayer, {
-    prices: { normal: { market: 9 } },
-    updatedAt: "2026/07/26",
-    url: "https://example.test/tcg",
-  });
-
-  const partialProvider: PokemonTcgApiCard = {
-    id: "base1-1",
-    name: "Alakazam corrected again",
-    tcgplayer: { updatedAt: "2026/07/27" },
-  };
-  const partialSafeMetadata = preserveOmittedCardFields(
-    partialProvider,
-    existing,
-  );
-  const partialSafePrices = preserveMissingCurrentPrices(
-    partialSafeMetadata,
-    existing,
-  );
-  assert.deepEqual(partialSafePrices.tcgplayer, existing.tcgplayer);
-});
-
-test("all-null provider payloads are missing, while a numeric zero is usable", () => {
-  const missing = getProviderPriceState(
-    {
-      tcgplayer: {
-        prices: { holofoil: { market: null, low: null } },
-      },
-    },
-    "tcgplayer",
-  );
-  const usable = getProviderPriceState(
-    {
-      tcgplayer: {
-        prices: { holofoil: { market: 0 } },
-      },
-    },
-    "tcgplayer",
-  );
-
-  assert.equal(missing.prices, null);
-  assert.notEqual(usable.prices, null);
-});
-
-test("full-card UPSERT refreshes metadata but preserves live Grok atomically", async () => {
+async function createSyncDatabase() {
   const client = createClient({ url: "file::memory:" });
-
-  try {
-    await client.execute(`
-      CREATE TABLE cards (
+  await client.batch(
+    [
+      `CREATE TABLE cards (
         id TEXT PRIMARY KEY,
         number TEXT,
         name TEXT NOT NULL,
@@ -233,331 +56,426 @@ test("full-card UPSERT refreshes metadata but preserves live Grok atomically", a
         image_large TEXT,
         raw_json TEXT NOT NULL,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      )`,
+      `CREATE TABLE price_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_id TEXT NOT NULL,
+        recorded_at DATE NOT NULL,
+        tcgplayer_prices TEXT,
+        cardmarket_prices TEXT,
+        tcgplayer_updated_at TEXT,
+        cardmarket_updated_at TEXT,
+        UNIQUE(card_id, recorded_at)
+      )`,
+      CARD_SYNC_STAGE_TABLE_SQL,
+    ],
+    "write",
+  );
+  return client;
+}
 
-    const stored = {
-      id: "base1-1",
-      name: "Old name",
-      rarity: "Rare",
-      grok: {
-        price_analysis: {
-          timestamp: "2026-07-25T00:00:00.000Z",
-          summary: "must survive",
-        },
-      },
-    };
-    await client.execute({
-      sql: `
-        INSERT INTO cards (id, name, raw_json, updated_at)
-        VALUES (?, ?, json(?), '2000-01-01 00:00:00')
-      `,
-      args: [stored.id, stored.name, JSON.stringify(stored)],
-    });
-
-    const upstream: PokemonTcgApiCard = {
-      id: "base1-1",
-      number: "1",
-      name: "New name",
-      rarity: "Ultra Rare",
-    };
-    await client.batch([buildFullCardUpsert(upstream)], "write");
-
-    const result = await client.execute({
-      sql: "SELECT name, raw_json FROM cards WHERE id = ?",
-      args: [upstream.id],
-    });
-    const row = result.rows[0];
-    assert.equal(row?.name, "New name");
-
-    const raw: unknown = JSON.parse(String(row?.raw_json));
-    assert.ok(isJsonObject(raw));
-    assert.equal(raw.name, "New name");
-    assert.equal(raw.rarity, "Ultra Rare");
-    assert.deepEqual(raw.grok, stored.grok);
-  } finally {
-    client.close();
-  }
+test("incomplete upstream cards are rejected", () => {
+  assert.throws(
+    () =>
+      sanitizeIncomingCard({
+        id: "base1-1",
+        name: "Alakazam",
+      }),
+    /incomplete metadata/,
+  );
+  assert.doesNotThrow(() => sanitizeIncomingCard(completeCard()));
 });
 
-test("price writes preserve card data and use/protect real SQL NULL snapshots", async () => {
-  const client = createClient({ url: "file::memory:" });
+test("metadata comparison ignores prices, provider dates, and Grok", () => {
+  const first = completeCard({
+    grok: { private: true },
+    tcgplayer: {
+      prices: { holofoil: { market: 10 } },
+      updatedAt: "2026/07/26",
+      url: "same",
+    },
+  });
+  const priceChange = completeCard({
+    tcgplayer: {
+      prices: { holofoil: { market: 12 } },
+      updatedAt: "2026/07/27",
+      url: "same",
+    },
+  });
+  const metadataChange = completeCard({
+    tcgplayer: {
+      prices: { holofoil: { market: 12 } },
+      updatedAt: "2026/07/27",
+      url: "changed",
+    },
+  });
 
-  try {
-    await client.batch(
-      [
-        `
-          CREATE TABLE cards (
-            id TEXT PRIMARY KEY,
-            number TEXT,
-            name TEXT NOT NULL,
-            set_id TEXT,
-            set_name TEXT,
-            image_small TEXT,
-            image_large TEXT,
-            raw_json TEXT NOT NULL,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `,
-        `
-          CREATE TABLE price_snapshots (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id TEXT NOT NULL,
-            recorded_at DATE NOT NULL,
-            tcgplayer_prices TEXT,
-            cardmarket_prices TEXT,
-            tcgplayer_updated_at TEXT,
-            cardmarket_updated_at TEXT,
-            UNIQUE(card_id, recorded_at)
-          )
-        `,
-      ],
-      "write",
-    );
+  assert.equal(
+    metadataSignature(first),
+    metadataSignature(priceChange),
+  );
+  assert.notEqual(
+    metadataSignature(first),
+    metadataSignature(metadataChange),
+  );
+});
 
-    const stored = {
-      id: "base1-2",
-      name: "Blastoise",
-      rarity: "Rare",
+test("safe full cards use upstream data but protect missing current prices", () => {
+  const existing = completeCard({
+    grok: { private: true },
+    name: "Old name",
+    tcgplayer: {
+      prices: { holofoil: { market: 10 } },
+      updatedAt: "2026/07/26",
+      url: "old-url",
+    },
+  }) as Record<string, unknown>;
+  const incoming = completeCard({
+    name: "Corrected name",
+    tcgplayer: { url: "new-url" },
+  });
+
+  const safe = buildSafeFullCard(incoming, existing);
+  assert.equal(safe.name, "Corrected name");
+  assert.deepEqual(safe.tcgplayer, {
+    prices: { holofoil: { market: 10 } },
+    updatedAt: "2026/07/26",
+    url: "new-url",
+  });
+  assert.equal("grok" in safe, false);
+});
+
+test("only valid incoming prices can count as a current price change", () => {
+  const existing = getProviderPriceStates(
+    completeCard({
       tcgplayer: {
-        updatedAt: "2026/07/25",
         prices: { holofoil: { market: 10 } },
+        updatedAt: "old",
       },
-      cardmarket: {
-        updatedAt: "2026/07/25",
-        prices: { trendPrice: 20 },
-      },
-      grok: { ebay: { summary: "keep me too" } },
-    };
-    await client.execute({
-      sql: `
-        INSERT INTO cards (id, name, raw_json, updated_at)
-        VALUES (?, ?, json(?), '2000-01-01 00:00:00')
-      `,
-      args: [stored.id, stored.name, JSON.stringify(stored)],
-    });
-
-    const missingCardmarketStates = {
+    }) as Record<string, unknown>,
+  );
+  const changed = getProviderPriceStates(
+    completeCard({
       tcgplayer: {
         prices: { holofoil: { market: 12 } },
+        updatedAt: "new",
+      },
+    }) as Record<string, unknown>,
+  );
+  const missing = getProviderPriceStates(
+    completeCard({
+      tcgplayer: { prices: { holofoil: { market: 0 } } },
+    }) as Record<string, unknown>,
+  );
+
+  assert.equal(
+    providerPriceChanged(changed.tcgplayer, existing.tcgplayer),
+    true,
+  );
+  assert.equal(
+    providerPriceChanged(missing.tcgplayer, existing.tcgplayer),
+    false,
+  );
+});
+
+test("one atomic apply updates metadata/prices, preserves Grok, and upserts one daily snapshot", async () => {
+  const client = await createSyncDatabase();
+  try {
+    const existing = completeCard({
+      grok: { analysis: { keep: true } },
+      name: "Old name",
+      tcgplayer: {
+        prices: { holofoil: { market: 10 } },
         updatedAt: "2026/07/26",
       },
-      cardmarket: { prices: null, updatedAt: null },
-    };
-    const priceUpdate = buildPriceOnlyUpdate(
-      stored.id,
-      missingCardmarketStates,
-    );
-    const firstSnapshot = buildSnapshotUpsert(
-      stored.id,
-      missingCardmarketStates,
-      "2026-07-26",
-    );
-    assert.ok(priceUpdate);
-    assert.ok(firstSnapshot);
-    await client.batch([priceUpdate, firstSnapshot], "write");
-
-    const cardResult = await client.execute({
-      sql: "SELECT raw_json, updated_at FROM cards WHERE id = ?",
-      args: [stored.id],
     });
-    const updatedRaw: unknown = JSON.parse(
-      String(cardResult.rows[0]?.raw_json),
-    );
-    assert.ok(isJsonObject(updatedRaw));
-    assert.deepEqual(updatedRaw.grok, stored.grok);
-    assert.equal(updatedRaw.name, stored.name);
-    assert.deepEqual(updatedRaw.cardmarket, stored.cardmarket);
-    assert.deepEqual(updatedRaw.tcgplayer, {
-      updatedAt: "2026/07/26",
-      prices: { holofoil: { market: 12 } },
+    await client.execute({
+      sql: `INSERT INTO cards
+        (id, number, name, set_id, set_name, image_small, image_large, raw_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, json(?))`,
+      args: [
+        existing.id,
+        existing.number ?? null,
+        existing.name,
+        existing.set?.id ?? null,
+        existing.set?.name ?? null,
+        existing.images?.small ?? null,
+        existing.images?.large ?? null,
+        JSON.stringify(existing),
+      ],
     });
-    assert.equal(cardResult.rows[0]?.updated_at, "2000-01-01 00:00:00");
 
-    const firstSnapshotResult = await client.execute({
-      sql: `
-        SELECT cardmarket_prices
-        FROM price_snapshots
-        WHERE card_id = ?
-      `,
-      args: [stored.id],
-    });
-    assert.equal(firstSnapshotResult.rows[0]?.cardmarket_prices, null);
-
-    const complementaryRerunSnapshot = buildSnapshotUpsert(
-      stored.id,
-      {
-        tcgplayer: { prices: null, updatedAt: null },
-        cardmarket: {
-          prices: { trendPrice: 22 },
-          updatedAt: "2026/07/26",
-        },
+    const incoming = completeCard({
+      name: "Corrected name",
+      tcgplayer: {
+        prices: { holofoil: { market: 12 } },
+        updatedAt: "2026/07/27",
       },
-      "2026-07-26",
-    );
-    assert.ok(complementaryRerunSnapshot);
-    await client.execute(complementaryRerunSnapshot);
-
-    const rerunResult = await client.execute({
-      sql: `
-        SELECT
-          tcgplayer_prices,
-          cardmarket_prices,
-          tcgplayer_updated_at,
-          cardmarket_updated_at,
-          recorded_at
-        FROM price_snapshots
-        WHERE card_id = ?
-      `,
-      args: [stored.id],
     });
-    assert.deepEqual(
-      JSON.parse(String(rerunResult.rows[0]?.tcgplayer_prices)),
-      { holofoil: { market: 12 } },
+    const states = getProviderPriceStates(
+      incoming as Record<string, unknown>,
     );
-    assert.deepEqual(
-      JSON.parse(String(rerunResult.rows[0]?.cardmarket_prices)),
-      { trendPrice: 22 },
+    await client.execute(
+      buildStageCardStatement(
+        "run-one",
+        buildSafeFullCard(
+          incoming,
+          existing as Record<string, unknown>,
+        ),
+        states,
+        {
+          cardmarketChanged: false,
+          isNew: false,
+          metadataChanged: true,
+          tcgplayerChanged: true,
+        },
+      ),
     );
-    assert.equal(rerunResult.rows[0]?.tcgplayer_updated_at, "2026/07/26");
+
+    const apply = [
+      { sql: APPLY_METADATA_UPDATES_SQL, args: ["run-one"] },
+      { sql: APPLY_TCGPLAYER_PRICE_UPDATES_SQL, args: ["run-one"] },
+      { sql: APPLY_CARDMARKET_PRICE_UPDATES_SQL, args: ["run-one"] },
+      { sql: INSERT_NEW_CARDS_SQL, args: ["run-one"] },
+      {
+        sql: APPLY_DAILY_SNAPSHOTS_SQL,
+        args: ["2026-07-27", "run-one"],
+      },
+      {
+        sql: PRICE_HISTORY_CLEANUP_SQL,
+        args: ["2026-07-27"],
+      },
+    ];
+    await client.batch(apply, "write");
+    await client.batch(apply, "write");
+
+    const cardRow = (await client.execute(
+      "SELECT name, raw_json FROM cards WHERE id = 'base1-1'",
+    )).rows[0];
+    const raw: unknown = JSON.parse(String(cardRow.raw_json));
+    assert.ok(isJsonObject(raw));
+    assert.equal(cardRow.name, "Corrected name");
+    assert.deepEqual(raw.grok, existing.grok);
     assert.equal(
-      rerunResult.rows[0]?.cardmarket_updated_at,
-      "2026/07/26",
+      (
+        (raw.tcgplayer as Record<string, unknown>)
+          .prices as Record<string, Record<string, number>>
+      ).holofoil.market,
+      12,
     );
-    assert.equal(rerunResult.rows[0]?.recorded_at, "2026-07-26");
+
+    const snapshots = await client.execute(
+      "SELECT * FROM price_snapshots WHERE card_id = 'base1-1'",
+    );
+    assert.equal(snapshots.rows.length, 1);
+    assert.equal(snapshots.rows[0].cardmarket_prices, null);
+
+    const matchingCard = await client.execute({
+      sql: CARD_APPLY_MISMATCH_COUNT_SQL,
+      args: ["run-one"],
+    });
+    assert.equal(matchingCard.rows[0]?.count, 0);
+    const matchingSnapshot = await client.execute({
+      sql: SNAPSHOT_APPLY_MISMATCH_COUNT_SQL,
+      args: ["2026-07-27", "run-one"],
+    });
+    assert.equal(matchingSnapshot.rows[0]?.count, 0);
+
+    const missingPriceRerun = completeCard();
+    await client.execute(
+      buildStageCardStatement(
+        "run-two",
+        buildSafeFullCard(
+          missingPriceRerun,
+          raw,
+        ),
+        getProviderPriceStates(
+          missingPriceRerun as Record<string, unknown>,
+        ),
+        {
+          cardmarketChanged: false,
+          isNew: false,
+          metadataChanged: false,
+          tcgplayerChanged: false,
+        },
+      ),
+    );
+    await client.execute({
+      sql: APPLY_DAILY_SNAPSHOTS_SQL,
+      args: ["2026-07-27", "run-two"],
+    });
+
+    const sameDay = await client.execute(
+      "SELECT tcgplayer_prices FROM price_snapshots WHERE card_id = 'base1-1'",
+    );
+    assert.equal(sameDay.rows.length, 1);
+    assert.equal(
+      JSON.parse(String(sameDay.rows[0].tcgplayer_prices))
+        .holofoil.market,
+      12,
+    );
   } finally {
     client.close();
   }
 });
 
-test("libSQL accepts a maximum-size sync page as one local atomic batch", async () => {
-  const client = createClient({ url: "file::memory:" });
-
+test("a failed final batch rolls back every live change", async () => {
+  const client = await createSyncDatabase();
   try {
-    await client.execute("CREATE TABLE batch_test (id INTEGER PRIMARY KEY)");
-    const statements = Array.from({ length: 500 }, (_, id) => ({
-      sql: "INSERT INTO batch_test (id) VALUES (?)",
-      args: [id],
-    }));
-
-    await client.batch(statements, "write");
-    const result = await client.execute(
-      "SELECT COUNT(*) AS count FROM batch_test",
+    const existing = completeCard({
+      tcgplayer: {
+        prices: { holofoil: { market: 10 } },
+        updatedAt: "old",
+      },
+    });
+    await client.execute({
+      sql: "INSERT INTO cards (id, name, raw_json) VALUES (?, ?, json(?))",
+      args: [existing.id, existing.name, JSON.stringify(existing)],
+    });
+    const incoming = completeCard({
+      tcgplayer: {
+        prices: { holofoil: { market: 99 } },
+        updatedAt: "new",
+      },
+    });
+    await client.execute(
+      buildStageCardStatement(
+        "failed-run",
+        buildSafeFullCard(
+          incoming,
+          existing as Record<string, unknown>,
+        ),
+        getProviderPriceStates(incoming as Record<string, unknown>),
+        {
+          cardmarketChanged: false,
+          isNew: false,
+          metadataChanged: false,
+          tcgplayerChanged: true,
+        },
+      ),
     );
-    assert.equal(Number(result.rows[0]?.count), 500);
 
     await assert.rejects(
       client.batch(
         [
           {
-            sql: "INSERT INTO batch_test (id) VALUES (?)",
-            args: [1000],
+            sql: APPLY_TCGPLAYER_PRICE_UPDATES_SQL,
+            args: ["failed-run"],
           },
-          {
-            sql: "INSERT INTO batch_test (id) VALUES (?)",
-            args: [0],
-          },
+          "INSERT INTO missing_table VALUES (1)",
         ],
         "write",
       ),
     );
-    const rolledBack = await client.execute(
-      "SELECT COUNT(*) AS count FROM batch_test WHERE id = 1000",
-    );
-    assert.equal(Number(rolledBack.rows[0]?.count), 0);
+    const row = (await client.execute(
+      "SELECT raw_json FROM cards WHERE id = 'base1-1'",
+    )).rows[0];
+    const raw = JSON.parse(String(row.raw_json));
+    assert.equal(raw.tcgplayer.prices.holofoil.market, 10);
   } finally {
     client.close();
   }
 });
 
-test("history cleanup always retains each card's newest snapshot", async () => {
-  const client = createClient({ url: "file::memory:" });
-
+test("a price-only update can create a missing provider and removes a stale provider date", async () => {
+  const client = await createSyncDatabase();
   try {
-    await client.execute(`
-      CREATE TABLE price_snapshots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        card_id TEXT NOT NULL,
-        recorded_at DATE NOT NULL,
-        UNIQUE(card_id, recorded_at)
-      )
-    `);
+    const existing = completeCard({
+      cardmarket: {
+        prices: { trendPrice: 10 },
+        updatedAt: "stale-date",
+      },
+    });
+    await client.execute({
+      sql: "INSERT INTO cards (id, name, raw_json) VALUES (?, ?, json(?))",
+      args: [existing.id, existing.name, JSON.stringify(existing)],
+    });
+    const incoming = completeCard({
+      cardmarket: {
+        prices: { trendPrice: 11 },
+      },
+      tcgplayer: {
+        prices: { normal: { market: 4 } },
+        updatedAt: "2026/07/27",
+      },
+    });
+    await client.execute(
+      buildStageCardStatement(
+        "price-only",
+        buildSafeFullCard(
+          incoming,
+          existing as Record<string, unknown>,
+        ),
+        getProviderPriceStates(incoming as Record<string, unknown>),
+        {
+          cardmarketChanged: true,
+          isNew: false,
+          metadataChanged: false,
+          tcgplayerChanged: true,
+        },
+      ),
+    );
+
+    const expectations = await client.execute({
+      sql: PRICE_ONLY_APPLY_EXPECTATIONS_SQL,
+      args: ["price-only"],
+    });
+    assert.equal(expectations.rows[0]?.tcgplayer_count, 1);
+    assert.equal(expectations.rows[0]?.cardmarket_count, 1);
+
     await client.batch(
       [
         {
-          sql: `
-            INSERT INTO price_snapshots (card_id, recorded_at)
-            VALUES ('active-card', date('now', '-60 days'))
-          `,
-          args: [],
+          sql: APPLY_TCGPLAYER_PRICE_UPDATES_SQL,
+          args: ["price-only"],
         },
         {
-          sql: `
-            INSERT INTO price_snapshots (card_id, recorded_at)
-            VALUES ('active-card', date('now'))
-          `,
-          args: [],
-        },
-        {
-          sql: `
-            INSERT INTO price_snapshots (card_id, recorded_at)
-            VALUES ('missing-card', date('now', '-60 days'))
-          `,
-          args: [],
+          sql: APPLY_CARDMARKET_PRICE_UPDATES_SQL,
+          args: ["price-only"],
         },
       ],
       "write",
     );
 
-    await client.execute(PRICE_HISTORY_CLEANUP_SQL);
-    const result = await client.execute(`
-      SELECT card_id, recorded_at
-      FROM price_snapshots
-      ORDER BY card_id, recorded_at
-    `);
-
-    assert.deepEqual(
-      result.rows.map((row) => String(row.card_id)),
-      ["active-card", "missing-card"],
-    );
+    const row = (await client.execute(
+      "SELECT raw_json FROM cards WHERE id = 'base1-1'",
+    )).rows[0];
+    const raw = JSON.parse(String(row.raw_json));
+    assert.equal(raw.tcgplayer.prices.normal.market, 4);
+    assert.equal(raw.tcgplayer.updatedAt, "2026/07/27");
+    assert.equal(raw.cardmarket.prices.trendPrice, 11);
+    assert.equal("updatedAt" in raw.cardmarket, false);
   } finally {
     client.close();
   }
 });
 
-test("sync lock blocks overlap, permits stale takeover, and uses token release", async () => {
+test("sync lock blocks overlap and permits stale takeover", async () => {
   const client = createClient({ url: "file::memory:" });
-
   try {
     await client.execute(SYNC_LOCK_TABLE_SQL);
-
     const first = await client.execute(
-      buildAcquireSyncLock("card-sync", "token-one", 900),
+      buildAcquireSyncLock("card-sync", "one", 900),
     );
-    assert.equal(first.rows[0]?.token, "token-one");
-
-    const overlapping = await client.execute(
-      buildAcquireSyncLock("card-sync", "token-two", 900),
+    assert.equal(first.rows[0]?.token, "one");
+    const overlap = await client.execute(
+      buildAcquireSyncLock("card-sync", "two", 900),
     );
-    assert.equal(overlapping.rows.length, 0);
+    assert.equal(overlap.rows.length, 0);
 
     await client.execute(
       "UPDATE sync_locks SET expires_at = unixepoch('now') - 1",
     );
     const takeover = await client.execute(
-      buildAcquireSyncLock("card-sync", "token-three", 900),
+      buildAcquireSyncLock("card-sync", "three", 900),
     );
-    assert.equal(takeover.rows[0]?.token, "token-three");
+    assert.equal(takeover.rows[0]?.token, "three");
 
-    await client.execute(buildReleaseSyncLock("card-sync", "token-one"));
-    const stillLocked = await client.execute(
+    await client.execute(buildReleaseSyncLock("card-sync", "one"));
+    const locked = await client.execute(
       "SELECT token FROM sync_locks WHERE name = 'card-sync'",
     );
-    assert.equal(stillLocked.rows[0]?.token, "token-three");
-
-    await client.execute(buildReleaseSyncLock("card-sync", "token-three"));
-    const released = await client.execute("SELECT * FROM sync_locks");
-    assert.equal(released.rows.length, 0);
+    assert.equal(locked.rows[0]?.token, "three");
   } finally {
     client.close();
   }

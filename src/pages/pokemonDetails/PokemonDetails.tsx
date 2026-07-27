@@ -55,6 +55,7 @@ import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
+import { PriceHistory } from "./views/priceAnalysis/PriceHistory";
 import { fetchCardById } from "../../services/cardApi";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -227,7 +228,11 @@ function PokemonDetailsForCard() {
   } = useAbortableRequest();
   const { user: authUser } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
-  const { isCardSaved, loadingPortfolioReferences } = usePortfolioCache();
+  const {
+    isCardSaved,
+    loadingPortfolioReferences,
+    portfolioReferencesError,
+  } = usePortfolioCache();
   const {
     loadingSubscription,
     subscription,
@@ -264,7 +269,14 @@ function PokemonDetailsForCard() {
   }
 
   async function handlePortfolioToggle() {
-    if (!card || updatingPortfolio || loadingPortfolioReferences) return;
+    if (
+      !card ||
+      updatingPortfolio ||
+      loadingPortfolioReferences ||
+      portfolioReferencesError
+    ) {
+      return;
+    }
 
     if (!authUser) {
       showPortfolioConfirmation("Du må være logget inn for å lagre kort.");
@@ -611,7 +623,9 @@ function PokemonDetailsForCard() {
                     variant="portfolio"
                     disabled={
                       updatingPortfolio ||
-                      (Boolean(authUser) && loadingPortfolioReferences)
+                      (Boolean(authUser) &&
+                        (loadingPortfolioReferences ||
+                          Boolean(portfolioReferencesError)))
                     }
                     onClick={handlePortfolioToggle}
                     aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
@@ -620,7 +634,13 @@ function PokemonDetailsForCard() {
                       updatingPortfolio ||
                       (Boolean(authUser) && loadingPortfolioReferences)
                     }
-                    title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                    title={
+                      portfolioReferencesError
+                        ? "Portfolio is unavailable"
+                        : cardIsSaved
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
                   >
                     <Star aria-hidden="true" />
                     <span>
@@ -628,6 +648,8 @@ function PokemonDetailsForCard() {
                         ? "Updating..."
                         : authUser && loadingPortfolioReferences
                           ? "Checking portfolio..."
+                        : authUser && portfolioReferencesError
+                          ? "Portfolio unavailable"
                         : cardIsSaved
                           ? "In portfolio"
                           : "Add to portfolio"}
@@ -703,6 +725,8 @@ function PokemonDetailsForCard() {
           />
         )}
       </div>
+
+      <PriceHistory cardId={card.id} />
 
       <div className="card-view__credit-note">
         <span className="card-view__credit-cost">

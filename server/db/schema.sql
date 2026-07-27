@@ -53,3 +53,24 @@ CREATE TABLE IF NOT EXISTS sync_runs (
 
 CREATE INDEX IF NOT EXISTS idx_sync_runs_started_at
 ON sync_runs(started_at DESC);
+
+CREATE TABLE IF NOT EXISTS card_sync_stage (
+    run_id TEXT NOT NULL,
+    card_id TEXT NOT NULL,
+    is_new INTEGER NOT NULL,
+    metadata_changed INTEGER NOT NULL,
+    tcgplayer_changed INTEGER NOT NULL,
+    cardmarket_changed INTEGER NOT NULL,
+    number TEXT,
+    name TEXT NOT NULL,
+    set_id TEXT,
+    set_name TEXT,
+    image_small TEXT,
+    image_large TEXT,
+    raw_json TEXT NOT NULL,
+    tcgplayer_prices TEXT,
+    cardmarket_prices TEXT,
+    tcgplayer_updated_at TEXT,
+    cardmarket_updated_at TEXT,
+    PRIMARY KEY (run_id, card_id)
+);

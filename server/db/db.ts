@@ -7,6 +7,7 @@ import {
   type TransactionMode,
 } from "@libsql/client";
 import { logError } from "../security/logging.js";
+import { implicitLocalDatabaseError } from "./databaseTargetPolicy.js";
 
 export type SqlValue = InValue;
 export type SqlStatement = InStatement;
@@ -18,6 +19,14 @@ export const db = createClient({
   url: process.env.TURSO_DATABASE_URL || localFileUrl,
   authToken: process.env.TURSO_AUTH_TOKEN || undefined,
 });
+
+export function assertExplicitDatabaseTarget(): void {
+  const error = implicitLocalDatabaseError(
+    process.env.TURSO_DATABASE_URL,
+    process.env.ALLOW_LOCAL_DATABASE,
+  );
+  if (error) throw new Error(error);
+}
 
 void (async () => {
   try {

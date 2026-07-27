@@ -88,7 +88,7 @@ test("strict catalog policy accepts only exact final totals", () => {
     validateCatalogCompletion({
       expectedCards: 300,
       fetchedCards: 300,
-      pagesCommitted: 2,
+      pagesStaged: 2,
       pageSize: 250,
       uniqueCards: 300,
     }),
@@ -98,7 +98,7 @@ test("strict catalog policy accepts only exact final totals", () => {
       validateCatalogCompletion({
         expectedCards: 300,
         fetchedCards: 299,
-        pagesCommitted: 2,
+        pagesStaged: 2,
         pageSize: 250,
         uniqueCards: 299,
       }),
@@ -110,7 +110,7 @@ test("warning runs use a nonzero process exit code", () => {
   assert.equal(exitCodeForSyncStatus("clean"), 0);
   assert.equal(exitCodeForSyncStatus("warnings"), 2);
   assert.equal(exitCodeForSyncStatus("failed"), 1);
-  assert.equal(exitCodeForSyncStatus("partial_failure"), 1);
+  assert.equal(exitCodeForSyncStatus("failed_after_apply"), 1);
   assert.equal(exitCodeForSyncStatus("running"), 1);
 });
 
@@ -124,7 +124,7 @@ test("sync audit schema persists strict run outcomes", async () => {
           (id, sync_name, status, snapshot_date)
         VALUES (?, ?, 'running', ?)
       `,
-      args: ["run-1", "unified-card-sync", "2026-07-26"],
+      args: ["run-1", "card-sync", "2026-07-26"],
     });
     await client.execute({
       sql: `

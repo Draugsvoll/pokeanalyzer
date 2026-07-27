@@ -364,18 +364,13 @@ function parseSnapshotPrices(
   provider: "tcgplayer" | "cardmarket",
 ) {
   if (value == null) return null;
-  try {
-    const parsed: unknown = JSON.parse(String(value));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : null;
-  } catch (error) {
-    logError(
-      `Ignored malformed ${provider} price history for ${cardId} on ${recordedAt}`,
-      error,
+  const parsed: unknown = JSON.parse(String(value));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `Malformed ${provider} price history for ${cardId} on ${recordedAt}`,
     );
-    return null;
   }
+  return parsed;
 }
 
 app.get("/api/cards/:id/price-history", async (req, res) => {
@@ -404,13 +399,21 @@ app.get("/api/cards/:id/price-history", async (req, res) => {
         cardmarket_prices,
         tcgplayer_updated_at,
         cardmarket_updated_at
-      FROM price_snapshots
-      WHERE card_id = ?
-        AND recorded_at >= date('now', ?)
-        AND recorded_at <= date('now')
+      FROM (
+        SELECT
+          recorded_at,
+          tcgplayer_prices,
+          cardmarket_prices,
+          tcgplayer_updated_at,
+          cardmarket_updated_at
+        FROM price_snapshots
+        WHERE card_id = ?
+        ORDER BY recorded_at DESC
+        LIMIT ?
+      )
       ORDER BY recorded_at ASC
       `,
-      [req.params.id, `-${days - 1} days`],
+      [req.params.id, days],
     );
 
     res.json({

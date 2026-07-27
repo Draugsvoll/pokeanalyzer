@@ -1,9 +1,17 @@
-// npx tsx server/scripts/checkDb.ts
-import { dbGet } from "../db/db.js";
+// npm run db:check
+import {
+  assertExplicitDatabaseTarget,
+  dbGet,
+} from "../db/db.js";
+import { assertDatabaseSchemaCompatible } from "../db/schemaValidation.js";
 import { logError } from "../security/logging.js";
 
 async function checkDb() {
   try {
+    assertExplicitDatabaseTarget();
+    await assertDatabaseSchemaCompatible();
+    console.log("Database schema: compatible");
+
     const cards = await dbGet<{ count: number | bigint }>(
       "SELECT COUNT(*) AS count FROM cards",
     );

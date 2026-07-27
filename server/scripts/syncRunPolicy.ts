@@ -31,7 +31,7 @@ export type SyncRunStatus =
   | "clean"
   | "warnings"
   | "failed"
-  | "partial_failure";
+  | "failed_after_apply";
 
 export type SyncWarning = {
   code: string;
@@ -43,7 +43,7 @@ export type SyncWarning = {
 export type CatalogCompletion = {
   expectedCards: number;
   fetchedCards: number;
-  pagesCommitted: number;
+  pagesStaged: number;
   pageSize: number;
   uniqueCards: number;
 };
@@ -82,7 +82,7 @@ export function validateStrictApiPage(
 export function validateCatalogCompletion({
   expectedCards,
   fetchedCards,
-  pagesCommitted,
+  pagesStaged,
   pageSize,
   uniqueCards,
 }: CatalogCompletion): void {
@@ -90,7 +90,7 @@ export function validateCatalogCompletion({
   if (
     fetchedCards !== expectedCards ||
     uniqueCards !== expectedCards ||
-    pagesCommitted !== expectedPages
+    pagesStaged !== expectedPages
   ) {
     throw new Error(
       "Catalog completeness validation failed: " +
@@ -98,7 +98,7 @@ export function validateCatalogCompletion({
           expectedCards,
           expectedPages,
           fetchedCards,
-          pagesCommitted,
+          pagesStaged,
           uniqueCards,
         }),
     );

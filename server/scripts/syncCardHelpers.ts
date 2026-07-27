@@ -5,18 +5,19 @@ export type PriceProvider = "tcgplayer" | "cardmarket";
 
 export type ProviderPriceState = {
   prices: JsonObject | null;
+  pricesProvided: boolean;
   updatedAt: string | null;
 };
 
 export type ProviderPriceStates = Record<PriceProvider, ProviderPriceState>;
 
 export type CardColumns = {
-  number: string | null;
+  imageLarge: string | null;
+  imageSmall: string | null;
   name: string;
+  number: string | null;
   setId: string | null;
   setName: string | null;
-  imageSmall: string | null;
-  imageLarge: string | null;
 };
 
 export type SyncSqlStatement = {
@@ -24,7 +25,157 @@ export type SyncSqlStatement = {
   args: Array<string | number | null>;
 };
 
-const FULL_CARD_UPSERT_SQL = `
+export const SYNC_LOCK_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS sync_locks (
+    name TEXT PRIMARY KEY,
+    token TEXT NOT NULL,
+    acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at INTEGER NOT NULL
+  )
+`;
+
+export const CARD_SYNC_STAGE_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS card_sync_stage (
+    run_id TEXT NOT NULL,
+    card_id TEXT NOT NULL,
+    is_new INTEGER NOT NULL,
+    metadata_changed INTEGER NOT NULL,
+    tcgplayer_changed INTEGER NOT NULL,
+    cardmarket_changed INTEGER NOT NULL,
+    number TEXT,
+    name TEXT NOT NULL,
+    set_id TEXT,
+    set_name TEXT,
+    image_small TEXT,
+    image_large TEXT,
+    raw_json TEXT NOT NULL,
+    tcgplayer_prices TEXT,
+    cardmarket_prices TEXT,
+    tcgplayer_updated_at TEXT,
+    cardmarket_updated_at TEXT,
+    PRIMARY KEY (run_id, card_id)
+  )
+`;
+
+export const APPLY_METADATA_UPDATES_SQL = `
+  UPDATE cards
+  SET
+    number = stage.number,
+    name = stage.name,
+    set_id = stage.set_id,
+    set_name = stage.set_name,
+    image_small = stage.image_small,
+    image_large = stage.image_large,
+    raw_json = CASE
+      WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL THEN
+        json_set(
+          json(stage.raw_json),
+          '$.grok',
+          json_extract(cards.raw_json, '$.grok')
+        )
+      ELSE
+        json_remove(json(stage.raw_json), '$.grok')
+    END,
+    updated_at = CURRENT_TIMESTAMP
+  FROM card_sync_stage AS stage
+  WHERE
+    stage.run_id = ?
+    AND stage.is_new = 0
+    AND stage.metadata_changed = 1
+    AND stage.card_id = cards.id
+`;
+
+export const APPLY_TCGPLAYER_PRICE_UPDATES_SQL = `
+  UPDATE cards
+  SET raw_json = CASE
+    WHEN stage.tcgplayer_updated_at IS NULL THEN
+      json_set(
+        cards.raw_json,
+        '$.tcgplayer',
+        json_remove(
+          json_set(
+            COALESCE(
+              json_extract(cards.raw_json, '$.tcgplayer'),
+              json('{}')
+            ),
+            '$.prices',
+            json(stage.tcgplayer_prices)
+          ),
+          '$.updatedAt'
+        )
+      )
+    ELSE
+      json_set(
+        cards.raw_json,
+        '$.tcgplayer',
+        json_set(
+          COALESCE(
+            json_extract(cards.raw_json, '$.tcgplayer'),
+            json('{}')
+          ),
+          '$.prices',
+          json(stage.tcgplayer_prices),
+          '$.updatedAt',
+          stage.tcgplayer_updated_at
+        )
+      )
+  END
+  FROM card_sync_stage AS stage
+  WHERE
+    stage.run_id = ?
+    AND stage.is_new = 0
+    AND stage.metadata_changed = 0
+    AND stage.tcgplayer_changed = 1
+    AND stage.tcgplayer_prices IS NOT NULL
+    AND stage.card_id = cards.id
+`;
+
+export const APPLY_CARDMARKET_PRICE_UPDATES_SQL = `
+  UPDATE cards
+  SET raw_json = CASE
+    WHEN stage.cardmarket_updated_at IS NULL THEN
+      json_set(
+        cards.raw_json,
+        '$.cardmarket',
+        json_remove(
+          json_set(
+            COALESCE(
+              json_extract(cards.raw_json, '$.cardmarket'),
+              json('{}')
+            ),
+            '$.prices',
+            json(stage.cardmarket_prices)
+          ),
+          '$.updatedAt'
+        )
+      )
+    ELSE
+      json_set(
+        cards.raw_json,
+        '$.cardmarket',
+        json_set(
+          COALESCE(
+            json_extract(cards.raw_json, '$.cardmarket'),
+            json('{}')
+          ),
+          '$.prices',
+          json(stage.cardmarket_prices),
+          '$.updatedAt',
+          stage.cardmarket_updated_at
+        )
+      )
+  END
+  FROM card_sync_stage AS stage
+  WHERE
+    stage.run_id = ?
+    AND stage.is_new = 0
+    AND stage.metadata_changed = 0
+    AND stage.cardmarket_changed = 1
+    AND stage.cardmarket_prices IS NOT NULL
+    AND stage.card_id = cards.id
+`;
+
+export const INSERT_NEW_CARDS_SQL = `
   INSERT INTO cards
   (
     id,
@@ -37,31 +188,23 @@ const FULL_CARD_UPSERT_SQL = `
     raw_json,
     updated_at
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, json(?), CURRENT_TIMESTAMP)
-  ON CONFLICT(id) DO UPDATE SET
-    number = excluded.number,
-    name = excluded.name,
-    set_id = excluded.set_id,
-    set_name = excluded.set_name,
-    image_small = excluded.image_small,
-    image_large = excluded.image_large,
-    raw_json = CASE
-      WHEN json_valid(cards.raw_json) = 1 THEN
-        CASE
-          WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL
-          THEN json_set(
-            excluded.raw_json,
-            '$.grok',
-            json_extract(cards.raw_json, '$.grok')
-          )
-          ELSE excluded.raw_json
-        END
-      ELSE excluded.raw_json
-    END,
-    updated_at = CURRENT_TIMESTAMP
+  SELECT
+    stage.card_id,
+    stage.number,
+    stage.name,
+    stage.set_id,
+    stage.set_name,
+    stage.image_small,
+    stage.image_large,
+    stage.raw_json,
+    CURRENT_TIMESTAMP
+  FROM card_sync_stage AS stage
+  WHERE
+    stage.run_id = ?
+    AND stage.is_new = 1
 `;
 
-const SNAPSHOT_UPSERT_SQL = `
+export const APPLY_DAILY_SNAPSHOTS_SQL = `
   INSERT INTO price_snapshots
   (
     card_id,
@@ -71,51 +214,152 @@ const SNAPSHOT_UPSERT_SQL = `
     tcgplayer_updated_at,
     cardmarket_updated_at
   )
-  VALUES (?, ?, ?, ?, ?, ?)
+  SELECT
+    stage.card_id,
+    ?,
+    stage.tcgplayer_prices,
+    stage.cardmarket_prices,
+    stage.tcgplayer_updated_at,
+    stage.cardmarket_updated_at
+  FROM card_sync_stage AS stage
+  INNER JOIN cards ON cards.id = stage.card_id
+  WHERE stage.run_id = ?
   ON CONFLICT(card_id, recorded_at) DO UPDATE SET
-    tcgplayer_prices = COALESCE(
-      excluded.tcgplayer_prices,
-      price_snapshots.tcgplayer_prices
-    ),
-    cardmarket_prices = COALESCE(
-      excluded.cardmarket_prices,
-      price_snapshots.cardmarket_prices
-    ),
+    tcgplayer_prices = CASE
+      WHEN excluded.tcgplayer_prices IS NULL
+      THEN price_snapshots.tcgplayer_prices
+      ELSE excluded.tcgplayer_prices
+    END,
+    cardmarket_prices = CASE
+      WHEN excluded.cardmarket_prices IS NULL
+      THEN price_snapshots.cardmarket_prices
+      ELSE excluded.cardmarket_prices
+    END,
     tcgplayer_updated_at = CASE
       WHEN excluded.tcgplayer_prices IS NULL
       THEN price_snapshots.tcgplayer_updated_at
-      ELSE COALESCE(
-        excluded.tcgplayer_updated_at,
-        price_snapshots.tcgplayer_updated_at
-      )
+      ELSE excluded.tcgplayer_updated_at
     END,
     cardmarket_updated_at = CASE
       WHEN excluded.cardmarket_prices IS NULL
       THEN price_snapshots.cardmarket_updated_at
-      ELSE COALESCE(
-        excluded.cardmarket_updated_at,
-        price_snapshots.cardmarket_updated_at
-      )
+      ELSE excluded.cardmarket_updated_at
     END
+`;
+
+export const PRICE_ONLY_APPLY_EXPECTATIONS_SQL = `
+  SELECT
+    COALESCE(
+      SUM(
+        CASE
+          WHEN
+            is_new = 0
+            AND metadata_changed = 0
+            AND tcgplayer_changed = 1
+            AND tcgplayer_prices IS NOT NULL
+          THEN 1
+          ELSE 0
+        END
+      ),
+      0
+    ) AS tcgplayer_count,
+    COALESCE(
+      SUM(
+        CASE
+          WHEN
+            is_new = 0
+            AND metadata_changed = 0
+            AND cardmarket_changed = 1
+            AND cardmarket_prices IS NOT NULL
+          THEN 1
+          ELSE 0
+        END
+      ),
+      0
+    ) AS cardmarket_count
+  FROM card_sync_stage
+  WHERE run_id = ?
+`;
+
+export const CARD_APPLY_MISMATCH_COUNT_SQL = `
+  SELECT COUNT(*) AS count
+  FROM card_sync_stage AS stage
+  LEFT JOIN cards ON cards.id = stage.card_id
+  WHERE
+    stage.run_id = ?
+    AND (
+      cards.id IS NULL
+      OR (
+        (stage.is_new = 1 OR stage.metadata_changed = 1)
+        AND (
+          cards.number IS NOT stage.number
+          OR cards.name IS NOT stage.name
+          OR cards.set_id IS NOT stage.set_id
+          OR cards.set_name IS NOT stage.set_name
+          OR cards.image_small IS NOT stage.image_small
+          OR cards.image_large IS NOT stage.image_large
+        )
+      )
+      OR (
+        stage.tcgplayer_prices IS NOT NULL
+        AND (
+          json(json_extract(cards.raw_json, '$.tcgplayer.prices'))
+            IS NOT json(stage.tcgplayer_prices)
+          OR json_extract(cards.raw_json, '$.tcgplayer.updatedAt')
+            IS NOT stage.tcgplayer_updated_at
+        )
+      )
+      OR (
+        stage.cardmarket_prices IS NOT NULL
+        AND (
+          json(json_extract(cards.raw_json, '$.cardmarket.prices'))
+            IS NOT json(stage.cardmarket_prices)
+          OR json_extract(cards.raw_json, '$.cardmarket.updatedAt')
+            IS NOT stage.cardmarket_updated_at
+        )
+      )
+    )
+`;
+
+export const SNAPSHOT_APPLY_MISMATCH_COUNT_SQL = `
+  SELECT COUNT(*) AS count
+  FROM card_sync_stage AS stage
+  LEFT JOIN price_snapshots AS snapshots
+    ON snapshots.card_id = stage.card_id
+    AND snapshots.recorded_at = ?
+  WHERE
+    stage.run_id = ?
+    AND (
+      snapshots.card_id IS NULL
+      OR (
+        stage.tcgplayer_prices IS NOT NULL
+        AND (
+          json(snapshots.tcgplayer_prices)
+            IS NOT json(stage.tcgplayer_prices)
+          OR snapshots.tcgplayer_updated_at
+            IS NOT stage.tcgplayer_updated_at
+        )
+      )
+      OR (
+        stage.cardmarket_prices IS NOT NULL
+        AND (
+          json(snapshots.cardmarket_prices)
+            IS NOT json(stage.cardmarket_prices)
+          OR snapshots.cardmarket_updated_at
+            IS NOT stage.cardmarket_updated_at
+        )
+      )
+    )
 `;
 
 export const PRICE_HISTORY_CLEANUP_SQL = `
   DELETE FROM price_snapshots
-  WHERE recorded_at < date('now', '-30 days')
+  WHERE recorded_at < date(?, '-29 days')
     AND recorded_at < (
       SELECT MAX(newest.recorded_at)
       FROM price_snapshots AS newest
       WHERE newest.card_id = price_snapshots.card_id
     )
-`;
-
-export const SYNC_LOCK_TABLE_SQL = `
-  CREATE TABLE IF NOT EXISTS sync_locks (
-    name TEXT PRIMARY KEY,
-    token TEXT NOT NULL,
-    acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at INTEGER NOT NULL
-  )
 `;
 
 export function buildAcquireSyncLock(
@@ -168,20 +412,26 @@ export function isJsonObject(value: unknown): value is JsonObject {
 }
 
 function cloneJsonObject(value: JsonObject): JsonObject {
-  const serialized = JSON.stringify(value);
-  const parsed: unknown = JSON.parse(serialized);
-
-  if (!isJsonObject(parsed)) {
-    throw new Error("Expected a JSON object");
-  }
-
+  const parsed: unknown = JSON.parse(JSON.stringify(value));
+  if (!isJsonObject(parsed)) throw new Error("Expected a JSON object");
   return parsed;
 }
 
-/**
- * Validate and detach an upstream API card from the Axios response. `grok` is
- * always removed because it is application-owned data, never upstream data.
- */
+function hasText(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function containsPositiveFiniteNumber(value: unknown): boolean {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.some(containsPositiveFiniteNumber);
+  }
+  if (!isJsonObject(value)) return false;
+  return Object.values(value).some(containsPositiveFiniteNumber);
+}
+
 export function sanitizeIncomingCard(
   card: PokemonTcgApiCard,
 ): PokemonTcgApiCard {
@@ -191,15 +441,11 @@ export function sanitizeIncomingCard(
 
   const sanitized = cloneJsonObject(card);
   delete sanitized.grok;
-
-  const hasText = (value: unknown): value is string =>
-    typeof value === "string" && value.trim().length > 0;
   const set = isJsonObject(sanitized.set) ? sanitized.set : null;
-  const images = isJsonObject(sanitized.images) ? sanitized.images : null;
+  const images = isJsonObject(sanitized.images)
+    ? sanitized.images
+    : null;
 
-  // These fields are stable invariants in a complete Pokémon TCG API card.
-  // Refuse a suspiciously partial response before the page transaction is
-  // built, so a transient/truncated payload cannot erase stored metadata.
   if (
     !hasText(sanitized.id) ||
     !hasText(sanitized.name) ||
@@ -212,186 +458,130 @@ export function sanitizeIncomingCard(
   ) {
     const cardId = hasText(sanitized.id) ? sanitized.id : "unknown";
     throw new Error(
-      `The card API returned an incomplete card (${cardId}); refusing to overwrite stored metadata`,
+      `The card API returned incomplete metadata for ${cardId}`,
     );
   }
 
   return sanitized as PokemonTcgApiCard;
 }
 
-export function parseStoredCard(rawJson: unknown, cardId: string): JsonObject {
+export function parseStoredCard(
+  rawJson: unknown,
+  cardId: string,
+): JsonObject {
   if (typeof rawJson !== "string") {
     throw new Error(`Card ${cardId} contains non-text raw_json`);
   }
-
   try {
     const parsed: unknown = JSON.parse(rawJson);
-    if (!isJsonObject(parsed)) {
-      throw new Error("not an object");
-    }
+    if (!isJsonObject(parsed)) throw new Error("not an object");
     return parsed;
   } catch {
-    // Refuse to overwrite malformed application data during a catalog refresh.
     throw new Error(`Card ${cardId} contains invalid raw_json`);
   }
 }
 
-function mergeMissingObjectFields(
-  existing: JsonObject,
-  incoming: JsonObject,
-): JsonObject {
-  const merged = cloneJsonObject(existing);
-
-  for (const [key, incomingValue] of Object.entries(incoming)) {
-    const existingValue = merged[key];
-    merged[key] =
-      isJsonObject(existingValue) && isJsonObject(incomingValue)
-        ? mergeMissingObjectFields(existingValue, incomingValue)
-        : incomingValue;
-  }
-
-  return merged;
-}
-
-/**
- * Conservatively overlay an upstream card on the stored card. Fields supplied
- * by the API are updated, while omitted root/nested metadata and custom fields
- * survive a partial response. Live Grok is still merged in SQL at write time.
- */
-export function preserveOmittedCardFields(
-  incomingCard: PokemonTcgApiCard,
-  existingCard: JsonObject,
-): PokemonTcgApiCard {
-  const merged = mergeMissingObjectFields(existingCard, incomingCard);
-
-  for (const providerName of [
-    "tcgplayer",
-    "cardmarket",
-  ] satisfies PriceProvider[]) {
-    const existingProvider = isJsonObject(existingCard[providerName])
-      ? existingCard[providerName]
-      : null;
-    const incomingProvider = isJsonObject(incomingCard[providerName])
-      ? incomingCard[providerName]
-      : null;
-    if (!existingProvider && !incomingProvider) {
-      delete merged[providerName];
-      continue;
-    }
-
-    const existingMetadata = cloneJsonObject(existingProvider ?? {});
-    const incomingMetadata = cloneJsonObject(incomingProvider ?? {});
-    delete existingMetadata.prices;
-    delete existingMetadata.updatedAt;
-    delete incomingMetadata.prices;
-    delete incomingMetadata.updatedAt;
-
-    const provider = mergeMissingObjectFields(
-      existingMetadata,
-      incomingMetadata,
-    );
-    if (
-      incomingProvider &&
-      Object.prototype.hasOwnProperty.call(incomingProvider, "prices")
-    ) {
-      provider.prices = incomingProvider.prices;
-    }
-    if (
-      incomingProvider &&
-      Object.prototype.hasOwnProperty.call(incomingProvider, "updatedAt")
-    ) {
-      provider.updatedAt = incomingProvider.updatedAt;
-    }
-    merged[providerName] = provider;
-  }
-
-  delete merged.grok;
-  return merged as PokemonTcgApiCard;
-}
-
-function containsFiniteNumber(value: unknown): boolean {
-  if (typeof value === "number") return Number.isFinite(value);
-  if (Array.isArray(value)) return value.some(containsFiniteNumber);
-  if (!isJsonObject(value)) return false;
-  return Object.values(value).some(containsFiniteNumber);
-}
-
-/**
- * Empty/all-null objects are treated as missing price data. This prevents a
- * temporary upstream gap from erasing a previously usable current price.
- */
 export function getProviderPriceState(
   card: JsonObject,
   providerName: PriceProvider,
 ): ProviderPriceState {
   const provider = card[providerName];
   if (!isJsonObject(provider)) {
-    return { prices: null, updatedAt: null };
+    return {
+      prices: null,
+      pricesProvided: false,
+      updatedAt: null,
+    };
   }
 
+  const pricesProvided = Object.prototype.hasOwnProperty.call(
+    provider,
+    "prices",
+  );
   const prices =
-    isJsonObject(provider.prices) && containsFiniteNumber(provider.prices)
-      ? provider.prices
+    isJsonObject(provider.prices) &&
+    containsPositiveFiniteNumber(provider.prices)
+      ? cloneJsonObject(provider.prices)
       : null;
   const updatedAt =
-    typeof provider.updatedAt === "string" && provider.updatedAt.length > 0
-      ? provider.updatedAt
+    typeof provider.updatedAt === "string" &&
+    provider.updatedAt.trim().length > 0
+      ? provider.updatedAt.trim()
       : null;
 
-  return { prices, updatedAt };
+  return { prices, pricesProvided, updatedAt };
+}
+
+export function getProviderPriceStates(
+  card: JsonObject,
+): ProviderPriceStates {
+  return {
+    cardmarket: getProviderPriceState(card, "cardmarket"),
+    tcgplayer: getProviderPriceState(card, "tcgplayer"),
+  };
 }
 
 /**
- * A metadata refresh uses the full upstream card, but keeps the last usable
- * provider price/timestamp when that provider is missing in the new response.
- * Grok is intentionally handled in SQL at write time for concurrency safety.
+ * Use the complete upstream card. Grok is restored later from the live row.
+ * A missing/invalid provider price is the sole exception: the last usable
+ * current price and its matching date are retained for the card display.
  */
-export function preserveMissingCurrentPrices(
+export function buildSafeFullCard(
   incomingCard: PokemonTcgApiCard,
-  existingCard: JsonObject,
+  existingCard?: JsonObject,
 ): PokemonTcgApiCard {
-  const merged = cloneJsonObject(incomingCard);
+  const safeCard = cloneJsonObject(incomingCard);
+  delete safeCard.grok;
 
   for (const providerName of [
     "tcgplayer",
     "cardmarket",
   ] satisfies PriceProvider[]) {
-    const existingProvider = isJsonObject(existingCard[providerName])
-      ? existingCard[providerName]
+    const incomingState = getProviderPriceState(
+      safeCard,
+      providerName,
+    );
+    const existingState = existingCard
+      ? getProviderPriceState(existingCard, providerName)
       : null;
-    const incomingProvider = isJsonObject(merged[providerName])
-      ? merged[providerName]
+    const incomingProvider = isJsonObject(safeCard[providerName])
+      ? cloneJsonObject(safeCard[providerName])
       : null;
-    if (!existingProvider && !incomingProvider) continue;
+    const existingProvider =
+      existingCard && isJsonObject(existingCard[providerName])
+        ? cloneJsonObject(existingCard[providerName])
+        : null;
 
-    // Provider responses can temporarily be partial. Keep existing URL/other
-    // provider metadata unless the incoming response explicitly replaces it.
-    const provider: JsonObject = {
-      ...(existingProvider ?? {}),
-      ...(incomingProvider ?? {}),
-    };
-    const incoming = getProviderPriceState(merged, providerName);
-    const existing = getProviderPriceState(existingCard, providerName);
-
-    if (!incoming.prices && existing.prices) {
-      provider.prices = existing.prices;
-      if (existing.updatedAt) {
-        provider.updatedAt = existing.updatedAt;
+    let provider = incomingProvider;
+    if (!incomingState.prices && existingState?.prices) {
+      provider = incomingProvider ?? existingProvider ?? {};
+      provider.prices = existingState.prices;
+      if (existingState.updatedAt) {
+        provider.updatedAt = existingState.updatedAt;
       } else {
         delete provider.updatedAt;
       }
-    } else if (!incoming.updatedAt) {
-      if (existing.updatedAt) {
-        provider.updatedAt = existing.updatedAt;
+    } else if (incomingState.prices) {
+      provider = incomingProvider ?? {};
+      provider.prices = incomingState.prices;
+      if (incomingState.updatedAt) {
+        provider.updatedAt = incomingState.updatedAt;
       } else {
         delete provider.updatedAt;
       }
+    } else if (provider) {
+      delete provider.prices;
+      delete provider.updatedAt;
     }
 
-    merged[providerName] = provider;
+    if (provider && Object.keys(provider).length > 0) {
+      safeCard[providerName] = provider;
+    } else {
+      delete safeCard[providerName];
+    }
   }
 
-  return merged as PokemonTcgApiCard;
+  return safeCard as PokemonTcgApiCard;
 }
 
 function metadataOnlyCard(card: JsonObject): JsonObject {
@@ -404,22 +594,16 @@ function metadataOnlyCard(card: JsonObject): JsonObject {
   ] satisfies PriceProvider[]) {
     const provider = metadata[providerName];
     if (!isJsonObject(provider)) continue;
-
     delete provider.prices;
     delete provider.updatedAt;
-
-    if (Object.keys(provider).length === 0) {
-      delete metadata[providerName];
-    }
+    if (Object.keys(provider).length === 0) delete metadata[providerName];
   }
-
   return metadata;
 }
 
 function sortJson(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortJson);
   if (!isJsonObject(value)) return value;
-
   return Object.fromEntries(
     Object.keys(value)
       .sort()
@@ -427,9 +611,20 @@ function sortJson(value: unknown): unknown {
   );
 }
 
-/** A deterministic comparison value that ignores prices, price dates, and Grok. */
 export function metadataSignature(card: JsonObject): string {
   return JSON.stringify(sortJson(metadataOnlyCard(card)));
+}
+
+export function providerPriceChanged(
+  incoming: ProviderPriceState,
+  existing: ProviderPriceState,
+): boolean {
+  if (!incoming.prices) return false;
+  return (
+    JSON.stringify(sortJson(incoming.prices)) !==
+      JSON.stringify(sortJson(existing.prices)) ||
+    incoming.updatedAt !== existing.updatedAt
+  );
 }
 
 function optionalText(value: unknown): string | null {
@@ -439,30 +634,59 @@ function optionalText(value: unknown): string | null {
 export function getCardColumns(card: JsonObject): CardColumns {
   const set = isJsonObject(card.set) ? card.set : null;
   const images = isJsonObject(card.images) ? card.images : null;
-
   return {
-    number: optionalText(card.number),
+    imageLarge: optionalText(images?.large),
+    imageSmall: optionalText(images?.small),
     name: String(card.name),
+    number: optionalText(card.number),
     setId: optionalText(set?.id),
     setName: optionalText(set?.name),
-    imageSmall: optionalText(images?.small),
-    imageLarge: optionalText(images?.large),
   };
 }
 
-/**
- * Full metadata refresh/new-card statement. On conflict, Grok is read from the
- * live row inside the same SQL statement and merged into the upstream card.
- */
-export function buildFullCardUpsert(
+export function buildStageCardStatement(
+  runId: string,
   card: PokemonTcgApiCard,
+  states: ProviderPriceStates,
+  options: {
+    cardmarketChanged: boolean;
+    isNew: boolean;
+    metadataChanged: boolean;
+    tcgplayerChanged: boolean;
+  },
 ): SyncSqlStatement {
   const columns = getCardColumns(card);
-
   return {
-    sql: FULL_CARD_UPSERT_SQL,
+    sql: `
+      INSERT INTO card_sync_stage
+      (
+        run_id,
+        card_id,
+        is_new,
+        metadata_changed,
+        tcgplayer_changed,
+        cardmarket_changed,
+        number,
+        name,
+        set_id,
+        set_name,
+        image_small,
+        image_large,
+        raw_json,
+        tcgplayer_prices,
+        cardmarket_prices,
+        tcgplayer_updated_at,
+        cardmarket_updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
     args: [
+      runId,
       card.id,
+      options.isNew ? 1 : 0,
+      options.metadataChanged ? 1 : 0,
+      options.tcgplayerChanged ? 1 : 0,
+      options.cardmarketChanged ? 1 : 0,
       columns.number,
       columns.name,
       columns.setId,
@@ -470,80 +694,14 @@ export function buildFullCardUpsert(
       columns.imageSmall,
       columns.imageLarge,
       JSON.stringify(card),
-    ],
-  };
-}
-
-/**
- * Update only current price paths. Metadata, Grok, denormalized columns, and
- * cards.updated_at remain untouched.
- */
-export function buildPriceOnlyUpdate(
-  cardId: string,
-  states: ProviderPriceStates,
-): SyncSqlStatement | null {
-  let jsonExpression = "raw_json";
-  const args: Array<string | number | null> = [];
-
-  for (const providerName of [
-    "tcgplayer",
-    "cardmarket",
-  ] satisfies PriceProvider[]) {
-    const state = states[providerName];
-    if (!state.prices) continue;
-
-    const pricePath = `$.${providerName}.prices`;
-    const updatedAtPath = `$.${providerName}.updatedAt`;
-    const updatedAtSql = state.updatedAt ? `, '${updatedAtPath}', ?` : "";
-
-    jsonExpression = `json_set(
-      ${jsonExpression},
-      '${pricePath}',
-      json(?)
-      ${updatedAtSql}
-    )`;
-    args.push(JSON.stringify(state.prices));
-    if (state.updatedAt) args.push(state.updatedAt);
-  }
-
-  if (args.length === 0) return null;
-
-  args.push(cardId);
-  return {
-    sql: `
-      UPDATE cards
-      SET raw_json = ${jsonExpression}
-      WHERE id = ?
-    `,
-    args,
-  };
-}
-
-/**
- * Missing providers are bound as real SQL NULL values. On a same-day rerun,
- * NULL can never replace price/timestamp data already captured that day.
- */
-export function buildSnapshotUpsert(
-  cardId: string,
-  states: ProviderPriceStates,
-  recordedAt: string,
-): SyncSqlStatement | null {
-  const tcgplayer = states.tcgplayer;
-  const cardmarket = states.cardmarket;
-  if (!tcgplayer.prices && !cardmarket.prices) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(recordedAt)) {
-    throw new Error("recordedAt must be an ISO calendar date");
-  }
-
-  return {
-    sql: SNAPSHOT_UPSERT_SQL,
-    args: [
-      cardId,
-      recordedAt,
-      tcgplayer.prices ? JSON.stringify(tcgplayer.prices) : null,
-      cardmarket.prices ? JSON.stringify(cardmarket.prices) : null,
-      tcgplayer.prices ? tcgplayer.updatedAt : null,
-      cardmarket.prices ? cardmarket.updatedAt : null,
+      states.tcgplayer.prices
+        ? JSON.stringify(states.tcgplayer.prices)
+        : null,
+      states.cardmarket.prices
+        ? JSON.stringify(states.cardmarket.prices)
+        : null,
+      states.tcgplayer.prices ? states.tcgplayer.updatedAt : null,
+      states.cardmarket.prices ? states.cardmarket.updatedAt : null,
     ],
   };
 }
