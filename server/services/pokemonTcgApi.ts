@@ -5,13 +5,19 @@ import type {
   PokemonTcgApiResponse,
 } from "../types/PokemonTcgApiResponse.js";
 import type { PokemonTcgApiSet } from "../types/PokemonTcgApiSet.js";
+import {
+  API_MAX_RETRIES,
+  API_REQUEST_DELAY_MS,
+  API_REQUEST_TIMEOUT_MS,
+  isRetryableApiFailure,
+  parseRetryAfterMs,
+  retryDelayMs,
+} from "./pokemonTcgRetryPolicy.js";
 
 const CARDS_API_URL = "https://api.pokemontcg.io/v2/cards";
 const SETS_API_URL = "https://api.pokemontcg.io/v2/sets";
 export const CARD_PAGE_SIZE = 250;
 export const SET_PAGE_SIZE = 250;
-const REQUEST_DELAY_MS = 3000;
-const MAX_RETRIES = 5;
 
 type RetriedPage<T> = PokemonTcgApiPaginatedResponse<T> & {
   retryCount: number;
@@ -29,7 +35,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function waitBetweenRequests(): Promise<void> {
-  await sleep(REQUEST_DELAY_MS);
+  await sleep(API_REQUEST_DELAY_MS);
 }
 
 function isSafeNonNegativeInteger(value: unknown): value is number {
@@ -109,9 +115,11 @@ export function validatePokemonTcgApiSetResponse(
   };
 }
 
-function apiErrorStatus(error: unknown): string {
-  if (!axios.isAxiosError(error) || !error.response?.status) return "";
-  return ` HTTP ${error.response.status}.`;
+function apiFailureDescription(error: unknown): string {
+  if (!axios.isAxiosError(error)) return "validation error";
+  if (error.response?.status) return `HTTP ${error.response.status}`;
+  if (error.code) return error.code;
+  return "transport error";
 }
 
 async function getApiPage<T>(
@@ -123,7 +131,7 @@ async function getApiPage<T>(
 ): Promise<RetriedPage<T>> {
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
+  for (let attempt = 1; attempt <= API_MAX_RETRIES; attempt += 1) {
     try {
       const response = await axios.get<unknown>(url, {
         params: {
@@ -131,7 +139,7 @@ async function getApiPage<T>(
           page,
           pageSize,
         },
-        timeout: 30000,
+        timeout: API_REQUEST_TIMEOUT_MS,
         headers: process.env.POKEMON_TCG_API_KEY
           ? { "X-Api-Key": process.env.POKEMON_TCG_API_KEY }
           : {},
@@ -147,11 +155,40 @@ async function getApiPage<T>(
       };
     } catch (error) {
       lastError = error;
-      console.warn(
-        `${scope} failed.${apiErrorStatus(error)} Attempt ${attempt}/${MAX_RETRIES}`,
+      const isAxiosFailure = axios.isAxiosError(error);
+      const status = isAxiosFailure
+        ? (error.response?.status ?? null)
+        : null;
+      const retryable = isRetryableApiFailure({
+        isTransportFailure:
+          isAxiosFailure && error.response === undefined,
+        status,
+      });
+      const description = apiFailureDescription(error);
+
+      if (!retryable) {
+        console.warn(
+          `${scope} failed (${description}). Attempt ${attempt}/${API_MAX_RETRIES}. Not retryable.`,
+        );
+        throw error;
+      }
+      if (attempt === API_MAX_RETRIES) {
+        console.warn(
+          `${scope} failed (${description}). Attempt ${attempt}/${API_MAX_RETRIES}. No retries remain.`,
+        );
+        throw error;
+      }
+
+      const retryAfter = parseRetryAfterMs(
+        isAxiosFailure
+          ? error.response?.headers?.["retry-after"]
+          : undefined,
       );
-      if (attempt === MAX_RETRIES) throw error;
-      await sleep(5000 * attempt);
+      const delayMs = retryDelayMs(attempt, retryAfter);
+      console.warn(
+        `${scope} failed (${description}). Attempt ${attempt}/${API_MAX_RETRIES}. Retrying in ${Math.ceil(delayMs / 1000)}s.`,
+      );
+      await sleep(delayMs);
     }
   }
 

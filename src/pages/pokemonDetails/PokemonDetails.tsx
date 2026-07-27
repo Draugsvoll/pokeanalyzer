@@ -726,8 +726,6 @@ function PokemonDetailsForCard() {
         )}
       </div>
 
-      <PriceHistory cardId={card.id} />
-
       <div className="card-view__credit-note">
         <span className="card-view__credit-cost">
           <strong>1 Credit</strong>

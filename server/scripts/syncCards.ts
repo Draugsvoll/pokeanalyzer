@@ -854,6 +854,9 @@ async function stageCompleteCatalog(
       summary.stagedCards += statements.length;
       summary.pagesStaged += 1;
       fetchedSetCards += cards.length;
+      console.log(
+        `Fetched and staged ${cards.length} cards from set ${set.id} page ${page}. Total: ${summary.fetchedCards}/${summary.expectedApiCards}`,
+      );
       await renewLock(token);
 
       if (fetchedSetCards >= expectedSetCards) break;
