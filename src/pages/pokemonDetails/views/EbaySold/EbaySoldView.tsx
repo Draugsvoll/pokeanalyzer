@@ -21,6 +21,7 @@ import {
 } from "../../../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -36,6 +37,14 @@ type EbaySortOrder =
   | "price-desc"
   | "date-desc"
   | "date-asc";
+
+const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
+  { value: "default", label: "Default" },
+  { value: "price-asc", label: "Price: low to high" },
+  { value: "price-desc", label: "Price: high to low" },
+  { value: "date-desc", label: "Newest" },
+  { value: "date-asc", label: "Oldest" },
+];
 
 const FEATURED_FIELDS = new Set([
   "url",
@@ -219,18 +228,14 @@ export default function EbaySoldView({
   return (
     <div className="ebay-sold-view ui-render-fade">
       <div className="ebay-sold-view__sorting">
-        <label htmlFor="ebay-sold-sort">Sort by</label>
-        <select
-          id="ebay-sold-sort"
+        <span>Sort by</span>
+        <SelectDropdown
+          ariaLabel="Sort eBay sold listings"
+          compact
+          options={EBAY_SORT_OPTIONS}
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as EbaySortOrder)}
-        >
-          <option value="default">Default</option>
-          <option value="price-asc">Price: low to high</option>
-          <option value="price-desc">Price: high to low</option>
-          <option value="date-desc">Newest</option>
-          <option value="date-asc">Oldest</option>
-        </select>
+          onChange={setSortOrder}
+        />
       </div>
       <div className="ebay-sold-view__results ui-render-fade" key={sortOrder}>
         {sortedResults.map((result, index) => {

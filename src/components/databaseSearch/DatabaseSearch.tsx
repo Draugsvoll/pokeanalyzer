@@ -6,7 +6,6 @@ import type { PokemonCard } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import "./DatabaseSearch.scss";
-import "../../pages/pokemonDetails/components/CardRarityBadge.scss";
 import { logClientError } from "../../utils/logClientError";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";

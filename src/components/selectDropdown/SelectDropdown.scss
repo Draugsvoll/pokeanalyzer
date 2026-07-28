@@ -1,0 +1,107 @@
+.ui-select-dropdown {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: var(--dropdown-z-index);
+
+  &__toggle {
+    align-items: center;
+    background: var(--dropdown-trigger-bg);
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-trigger-radius);
+    color: var(--font-color-secondary);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: var(--font-size-label);
+    gap: 1rem;
+    height: var(--dropdown-trigger-height);
+    justify-content: space-between;
+    padding: 0 0.85rem 0 1rem;
+    transition:
+      border-color var(--delay-short) ease,
+      background var(--delay-short) ease;
+    white-space: nowrap;
+
+    &:hover,
+    &.is-open {
+      border-color: var(--dropdown-border-hover);
+      color: var(--font-color-primary);
+    }
+
+    &:focus-visible {
+      border-color: var(--custom-color-purple);
+      box-shadow: var(--dropdown-focus-ring);
+      outline: none;
+    }
+  }
+
+  &__chevron {
+    color: var(--font-color-muted);
+    flex: 0 0 auto;
+    height: 0.9rem;
+    pointer-events: none;
+    transition: transform var(--delay-short) ease;
+    width: 0.9rem;
+  }
+
+  &__toggle.is-open &__chevron {
+    transform: rotate(180deg);
+  }
+
+  &__menu {
+    background: var(--dropdown-menu-bg);
+    border: var(--dropdown-menu-border);
+    border-radius: var(--dropdown-menu-radius);
+    box-sizing: border-box;
+    box-shadow: var(--dropdown-menu-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    left: 0;
+    min-width: max(100%, 14rem);
+    padding: 0.35rem;
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    z-index: var(--dropdown-z-index);
+  }
+
+  &__option {
+    background: transparent;
+    border: 0;
+    border-radius: var(--dropdown-option-radius);
+    color: var(--font-color-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-label);
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    white-space: nowrap;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--dropdown-option-hover-bg);
+      color: var(--font-color-primary);
+      outline: none;
+    }
+
+    &.is-selected {
+      background: var(--dropdown-option-selected-bg);
+      color: var(--font-color-primary);
+    }
+  }
+
+  &--compact &__toggle {
+    font-size: var(--font-size-caption);
+    height: 2rem;
+    padding-inline: 0.7rem;
+  }
+
+  &--compact &__menu {
+    min-width: max(100%, 11rem);
+  }
+
+  &--compact &__option {
+    font-size: var(--font-size-caption);
+    padding: 0.5rem 0.65rem;
+  }
+}

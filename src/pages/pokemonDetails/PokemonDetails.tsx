@@ -10,7 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import "./PokemonDetails.scss";
-import "./components/CardRarityBadge.scss";
 import "../../components/welcomeView/WelcomeView.scss";
 import type { PokemonCard } from "../../types/pokemon";
 import {
@@ -55,7 +54,6 @@ import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
-import { PriceHistory } from "./views/priceAnalysis/PriceHistory";
 import { fetchCardById } from "../../services/cardApi";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -712,7 +710,7 @@ function PokemonDetailsForCard() {
                   ) : (
                     <>
                       <Search size={16} strokeWidth={2.25} aria-hidden="true" />
-                      <span>Change card</span>
+                      <span>New card</span>
                     </>
                   )}
                 </Button>
@@ -833,6 +831,7 @@ function PokemonDetailsForCard() {
             </button>
           );
         })}
+        {/* <PriceHistory cardId={card.id} /> */}
       </div>
 
       <section
@@ -876,7 +875,6 @@ function PokemonDetailsForCard() {
                 response: justTcgResult,
               }}
             />
-            <PriceHistory cardId={card.id} />
           </>
         )}
         {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}

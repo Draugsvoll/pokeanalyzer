@@ -6,10 +6,15 @@
 :root {
   /* ----- Surfaces / chrome ----- */
   --bg: #191724;
-  --bg3:#292639;
+  --bg3: #292639;
   --bg2: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--custom-color-purple) 7%, rgba(255, 255, 255, 0.045)) 0%,
+    color-mix(
+        in srgb,
+        var(--custom-color-purple) 7%,
+        rgba(255, 255, 255, 0.045)
+      )
+      0%,
     rgba(255, 255, 255, 0.018) 72%
   );
   --bg3: linear-gradient(
@@ -55,6 +60,31 @@
     white
   );
 
+  /* Shared custom dropdown chrome */
+  --dropdown-trigger-bg: var(--bg2);
+  --dropdown-menu-bg: var(--bg5);
+  --dropdown-border: 1px solid rgba(255, 255, 255, 0.11);
+  --dropdown-border-hover: rgba(255, 255, 255, 0.2);
+  --dropdown-menu-border: var(--border);
+  --dropdown-menu-radius: var(--border-radius);
+  --dropdown-menu-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.38);
+  --dropdown-trigger-radius: var(--border-radius-pill);
+  --dropdown-trigger-height: 2.75rem;
+  --dropdown-option-radius: calc(var(--border-radius) * 0.7);
+  --dropdown-option-hover-bg: var(--hover-purple-bg);
+  --dropdown-option-selected-bg: color-mix(
+    in srgb,
+    var(--custom-color-purple) 22%,
+    transparent
+  );
+  --dropdown-focus-ring: 0 0 0 3px
+    color-mix(in srgb, var(--custom-color-purple) 18%, transparent);
+  --dropdown-z-index: 120;
+  --radio-option-state-bg: color-mix(
+    in srgb,
+    var(--font-color-primary) 5%,
+    transparent
+  );
   /* Shared data-row padding (JustTCG table, grading market rows, etc.) */
   --padding-row: 0.85rem 0.65rem;
 
@@ -131,4 +161,5 @@
 
 /* SCSS aliases for @use in component stylesheets if needed */
 $price-value-letter-spacing: 0.06em;
-$price-value-font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+$price-value-font-family:
+  Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

@@ -24,7 +24,7 @@ export type CardPriceOption = {
 };
 
 export function getBestTcgPlayerVariant(
-  prices?: TCGPlayer["prices"]
+  prices?: TCGPlayer["prices"],
 ): TCGPlayer["prices"][TCGPlayerVariantKey] | undefined {
   if (!prices) return undefined;
 
@@ -47,7 +47,7 @@ export function getBestTcgPlayerVariant(
 }
 
 export function getBestTcgPlayerVariantName(
-  prices?: TCGPlayer["prices"]
+  prices?: TCGPlayer["prices"],
 ): TCGPlayerVariantKey | undefined {
   if (!prices) return undefined;
 
@@ -264,4 +264,22 @@ export function resolveCardPriceOption(
     if (selected) return selected;
   }
   return pickDefaultCardPriceOption(options, preferredSource);
+}
+
+export function getHistoricalPriceForOption(
+  option: Pick<CardPriceOption, "key" | "source">,
+  snapshot: {
+    tcgplayerPrices?: Partial<TCGPlayer["prices"]> | null;
+    cardmarketPrices?: Partial<CardMarket["prices"]> | null;
+  },
+): number | undefined {
+  if (option.source === "tcgplayer") {
+    const prices = snapshot.tcgplayerPrices as
+      Record<string, unknown> | null | undefined;
+    return readPositiveMarket(prices?.[option.key]);
+  }
+
+  const prices = snapshot.cardmarketPrices as
+    Record<string, unknown> | null | undefined;
+  return readPositiveNumber(prices?.[option.key]);
 }

@@ -155,7 +155,6 @@ textarea {
   flex: 0 0 auto;
   font-family: var(--font-family-base);
   font-size: .68rem;
-  font-weight: var(--font-weight-semibold);
   gap: 0.2rem;
   height: 1.35rem;
   justify-content: center;
@@ -198,4 +197,51 @@ textarea {
   &--cardmarket {
     color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
   }
+}
+
+/* Shared custom radio control */
+.app-radio {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--font-color-muted);
+  border-radius: var(--border-radius-round);
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 0.8rem;
+  margin: 0;
+  transition:
+    background var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease;
+  width: 0.8rem;
+
+  &:checked {
+    background: var(--custom-color-purple);
+    border-color: var(--custom-color-purple);
+    box-shadow: inset 0 0 0 0.18rem var(--bg5);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--custom-color-purple);
+    outline-offset: 2px;
+  }
+}
+
+/* Shared rarity treatment; individual views may adjust only sizing/casing. */
+.card-rarity-badge {
+  align-items: center;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  border-radius: var(--border-radius-pill);
+  box-sizing: border-box;
+  color: var(--custom-color-yellow);
+  display: inline-flex;
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-wide);
+  line-height: 1;
+  padding: 0.38rem 0.7rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: fit-content;
 }

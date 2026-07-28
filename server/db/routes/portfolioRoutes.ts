@@ -2,9 +2,19 @@ import { Router, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { dbAll, dbGet } from "../db.js";
 import { parsePublicStoredCard } from "../cardSerialization.js";
-import { getAuthenticatedUid, requireVerifiedUser } from "../../security/auth.js";
+import {
+  getAuthenticatedUid,
+  requireVerifiedUser,
+} from "../../security/auth.js";
 import { logError } from "../../security/logging.js";
 import { adminDb } from "../../subscriptions/firebaseAdmin.js";
+import {
+  parsePortfolioPriceSnapshot,
+  PORTFOLIO_COMPARISON_SNAPSHOTS_SQL,
+  type PortfolioComparisonPeriod,
+  type PortfolioPriceSnapshot,
+  type PortfolioPriceSnapshotRow,
+} from "../portfolioPriceSnapshots.js";
 
 const router = Router();
 const MAX_QUANTITY = 1_000_000;
@@ -103,9 +113,7 @@ function parseStoredPortfolioEntry(
     (field) => field !== "quantity" && field !== "priceSource",
   );
   if (unexpectedFields.length > 0) {
-    throw new Error(
-      `Portfolio entry ${cardId} contains unsupported fields`,
-    );
+    throw new Error(`Portfolio entry ${cardId} contains unsupported fields`);
   }
   const quantity = fields.quantity;
   if (
@@ -123,9 +131,7 @@ function parseStoredPortfolioEntry(
       typeof fields.priceSource !== "string" ||
       !PRICE_SOURCE_PATTERN.test(fields.priceSource.trim())
     ) {
-      throw new Error(
-        `Portfolio entry ${cardId} has an invalid price source`,
-      );
+      throw new Error(`Portfolio entry ${cardId} has an invalid price source`);
     }
     priceSource = fields.priceSource.trim();
   }
@@ -138,10 +144,9 @@ function parseStoredPortfolioEntry(
 }
 
 async function requireCardInDatabase(cardId: string) {
-  const row = await dbGet<{ id: string }>(
-    "SELECT id FROM cards WHERE id = ?",
-    [cardId],
-  );
+  const row = await dbGet<{ id: string }>("SELECT id FROM cards WHERE id = ?", [
+    cardId,
+  ]);
   if (!row) {
     throw new PortfolioHttpError("Card not found", 404);
   }
@@ -160,17 +165,38 @@ async function getPortfolioEntries(uid: string): Promise<PortfolioEntry[]> {
 
 async function getHydratedCards(entries: PortfolioEntry[]) {
   const rows: Array<{ id: string; raw_json: string }> = [];
+  const snapshotsByCardId = new Map<
+    string,
+    Partial<Record<PortfolioComparisonPeriod, PortfolioPriceSnapshot>>
+  >();
 
-  for (let offset = 0; offset < entries.length; offset += CARD_QUERY_CHUNK_SIZE) {
+  for (
+    let offset = 0;
+    offset < entries.length;
+    offset += CARD_QUERY_CHUNK_SIZE
+  ) {
     const cardIds = entries
       .slice(offset, offset + CARD_QUERY_CHUNK_SIZE)
       .map((entry) => entry.cardId);
     const placeholders = cardIds.map(() => "?").join(", ");
-    const chunkRows = await dbAll<{ id: string; raw_json: string }>(
-      `SELECT id, raw_json FROM cards WHERE id IN (${placeholders})`,
-      cardIds,
-    );
+    const [chunkRows, snapshotRows] = await Promise.all([
+      dbAll<{ id: string; raw_json: string }>(
+        `SELECT id, raw_json FROM cards WHERE id IN (${placeholders})`,
+        cardIds,
+      ),
+      dbAll<PortfolioPriceSnapshotRow>(PORTFOLIO_COMPARISON_SNAPSHOTS_SQL, [
+        JSON.stringify(cardIds),
+      ]),
+    ]);
     rows.push(...chunkRows);
+
+    for (const snapshotRow of snapshotRows) {
+      const cardId = String(snapshotRow.card_id);
+      const snapshots = snapshotsByCardId.get(cardId) ?? {};
+      snapshots[snapshotRow.comparison_period] =
+        parsePortfolioPriceSnapshot(snapshotRow);
+      snapshotsByCardId.set(cardId, snapshots);
+    }
   }
 
   const cardsById = new Map<string, Record<string, unknown>>();
@@ -180,6 +206,9 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
     const card = parsePublicStoredCard(String(row.raw_json));
     delete card.quantity;
     delete card.priceSource;
+    delete card.latestPriceSnapshot;
+    delete card.previousPriceSnapshot;
+    delete card.priceSnapshots;
     cardsById.set(cardId, card);
   }
 
@@ -198,13 +227,18 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
       id: entry.cardId,
       quantity: entry.quantity,
       ...(entry.priceSource && { priceSource: entry.priceSource }),
+      ...(snapshotsByCardId.has(entry.cardId) && {
+        priceSnapshots: snapshotsByCardId.get(entry.cardId),
+      }),
     });
   }
 
   if (missingCardIds.length > 0) {
     const sample = missingCardIds.slice(0, 20).join(", ");
     const remainder =
-      missingCardIds.length > 20 ? ` (+${missingCardIds.length - 20} more)` : "";
+      missingCardIds.length > 20
+        ? ` (+${missingCardIds.length - 20} more)`
+        : "";
     console.warn(
       `Portfolio contains ${missingCardIds.length} card reference(s) unavailable in SQL: ${sample}${remainder}. References were left unchanged.`,
     );
@@ -295,10 +329,7 @@ router.patch(
           throw new PortfolioHttpError("Portfolio card not found", 404);
         }
 
-        const existing = parseStoredPortfolioEntry(
-          cardId,
-          cardSnap.data(),
-        );
+        const existing = parseStoredPortfolioEntry(cardId, cardSnap.data());
         const updatedEntry = { ...existing, quantity };
         transaction.update(cardRef, { quantity });
         return updatedEntry;
@@ -327,10 +358,7 @@ router.patch(
           throw new PortfolioHttpError("Portfolio card not found", 404);
         }
 
-        const existing = parseStoredPortfolioEntry(
-          cardId,
-          cardSnap.data(),
-        );
+        const existing = parseStoredPortfolioEntry(cardId, cardSnap.data());
         const updatedEntry = { ...existing, priceSource };
         transaction.update(cardRef, { priceSource });
         return updatedEntry;

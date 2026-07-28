@@ -3,8 +3,11 @@ import BaseCard from "../basecard/BaseCard";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { useNavigate } from "react-router-dom";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
+import type { PortfolioPriceSnapshot } from "../../types/portfolio";
+import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
+  getHistoricalPriceForOption,
   getCardPriceSourceLabel,
   listCardPriceOptions,
   pickDefaultCardPriceOption,
@@ -32,7 +35,14 @@ type PokemonCardProps = {
   onCancelPriceOption?: () => void;
   confirmingPriceOption?: boolean;
   showRarityBadge?: boolean;
+  latestPriceSnapshot?: PortfolioPriceSnapshot | null;
+  comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
 };
+
+function formatPriceChange(value: number) {
+  if (value === 0) return "0.0%";
+  return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(1)}%`;
+}
 
 export function PokemonCard({
   card,
@@ -45,6 +55,8 @@ export function PokemonCard({
   onCancelPriceOption,
   confirmingPriceOption = false,
   showRarityBadge = false,
+  latestPriceSnapshot,
+  comparisonPriceSnapshot,
 }: PokemonCardProps) {
   const navigate = useNavigate();
   const sourcePanelId = useId();
@@ -59,7 +71,7 @@ export function PokemonCard({
     internalOptionId &&
     priceOptions.some((option) => option.id === internalOptionId)
       ? internalOptionId
-      : pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null;
+      : (pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null);
   const selectedOptionId = isControlled
     ? selectedPriceOptionId
     : validInternalOptionId;
@@ -69,7 +81,11 @@ export function PokemonCard({
 
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
-      if (pricingRef.current && target && !pricingRef.current.contains(target)) {
+      if (
+        pricingRef.current &&
+        target &&
+        !pricingRef.current.contains(target)
+      ) {
         setSourceOpen(false);
         onCancelPriceOption?.();
       }
@@ -84,6 +100,38 @@ export function PokemonCard({
     pickDefaultCardPriceOption(priceOptions, priceSource);
 
   const displayedPrice = activeOption?.price;
+  const latestSnapshotPrice =
+    activeOption && latestPriceSnapshot
+      ? getHistoricalPriceForOption(activeOption, latestPriceSnapshot)
+      : undefined;
+  const comparisonPrice =
+    activeOption && comparisonPriceSnapshot
+      ? getHistoricalPriceForOption(activeOption, comparisonPriceSnapshot)
+      : undefined;
+  const priceChangePercent =
+    displayedPrice != null &&
+    latestSnapshotPrice != null &&
+    comparisonPrice != null
+      ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
+      : null;
+  const displayedPriceChangePercent =
+    priceChangePercent != null && Math.abs(priceChangePercent) < 0.05
+      ? 0
+      : priceChangePercent;
+  const formattedPriceChange =
+    displayedPriceChangePercent == null
+      ? null
+      : formatPriceChange(displayedPriceChangePercent);
+  const priceChangeTone =
+    displayedPriceChangePercent == null
+      ? null
+      : displayedPriceChangePercent > 0
+        ? "up"
+        : displayedPriceChangePercent < 0
+          ? "down"
+          : "flat";
+  const showPriceChange =
+    latestPriceSnapshot !== undefined || comparisonPriceSnapshot !== undefined;
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
   const sourceLabel = activeOption
@@ -126,7 +174,7 @@ export function PokemonCard({
     >
       {quantity > 1 && (
         <span
-          className="pokemon-card__quantity-badge"
+          className="pokemon-card__quantity-badge badge-small"
           aria-label={`${quantity} copies in collection`}
         >
           ×{quantity}
@@ -134,17 +182,44 @@ export function PokemonCard({
       )}
       <div className="pokemon-card__image">
         <img src={card.images?.small} alt={card.name} />
-        {showRarityBadge && card.rarity && (
-          <span className="pokemon-card__rarity" title={card.rarity}>
-            {card.rarity}
-          </span>
-        )}
       </div>
       <div className="pokemon-card__identity">
-        <h2 className="pokemon-card__name" title={card.name}>{card.name}</h2>
-        <span className="pokemon-card__set" title={card.set?.name}>
-          {card.set?.name ?? "Unknown set"}
-        </span>
+        <h2 className="pokemon-card__name" title={card.name}>
+          {card.name}
+        </h2>
+        <div className="pokemon-card__set-row">
+          <span className="pokemon-card__set" title={card.set?.name}>
+            {card.set?.name ?? "Unknown set"}
+          </span>
+          {card.set?.series && (
+            <span className="pokemon-card__series" title={card.set.series}>
+              <span aria-hidden="true">•</span>
+              <span className="pokemon-card__series-name">
+                {card.set.series}
+              </span>
+            </span>
+          )}
+        </div>
+        {(showRarityBadge && card.rarity) || variantLabel?.trim() ? (
+          <div className="pokemon-card__metadata-row">
+            {showRarityBadge && card.rarity && (
+              <span
+                className="pokemon-card__rarity card-rarity-badge badge-small"
+                title={card.rarity}
+              >
+                {card.rarity}
+              </span>
+            )}
+            {variantLabel?.trim() && (
+              <span
+                className="pokemon-card__price-variant badge-small"
+                title={variantLabel}
+              >
+                {variantLabel}
+              </span>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -155,18 +230,33 @@ export function PokemonCard({
       >
         <div className="pokemon-card__price">
           <div className="pokemon-card__price-row">
-            <span className="pokemon-card__price-value">
-              {displayedPrice != null
-                ? `${currencySymbol}${money.format(displayedPrice)}`
-                : "—"}
-            </span>
-            <span
-              className={`pokemon-card__price-variant${
-                variantLabel?.trim() ? " badge-small" : ""
-              }`}
-            >
-              {variantLabel?.trim() ? variantLabel : "\u00A0"}
-            </span>
+            <div className="pokemon-card__price-current">
+              <span className="pokemon-card__price-value">
+                {displayedPrice != null
+                  ? `${currencySymbol}${money.format(displayedPrice)}`
+                  : "—"}
+              </span>
+              {showPriceChange &&
+                (formattedPriceChange &&
+                priceChangeTone &&
+                comparisonPriceSnapshot ? (
+                  <span
+                    className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
+                    title={`Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`}
+                    aria-label={`${formattedPriceChange} since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`}
+                  >
+                    {formattedPriceChange}
+                  </span>
+                ) : (
+                  <span
+                    className="pokemon-card__price-change pokemon-card__price-change--unavailable"
+                    title="Price change unavailable"
+                    aria-label="Price change unavailable"
+                  >
+                    —
+                  </span>
+                ))}
+            </div>
           </div>
 
           <div className="pokemon-card__variant-row">
@@ -191,7 +281,10 @@ export function PokemonCard({
                   }}
                 >
                   <span className="pokemon-card__source-label">Source</span>
-                  <span className="pokemon-card__source-chevron" aria-hidden="true">
+                  <span
+                    className="pokemon-card__source-chevron"
+                    aria-hidden="true"
+                  >
                     {sourceOpen ? "▴" : "▾"}
                   </span>
                 </button>
@@ -223,6 +316,7 @@ export function PokemonCard({
                               .join(" ")}
                           >
                             <input
+                              className="app-radio"
                               id={inputId}
                               type="radio"
                               name={`${sourcePanelId}-price`}
@@ -241,7 +335,8 @@ export function PokemonCard({
                               </span>
                             </span>
                             <span className="pokemon-card__source-option-price">
-                              {option.currencySymbol}{option.price}
+                              {option.currencySymbol}
+                              {option.price}
                             </span>
                           </label>
                         );
@@ -261,7 +356,7 @@ export function PokemonCard({
                             setSourceOpen(false);
                           })();
                         }}
-                        onCancel={() => onCancelPriceOption?.()}
+                        onCancel={closeSource}
                       />
                     )}
                   </div>
