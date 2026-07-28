@@ -17,6 +17,8 @@
     "db:check": "tsx server/scripts/checkDb.ts",
     "sync:cards": "tsx server/scripts/syncCards.ts",
     "sync:cards:dry-run": "tsx server/scripts/syncCards.ts --dry-run",
+    "news:generate": "tsx server/scripts/generateNews.ts",
+    "news:generate:dry-run": "tsx server/scripts/generateNews.ts --dry-run",
     "test:server": "tsx --test \"server/**/*.test.ts\""
   },
   "dependencies": {

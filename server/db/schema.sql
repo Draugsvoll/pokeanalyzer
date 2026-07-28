@@ -74,3 +74,12 @@ CREATE TABLE IF NOT EXISTS card_sync_stage (
     cardmarket_updated_at TEXT,
     PRIMARY KEY (run_id, card_id)
 );
+
+CREATE TABLE IF NOT EXISTS news_content (
+    feed TEXT PRIMARY KEY
+        CHECK (feed IN ('general_news', 'biggest_movers')),
+    payload_json TEXT NOT NULL
+        CHECK (json_valid(payload_json)),
+    source_date TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

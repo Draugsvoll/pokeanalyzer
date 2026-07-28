@@ -6,6 +6,7 @@ import {
   splitSqlStatements,
 } from "./db.js";
 import { assertDatabaseSchemaCompatible } from "./schemaValidation.js";
+import { assertNewsContentSchemaCompatible } from "./newsStore.js";
 import { logError } from "../security/logging.js";
 
 const schemaPath = path.resolve("server/db/schema.sql");
@@ -19,6 +20,7 @@ async function initializeDatabase() {
       await db.execute(statement);
     }
     await assertDatabaseSchemaCompatible();
+    await assertNewsContentSchemaCompatible();
     console.log("Database initialized and schema verified successfully.");
   } catch (err) {
     console.error("Failed to initialize database");

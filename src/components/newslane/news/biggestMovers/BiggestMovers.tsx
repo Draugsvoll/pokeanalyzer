@@ -1,29 +1,18 @@
-import biggestMovers from "../../../../data/news/biggestMovers.json";
+import type { BiggestMoversPayload } from "../../../../types/news";
 import "./BiggestMovers.scss";
 
-type Mover = {
-  rank?: string;
-  card_name?: string;
-  summary?: string;
+type BiggestMoversProps = {
+  payload: BiggestMoversPayload;
 };
 
-type MoversPayload = {
-  report_link?: string;
-  cards: Mover[];
-};
-
-export function BiggestMovers() {
-  const payload = biggestMovers as MoversPayload;
-
-  const cards = payload?.cards ?? [];
-  const reportLink = payload?.report_link;
+export function BiggestMovers({ payload }: BiggestMoversProps) {
+  const cards = payload.cards;
+  const reportLink = payload.report_link;
 
   return (
     <section className="biggest-gainers ui-render-fade">
       <header className="biggest-gainers__header">
-        <h1 className="biggest-gainers__title">
-          Weekly movers from TCG
-        </h1>
+        <h1 className="biggest-gainers__title">Weekly movers from TCG</h1>
       </header>
 
       {!!cards.length && (
@@ -77,7 +66,6 @@ export function BiggestMovers() {
           })}
         </div>
       )}
-
     </section>
   );
 }

@@ -337,8 +337,8 @@ Card to analyze:
 
 export const getBiggestMovers: string =
 `
-Please summarize each card in The Biggest Price Spikes in Pokémon this Week from
-TCG (english single cards)? use the most recent you can find. Always remember to include all the
+Please summarize each card in "The Biggest Price Spikes in Pokémon this Week" article from
+TCG. Use the most recent you can find. Always remember to include all the
 price values mentioned in the article. For every card you must mention the price values from the article.
 Keep things conscise and to the point. The summary should be about 3-5 sentences for each card.
 
@@ -348,6 +348,7 @@ Keep things conscise and to the point. The summary should be about 3-5 sentences
 Return only a valid JSON format as the one below. No text added before or after.
 
 {
+  "date": "Publication date of the report",
   "report_link": "",
   "cards": [
     {

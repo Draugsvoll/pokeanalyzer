@@ -1,34 +1,22 @@
 import React, { type CSSProperties } from "react";
-import generalNews from "../../../../data/news/generalNews.json";
+import type { GeneralNewsPayload } from "../../../../types/news";
 import {
   getCustomColor,
   type CustomColors,
 } from "../../../../utils/customStylings";
 import "./GeneralNews.scss";
 
-type NewsItem = {
-  headline?: string;
-  label?: string;
-  summary?: string;
-  action?: string[];
-  url?: string;
-};
-
-type GeneralNewsResponse = {
-  items?: NewsItem[];
-};
-
 const LABEL_COLORS: Record<string, CustomColors> = {
-  "competitive": "teal",
-  "grading": "teal",
+  competitive: "teal",
+  grading: "teal",
   "high-value sale": "yellow",
-  "industry": "purple",
-  "market": "blue",
+  industry: "purple",
+  market: "blue",
   "new release": "orange",
-  "population": "pink",
-  "promo": "yellow",
-  "release": "orange",
-  "restock": "blue",
+  population: "pink",
+  promo: "yellow",
+  release: "orange",
+  restock: "blue",
   "set reveal": "purple",
 };
 
@@ -59,22 +47,24 @@ function getLabelAccent(label: string): CSSProperties {
     LABEL_COLORS[normalizedLabel] ?? getFallbackLabelColor(normalizedLabel);
 
   return {
-    "--trend-accent": getCustomColor(color),
+    "--label-accent": getCustomColor(color),
   } as CSSProperties;
 }
 
-export const GeneralNews: React.FC = () => {
-  const newsData = generalNews as GeneralNewsResponse;
+type GeneralNewsProps = {
+  payload: GeneralNewsPayload;
+};
 
+export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
   return (
     <section className="general-news ui-render-fade">
       <header className="general-news__header">
         <h1 className="general-news__title">General News</h1>
       </header>
 
-      {!!newsData?.items?.length && (
+      {!!payload.items.length && (
         <div className="general-news__trends">
-          {newsData.items.map((item, index) => {
+          {payload.items.map((item, index) => {
             const label = item.label?.trim() ?? "";
 
             return (

@@ -4,6 +4,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { dbAll, dbGet } from "./db/db.js";
 import grokRoutes from "./db/routes/grokRoutes.js";
+import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
@@ -118,6 +119,7 @@ app.use(
 );
 app.use(express.json({ limit: "256kb" }));
 app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
+app.use("/api/news", newsRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 
