@@ -12,6 +12,7 @@ export function getSelectedPokemonFromCache(
     if (!stored) return null;
 
     const parsed = JSON.parse(stored) as PokemonCard;
+    delete parsed.grok;
     return parsed.id === cardId ? parsed : null;
   } catch {
     return null;
@@ -19,7 +20,12 @@ export function getSelectedPokemonFromCache(
 }
 
 export function setSelectedPokemonCache(card: PokemonCard): void {
-  localStorage.setItem(SELECTED_POKEMON_CACHE_KEY, JSON.stringify(card));
+  const publicCard = { ...card };
+  delete publicCard.grok;
+  localStorage.setItem(
+    SELECTED_POKEMON_CACHE_KEY,
+    JSON.stringify(publicCard),
+  );
 }
 
 export function preloadPokemonImage(url?: string): void {

@@ -1,116 +1,178 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
 import { useAuth } from "./authContextValue";
 import { PortfolioContext } from "./portfolioCacheContextValue";
-import { getPortfolioCacheKey } from "../utils/cache";
-import type { PokemonCard } from "../types/pokemon";
+import { getPortfolioReferences } from "../services/portfolioApi";
+import type { PortfolioReference } from "../types/portfolio";
 import { logClientError } from "../utils/logClientError";
 
+type PortfolioReferenceState = {
+  uid: string | null;
+  references: Map<string, PortfolioReference>;
+};
+
+const EMPTY_PORTFOLIO_REFERENCES: ReadonlyMap<string, PortfolioReference> =
+  new Map();
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth();
+  const authUid = authUser?.uid ?? null;
+  const activeUidRef = useRef(authUid);
+  const activeRequestRef = useRef(0);
+  const dataRevisionRef = useRef(0);
+  const successfullyLoadedUidRef = useRef<string | null>(null);
+  const [portfolioState, setPortfolioState] =
+    useState<PortfolioReferenceState>({
+      uid: null,
+      references: new Map(),
+    });
+  const [refreshingPortfolioReferences, setRefreshingPortfolioReferences] =
+    useState(false);
+  const [portfolioReferencesError, setPortfolioReferencesError] =
+    useState<string | null>(null);
 
-  const [portfolio, setPortfolio] = useState<PokemonCard[]>([]);
-  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
+  const portfolioReferences =
+    portfolioState.uid === authUid
+      ? portfolioState.references
+      : EMPTY_PORTFOLIO_REFERENCES;
+  const loadingPortfolioReferences =
+    Boolean(authUid) &&
+    (portfolioState.uid !== authUid || refreshingPortfolioReferences);
 
-  const savePortfolioToCache = useCallback((updatedPortfolio: PokemonCard[]) => {
-    if (!authUser) return;
+  const replacePortfolioReferences = useCallback(
+    (entries: PortfolioReference[]) => {
+      if (!authUid || activeUidRef.current !== authUid) return;
 
-    const cacheKey = getPortfolioCacheKey(authUser.uid);
-    localStorage.setItem(cacheKey, JSON.stringify(updatedPortfolio));
-  }, [authUser]);
+      dataRevisionRef.current += 1;
+      successfullyLoadedUidRef.current = authUid;
+      setPortfolioReferencesError(null);
+      setPortfolioState({
+        uid: authUid,
+        references: new Map(
+          entries.map((entry) => [entry.cardId, entry]),
+        ),
+      });
+    },
+    [authUid],
+  );
 
-  const initPortfolio = useCallback(async () => {
-    if (!authUser) {
-      setPortfolio([]);
-      setLoadingPortfolio(false);
+  const refreshPortfolioReferences = useCallback(async () => {
+    const requestId = ++activeRequestRef.current;
+    const startingRevision = dataRevisionRef.current;
+    const requestedUid = authUid;
+
+    if (!requestedUid) {
+      dataRevisionRef.current += 1;
+      successfullyLoadedUidRef.current = null;
+      setPortfolioReferencesError(null);
+      setPortfolioState({ uid: null, references: new Map() });
+      setRefreshingPortfolioReferences(false);
       return;
     }
 
     try {
-      setLoadingPortfolio(true);
-
-      const portfolioRef = collection(db, "users", authUser.uid, "portfolio");
-      const portfolioSnap = await getDocs(portfolioRef);
-
-      const portfolioCards = portfolioSnap.docs.map((doc) => ({
-        ...(doc.data() as Omit<PokemonCard, "id">),
-        id: doc.id,
-      }));
-
-      setPortfolio(portfolioCards);
-      savePortfolioToCache(portfolioCards);
+      setRefreshingPortfolioReferences(true);
+      setPortfolioReferencesError(null);
+      const { entries } = await getPortfolioReferences(requestedUid);
+      if (
+        requestId !== activeRequestRef.current ||
+        startingRevision !== dataRevisionRef.current ||
+        activeUidRef.current !== requestedUid
+      ) return;
+      replacePortfolioReferences(entries);
     } catch (error) {
+      if (
+        requestId !== activeRequestRef.current ||
+        startingRevision !== dataRevisionRef.current ||
+        activeUidRef.current !== requestedUid
+      ) return;
       logClientError("Failed to refresh portfolio", error);
-      setPortfolio([]);
+      setPortfolioReferencesError(
+        error instanceof Error
+          ? error.message
+          : "Portfolio references could not be loaded",
+      );
+      setPortfolioState((current) =>
+        current.uid === requestedUid
+          ? current
+          : { uid: requestedUid, references: new Map() },
+      );
     } finally {
-      setLoadingPortfolio(false);
+      if (
+        requestId === activeRequestRef.current &&
+        activeUidRef.current === requestedUid
+      ) {
+        setRefreshingPortfolioReferences(false);
+      }
     }
-  }, [authUser, savePortfolioToCache]);
+  }, [authUid, replacePortfolioReferences]);
 
-  const addToPortfolioCache = (card: PokemonCard) => {
-    const updatedPortfolio = [
-      ...portfolio.filter((item) => item.id !== card.id),
-      card,
-    ];
+  const upsertPortfolioReference = useCallback((entry: PortfolioReference) => {
+    if (!authUid || activeUidRef.current !== authUid) return;
 
-    setPortfolio(updatedPortfolio);
-    savePortfolioToCache(updatedPortfolio);
-  };
+    const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
+    dataRevisionRef.current += 1;
+    setPortfolioState((current) => {
+      const next = new Map(
+        current.uid === authUid ? current.references : undefined,
+      );
+      next.set(entry.cardId, entry);
+      return { uid: authUid, references: next };
+    });
+    if (needsFullRefresh) void refreshPortfolioReferences();
+  }, [authUid, refreshPortfolioReferences]);
 
-  const removeFromPortfolioCache = (cardId: string) => {
-    const updatedPortfolio = portfolio.filter((card) => card.id !== cardId);
-    setPortfolio(updatedPortfolio);
-    savePortfolioToCache(updatedPortfolio);
-  };
+  const removePortfolioReference = useCallback((cardId: string) => {
+    if (!authUid || activeUidRef.current !== authUid) return;
 
-  const updatePortfolioQuantityCache = (cardId: string, quantity: number) => {
-    const updatedPortfolio = portfolio.map((card) =>
-      card.id === cardId ? { ...card, quantity } : card
-    );
-    setPortfolio(updatedPortfolio);
-    savePortfolioToCache(updatedPortfolio);
-  };
+    const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
+    dataRevisionRef.current += 1;
+    setPortfolioState((current) => {
+      const next = new Map(
+        current.uid === authUid ? current.references : undefined,
+      );
+      next.delete(cardId);
+      return { uid: authUid, references: next };
+    });
+    if (needsFullRefresh) void refreshPortfolioReferences();
+  }, [authUid, refreshPortfolioReferences]);
 
-  const updatePortfolioPriceSourceCache = (
-    cardId: string,
-    priceSource: string,
-  ) => {
-    const updatedPortfolio = portfolio.map((card) =>
-      card.id === cardId ? { ...card, priceSource } : card
-    );
-    setPortfolio(updatedPortfolio);
-    savePortfolioToCache(updatedPortfolio);
-  };
+  const isCardSaved = useCallback(
+    (cardId: string) => portfolioReferences.has(cardId),
+    [portfolioReferences],
+  );
 
-  const isCardSaved = (cardId: string) => {
-    return portfolio.some((card) => card.id === cardId);
-  };
+  useLayoutEffect(() => {
+    activeUidRef.current = authUid;
+  }, [authUid]);
 
   useEffect(() => {
     const initialize = window.setTimeout(() => {
-      void initPortfolio();
+      void refreshPortfolioReferences();
     }, 0);
 
-    return () => window.clearTimeout(initialize);
-  }, [initPortfolio]);
+    return () => {
+      window.clearTimeout(initialize);
+      activeRequestRef.current += 1;
+    };
+  }, [refreshPortfolioReferences]);
 
   return (
     <PortfolioContext.Provider
       value={{
-        portfolio,
-        loadingPortfolio,
-        initPortfolio,
-        addToPortfolioCache,
-        removeFromPortfolioCache,
-        updatePortfolioQuantityCache,
-        updatePortfolioPriceSourceCache,
+        portfolioReferences,
+        portfolioReferencesError,
+        loadingPortfolioReferences,
+        refreshPortfolioReferences,
+        replacePortfolioReferences,
+        upsertPortfolioReference,
+        removePortfolioReference,
         isCardSaved,
       }}
     >

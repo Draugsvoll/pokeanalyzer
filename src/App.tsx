@@ -7,7 +7,6 @@ import Profile from "./pages/profile/Profile";
 import Portfolio from "./pages/portfolio/Portfolio";
 import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
-import CardGrader from "./pages/UploadCard/UploadCardPage";
 import Admin from "./pages/admin/Admin";
 
 export default function App() {

@@ -1,14 +1,14 @@
 import { createContext, useContext } from "react";
-import type { PokemonCard } from "../types/pokemon";
+import type { PortfolioReference } from "../types/portfolio";
 
 export type PortfolioContextType = {
-  portfolio: PokemonCard[];
-  loadingPortfolio: boolean;
-  initPortfolio: () => Promise<void>;
-  addToPortfolioCache: (card: PokemonCard) => void;
-  removeFromPortfolioCache: (cardId: string) => void;
-  updatePortfolioQuantityCache: (cardId: string, quantity: number) => void;
-  updatePortfolioPriceSourceCache: (cardId: string, priceSource: string) => void;
+  portfolioReferences: ReadonlyMap<string, PortfolioReference>;
+  portfolioReferencesError: string | null;
+  loadingPortfolioReferences: boolean;
+  refreshPortfolioReferences: () => Promise<void>;
+  replacePortfolioReferences: (entries: PortfolioReference[]) => void;
+  upsertPortfolioReference: (entry: PortfolioReference) => void;
+  removePortfolioReference: (cardId: string) => void;
   isCardSaved: (cardId: string) => boolean;
 };
 
