@@ -23,6 +23,7 @@ import {
   getCardGrokContext,
   saveCardGrokResponse,
 } from "./db/cardGrokStore.js";
+import { parsePublicStoredCard } from "./db/cardSerialization.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -136,7 +137,12 @@ app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
       res.status(403).json({ message: "Not an admin" });
     }
   } catch (error) {
-    const statusCode = error instanceof Error && "statusCode" in error ? (error as any).statusCode : 401;
+    const possibleStatusCode =
+      error instanceof Error && "statusCode" in error
+        ? (error as { statusCode?: unknown }).statusCode
+        : undefined;
+    const statusCode =
+      typeof possibleStatusCode === "number" ? possibleStatusCode : 401;
     const message = error instanceof Error ? error.message : "Authentication failed";
     res.status(statusCode).json({ message });
   }
@@ -209,6 +215,11 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   }
 });
 
+app.use("/api/cards", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 // FETCH ALL CARDS
 app.get("/api/cards", async (_req, res) => {
   try {
@@ -219,7 +230,7 @@ app.get("/api/cards", async (_req, res) => {
       LIMIT 10
       `,
     );
-    const cards = rows.map((row) => JSON.parse(String(row.raw_json)));
+    const cards = rows.map((row) => parsePublicStoredCard(String(row.raw_json)));
     res.json(cards);
   } catch (err) {
     logError("Failed to fetch cards", err);
@@ -330,11 +341,109 @@ app.get("/api/cards/search", async (req, res) => {
 
   try {
     const rows = await dbAll<{ raw_json: string }>(sql, params);
-    const cards = rows.map((row) => JSON.parse(String(row.raw_json)));
+    const cards = rows.map((row) => parsePublicStoredCard(String(row.raw_json)));
     res.json(cards);
   } catch (err) {
     logError("Card search failed", err);
     res.status(500).json({ error: "Card search failed" });
+  }
+});
+
+type PriceHistoryRow = {
+  recorded_at: string;
+  tcgplayer_prices: string | null;
+  cardmarket_prices: string | null;
+  tcgplayer_updated_at: string | null;
+  cardmarket_updated_at: string | null;
+};
+
+function parseSnapshotPrices(
+  value: string | null,
+  cardId: string,
+  recordedAt: string,
+  provider: "tcgplayer" | "cardmarket",
+) {
+  if (value == null) return null;
+  const parsed: unknown = JSON.parse(String(value));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `Malformed ${provider} price history for ${cardId} on ${recordedAt}`,
+    );
+  }
+  return parsed;
+}
+
+app.get("/api/cards/:id/price-history", async (req, res) => {
+  const rawDays = req.query.days ?? "7";
+  const days = Number(rawDays);
+  if (!Number.isSafeInteger(days) || days < 1 || days > 30) {
+    res.status(400).json({ error: "days must be an integer between 1 and 30" });
+    return;
+  }
+
+  try {
+    const card = await dbGet<{ id: string }>(
+      "SELECT id FROM cards WHERE id = ?",
+      [req.params.id],
+    );
+    if (!card) {
+      res.status(404).json({ error: "Card not found" });
+      return;
+    }
+
+    const rows = await dbAll<PriceHistoryRow>(
+      `
+      SELECT
+        recorded_at,
+        tcgplayer_prices,
+        cardmarket_prices,
+        tcgplayer_updated_at,
+        cardmarket_updated_at
+      FROM (
+        SELECT
+          recorded_at,
+          tcgplayer_prices,
+          cardmarket_prices,
+          tcgplayer_updated_at,
+          cardmarket_updated_at
+        FROM price_snapshots
+        WHERE card_id = ?
+        ORDER BY recorded_at DESC
+        LIMIT ?
+      )
+      ORDER BY recorded_at ASC
+      `,
+      [req.params.id, days],
+    );
+
+    res.json({
+      cardId: req.params.id,
+      days,
+      snapshots: rows.map((row) => ({
+        recordedAt: String(row.recorded_at),
+        tcgplayerPrices: parseSnapshotPrices(
+          row.tcgplayer_prices,
+          req.params.id,
+          String(row.recorded_at),
+          "tcgplayer",
+        ),
+        cardmarketPrices: parseSnapshotPrices(
+          row.cardmarket_prices,
+          req.params.id,
+          String(row.recorded_at),
+          "cardmarket",
+        ),
+        tcgplayerUpdatedAt: row.tcgplayer_updated_at == null
+          ? null
+          : String(row.tcgplayer_updated_at),
+        cardmarketUpdatedAt: row.cardmarket_updated_at == null
+          ? null
+          : String(row.cardmarket_updated_at),
+      })),
+    });
+  } catch (err) {
+    logError("Failed to fetch card price history", err);
+    res.status(500).json({ error: "Failed to fetch card price history" });
   }
 });
 
@@ -353,7 +462,7 @@ app.get("/api/cards/:id", async (req, res) => {
       res.status(404).json({ error: "Card not found" });
       return;
     }
-    res.json(JSON.parse(String(row.raw_json)));
+    res.json(parsePublicStoredCard(String(row.raw_json)));
   } catch (err) {
     logError("Failed to fetch card", err);
     res.status(500).json({ error: "Failed to fetch card" });

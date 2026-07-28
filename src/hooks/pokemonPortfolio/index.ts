@@ -12,18 +12,16 @@ import {
 export function usePokemonPortfolio() {
   const { user: authUser } = useAuth();
   const {
-    addToPortfolioCache,
-    removeFromPortfolioCache,
-    updatePortfolioQuantityCache,
-    updatePortfolioPriceSourceCache,
+    upsertPortfolioReference,
+    removePortfolioReference,
   } = usePortfolioCache();
 
   const savePokemonToPortfolio = async (card: PokemonCard) => {
     if (!authUser) return false;
 
     try {
-      const response = await addPortfolioCard(card.id);
-      addToPortfolioCache(response.card);
+      const response = await addPortfolioCard(card.id, authUser.uid);
+      upsertPortfolioReference(response.entry);
       return true;
     } catch (error) {
       logClientError("Failed to save card", error);
@@ -44,8 +42,8 @@ export function usePokemonPortfolio() {
     }
 
     try {
-      await removePortfolioCard(cardId);
-      removeFromPortfolioCache(cardId);
+      await removePortfolioCard(cardId, authUser.uid);
+      removePortfolioReference(cardId);
       return true;
     } catch (err) {
       logClientError("Failed to remove card", err);
@@ -58,8 +56,12 @@ export function usePokemonPortfolio() {
     if (!authUser || quantity < 1) return false;
 
     try {
-      await updatePortfolioCardQuantity(cardId, quantity);
-      updatePortfolioQuantityCache(cardId, quantity);
+      const entry = await updatePortfolioCardQuantity(
+        cardId,
+        quantity,
+        authUser.uid,
+      );
+      upsertPortfolioReference(entry);
       return true;
     } catch (error) {
       logClientError("Failed to update card quantity", error);
@@ -75,9 +77,12 @@ export function usePokemonPortfolio() {
     if (!authUser || !priceSource.trim()) return false;
 
     try {
-      // Same order as quantity: wait for Firebase, then update cache
-      await updatePortfolioCardPriceSource(cardId, priceSource);
-      updatePortfolioPriceSourceCache(cardId, priceSource);
+      const entry = await updatePortfolioCardPriceSource(
+        cardId,
+        priceSource,
+        authUser.uid,
+      );
+      upsertPortfolioReference(entry);
       return true;
     } catch (error) {
       logClientError("Failed to update card price source", error);

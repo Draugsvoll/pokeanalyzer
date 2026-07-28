@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowDown,
@@ -55,8 +55,9 @@ import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
+import { PriceHistory } from "./views/priceAnalysis/PriceHistory";
+import { fetchCardById } from "../../services/cardApi";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
@@ -173,7 +174,7 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
   return undefined;
 }
 
-export default function PokemonDetails() {
+function PokemonDetailsForCard() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -181,12 +182,29 @@ export default function PokemonDetails() {
   const featureButtonsRef = useRef<HTMLDivElement>(null);
   const changeCardButtonRef = useRef<HTMLButtonElement>(null);
   const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
+  const cardRequestSequenceRef = useRef(0);
+  const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] = useState<HTMLDivElement | null>(
     null,
   );
-  const cachedCard = id ? getSelectedPokemonFromCache(id) : null;
-  const [card, setCard] = useState<PokemonCard | null>(cachedCard);
-  const [loading, setLoading] = useState(!cachedCard && Boolean(id));
+  const cachedCard = useMemo(
+    () => (id ? getSelectedPokemonFromCache(id) : null),
+    [id],
+  );
+  const [cardRequestState, setCardRequestState] = useState<{
+    card: PokemonCard | null;
+    cardId: string | undefined;
+    loading: boolean;
+  }>(() => ({
+    card: cachedCard,
+    cardId: id,
+    loading: !cachedCard && Boolean(id),
+  }));
+  const cardStateMatchesRoute = cardRequestState.cardId === id;
+  const card = cardStateMatchesRoute ? cardRequestState.card : cachedCard;
+  const loading = cardStateMatchesRoute
+    ? cardRequestState.loading
+    : Boolean(id) && !cachedCard;
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
     cachedCard?.images?.large ?? cachedCard?.images?.small
   );
@@ -210,7 +228,11 @@ export default function PokemonDetails() {
   } = useAbortableRequest();
   const { user: authUser } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
-  const { isCardSaved } = usePortfolioCache();
+  const {
+    isCardSaved,
+    loadingPortfolioReferences,
+    portfolioReferencesError,
+  } = usePortfolioCache();
   const {
     loadingSubscription,
     subscription,
@@ -221,6 +243,10 @@ export default function PokemonDetails() {
     creditsRemaining,
     updatingCredits,
   } = useCredits(subscription);
+
+  useLayoutEffect(() => {
+    routeCardIdRef.current = id;
+  }, [id]);
 
   function scrollToFeatureButtons() {
     requestAnimationFrame(() => {
@@ -243,7 +269,14 @@ export default function PokemonDetails() {
   }
 
   async function handlePortfolioToggle() {
-    if (!card || updatingPortfolio) return;
+    if (
+      !card ||
+      updatingPortfolio ||
+      loadingPortfolioReferences ||
+      portfolioReferencesError
+    ) {
+      return;
+    }
 
     if (!authUser) {
       showPortfolioConfirmation("Du må være logget inn for å lagre kort.");
@@ -413,62 +446,59 @@ export default function PokemonDetails() {
     }
   }
 
-  useEffect(() => {
-    abortActiveRequest();
-    // New card (e.g. from in-page database search): leave feature panels
-    setActiveView("empty_view");
-    setShowCardSearch(false);
-    setGrokResponse("");
-    setGrokError("");
-    setGrokLoading(false);
-    setJustTcgResult(null);
-    setJustTcgError("");
-    setJustTcgLoading(false);
-  }, [abortActiveRequest, id]);
-
   useEffect(() => () => {
     window.clearTimeout(portfolioConfirmationTimerRef.current);
   }, []);
 
   useEffect(() => {
-    async function loadCard() {
-      if (!id) {
-        setCard(null);
-        setLoading(false);
-        return;
-      }
+    const requestSequence = ++cardRequestSequenceRef.current;
+    if (!id) return;
 
-      const cachedCard = getSelectedPokemonFromCache(id);
-      if (cachedCard) {
-        setCard(cachedCard);
-        setLoading(false);
-        return;
-      }
+    const controller = new AbortController();
 
-      try {
-        setLoading(true);
-
-        const res = await fetch(`${API_URL}/api/cards/${id}`);
-
-        if (!res.ok) {
-          setCard(null);
+    fetchCardById(id, controller.signal)
+      .then((fetchedCard) => {
+        if (
+          controller.signal.aborted ||
+          cardRequestSequenceRef.current !== requestSequence ||
+          routeCardIdRef.current !== id
+        ) {
           return;
         }
 
-        const fetchedCard = (await res.json()) as PokemonCard;
-
-        setSelectedPokemonCache(fetchedCard);
-        setCard(fetchedCard);
-      } catch (error) {
+        setCardRequestState({
+          card: fetchedCard,
+          cardId: id,
+          loading: false,
+        });
+        try {
+          setSelectedPokemonCache(fetchedCard);
+        } catch (cacheError) {
+          logClientError("Failed to refresh selected card cache", cacheError);
+        }
+      })
+      .catch((error: unknown) => {
+        if (
+          controller.signal.aborted ||
+          cardRequestSequenceRef.current !== requestSequence ||
+          routeCardIdRef.current !== id
+        ) {
+          return;
+        }
         logClientError("Failed to load card", error);
-        setCard(null);
-      } finally {
-        setLoading(false);
-      }
-    }
+        // A background refresh failure must not discard a usable cached card.
+        setCardRequestState({
+          card: cachedCard,
+          cardId: id,
+          loading: false,
+        });
+      });
 
-    loadCard();
-  }, [id]);
+    return () => {
+      cardRequestSequenceRef.current += 1;
+      controller.abort();
+    };
+  }, [cachedCard, id]);
 
   useEffect(() => {
     const navigationState = location.state as {
@@ -591,7 +621,12 @@ export default function PokemonDetails() {
                 <div className="card-view__portfolio-control">
                   <Button
                     variant="portfolio"
-                    disabled={updatingPortfolio}
+                    disabled={
+                      updatingPortfolio ||
+                      (Boolean(authUser) &&
+                        (loadingPortfolioReferences ||
+                          Boolean(portfolioReferencesError)))
+                    }
                     onClick={handlePortfolioToggle}
                     aria-label={
                       updatingPortfolio
@@ -601,6 +636,26 @@ export default function PokemonDetails() {
                           : "Add to portfolio"
                     }
                     aria-pressed={cardIsSaved}
+                    aria-busy={
+                      updatingPortfolio ||
+                      (Boolean(authUser) && loadingPortfolioReferences)
+                    }
+                    title={
+                      portfolioReferencesError
+                        ? "Portfolio is unavailable"
+                        : cardIsSaved
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
+                  >
+                    <Star aria-hidden="true" />
+                    <span>
+                      {updatingPortfolio
+                        ? "Updating..."
+                        : authUser && loadingPortfolioReferences
+                          ? "Checking portfolio..."
+                        : authUser && portfolioReferencesError
+                          ? "Portfolio unavailable"
                     aria-busy={updatingPortfolio}
                     title={
                       updatingPortfolio
@@ -835,4 +890,13 @@ export default function PokemonDetails() {
 
     </div>
   );
+}
+
+export default function PokemonDetails() {
+  const { id } = useParams();
+
+  // A route-ID change represents a different card. Remounting resets every
+  // card-specific analysis/request state and runs all request cleanup before
+  // the next card can render.
+  return <PokemonDetailsForCard key={id ?? "missing-card"} />;
 }
