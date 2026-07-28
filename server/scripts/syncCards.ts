@@ -898,6 +898,108 @@ function logWarnings(warnings: SyncWarning[]): void {
   }
 }
 
+function logFinalSummary(result: CardSyncResult): void {
+  const { status, summary, warnings } = result;
+  const countFor = (code: string) =>
+    warnings.find((warning) => warning.code === code)?.count ?? 0;
+  const formatCount = (value: number) => value.toLocaleString("en-US");
+  const tcgplayerMissing = countFor("tcgplayer_missing_prices");
+  const cardmarketMissing = countFor("cardmarket_missing_prices");
+  const cardmarketUnusable = countFor("cardmarket_unusable_prices");
+  const apiRetries = countFor("api_retries");
+  const abandonedRuns = countFor("abandoned_sync_runs");
+  const missingPriceWarningTotal = tcgplayerMissing + cardmarketMissing;
+  const lines = [
+    "",
+    "Card sync summary",
+    summary.dryRun
+      ? "The dry run completed successfully; no live changes were applied."
+      : "The sync completed successfully and applied its changes.",
+    "",
+    "Key results:",
+    `- Status: ${status}`,
+    `- Applied: ${summary.applied}`,
+    `- Final database cards: ${formatCount(summary.finalCards)}`,
+    `- Expected API cards: ${formatCount(summary.expectedApiCards)}`,
+    `- New cards ${summary.dryRun ? "detected" : "inserted"}: ${formatCount(summary.insertedCards)}`,
+    `- Existing cards missing upstream: ${formatCount(summary.missingExistingCards)}`,
+    `- Metadata changes: ${formatCount(summary.metadataUpdates)}`,
+    `- Price-only updates: ${formatCount(summary.priceOnlyCardUpdates)}`,
+    `- Daily snapshots present: ${formatCount(summary.snapshotsPresent)}`,
+    `- Snapshot date: ${summary.snapshotDate}`,
+    `- Total warning events: ${formatCount(summary.warningCount)}`,
+  ];
+
+  if (missingPriceWarningTotal > 0 || cardmarketUnusable > 0) {
+    lines.push(
+      "",
+      "Missing prices were handled safely:",
+      `- TCGPlayer missing: ${formatCount(tcgplayerMissing)}`,
+      `- Cardmarket missing: ${formatCount(cardmarketMissing)}`,
+      `- Cardmarket unusable: ${formatCount(cardmarketUnusable)}`,
+      "- Existing usable prices were preserved.",
+      "- Missing snapshot values were stored as real SQL NULL.",
+      `- These counts can overlap; ${formatCount(missingPriceWarningTotal)} is not necessarily the number of unique affected cards.`,
+    );
+  }
+
+  lines.push("", "Other warnings:");
+  if (apiRetries > 0) {
+    lines.push(
+      `- ${formatCount(apiRetries)} API requests needed retries but eventually succeeded.`,
+    );
+  }
+  if (summary.insertedCards > 0) {
+    lines.push(
+      summary.dryRun
+        ? `- ${formatCount(summary.insertedCards)} new cards would be inserted in a live run.`
+        : `- ${formatCount(summary.insertedCards)} new cards were inserted.`,
+    );
+  }
+  if (abandonedRuns > 0) {
+    lines.push(
+      `- ${formatCount(abandonedRuns)} abandoned run${abandonedRuns === 1 ? " was" : "s were"} detected and marked failed.`,
+    );
+  }
+  const summarizedWarningCodes = new Set([
+    "abandoned_sync_runs",
+    "api_retries",
+    "cardmarket_missing_prices",
+    "cardmarket_unusable_prices",
+    "new_cards_detected",
+    "tcgplayer_missing_prices",
+  ]);
+  const additionalWarningCategories = warnings.filter(
+    (warning) => !summarizedWarningCodes.has(warning.code),
+  ).length;
+  if (additionalWarningCategories > 0) {
+    lines.push(
+      `- ${formatCount(additionalWarningCategories)} additional warning categor${additionalWarningCategories === 1 ? "y is" : "ies are"} listed in the detailed output above.`,
+    );
+  }
+  if (
+    apiRetries === 0 &&
+    summary.insertedCards === 0 &&
+    abandonedRuns === 0 &&
+    additionalWarningCategories === 0
+  ) {
+    lines.push("- None.");
+  }
+
+  lines.push("");
+  if (summary.dryRun) {
+    lines.push(
+      "Most importantly, this was a dry run: card, snapshot, and price-history tables were not changed.",
+    );
+  } else {
+    lines.push(
+      "Most importantly, the final card count matches the upstream count, every staged card has today's snapshot row, and no existing cards disappeared.",
+    );
+  }
+
+  console.log(lines.join("\n"));
+}
+
 export async function runCardSync(
   dryRun = false,
 ): Promise<CardSyncResult> {
@@ -1102,6 +1204,7 @@ export async function runCardSync(
     `Card sync finished with status ${status}`,
     JSON.stringify(result),
   );
+  logFinalSummary(result);
   return result;
 }
 
