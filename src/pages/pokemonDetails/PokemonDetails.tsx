@@ -628,7 +628,13 @@ function PokemonDetailsForCard() {
                           Boolean(portfolioReferencesError)))
                     }
                     onClick={handlePortfolioToggle}
-                    aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                    aria-label={
+                      updatingPortfolio
+                        ? "Updating portfolio"
+                        : cardIsSaved
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
                     aria-pressed={cardIsSaved}
                     aria-busy={
                       updatingPortfolio ||
@@ -650,10 +656,23 @@ function PokemonDetailsForCard() {
                           ? "Checking portfolio..."
                         : authUser && portfolioReferencesError
                           ? "Portfolio unavailable"
+                    aria-busy={updatingPortfolio}
+                    title={
+                      updatingPortfolio
+                        ? "Updating portfolio"
                         : cardIsSaved
-                          ? "In portfolio"
-                          : "Add to portfolio"}
-                    </span>
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
+                  >
+                    {updatingPortfolio ? (
+                      <span className="app-btn__spinner" aria-hidden="true" />
+                    ) : (
+                      <>
+                        <Star aria-hidden="true" />
+                        <span>{cardIsSaved ? "In portfolio" : "Add to portfolio"}</span>
+                      </>
+                    )}
                   </Button>
                   {portfolioConfirmation && (
                     <span className="card-view__portfolio-confirmation" role="status">
@@ -729,12 +748,18 @@ function PokemonDetailsForCard() {
       <div className="card-view__credit-note">
         <span className="card-view__credit-cost">
           <strong>1 Credit</strong>
-          <span className="card-view__credit-meta">per analyse</span>
+          <span className="card-view__credit-meta">per analysis</span>
         </span>
         <span className="card-view__credit-divider" aria-hidden="true" />
         <span className="card-view__credit-copy">
           {loadingSubscription
-            ? "Laster credits..."
+            ? (
+              <span
+                className="card-view__credit-spinner"
+                role="status"
+                aria-label="Laster credits"
+              />
+            )
             : subscription
               ? (
                 <span className="card-view__credit-balance">
@@ -743,16 +768,15 @@ function PokemonDetailsForCard() {
               )
               : (
                 <>
-                  <button
-                    type="button"
-                    className="card-view__credit-link"
+                  <Button
+                    variant="micro"
                     onClick={() => setShowLoginModal(true)}
                   >
-                    Login
-                  </button>
+                    Log in
+                  </Button>
                   {" or "}
                   <Link className="card-view__credit-link" to="/signup">
-                    Sign Up
+                    Sign up
                   </Link>
                   {" for free credits"}
                 </>
@@ -774,7 +798,8 @@ function PokemonDetailsForCard() {
           const isFeatureLoading =
             activeView === aiFeature.view &&
             (grokLoading ||
-              (aiFeature.view === "prices" && justTcgLoading));
+              (aiFeature.view === "prices" && justTcgLoading) ||
+              (aiFeature.view === "ebay_sold" && ebayLoading));
 
           return (
             <button

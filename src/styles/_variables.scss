@@ -60,6 +60,9 @@
 
   /* Shared content column width (/card shell, upload analyzer, feature pages) */
   --content-width: 48rem;
+  --card-view-section-gap: 2.5rem;
+  --card-view-header-gap: 1rem;
+  --card-view-datestamp-gap: 0.35rem;
 
   /* ----- Font families ----- */
   --font-family-base: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -104,7 +107,7 @@
   --font-weight-extrabold: 800;
 
   /* ----- Letter spacing ----- */
-  --font-tracking-tight: -0.02em;
+  --font-tracking-tight: -0.015em;
   --font-tracking-normal: 0.01em;
   --font-tracking-button: 0.02rem;
   --font-tracking-wide: 0.06em;

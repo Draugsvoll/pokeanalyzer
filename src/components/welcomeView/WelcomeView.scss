@@ -107,7 +107,7 @@
     box-shadow var(--delay-short) ease,
     background var(--delay-short) ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--feature-accent) 30%, transparent);
     box-shadow:
@@ -120,7 +120,7 @@
     );
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
   }
 
@@ -129,8 +129,7 @@
     outline-offset: 2px;
   }
 
-  &:disabled,
-  &:disabled:hover {
+  &:disabled {
     cursor: not-allowed;
     transform: none;
   }

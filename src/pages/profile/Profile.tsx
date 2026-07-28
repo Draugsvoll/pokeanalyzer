@@ -1,12 +1,11 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
 import "./Profile.scss";
 import { getUserProfileSessionKey } from "../../utils/cache";
 import Button from "../../components/button/Button";
-import LoginModal from "../../components/loginmodal/Loginmodal";
 import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
@@ -43,7 +42,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
     subscription.status === "canceled" ||
@@ -127,28 +125,7 @@ export default function Profile() {
   if (authLoading || loading) return <h1>Loading...</h1>;
 
   if (!authUser) {
-    return (
-      <div className="profile">
-        <h1>User not logged in</h1>
-        <p>
-          <button
-            onClick={() => navigate("/signup")}
-            className="profile__link"
-          >
-            Sign up
-          </button>
-          {" or "}
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="profile__link"
-          >
-            log in
-          </button>
-          {" to access your profile."}
-        </p>
-        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   if (error) {
@@ -215,7 +192,10 @@ export default function Profile() {
 
         <section className="profile__subscription">
           <div className="profile__membership-overview">
-            <article className="profile__plan-card">
+            <article
+              className={`profile__plan-card${loadingSubscription ? " is-loading" : ""}`}
+              aria-busy={loadingSubscription}
+            >
               <div className="profile__section-heading">
                 <span className="profile__eyebrow">Current plan</span>
                 {subscription && (
@@ -225,6 +205,15 @@ export default function Profile() {
                   </span>
                 )}
               </div>
+              {loadingSubscription && (
+                <div className="profile__summary-loading">
+                  <span
+                    className="profile__purchase-spinner profile__summary-spinner"
+                    role="status"
+                    aria-label="Loading current plan"
+                  />
+                </div>
+              )}
               <div className="profile__plan-title">
                 <span className="profile__plan-icon" aria-hidden="true"><Crown /></span>
                 <div>
@@ -251,32 +240,47 @@ export default function Profile() {
                       {subscription.cancelAtPeriodEnd && " · Cancelling"}
                     </small>
                   )}
-                  {subscription && subscription.planId !== "free" && subscription.stripeSubscriptionId && (
-                    <Button
-                      variant="secondary"
-                      disabled={updatingSubscription}
-                      onClick={() => void openBillingPortal()}
-                      aria-busy={updatingSubscription}
-                    >
-                      {updatingSubscription ? (
-                        <span
-                          className="profile__purchase-spinner"
-                          aria-label="Opening billing portal"
-                        />
-                      ) : (
-                        "Manage plan"
-                      )}
-                    </Button>
-                  )}
+                  {subscription &&
+                    subscription.planId !== "free" &&
+                    subscription.stripeSubscriptionId &&
+                    !subscription.cancelAtPeriodEnd && (
+                      <Button
+                        variant="secondary"
+                        disabled={updatingSubscription}
+                        onClick={() => void openBillingPortal()}
+                        aria-busy={updatingSubscription}
+                      >
+                        {updatingSubscription ? (
+                          <span
+                            className="profile__purchase-spinner"
+                            aria-label="Opening billing portal"
+                          />
+                        ) : (
+                          "Manage plan"
+                        )}
+                      </Button>
+                    )}
                 </div>
               )}
             </article>
 
-            <article className="profile__credits-card">
+            <article
+              className={`profile__credits-card${loadingSubscription ? " is-loading" : ""}`}
+              aria-busy={loadingSubscription}
+            >
               <div className="profile__section-heading">
                 <span className="profile__eyebrow">Credit balance</span>
                 <span className="profile__credits-icon" aria-hidden="true"><Coins /></span>
               </div>
+              {loadingSubscription && (
+                <div className="profile__summary-loading">
+                  <span
+                    className="profile__purchase-spinner profile__summary-spinner"
+                    role="status"
+                    aria-label="Loading credit balance"
+                  />
+                </div>
+              )}
               <div className="profile__credits-total">
                 <strong>{subscription ? creditsRemaining : 0}</strong>
                 <span>/ {subscription ? creditsTotal : 0}</span>

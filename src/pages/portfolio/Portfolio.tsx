@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
+import Button from "../../components/button/Button";
 import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
 import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
-import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
@@ -47,6 +50,7 @@ function PortfolioForCurrentUser() {
     cardId: string;
     cardName: string;
   } | null>(null);
+  const [updatingRemovalId, setUpdatingRemovalId] = useState<string | null>(null);
   const [pendingPriceSource, setPendingPriceSource] = useState<{
     cardId: string;
     priceSource: string;
@@ -54,7 +58,6 @@ function PortfolioForCurrentUser() {
   const [updatingPriceSourceId, setUpdatingPriceSourceId] = useState<string | null>(
     null,
   );
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -180,6 +183,13 @@ function PortfolioForCurrentUser() {
 
     setPortfolio((current) => current.filter((card) => card.id !== cardId));
     setPendingRemoval(null);
+    setUpdatingRemovalId(pendingRemoval.cardId);
+    try {
+      await removePokemonFromPortfolio(pendingRemoval.cardId, false);
+    } finally {
+      setUpdatingRemovalId(null);
+      setPendingRemoval(null);
+    }
   };
 
   const confirmPriceSourceChange = async () => {
@@ -228,28 +238,7 @@ function PortfolioForCurrentUser() {
   }
 
   if (!user) {
-    return (
-      <main className="portfolio portfolio--status ui-render-fade" key="logged-out">
-        <h1>Log in to view your collection</h1>
-        <p>
-          <button
-            onClick={() => navigate("/signup")}
-            className="portfolio__link"
-          >
-            Sign up
-          </button>
-          {" or "}
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="portfolio__link"
-          >
-            log in
-          </button>
-          {" to access your collection."}
-        </p>
-        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
-      </main>
-    );
+    return <Navigate to="/" replace />;
   }
 
   if (portfolioError) {
@@ -335,6 +324,12 @@ function PortfolioForCurrentUser() {
               <p>Cards you add to your portfolio will appear here.</p>
             </>
           )}
+          <h2>No saved cards yet</h2>
+          <p>Cards you add to your portfolio will appear here.</p>
+          <Button onClick={() => navigate("/search")}>
+            <Search aria-hidden="true" />
+            Find cards
+          </Button>
         </div>
       ) : (
         <GridView>
@@ -353,6 +348,7 @@ function PortfolioForCurrentUser() {
                 <PokemonCard
                   card={card}
                   quantity={card.quantity}
+                  showRarityBadge
                   selectedPriceOptionId={card.priceSource ?? null}
                   pendingPriceOptionId={
                     pendingPriceSource?.cardId === card.id
@@ -445,6 +441,7 @@ function PortfolioForCurrentUser() {
                       label="Delete?"
                       confirmLabel="OK"
                       aria-label="Confirm card removal"
+                      confirming={updatingRemovalId === card.id}
                       onConfirm={() => {
                         void confirmRemoval();
                       }}

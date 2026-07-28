@@ -365,13 +365,15 @@ You are an expert researcher for serious Pokémon TCG collectors and investors.
 Provide the latest and most important news from the past 30 days only.
 Focus on: major set announcements, valuable card reveals, population report updates,
 price spikes/crashes, grading news, tournaments, scandals, official PSA/Beckett/CGC updates,
-and high-value sales. Use reliable sources.
+and high-value sales. Use reliable sources. Choose accurate short labels, such as
+"release", "set reveal", "promo", "market", "grading", "population", "high-value sale", "restock", "competitive", "industry"
 
 Respond strictly in this JSON format (no extra text outside the JSON):
 
 { "date": "YYYY-MM-DD", "items":
  [
 { "headline": "Short headline",
+  "label": "new release",
   "summary": "1-4 sentence summary",
    "action": ["Bullet point 1 if valuable", "Bullet point 2"],
    "url": "https://direct-article-link.com" }

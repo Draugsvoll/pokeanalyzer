@@ -1,4 +1,5 @@
 import { Layers3 } from "lucide-react";
+import { formatDateStamp } from "../../../../../utils/formatDateStamp";
 import "./JustTcgVariants.scss";
 
 type JsonRecord = Record<string, unknown>;
@@ -12,15 +13,14 @@ type JustTcgVariant = {
   allTimeHighDate?: string;
   allTimeLow?: number;
   allTimeLowDate?: string;
+  updatedAt?: string;
 };
 
 type JustTcgVariantGroup = {
   id: string;
-  pokemonName: string;
-  cardNumber: string;
   printing: string;
-  setName: string;
   variants: JustTcgVariant[];
+  updatedAt?: string;
 };
 
 type JustTcgVariantsProps = {
@@ -67,20 +67,6 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
     if (!isRecord(card) || !Array.isArray(card.variants)) return [];
 
     const cardId = String(card.id ?? cardIndex);
-    const pokemonName =
-      typeof card.name === "string" && card.name
-        ? card.name
-        : "Unknown card";
-    const setName =
-      typeof card.set_name === "string" && card.set_name
-        ? card.set_name
-        : "Unknown set";
-    const cardNumber =
-      typeof card.number === "string" && card.number.trim()
-        ? card.number.trim()
-        : typeof card.number === "number" && Number.isFinite(card.number)
-          ? String(card.number)
-          : "";
     const variants = card.variants
       .filter(isRecord)
       .map((variant, variantIndex) => ({
@@ -105,6 +91,7 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
         allTimeLowDate: optionalDateString(
           variant.minPriceAllTimeDate ?? variant.minPriceAllTime_date,
         ),
+        updatedAt: optionalDateString(variant.lastUpdated),
       }));
 
     return Object.entries(
@@ -114,14 +101,15 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
       }, {})
     ).map(([printing, groupedVariants]) => ({
       id: `${cardId}-${printing}`,
-      pokemonName,
-      cardNumber,
       printing,
-      setName,
       variants: [...groupedVariants].sort(
         (first, second) =>
           (second.price ?? -Infinity) - (first.price ?? -Infinity)
       ),
+      updatedAt: groupedVariants
+        .map((variant) => variant.updatedAt)
+        .filter((value): value is string => Boolean(value))
+        .sort((first, second) => Date.parse(second) - Date.parse(first))[0],
     }));
   });
 }
@@ -134,58 +122,8 @@ function formatUsd(value: number | undefined): string {
   }).format(value);
 }
 
-const UPDATED_AT_KEYS = [
-  "updated",
-  "updatedAt",
-  "updated_at",
-  "last_updated",
-  "lastUpdated",
-  "priceUpdatedAt",
-  "price_updated_at",
-] as const;
-
-function readUpdatedAt(value: unknown): string | null {
-  if (!isRecord(value)) return null;
-  for (const key of UPDATED_AT_KEYS) {
-    const field = value[key];
-    if (typeof field === "string" && field.trim()) return field.trim();
-  }
-  return null;
-}
-
-function getJustTcgUpdatedAt(response: unknown): string | null {
-  const topLevel = readUpdatedAt(response);
-  if (topLevel) return topLevel;
-
-  if (!isRecord(response) || !Array.isArray(response.data)) return null;
-
-  for (const card of response.data) {
-    const cardUpdated = readUpdatedAt(card);
-    if (cardUpdated) return cardUpdated;
-    if (!isRecord(card) || !Array.isArray(card.variants)) continue;
-    for (const variant of card.variants) {
-      const variantUpdated = readUpdatedAt(variant);
-      if (variantUpdated) return variantUpdated;
-    }
-  }
-
-  return null;
-}
-
-function formatUpdatedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}/${month}/${day}`;
-}
-
 export function JustTcgVariants({ response }: JustTcgVariantsProps) {
   const groups = parseVariantGroups(response);
-  const updatedAt =
-    getJustTcgUpdatedAt(response) ?? new Date().toISOString().slice(0, 10);
 
   if (!groups.length) {
     return (
@@ -193,17 +131,17 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
         <header className="just-tcg-variants__source-header">
           <h2 className="app-subheader">Just_TCG (Aggregator of price data)</h2>
         </header>
-        <section className="just-tcg-variants__section just-tcg-variants__section--empty">
-          <header>
-            <div className="just-tcg-variants__heading">
+        <div className="just-tcg-variants__list">
+          <section className="just-tcg-variants__section just-tcg-variants__section--empty">
+            <header>
               <span className="just-tcg-variants__brand">JustTCG</span>
+            </header>
+            <div className="just-tcg-variants__empty">
+              <strong>Price data unavailable</strong>
+              <span>JustTCG did not return usable pricing for this card.</span>
             </div>
-          </header>
-          <div className="just-tcg-variants__empty">
-            <strong>Price data unavailable</strong>
-            <span>JustTCG did not return usable pricing for this card.</span>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     );
   }
@@ -213,105 +151,99 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
       <header className="just-tcg-variants__source-header">
         <h2 className="app-subheader">Just_TCG (Aggregator of price data)</h2>
       </header>
-      {groups.map(({ id, pokemonName, cardNumber, printing, setName, variants }) => {
-        const reverse = printing.toLowerCase().includes("reverse");
+      <div className="just-tcg-variants__list">
+        {groups.map(({ id, printing, variants, updatedAt }) => {
+          const reverse = printing.toLowerCase().includes("reverse");
 
-        return (
-          <section
-            className={`just-tcg-variants__section${reverse ? " just-tcg-variants__section--reverse" : ""}`}
-            key={id}
-          >
-            <header>
-              <div className="just-tcg-variants__heading">
+          return (
+            <div className="just-tcg-variants__section-block" key={id}>
+            <section
+              className={`just-tcg-variants__section${reverse ? " just-tcg-variants__section--reverse" : ""}`}
+            >
+              <header>
+                <div className="just-tcg-variants__heading">
+                  <div className="just-tcg-variants__printing">
+                    <Layers3 aria-hidden="true" />
+                    <span>{printing}</span>
+                  </div>
+                </div>
                 <span className="just-tcg-variants__brand">JustTCG</span>
-                <div className="just-tcg-variants__printing">
-                  <Layers3 aria-hidden="true" />
-                  <span>{printing}</span>
-                </div>
-                <div className="just-tcg-variants__identity">
-                  <strong className="just-tcg-variants__pokemon-name">{pokemonName}</strong>
-                  {cardNumber && (
-                    <>
-                      <i aria-hidden="true">•</i>
-                      <span className="just-tcg-variants__card-number">{cardNumber}</span>
-                    </>
-                  )}
-                  <i aria-hidden="true">•</i>
-                  <span className="just-tcg-variants__set-name">{setName}</span>
-                </div>
+                <small>Sorted by price</small>
+              </header>
+
+              <div className="just-tcg-variants__table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Condition</th>
+                      <th>Current Price</th>
+                      <th>Below ATH</th>
+                      <th>All-Time High</th>
+                      <th>All-Time Low</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {variants.map((variant) => {
+                      const canCalculateBelowAth =
+                        variant.price !== undefined &&
+                        variant.allTimeHigh !== undefined &&
+                        variant.allTimeHigh > 0;
+                      const belowAmount = canCalculateBelowAth
+                        ? Math.max(0, variant.allTimeHigh! - variant.price!)
+                        : undefined;
+                      const belowPercent = canCalculateBelowAth
+                        ? (belowAmount! / variant.allTimeHigh!) * 100
+                        : undefined;
+                      const athDate = formatPriceStamp(variant.allTimeHighDate);
+                      const atlDate = formatPriceStamp(variant.allTimeLowDate);
+
+                      return (
+                        <tr key={variant.id}>
+                          <td>{variant.condition}</td>
+                          <td className="just-tcg-variants__current">{formatUsd(variant.price)}</td>
+                          <td className="just-tcg-variants__below">
+                            {belowAmount === undefined ? (
+                              "—"
+                            ) : (
+                              <><span>-{formatUsd(belowAmount)}</span><small>({belowPercent!.toFixed(1)}%)</small></>
+                            )}
+                          </td>
+                          <td className="just-tcg-variants__high">
+                            <span className="just-tcg-variants__stat">
+                              <span className="just-tcg-variants__stat-value">
+                                {formatUsd(variant.allTimeHigh)}
+                              </span>
+                              {athDate && (
+                                <small className="just-tcg-variants__stat-date">{athDate}</small>
+                              )}
+                            </span>
+                          </td>
+                          <td className="just-tcg-variants__low">
+                            <span className="just-tcg-variants__stat">
+                              <span className="just-tcg-variants__stat-value">
+                                {formatUsd(variant.allTimeLow)}
+                              </span>
+                              {atlDate && (
+                                <small className="just-tcg-variants__stat-date">{atlDate}</small>
+                              )}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <small>Sorted by price</small>
-            </header>
-
-            <div className="just-tcg-variants__table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Condition</th>
-                    <th>Current Price</th>
-                    <th>Below ATH</th>
-                    <th>All-Time High</th>
-                    <th>All-Time Low</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {variants.map((variant) => {
-                    const canCalculateBelowAth =
-                      variant.price !== undefined &&
-                      variant.allTimeHigh !== undefined &&
-                      variant.allTimeHigh > 0;
-                    const belowAmount = canCalculateBelowAth
-                      ? Math.max(0, variant.allTimeHigh! - variant.price!)
-                      : undefined;
-                    const belowPercent = canCalculateBelowAth
-                      ? (belowAmount! / variant.allTimeHigh!) * 100
-                      : undefined;
-                    const athDate = formatPriceStamp(variant.allTimeHighDate);
-                    const atlDate = formatPriceStamp(variant.allTimeLowDate);
-
-                    return (
-                      <tr key={variant.id}>
-                        <td>{variant.condition}</td>
-                        <td className="just-tcg-variants__current">{formatUsd(variant.price)}</td>
-                        <td className="just-tcg-variants__below">
-                          {belowAmount === undefined ? (
-                            "—"
-                          ) : (
-                            <><span>-{formatUsd(belowAmount)}</span><small>({belowPercent!.toFixed(1)}%)</small></>
-                          )}
-                        </td>
-                        <td className="just-tcg-variants__high">
-                          <span className="just-tcg-variants__stat">
-                            <span className="just-tcg-variants__stat-value">
-                              {formatUsd(variant.allTimeHigh)}
-                            </span>
-                            {athDate && (
-                              <small className="just-tcg-variants__stat-date">{athDate}</small>
-                            )}
-                          </span>
-                        </td>
-                        <td className="just-tcg-variants__low">
-                          <span className="just-tcg-variants__stat">
-                            <span className="just-tcg-variants__stat-value">
-                              {formatUsd(variant.allTimeLow)}
-                            </span>
-                            {atlDate && (
-                              <small className="just-tcg-variants__stat-date">{atlDate}</small>
-                            )}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            </section>
+            {updatedAt && (
+              <p className="app-view-datestamp">
+                Last updated: {formatDateStamp(updatedAt)}
+              </p>
+            )}
             </div>
-          </section>
-        );
-      })}
-      <p className="just-tcg-variants__updated">
-        Data updated {formatUpdatedAt(updatedAt)}
-      </p>
+          );
+        })}
+      </div>
     </div>
   );
 }
