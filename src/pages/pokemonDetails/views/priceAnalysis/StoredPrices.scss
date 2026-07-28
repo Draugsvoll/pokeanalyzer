@@ -4,8 +4,13 @@
   /* One source card per row */
   &__grid {
     display: grid;
-    gap: 2.2rem;
     grid-template-columns: 1fr;
+    row-gap: var(--card-view-section-gap);
+  }
+
+  &__source-block {
+    display: grid;
+    row-gap: var(--card-view-datestamp-gap);
   }
 
   &__source {
@@ -94,7 +99,7 @@
     font-size: var(--font-size-price-lg);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--font-tracking-button);
+    letter-spacing: var(--font-tracking-tight);
     line-height: 1;
     white-space: nowrap;
   }
@@ -164,7 +169,7 @@
       font-size: var(--font-size-paragraph);
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
-      letter-spacing: 0.03rem;
+      letter-spacing: var(--font-tracking-tight);
       line-height: 1.1;
     }
 
@@ -229,12 +234,6 @@
     }
   }
 
-  &__updated {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-caption);
-    margin: 1rem 0 0;
-    text-align: center;
-  }
 }
 
 @media (max-width: 40rem) {

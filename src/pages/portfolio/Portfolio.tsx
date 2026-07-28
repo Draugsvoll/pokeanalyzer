@@ -40,6 +40,7 @@ export default function Portfolio() {
     cardId: string;
     cardName: string;
   } | null>(null);
+  const [updatingRemovalId, setUpdatingRemovalId] = useState<string | null>(null);
   const [pendingPriceSource, setPendingPriceSource] = useState<{
     cardId: string;
     priceSource: string;
@@ -97,8 +98,13 @@ export default function Portfolio() {
   const confirmRemoval = async () => {
     if (!pendingRemoval) return;
 
-    await removePokemonFromPortfolio(pendingRemoval.cardId, false);
-    setPendingRemoval(null);
+    setUpdatingRemovalId(pendingRemoval.cardId);
+    try {
+      await removePokemonFromPortfolio(pendingRemoval.cardId, false);
+    } finally {
+      setUpdatingRemovalId(null);
+      setPendingRemoval(null);
+    }
   };
 
   const confirmPriceSourceChange = async () => {
@@ -211,6 +217,7 @@ export default function Portfolio() {
                 <PokemonCard
                   card={card}
                   quantity={card.quantity}
+                  showRarityBadge
                   selectedPriceOptionId={card.priceSource ?? null}
                   pendingPriceOptionId={
                     pendingPriceSource?.cardId === card.id
@@ -303,6 +310,7 @@ export default function Portfolio() {
                       label="Delete?"
                       confirmLabel="OK"
                       aria-label="Confirm card removal"
+                      confirming={updatingRemovalId === card.id}
                       onConfirm={() => {
                         void confirmRemoval();
                       }}

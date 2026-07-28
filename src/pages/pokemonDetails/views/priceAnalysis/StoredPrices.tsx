@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
+import { formatDateStamp } from "../../../../utils/formatDateStamp";
 import "./StoredPrices.scss";
 
 type FlatPriceField = { label: string; value: number | string };
@@ -94,6 +95,7 @@ type SourceCardProps = {
   hasPrices: boolean;
   legend: { term: string; text: string }[];
   cardName: string;
+  updatedAt?: string;
 };
 
 function SourceCard({
@@ -109,68 +111,77 @@ function SourceCard({
   hasPrices,
   legend,
   cardName,
+  updatedAt,
 }: SourceCardProps) {
   return (
-    <article className={`stored-prices__source stored-prices__source--${accent}`}>
-      <header className="stored-prices__header">
-        <div className="stored-prices__identity">
-          <h3>{title}</h3>
-          <div className="stored-prices__meta">
-            <span className="stored-prices__region">{region}</span>
-            {url && (
-              <a
-                className="stored-prices__link"
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`View ${cardName} on ${title}`}
-              >
-                View Card
-                <ExternalLink aria-hidden="true" />
-              </a>
-            )}
-          </div>
-        </div>
-        <div className="stored-prices__hero">
-          <strong className="stored-prices__hero-price">{heroPrice}</strong>
-          <span className="stored-prices__hero-label">{heroLabel}</span>
-        </div>
-      </header>
-
-      {hasPrices ? (
-        <div className="stored-prices__groups">
-          {groups.map(([name, fields], groupIndex) => (
-            <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
-              <h4>{name === "Prices" ? null : name}</h4>
-              {fields.map((field) => (
-                <div
-                  className={`stored-prices__price${
-                    highlight.test(field.label) ? " stored-prices__price--highlight" : ""
-                  }`}
-                  key={`${name}-${groupIndex}-${field.label}`}
+    <div className="stored-prices__source-block">
+      <article className={`stored-prices__source stored-prices__source--${accent}`}>
+        <header className="stored-prices__header">
+          <div className="stored-prices__identity">
+            <h3>{title}</h3>
+            <div className="stored-prices__meta">
+              <span className="stored-prices__region">{region}</span>
+              {url && (
+                <a
+                  className="stored-prices__link"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`View ${cardName} on ${title}`}
                 >
-                  <span>{field.label}</span>
-                  <strong>{formatPrice(field.value, currency)}</strong>
-                </div>
-              ))}
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="stored-prices__empty">
-          <strong>Price data unavailable</strong>
-          <span>{title} did not return usable pricing for this card.</span>
-        </div>
-      )}
+                  View Card
+                  <ExternalLink aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="stored-prices__hero">
+            <strong className="stored-prices__hero-price">{heroPrice}</strong>
+            <span className="stored-prices__hero-label">{heroLabel}</span>
+          </div>
+        </header>
 
-      <footer className="stored-prices__legend">
-        {legend.map((item) => (
-          <p key={item.term}>
-            <strong>{item.term}:</strong> {item.text}
-          </p>
-        ))}
-      </footer>
-    </article>
+        {hasPrices ? (
+          <div className="stored-prices__groups">
+            {groups.map(([name, fields], groupIndex) => (
+              <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
+                <h4>{name === "Prices" ? null : name}</h4>
+                {fields.map((field) => (
+                  <div
+                    className={`stored-prices__price${
+                      highlight.test(field.label) ? " stored-prices__price--highlight" : ""
+                    }`}
+                    key={`${name}-${groupIndex}-${field.label}`}
+                  >
+                    <span>{field.label}</span>
+                    <strong>{formatPrice(field.value, currency)}</strong>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="stored-prices__empty">
+            <strong>Price data unavailable</strong>
+            <span>{title} did not return usable pricing for this card.</span>
+          </div>
+        )}
+
+        <footer className="stored-prices__legend">
+          {legend.map((item) => (
+            <p key={item.term}>
+              <strong>{item.term}:</strong> {item.text}
+            </p>
+          ))}
+        </footer>
+      </article>
+
+      {updatedAt && (
+        <p className="app-view-datestamp">
+          Last updated: {formatDateStamp(updatedAt)}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -215,59 +226,56 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
   const cardmarketTrend = cardmarketFields.find((field) => /trend price$/i.test(field.label));
   const tcgplayerUrl = getSafeSourceUrl(card.tcgplayer?.url);
   const cardmarketUrl = getSafeSourceUrl(card.cardmarket?.url);
-  const updatedAt = card.tcgplayer?.updatedAt ?? card.cardmarket?.updatedAt;
 
   return (
     <div className="stored-prices">
       <div className="stored-prices__grid">
         {hasTcgplayerSource && (
           <SourceCard
-          accent="tcgplayer"
-          title="TCGPlayer"
-          region="US Market"
-          url={tcgplayerUrl}
-          heroPrice={tcgMarket ? formatPrice(tcgMarket.value, "USD") : "—"}
-          heroLabel="Market Price"
-          groups={tcgGroups}
+            accent="tcgplayer"
+            title="TCGPlayer"
+            region="US Market"
+            url={tcgplayerUrl}
+            heroPrice={tcgMarket ? formatPrice(tcgMarket.value, "USD") : "—"}
+            heroLabel="Market Price"
+            groups={tcgGroups}
             currency="USD"
             highlight={/market/i}
             hasPrices={tcgFields.length > 0}
             cardName={card.name}
+            updatedAt={card.tcgplayer?.updatedAt}
             legend={[
               { term: "Market Price", text: "Average based on recent sales" },
               { term: "Low/Mid/High", text: "Current listing range" },
             ]}
-            />
-          )}
-          {hasCardmarketSource && (
-            <SourceCard
-              accent="cardmarket"
-              title="Cardmarket"
-              region="EU Market"
-              url={cardmarketUrl}
-              heroPrice={
-                cardmarketTrend ? formatPrice(cardmarketTrend.value, "EUR") : "—"
-              }
-              heroLabel="Trend Price"
-              groups={cardmarketGroups}
-              currency="EUR"
-              highlight={/trend/i}
-              hasPrices={cardmarketFields.length > 0}
-              cardName={card.name}
-              legend={[
-                { term: "Trend Price", text: "Algorithmic market value." },
-                {
-                  term: "Average Sell Price",
-                  text: "Low volume cards can have drastic price fluctuations.",
-                },
-              ]}
-            />
-          )}
+          />
+        )}
+        {hasCardmarketSource && (
+          <SourceCard
+            accent="cardmarket"
+            title="Cardmarket"
+            region="EU Market"
+            url={cardmarketUrl}
+            heroPrice={
+              cardmarketTrend ? formatPrice(cardmarketTrend.value, "EUR") : "—"
+            }
+            heroLabel="Trend Price"
+            groups={cardmarketGroups}
+            currency="EUR"
+            highlight={/trend/i}
+            hasPrices={cardmarketFields.length > 0}
+            cardName={card.name}
+            updatedAt={card.cardmarket?.updatedAt}
+            legend={[
+              { term: "Trend Price", text: "Algorithmic market value." },
+              {
+                term: "Average Sell Price",
+                text: "Low volume cards can have drastic price fluctuations.",
+              },
+            ]}
+          />
+        )}
       </div>
-
-      {updatedAt && (
-        <p className="stored-prices__updated">Data updated {updatedAt}</p>
-      )}
     </div>
   );
 }

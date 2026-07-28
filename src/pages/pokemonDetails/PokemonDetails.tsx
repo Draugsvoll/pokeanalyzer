@@ -593,19 +593,31 @@ export default function PokemonDetails() {
                     variant="portfolio"
                     disabled={updatingPortfolio}
                     onClick={handlePortfolioToggle}
-                    aria-label={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
+                    aria-label={
+                      updatingPortfolio
+                        ? "Updating portfolio"
+                        : cardIsSaved
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
                     aria-pressed={cardIsSaved}
                     aria-busy={updatingPortfolio}
-                    title={cardIsSaved ? "Remove from portfolio" : "Add to portfolio"}
-                  >
-                    <Star aria-hidden="true" />
-                    <span>
-                      {updatingPortfolio
-                        ? "Updating..."
+                    title={
+                      updatingPortfolio
+                        ? "Updating portfolio"
                         : cardIsSaved
-                          ? "In portfolio"
-                          : "Add to portfolio"}
-                    </span>
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                    }
+                  >
+                    {updatingPortfolio ? (
+                      <span className="app-btn__spinner" aria-hidden="true" />
+                    ) : (
+                      <>
+                        <Star aria-hidden="true" />
+                        <span>{cardIsSaved ? "In portfolio" : "Add to portfolio"}</span>
+                      </>
+                    )}
                   </Button>
                   {portfolioConfirmation && (
                     <span className="card-view__portfolio-confirmation" role="status">

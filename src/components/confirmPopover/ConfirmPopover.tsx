@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import Button from "../button/Button";
 import "./ConfirmPopover.scss";
 
@@ -10,7 +10,6 @@ export type ConfirmPopoverProps = {
   onConfirm: () => void;
   onCancel: () => void;
   confirming?: boolean;
-  confirmingLabel?: string;
   confirmDisabled?: boolean;
   className?: string;
   "aria-label"?: string;
@@ -28,13 +27,40 @@ export function ConfirmPopover({
   onConfirm,
   onCancel,
   confirming = false,
-  confirmingLabel = "Updating...",
   confirmDisabled = false,
   className,
   "aria-label": ariaLabel,
 }: ConfirmPopoverProps) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const popover = popoverRef.current;
+    const anchor = popover?.parentElement;
+    if (!popover || !anchor) return;
+
+    const updatePlacement = () => {
+      popover.classList.remove("ui-confirm-popover--flip-left");
+
+      const popoverRect = popover.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+      const edgeGap = 8;
+      const overflowsRight = popoverRect.right > window.innerWidth - edgeGap;
+      const fitsLeft = anchorRect.left - popoverRect.width - edgeGap >= edgeGap;
+
+      popover.classList.toggle(
+        "ui-confirm-popover--flip-left",
+        overflowsRight && fitsLeft,
+      );
+    };
+
+    updatePlacement();
+    window.addEventListener("resize", updatePlacement);
+    return () => window.removeEventListener("resize", updatePlacement);
+  }, []);
+
   return (
     <div
+      ref={popoverRef}
       className={[
         "ui-popover-surface",
         "ui-confirm-popover",
@@ -54,9 +80,14 @@ export function ConfirmPopover({
         variant="default"
         size="xsmall"
         disabled={confirming || confirmDisabled}
+        aria-label={confirming ? `${confirmLabel} in progress` : undefined}
         onClick={onConfirm}
       >
-        {confirming ? confirmingLabel : confirmLabel}
+        {confirming ? (
+          <span className="app-btn__spinner" aria-hidden="true" />
+        ) : (
+          confirmLabel
+        )}
       </Button>
       <Button
         variant="default"

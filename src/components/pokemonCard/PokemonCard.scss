@@ -95,7 +95,7 @@
   font-size: var(--font-size-price-md);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0;
+  letter-spacing: var(--font-tracking-tight);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -317,6 +317,37 @@
   letter-spacing: var(--font-tracking-button);
   line-height: 1.4;
   margin-top: 0.3rem;
+}
+
+.pokemon-card__image {
+  line-height: 0;
+  position: relative;
+  width: 100%;
+}
+
+.pokemon-card__image > img {
+  display: block;
+}
+
+.pokemon-card__rarity {
+  background: rgba(17, 17, 26, 0.88);
+  border: 1px solid color-mix(in srgb, var(--custom-color-yellow) 42%, transparent);
+  border-radius: var(--border-radius-pill);
+  bottom: 0.5rem;
+  box-shadow: 0 0.3rem 0.9rem rgba(0, 0, 0, 0.32);
+  color: var(--custom-color-yellow);
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-semibold);
+  left: 0.5rem;
+  line-height: 1;
+  max-width: calc(100% - 1rem);
+  overflow: hidden;
+  padding: 0.3rem 0.55rem;
+  pointer-events: none;
+  position: absolute;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 1;
 }
 
 .pokemon-card__set {

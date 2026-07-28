@@ -31,6 +31,7 @@ type PokemonCardProps = {
   onConfirmPriceOption?: () => void | Promise<void>;
   onCancelPriceOption?: () => void;
   confirmingPriceOption?: boolean;
+  showRarityBadge?: boolean;
 };
 
 export function PokemonCard({
@@ -43,6 +44,7 @@ export function PokemonCard({
   onConfirmPriceOption,
   onCancelPriceOption,
   confirmingPriceOption = false,
+  showRarityBadge = false,
 }: PokemonCardProps) {
   const navigate = useNavigate();
   const sourcePanelId = useId();
@@ -135,7 +137,14 @@ export function PokemonCard({
           ×{quantity}
         </span>
       )}
-      <img src={card.images?.small} alt={card.name} />
+      <div className="pokemon-card__image">
+        <img src={card.images?.small} alt={card.name} />
+        {showRarityBadge && card.rarity && (
+          <span className="pokemon-card__rarity" title={card.rarity}>
+            {card.rarity}
+          </span>
+        )}
+      </div>
       <div className="pokemon-card__identity">
         <h2 className="pokemon-card__name" title={card.name}>{card.name}</h2>
         <span className="pokemon-card__set" title={card.set?.name}>

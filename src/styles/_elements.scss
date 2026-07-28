@@ -106,6 +106,28 @@ textarea {
   text-transform: uppercase;
 }
 
+/* Bottom-of-view update stamps and supporting date metadata in /card views */
+.app-view-datestamp {
+  color: var(--font-color-faint);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-regular);
+  grid-column: 1 / -1;
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-normal);
+  margin: 1rem 0 0;
+  padding: 0;
+  text-align: center;
+  width: 100%;
+
+  > * {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+}
+
 /* Shared interactive card hover (database results, eBay sold, etc.) */
 .card-hover {
   cursor: pointer;
@@ -177,5 +199,3 @@ textarea {
     color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
   }
 }
-
-

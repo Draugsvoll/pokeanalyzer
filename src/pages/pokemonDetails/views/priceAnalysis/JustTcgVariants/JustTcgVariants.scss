@@ -1,10 +1,9 @@
 .just-tcg-variants {
   display: grid;
-  gap: 2.5rem;
   grid-template-columns: 1fr;
   margin: 0 auto;
-  margin-top:1rem;
   max-width: 72rem;
+  row-gap: var(--card-view-header-gap);
   width: 100%;
 
   &__source-header {
@@ -12,8 +11,6 @@
     display: flex;
     grid-column: 1 / -1;
     justify-content: flex-start;
-    margin-bottom: -1rem;
-    margin-top: 1.5rem;
     padding: 0 0.25rem;
     text-align: left;
     width: 100%;
@@ -22,6 +19,16 @@
       color: var(--font-color-faint);
       font-size: var(--font-size-badge);
     }
+  }
+
+  &__list {
+    display: grid;
+    row-gap: var(--card-view-section-gap);
+  }
+
+  &__section-block {
+    display: grid;
+    row-gap: var(--card-view-datestamp-gap);
   }
 
   &__section {
@@ -46,6 +53,7 @@
     display: flex;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
+    position: relative;
   }
 
   &__heading {
@@ -59,13 +67,15 @@
   /* Quiet source stamp — secondary to printing badge + card name */
   &__brand {
     color: var(--font-color-faint);
-    flex: 0 0 auto;
     font-size: var(--font-size-overline);
     font-weight: var(--font-weight-bold);
+    left: 50%;
     letter-spacing: var(--font-tracking-wider);
     line-height: 1;
-    padding-right: 0.15rem;
+    position: absolute;
     text-transform: uppercase;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 
   &__printing {
@@ -82,42 +92,6 @@
     letter-spacing: var(--font-tracking-wide);
     line-height: 1;
     padding: 0.35rem 0.7rem;
-  }
-
-  &__identity {
-    align-items: baseline;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-    min-width: 0;
-    padding-left: 0.15rem;
-
-    i {
-      color: var(--font-color-faint);
-      font-style: normal;
-    }
-  }
-
-  &__card-number {
-    color: var(--font-color-secondary);
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-label);
-    font-variant-numeric: tabular-nums;
-    font-weight: var(--font-weight-medium);
-  }
-
-  &__set-name {
-    color: var(--font-color-muted);
-    font-size: var(--font-size-label);
-    overflow-wrap: anywhere;
-  }
-
-  &__pokemon-name {
-    color: var(--font-color-primary);
-    font-size: var(--font-size-price);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--font-leading-snug);
-    overflow-wrap: anywhere;
   }
 
   &__heading svg { height: 0.8rem; width: 0.8rem; }
@@ -154,7 +128,7 @@
     font-size: var(--font-size-paragraph) !important;
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.03rem;
+    letter-spacing: var(--font-tracking-tight);
   }
   &__below {
     color: var(--font-color-warning) !important;
@@ -165,7 +139,7 @@
   &__below span {
     font-size: var(--font-size-paragraph);
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.03rem;
+    letter-spacing: var(--font-tracking-tight);
   }
   &__below small {
     color: color-mix(in srgb, var(--font-color-warning) 70%, transparent);
@@ -195,7 +169,7 @@
   &__stat-value {
     font-size: var(--font-size-paragraph);
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.03rem;
+    letter-spacing: var(--font-tracking-tight);
     line-height: 1.1;
   }
 
@@ -236,15 +210,13 @@
     }
   }
 
-  &__updated {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-caption);
-    grid-column: 1 / -1;
-    margin: 0.25rem 0 0;
-    text-align: center;
-  }
 }
 
 @media (max-width: 40rem) {
   .just-tcg-variants__section > header { align-items: flex-start; flex-direction: column; gap: 0.6rem; }
+  .just-tcg-variants__brand {
+    left: auto;
+    position: static;
+    transform: none;
+  }
 }

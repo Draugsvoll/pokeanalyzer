@@ -53,7 +53,6 @@
   &__total-label {
     color: var(--font-color-secondary);
     display: block;
-    font-size: var(--font-size-overline);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-wide);
     line-height: 1.2;
@@ -113,10 +112,10 @@
     font-family: var(--font-family-price);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
-    letter-spacing: 0;
+    letter-spacing: var(--font-tracking-tight);
     line-height: 1.1;
     white-space: nowrap;
-    font-size: 1.3rem;
+    font-size: var(--font-size-h2);
   }
 
   &__total-market--usd &__total-market-label {
@@ -250,6 +249,11 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+
+    &.ui-confirm-popover--flip-left {
+      left: auto;
+      right: calc(100% + 0.55rem);
+    }
   }
 
   @media (max-width: 40rem) {

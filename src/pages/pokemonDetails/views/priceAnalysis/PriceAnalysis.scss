@@ -1,10 +1,32 @@
+.price-analysis-view {
+  display: grid;
+  gap: var(--card-view-section-gap);
+  width: 100%;
+}
+
+.price-analysis-view .app-view-datestamp {
+  margin-top: 0;
+}
+
 .grok-price-analysis {
   color: var(--font-color-body);
-  margin: 2rem auto;
+  display: grid;
+  margin: 0 auto;
   max-width: 64rem;
+  row-gap: var(--card-view-datestamp-gap);
   width: 100%;
 
-  &__markets { margin-top:1rem; display: grid; gap: 1.25rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  > div {
+    display: grid;
+    row-gap: var(--card-view-header-gap);
+  }
+
+  &__markets {
+    column-gap: 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--card-view-section-gap);
+  }
   &__market {
     --source-color: var(--custom-color-teal); --source-bg: rgba(56, 189, 248, 0.1);
     background: var(--bg2); border: var(--border); border-radius: var(--border-radius);
@@ -41,7 +63,7 @@
     display: block;
     font-family: var(--font-family-price);
     font-variant-numeric: tabular-nums;
-    letter-spacing: var(--font-tracking-wide);
+    letter-spacing: var(--font-tracking-tight);
     line-height: 1.1;
   }
   &__price strong {
@@ -68,7 +90,7 @@
     font-family: var(--font-family-price);
     font-size: var(--font-size-label);
     font-variant-numeric: tabular-nums;
-    letter-spacing: var(--font-tracking-wide);
+    letter-spacing: var(--font-tracking-tight);
     padding: 0.3rem 0.75rem;
   }
   &__notes {
@@ -95,19 +117,10 @@
     text-decoration: none;
   }
   &__market > a svg { height: 0.8rem; width: 0.8rem; }
-  &__footer {
-    color: var(--font-color-faint);
-    display: flex;
-    font-size: var(--font-size-caption);
-    gap: 0.75rem;
-    justify-content: center;
-    margin-top: 1rem;
-  }
 }
 
 @media (max-width: 46rem) {
   .grok-price-analysis {
     &__markets { grid-template-columns: 1fr; }
-    &__footer { align-items: center; flex-direction: column; }
   }
 }

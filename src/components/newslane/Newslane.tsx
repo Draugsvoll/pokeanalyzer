@@ -1,22 +1,38 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
+import {
+  getCustomColor,
+  type CustomColors,
+} from "../../utils/customStylings";
 import { BiggestMovers } from "./news/biggestMovers/BiggestMovers";
 import { GeneralNews } from "./news/general/GeneralNews";
 import "./Newslane.scss";
 
 type NewsCategory = "general" | "movers";
 
-const CATEGORIES: { id: NewsCategory; label: string }[] = [
-  { id: "general", label: "Latest News" },
-  { id: "movers", label: "Biggest Movers" },
-];
+type NewsCategoryConfig = {
+  color: CustomColors;
+  id: NewsCategory;
+  label: string;
+};
+
+const CATEGORIES = [
+  { color: "purple", id: "general", label: "Latest News" },
+  { color: "teal", id: "movers", label: "Biggest Movers" },
+] as const satisfies readonly NewsCategoryConfig[];
 
 export function NewsLane() {
   const [activeCategory, setActiveCategory] = useState<NewsCategory>("general");
+  const activeCategoryConfig =
+    CATEGORIES.find((category) => category.id === activeCategory) ??
+    CATEGORIES[0];
 
   return (
     <section
-      className={`news-lane news-lane--${activeCategory}`}
+      className="news-lane"
       aria-label="News"
+      style={{
+        "--news-accent": getCustomColor(activeCategoryConfig.color),
+      } as CSSProperties}
     >
       <header className="news-lane__header">
         <h2 className="news-lane__title">Market news</h2>
@@ -31,6 +47,9 @@ export function NewsLane() {
                 className={`news-lane__link${isActive ? " news-lane__link--active" : ""}`}
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => setActiveCategory(category.id)}
+                style={{
+                  "--category-accent": getCustomColor(category.color),
+                } as CSSProperties}
               >
                 {category.label}
               </button>

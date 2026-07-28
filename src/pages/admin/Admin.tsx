@@ -13,8 +13,10 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [adminCheck, setAdminCheck] = useState<{
+    status: "checking" | "allowed" | "denied";
+    uid: string | null;
+  }>({ status: "checking", uid: null });
   const [generatingNews, setGeneratingNews] = useState(false);
   const [generatedNews, setGeneratedNews] = useState("");
   const [newsMessage, setNewsMessage] = useState("");
@@ -25,28 +27,43 @@ export default function Admin() {
   const [moversError, setMoversError] = useState("");
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setCheckingAdmin(false);
-        return;
-      }
+    if (authLoading || !user) return;
 
+    const checkedUid = user.uid;
+    const controller = new AbortController();
+
+    const checkAdminStatus = async () => {
       try {
         const token = await user.getIdToken();
         const res = await fetch(`${API_URL}/api/admin/check`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
-        setIsAdmin(res.ok);
+
+        if (!controller.signal.aborted) {
+          setAdminCheck({
+            status: res.ok ? "allowed" : "denied",
+            uid: checkedUid,
+          });
+        }
       } catch {
-        setIsAdmin(false);
-      } finally {
-        setCheckingAdmin(false);
+        if (!controller.signal.aborted) {
+          setAdminCheck({ status: "denied", uid: checkedUid });
+        }
       }
     };
 
-    checkAdminStatus();
-  }, [user]);
+    void checkAdminStatus();
+    return () => controller.abort();
+  }, [authLoading, user]);
+
+  const adminCheckMatchesUser =
+    Boolean(user) && adminCheck.uid === user?.uid;
+  const checkingAdmin =
+    Boolean(user) &&
+    (!adminCheckMatchesUser || adminCheck.status === "checking");
+  const isAdmin =
+    adminCheckMatchesUser && adminCheck.status === "allowed";
 
   const generateNews = async () => {
     if (generatingNews) return;

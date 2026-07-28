@@ -11,8 +11,12 @@ const CUSTOM_COLORS: Record<CustomColors, string> = {
   blue: "var(--custom-color-blue)",
 };
 
+export function getCustomColor(color: CustomColors): string {
+  return CUSTOM_COLORS[color];
+}
+
 export function getCustomColors(color: CustomColors): CSSProperties {
   return {
-    "--feature-accent": CUSTOM_COLORS[color],
+    "--feature-accent": getCustomColor(color),
   } as CSSProperties;
 }

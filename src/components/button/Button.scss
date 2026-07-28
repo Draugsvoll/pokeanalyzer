@@ -208,6 +208,8 @@
   font-size: var(--font-size-badge);
   line-height: 1;
   min-height: 0;
+  min-width: 8.5rem;
+  overflow: hidden;
   padding: 0.48rem 0.7rem;
   white-space: nowrap;
 
@@ -218,8 +220,10 @@
   }
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--custom-color-yellow) 6%, transparent);
+    background: color-mix(in srgb, var(--custom-color-yellow) 9%, var(--bg2));
+    border-color: color-mix(in srgb, var(--custom-color-yellow) 30%, transparent);
     color: color-mix(in srgb, var(--custom-color-yellow) 75%, white);
+    filter: none;
   }
 
   &[aria-pressed="true"] {
@@ -228,6 +232,25 @@
 
     svg { fill: currentColor; }
   }
+
+  &[aria-busy="true"] {
+    opacity: 0.72;
+  }
+}
+
+.app-btn__spinner {
+  animation: app-btn-spin 0.75s linear infinite;
+  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: var(--border-radius-round);
+  border-top-color: currentColor;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+}
+
+@keyframes app-btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 .app-btn-pill--account {

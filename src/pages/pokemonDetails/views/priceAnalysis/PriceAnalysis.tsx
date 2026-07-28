@@ -5,6 +5,7 @@ import type { PokemonCard } from "../../../../types/pokemon";
 import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
 import { StoredPrices } from "./StoredPrices";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { formatDateStamp } from "../../../../utils/formatDateStamp";
 import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
@@ -82,9 +83,8 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
   const marketData = Array.isArray(parsed.market_data)
     ? parsed.market_data.filter(isRecord)
     : [];
-  const currencyReference = isRecord(parsed.currency_reference)
-    ? parsed.currency_reference
-    : null;
+  const lastUpdated = text(parsed.last_updated);
+
   return (
     <section className="grok-price-analysis ui-render-fade">
       {marketData.length > 0 && (
@@ -172,17 +172,10 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
         </div>
       )}
 
-      {(text(parsed.last_updated) || currencyReference) && (
-        <footer className="grok-price-analysis__footer">
-          {text(parsed.last_updated) && <span>Last updated: {text(parsed.last_updated)}</span>}
-          {currencyReference && [text(currencyReference.primary), text(currencyReference.secondary)].some(Boolean) && (
-            <span>
-              Currencies: {[text(currencyReference.primary), text(currencyReference.secondary)]
-                .filter(Boolean)
-                .join(" / ")}
-            </span>
-          )}
-        </footer>
+      {lastUpdated && (
+        <p className="app-view-datestamp">
+          Last updated: {formatDateStamp(lastUpdated)}
+        </p>
       )}
     </section>
   );
@@ -212,10 +205,10 @@ export function PriceAnalysis({
   justTcgRequest,
 }: PriceAnalysisProps) {
   return (
-    <>
+    <div className="price-analysis-view">
       <StoredPrices card={card} />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
-    </>
+    </div>
   );
 }
