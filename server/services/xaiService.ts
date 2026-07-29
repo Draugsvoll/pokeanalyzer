@@ -131,7 +131,7 @@ async function requestGrokResponseOnce(
       model: DEFAULT_GROK_MODEL,
       temperature: 0.0,
       reasoning: {
-        effort: "medium", // none | low | medium | high
+        effort: "low", // none | low | medium | high
       },
       instructions: "Answer the user's message clearly and concisely.",
       input,

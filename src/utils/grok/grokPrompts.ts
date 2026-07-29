@@ -99,18 +99,25 @@ and shall only be filled if you have reliable data.
   }
 }
 `
+const sellMyCard: string = `
+  How much should i sell this card for? give a summarized response in a valid json format.
+  No extra text before or after the JSON format. The format must strictly be a list of steps,
+  and each step then have a list of substeps.
 
-export function priceAnalysisPrompt(
-  name: string,
-  setName: string,
-  number: string | number
-): string {
-  return `"name": ${JSON.stringify(name)},
-          "set": ${JSON.stringify(setName)},
-          "number": ${JSON.stringify(String(number))},
+  The first step must be price recomendations,
+  include different conditions/grading. Dont make a step about inspecting condition.
+  For the first step, every substep must be an object with exactly two fields:
+  "label" for the condition or grade, and "price" for its recommended price range.
 
-          ${priceAnalysis}`;
-}
+  The second step lets me know the general sales volume of this card and what sources everything is based on.
+  Use reliable sources and make sure we know roughly how often it sells. For example per week, month, or year.
+
+  Other step(s): I need to know different marketplaces available and what each one is best for. How fast can i
+  realistically expect to sell it? Any other valuable information and how its applicable let me know.
+
+  Don't blend different categories together in a step. Name each step based on its content.
+
+`;
 
 const identifyCard: string =
 `
@@ -460,4 +467,29 @@ export function authenticityCheckPrompt(
       ...images.slice(1),
     ],
   };
+}
+
+export function priceAnalysisPrompt(
+  name: string,
+  setName: string,
+  number: string | number
+): string {
+  return `"name": ${JSON.stringify(name)},
+          "set": ${JSON.stringify(setName)},
+          "number": ${JSON.stringify(String(number))},
+
+          ${priceAnalysis}`;
+}
+
+export function sellMyCardPrompt(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number
+): string {
+  return `${sellMyCard.trim()}
+
+Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
 }

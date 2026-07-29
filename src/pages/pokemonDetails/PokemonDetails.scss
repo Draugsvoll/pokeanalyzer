@@ -199,7 +199,7 @@
   &__actions {
     width: 100%;
     max-width: var(--content-width);
-    justify-content: space-between;
+    justify-content: flex-start;
     scroll-margin-top: 1rem;
 
     .feature-button {

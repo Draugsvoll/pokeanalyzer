@@ -38,6 +38,7 @@ const ALLOWED_GROK_FEATURES = new Set([
   "market_news",
   "manual_test",
   "price_analysis",
+  "sell_price",
   "worth_grading",
 ]);
 
@@ -177,7 +178,7 @@ router.post("/", async (req: Request, res: Response) => {
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
     logError("Grok query route failed", error);
-    sendRouteError(res, error, "Grok query request failed");
+    sendRouteError(res, error, "Request failed");
   }
 });
 

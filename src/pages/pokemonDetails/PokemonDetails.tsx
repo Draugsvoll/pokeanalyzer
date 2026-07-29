@@ -26,6 +26,7 @@ import {
   collectorsAnalysisPrompt,
   isWorthGradingPrompt,
   priceAnalysisPrompt,
+  sellMyCardPrompt,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
@@ -39,6 +40,7 @@ import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
+import { SellPriceView } from "./views/SellPrice/SellPriceView";
 import {
   fetchJustTcgCard,
   verifyJustTcgCard,
@@ -80,10 +82,14 @@ type ActiveView =
   | "collector_analysis"
   | "ebay_sold"
   | "prices"
+  | "sell_price"
   | "worth_grading";
 
 type AI_feature = {
-  view: Extract<ActiveView, "prices" | "collector_analysis" | "ebay_sold" | "worth_grading">;
+  view: Extract<
+    ActiveView,
+    "prices" | "collector_analysis" | "ebay_sold" | "sell_price" | "worth_grading"
+  >;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -128,6 +134,15 @@ const AI_Features: AI_feature[] = [
     color: "pink",
     creditFeature: "worth_grading",
     headerLabel: "Grading analysis",
+  },
+  {
+    view: "sell_price",
+    title: "Sell Price",
+    description: "Where and what should i sell this card for?",
+    icon: BadgeDollarSign,
+    color: "yellow",
+    creditFeature: "sell_price",
+    headerLabel: "Selling recommendation",
   },
 ];
 
@@ -400,6 +415,7 @@ function PokemonDetailsForCard() {
     if (
       aiFeature.view !== "prices" &&
       aiFeature.view !== "collector_analysis" &&
+      aiFeature.view !== "sell_price" &&
       aiFeature.view !== "worth_grading"
     ) {
       return;
@@ -419,6 +435,15 @@ function PokemonDetailsForCard() {
 
     if (aiFeature.view === "worth_grading") {
       prompt = isWorthGradingPrompt(cardNameAndSet);
+    }
+
+    if (aiFeature.view === "sell_price") {
+      if (!card.number) {
+        setGrokError("This card has no card number");
+        setGrokResponse("");
+        return;
+      }
+      prompt = sellMyCardPrompt(card.name, card.set.name, card.number);
     }
 
     setGrokLoading(true);
@@ -901,6 +926,7 @@ function PokemonDetailsForCard() {
           </>
         )}
         {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
+        {activeView === "sell_price" && <SellPriceView grokRequest={grokRequest} />}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis grokRequest={grokRequest} />
         )}

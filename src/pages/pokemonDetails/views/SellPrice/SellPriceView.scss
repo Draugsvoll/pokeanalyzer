@@ -1,0 +1,182 @@
+.sell-price-view {
+  --sell-price-accent: var(--feature-accent, var(--custom-color-yellow));
+
+  display: grid;
+  gap: var(--card-view-section-gap);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sell-price-view__step,
+.sell-price-view__json {
+  background: var(--bg2);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.sell-price-view__steps {
+  display: grid;
+  gap: var(--card-view-section-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sell-price-view__step--pricing {
+  overflow: hidden;
+
+  > header {
+    border-bottom: 1px solid var(--border-divider);
+    padding: 1.4rem 1.65rem;
+
+    h3 {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h3);
+      margin: 0;
+    }
+  }
+
+  > ul {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 1.4rem 1.65rem 1.6rem;
+
+    li {
+      background: rgba(255, 255, 255, 0.035);
+      border-radius: var(--border-radius);
+      display: grid;
+      gap: 0.55rem;
+      min-width: 0;
+      padding: 1.25rem;
+    }
+
+    span {
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-paragraph-sm);
+    }
+
+    strong {
+      background: linear-gradient(
+        90deg,
+        var(--sell-price-accent),
+        color-mix(in srgb, var(--sell-price-accent) 72%, white)
+      );
+      background-clip: text;
+      color: transparent;
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-price-md);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--font-tracking-tight);
+      line-height: var(--font-leading-snug);
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
+.sell-price-view__step--guidance {
+  overflow: hidden;
+
+  > header {
+    align-items: center;
+    border-bottom: 1px solid var(--border-divider);
+    display: flex;
+    gap: 1rem;
+    padding: 1.4rem 1.65rem;
+
+    > span {
+      align-items: center;
+      background: color-mix(in srgb, var(--sell-price-accent) 18%, transparent);
+      border-radius: var(--border-radius-round);
+      color: var(--sell-price-accent);
+      display: inline-flex;
+      flex: 0 0 2.5rem;
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-price);
+      font-weight: var(--font-weight-bold);
+      height: 2.5rem;
+      justify-content: center;
+    }
+
+    h3 {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h3);
+      margin: 0;
+    }
+  }
+
+  > ul {
+    display: grid;
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 1.4rem 1.65rem 1.6rem 3.4rem;
+
+    li {
+      color: var(--font-color-secondary);
+      line-height: var(--font-leading-relaxed);
+      position: relative;
+
+      &::before {
+        background: var(--sell-price-accent);
+        border-radius: var(--border-radius-round);
+        content: "";
+        height: 0.5rem;
+        left: -1.7rem;
+        position: absolute;
+        top: 0.55rem;
+        width: 0.5rem;
+      }
+    }
+  }
+}
+
+.sell-price-view__json {
+  min-width: 0;
+  overflow: hidden;
+
+  h3 {
+    border-bottom: 1px solid var(--border-divider);
+    color: var(--font-color-primary);
+    margin: 0;
+    padding: 1rem 1.15rem;
+  }
+
+  pre {
+    color: var(--font-color-secondary);
+    font-family: monospace;
+    font-size: var(--font-size-caption);
+    line-height: 1.6;
+    margin: 0;
+    overflow-x: auto;
+    padding: 1rem 1.15rem;
+    white-space: pre;
+  }
+}
+
+@media (max-width: 36rem) {
+  .sell-price-view__step--pricing {
+    > header,
+    > ul {
+      padding-inline: 1.1rem;
+    }
+
+    > ul {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .sell-price-view__step--guidance {
+    > header {
+      padding-inline: 1.1rem;
+    }
+
+    > ul {
+      padding-inline: 2.8rem 1.1rem;
+    }
+  }
+}
