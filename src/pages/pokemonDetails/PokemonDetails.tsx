@@ -3,10 +3,15 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowDown,
   BadgeDollarSign,
+  CalendarDays,
   Gem,
+  Hash,
+  Layers3,
   LineChart,
+  Palette,
   Search,
   Star,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import "./PokemonDetails.scss";
@@ -64,6 +69,7 @@ const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 type CardInfoField = {
+  icon: LucideIcon;
   label: string;
   value: string | number | undefined;
   highlight?: boolean;
@@ -150,12 +156,21 @@ function formatReleaseDate(value: string | undefined) {
 
 function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   return [
-    { label: "Series", value: card.set?.series },
-    { label: "Rarity", value: card.rarity ?? "N/A", highlight: true },
-    { label: "Kortnummer", value: formatCardNumber(card) },
-    { label: "Set Total Cards", value: card.set.total },
-    { label: "Artist", value: card.artist },
-    { label: "Release Date", value: formatReleaseDate(card.set?.releaseDate) },
+    { icon: Layers3, label: "Series", value: card.set?.series },
+    {
+      icon: Gem,
+      label: "Rarity",
+      value: card.rarity ?? "N/A",
+      highlight: true,
+    },
+    { icon: Hash, label: "Card number", value: formatCardNumber(card) },
+    { icon: Tag, label: "Set size", value: card.set.total },
+    { icon: Palette, label: "Artist", value: card.artist },
+    {
+      icon: CalendarDays,
+      label: "Released",
+      value: formatReleaseDate(card.set?.releaseDate),
+    },
   ];
 }
 
@@ -682,18 +697,28 @@ function PokemonDetailsForCard() {
               )}
 
               <div className="card-view__info-grid">
-                {infoFields.map((field) => (
-                  <div key={field.label} className="card-view__info-item">
-                    <span className="card-view__label">{field.label}</span>
-                    <span
-                      className={`card-view__value${
-                        field.highlight ? " card-rarity-badge" : ""
-                      }`}
-                    >
-                      {field.value ?? "N/A"}
-                    </span>
-                  </div>
-                ))}
+                {infoFields.map((field) => {
+                  const FieldIcon = field.icon;
+
+                  return (
+                    <div key={field.label} className="card-view__info-item">
+                      <FieldIcon
+                        aria-hidden="true"
+                        className="card-view__info-icon"
+                      />
+                      <div className="card-view__info-copy">
+                        <span className="card-view__label">{field.label}</span>
+                        <span
+                          className={`card-view__value${
+                            field.highlight ? " card-view__value--highlight" : ""
+                          }`}
+                        >
+                          {field.value ?? "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="card-view__info-actions">

@@ -5,6 +5,7 @@ export const priceAnalysis: string =
 If the data is available, please show todays market prices for the pokemon card i provided.
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
+Make sure to include the source "PriceCharting" if it has available data.
 If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
 
 In market_data field, you can add different types of market price data, as long as its
@@ -328,7 +329,7 @@ in the form of summary/keywords, place the text before the number. Must be under
 Return a clean JSON object with exactly these keys:
 - verdict: A short, direct conclusion (1 sentence). Don't mention sales volume in this field.
 - market_summary: An object containing raw value, PSA 8, PSA 9, PSA 10, and grading cost
-- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read, dont use too many details and prices.
+- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read for humans, dont use too many details and prices.
 - action: A concise summary. 1-3 sentences. Keep it straight to the point and only valueable information.
 
 Card to analyze:

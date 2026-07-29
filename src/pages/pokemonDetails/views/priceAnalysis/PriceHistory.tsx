@@ -6,6 +6,7 @@ import {
   type CardPriceHistorySnapshot,
 } from "../../../../services/cardApi";
 import { logClientError } from "../../../../utils/logClientError";
+import { formatTcgPlayerVariantLabel } from "../../../../utils/pokemonPricing";
 import "./PriceHistory.scss";
 
 const HISTORY_DAYS = 7;
@@ -60,9 +61,12 @@ function getSeriesValue(
 
   const price = (prices as unknown as Record<string, unknown>)[field];
   if (source === "tcgplayerPrices") {
-    if (!price || typeof price !== "object" || Array.isArray(price)) return null;
+    if (!price || typeof price !== "object" || Array.isArray(price))
+      return null;
     const market = (price as Record<string, unknown>).market;
-    return typeof market === "number" && Number.isFinite(market) ? market : null;
+    return typeof market === "number" && Number.isFinite(market)
+      ? market
+      : null;
   }
 
   return typeof price === "number" && Number.isFinite(price) ? price : null;
@@ -82,7 +86,11 @@ function hasDateGaps(snapshots: CardPriceHistorySnapshot[]) {
   for (let index = 1; index < snapshots.length; index += 1) {
     const previous = parseSnapshotDate(snapshots[index - 1].recordedAt);
     const current = parseSnapshotDate(snapshots[index].recordedAt);
-    if (previous && current && current.getTime() - previous.getTime() > DAY_IN_MS) {
+    if (
+      previous &&
+      current &&
+      current.getTime() - previous.getTime() > DAY_IN_MS
+    ) {
       return true;
     }
   }
@@ -155,14 +163,42 @@ function SourceHistoryTable({
   source: PriceSource;
   title: string;
 }) {
-  const visibleSeries = series.filter((item) =>
+  const availableSeries = [...series];
+
+  if (source === "tcgplayerPrices") {
+    const knownFields = new Set(series.map((item) => item.field));
+
+    for (const snapshot of snapshots) {
+      const prices = snapshot.tcgplayerPrices;
+      if (!prices || typeof prices !== "object" || Array.isArray(prices)) {
+        continue;
+      }
+
+      for (const field of Object.keys(prices)) {
+        if (knownFields.has(field)) continue;
+        knownFields.add(field);
+        availableSeries.push({
+          field,
+          label: `${formatTcgPlayerVariantLabel(field) ?? field} market`,
+        });
+      }
+    }
+  }
+
+  const visibleSeries = availableSeries.filter((item) =>
     snapshots.some(
       (snapshot) => getSeriesValue(snapshot, source, item.field) !== null,
     ),
   );
+  const displayedSeries =
+    visibleSeries.length > 0
+      ? visibleSeries
+      : [{ field: "__unavailable__", label: "Price" }];
 
   return (
-    <article className={`price-history__source price-history__source--${accent}`}>
+    <article
+      className={`price-history__source price-history__source--${accent}`}
+    >
       <header className="price-history__source-header">
         <div>
           <h3>{title}</h3>
@@ -171,79 +207,75 @@ function SourceHistoryTable({
         <small>Recorded by your daily sync</small>
       </header>
 
-      {visibleSeries.length === 0 ? (
-        <p className="price-history__source-empty">
-          No {title} values are available in these snapshots.
-        </p>
-      ) : (
-        <div className="price-history__table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Recorded</th>
-                {visibleSeries.map((item) => (
-                  <th scope="col" key={item.field}>{item.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {snapshots.map((snapshot) => (
-                <tr key={snapshot.recordedAt}>
-                  <th scope="row">{formatSnapshotDate(snapshot.recordedAt)}</th>
-                  {visibleSeries.map((item) => {
-                    const value = getSeriesValue(snapshot, source, item.field);
-                    return (
-                      <td key={item.field}>
-                        {value === null ? (
-                          <span className="price-history__missing">—</span>
-                        ) : (
-                          formatPrice(value, currency)
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
+      <div className="price-history__table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Recorded</th>
+              {displayedSeries.map((item) => (
+                <th scope="col" key={item.field}>
+                  {item.label}
+                </th>
               ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row">Stored-period change</th>
-                {visibleSeries.map((item) => {
-                  const change = getSeriesChange(
-                    snapshots,
-                    source,
-                    item.field,
-                  );
+            </tr>
+          </thead>
+          <tbody>
+            {snapshots.map((snapshot) => (
+              <tr key={snapshot.recordedAt}>
+                <th scope="row">{formatSnapshotDate(snapshot.recordedAt)}</th>
+                {displayedSeries.map((item) => {
+                  const value = getSeriesValue(snapshot, source, item.field);
                   return (
                     <td key={item.field}>
-                      {change ? (
-                        <span
-                          className={`price-history__change price-history__change--${change.tone}`}
-                        >
-                          <strong>
-                            {formatChangeAmount(change.amount, currency)}
-                            {change.percent !== null && (
-                              <> ({change.percent > 0 ? "+" : ""}{change.percent.toFixed(1)}%)</>
-                            )}
-                          </strong>
-                          <small>
-                            {formatSnapshotDate(change.firstDate)} →{" "}
-                            {formatSnapshotDate(change.lastDate)}
-                          </small>
-                        </span>
+                      {value === null ? (
+                        <span className="price-history__missing">—</span>
                       ) : (
-                        <span className="price-history__insufficient">
-                          Need 2 prices
-                        </span>
+                        formatPrice(value, currency)
                       )}
                     </td>
                   );
                 })}
               </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Stored-period change</th>
+              {displayedSeries.map((item) => {
+                const change = getSeriesChange(snapshots, source, item.field);
+                return (
+                  <td key={item.field}>
+                    {change ? (
+                      <span
+                        className={`price-history__change price-history__change--${change.tone}`}
+                      >
+                        <strong>
+                          {formatChangeAmount(change.amount, currency)}
+                          {change.percent !== null && (
+                            <>
+                              {" "}
+                              ({change.percent > 0 ? "+" : ""}
+                              {change.percent.toFixed(1)}%)
+                            </>
+                          )}
+                        </strong>
+                        <small>
+                          {formatSnapshotDate(change.firstDate)} →{" "}
+                          {formatSnapshotDate(change.lastDate)}
+                        </small>
+                      </span>
+                    ) : (
+                      <span className="price-history__insufficient">
+                        Need 2 prices
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </article>
   );
 }
@@ -294,7 +326,10 @@ export function PriceHistory({ cardId }: { cardId: string }) {
   }, [cardId]);
 
   return (
-    <section className="price-history ui-render-fade" aria-labelledby="price-history-title">
+    <section
+      className="price-history ui-render-fade"
+      aria-labelledby="price-history-title"
+    >
       <header className="price-history__header">
         <div>
           <h2 className="app-subheader" id="price-history-title">
@@ -310,7 +345,10 @@ export function PriceHistory({ cardId }: { cardId: string }) {
       {loading && <LoadingState>Loading daily price history...</LoadingState>}
 
       {!loading && error && (
-        <p className="price-history__message price-history__message--error" role="status">
+        <p
+          className="price-history__message price-history__message--error"
+          role="status"
+        >
           {error} Current prices above are unaffected.
         </p>
       )}

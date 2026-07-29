@@ -17,7 +17,7 @@ export const CARD_GROK_FEATURES = {
   worth_grading: {
     storageKey: "worth_grading",
     // Change this number to control how long Worth grading is reused.
-    reuseDays: 1,
+    reuseDays: -1,
   },
 } as const;
 
