@@ -886,6 +886,8 @@ function PokemonDetailsForCard() {
         key={activeView}
         className={`card-view__page ui-render-fade${
           activeView === "prices" ? " card-view__page--prices" : ""
+        }${
+          activeView === "ebay_sold" ? " card-view__page--ebay" : ""
         }`}
         style={activeFeature ? getCustomColors(activeFeature.color) : undefined}
         aria-live="polite"

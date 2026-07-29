@@ -111,7 +111,7 @@ app.use((req, res, next) => {
 });
 app.use(attachRequestAbortSignal);
 app.use(
-  "/grok",
+  "/ai",
   requireVerifiedUser,
   grokLimiter,
   express.json({ limit: "28mb" }),

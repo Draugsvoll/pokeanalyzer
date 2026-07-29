@@ -28,7 +28,7 @@ export async function askGrok(
   cardId?: string,
 ): Promise<GrokResult> {
   try {
-    const res = await authenticatedFetch(`${API_URL}/grok`, {
+    const res = await authenticatedFetch(`${API_URL}/ai`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, feature, cardId }),

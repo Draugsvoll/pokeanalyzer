@@ -112,8 +112,12 @@ const sellMyCard: string = `
   The second step lets me know the general sales volume of this card and what sources everything is based on.
   Use reliable sources and make sure we know roughly how often it sells. For example per week, month, or year.
 
-  Other step(s): I need to know different marketplaces available and what each one is best for. How fast can i
-  realistically expect to sell it? Any other valuable information and how its applicable let me know.
+
+  Third step: How fast can i realistically expect to sell this card? consider different markets and conditions.
+
+  fourth step: I need to know different marketplaces available and what each one is best for.
+
+  Other steps:Any other valuable information and how its applicable let me know.
 
   Don't blend different categories together in a step. Name each step based on its content.
 

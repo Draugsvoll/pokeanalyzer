@@ -198,7 +198,6 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                 key={`${step.title}-${index}`}
               >
                 <header>
-                  <span>{index + 1}</span>
                   <h3>{step.title}</h3>
                 </header>
                 {step.details.length > 0 && (

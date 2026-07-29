@@ -8,6 +8,7 @@ import type {
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+export const SUBSCRIPTION_REFRESH_EVENT = "pokeanalyzer:subscription-refresh";
 
 async function subscriptionRequest<T>(
   user: User,
@@ -36,10 +37,12 @@ export function fetchSubscription(user: User) {
   return subscriptionRequest<SubscriptionResponse>(user, "/me");
 }
 
-export function initializeFreeSubscription(user: User) {
-  return subscriptionRequest<SubscriptionResponse>(user, "/initialize-free", {
+export async function initializeFreeSubscription(user: User) {
+  const response = await subscriptionRequest<SubscriptionResponse>(user, "/initialize-free", {
     method: "POST",
   });
+  window.dispatchEvent(new Event(SUBSCRIPTION_REFRESH_EVENT));
+  return response;
 }
 
 export function createMembershipCheckout(user: User, planId: MembershipPlanId) {

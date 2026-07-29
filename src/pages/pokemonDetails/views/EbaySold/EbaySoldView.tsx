@@ -241,8 +241,6 @@ export default function EbaySoldView({
         {sortedResults.map((result, index) => {
           const title = getField(result, "title") ?? "eBay sold listing";
           const url = getField(result, "url");
-          const condition = getField(result, "condition");
-          const bidCount = getField(result, "bidCount");
           const endedAt = getField(result, "endedAt");
           const seller = getField(result, "sellerUsername");
           const sellerPositive = getField(result, "sellerPositivePercent");
@@ -277,20 +275,11 @@ export default function EbaySoldView({
                   <div>
                     <h3>{formatHeadline(title)}</h3>
                     <div className="ebay-sold-view__badges">
-                      {condition && (
-                        <span className="ebay-sold-view__condition">{condition}</span>
-                      )}
-                      {bidCount && bidCount !== "N/A" && (
-                        <span><Gavel aria-hidden="true" /> {bidCount} bids</span>
-                      )}
-                      <span><CalendarDays aria-hidden="true" /> Sold {formatDate(endedAt)}</span>
+                      <span><CalendarDays aria-hidden="true" /> {formatDate(endedAt)}</span>
                     </div>
                   </div>
                   <div className="ebay-sold-view__price">
                     <div className="ebay-sold-view__price-row">
-                      <div className="ebay-sold-view__sold-badge">
-                        <small>Sold</small>
-                      </div>
                       <strong>{soldPrice}</strong>
                     </div>
                     {hasListingUrl && (

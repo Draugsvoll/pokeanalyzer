@@ -6,6 +6,7 @@ import {
   createBillingPortal,
   createMembershipCheckout,
   fetchSubscription,
+  SUBSCRIPTION_REFRESH_EVENT,
 } from "./subscriptionApi";
 import type {
   MembershipPlan,
@@ -17,6 +18,7 @@ import { logClientError } from "../utils/logClientError";
 export function useMembershipSubscription() {
   const { user } = useAuth();
   const subscriptionActionInProgressRef = useRef(false);
+  const subscriptionRefreshSequenceRef = useRef(0);
   const [membershipPlans, setMembershipPlans] =
     useState<MembershipPlan[]>(MEMBERSHIP_PLANS);
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
@@ -25,6 +27,8 @@ export function useMembershipSubscription() {
   const [subscriptionMessage, setSubscriptionMessage] = useState<string | null>(null);
 
   const refreshSubscription = useCallback(async (background = false) => {
+    const requestSequence = ++subscriptionRefreshSequenceRef.current;
+
     if (!user) {
       setSubscription(null);
       setLoadingSubscription(false);
@@ -34,15 +38,22 @@ export function useMembershipSubscription() {
     try {
       if (!background) setLoadingSubscription(true);
       const response = await fetchSubscription(user);
+      if (requestSequence !== subscriptionRefreshSequenceRef.current) return null;
       if (response.plans) setMembershipPlans(response.plans);
       setSubscription(response.subscription);
       return response.subscription;
     } catch (error) {
+      if (requestSequence !== subscriptionRefreshSequenceRef.current) return null;
       logClientError("Failed to fetch subscription", error);
       setSubscriptionMessage("Could not load subscription");
       return null;
     } finally {
-      if (!background) setLoadingSubscription(false);
+      if (
+        !background &&
+        requestSequence === subscriptionRefreshSequenceRef.current
+      ) {
+        setLoadingSubscription(false);
+      }
     }
   }, [user]);
 
@@ -115,6 +126,17 @@ export function useMembershipSubscription() {
     // Loading remote subscription state is the purpose of this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSubscription();
+  }, [refreshSubscription]);
+
+  useEffect(() => {
+    const handleSubscriptionRefresh = () => {
+      void refreshSubscription();
+    };
+
+    window.addEventListener(SUBSCRIPTION_REFRESH_EVENT, handleSubscriptionRefresh);
+    return () => {
+      window.removeEventListener(SUBSCRIPTION_REFRESH_EVENT, handleSubscriptionRefresh);
+    };
   }, [refreshSubscription]);
 
   useEffect(() => {
