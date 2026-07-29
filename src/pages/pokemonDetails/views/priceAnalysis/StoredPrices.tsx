@@ -1,4 +1,5 @@
-import { ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ChevronUp, ExternalLink, Layers3 } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { formatDateStamp } from "../../../../utils/formatDateStamp";
 import "./StoredPrices.scss";
@@ -96,6 +97,8 @@ type SourceCardProps = {
   legend: { term: string; text: string }[];
   cardName: string;
   updatedAt?: string;
+  showDetails: boolean;
+  onToggleDetails: () => void;
 };
 
 function SourceCard({
@@ -112,6 +115,8 @@ function SourceCard({
   legend,
   cardName,
   updatedAt,
+  showDetails,
+  onToggleDetails,
 }: SourceCardProps) {
   return (
     <div className="stored-prices__source-block">
@@ -127,9 +132,9 @@ function SourceCard({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`View ${cardName} on ${title}`}
+                  aria-label={`Buy ${cardName} on ${title}`}
                 >
-                  View Card
+                  Buy
                   <ExternalLink aria-hidden="true" />
                 </a>
               )}
@@ -141,46 +146,72 @@ function SourceCard({
           </div>
         </header>
 
-        {hasPrices ? (
-          <div className="stored-prices__groups">
-            {groups.map(([name, fields], groupIndex) => (
-              <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
-                <h4>{name === "Prices" ? null : name}</h4>
-                {fields.map((field) => (
-                  <div
-                    className={`stored-prices__price${
-                      highlight.test(field.label) ? " stored-prices__price--highlight" : ""
-                    }`}
-                    key={`${name}-${groupIndex}-${field.label}`}
-                  >
-                    <span>{field.label}</span>
-                    <strong>{formatPrice(field.value, currency)}</strong>
-                  </div>
+        {showDetails && (
+          <div className="stored-prices__details">
+            {hasPrices ? (
+              <div className="stored-prices__groups">
+                {groups.map(([name, fields], groupIndex) => (
+                  <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
+                    <h4>
+                      {name === "Prices" ? null : (
+                        <>
+                          <Layers3 aria-hidden="true" />
+                          <span>{name}</span>
+                        </>
+                      )}
+                    </h4>
+                    {fields.map((field) => (
+                      <div
+                        className={`stored-prices__price${
+                          highlight.test(field.label) ? " stored-prices__price--highlight" : ""
+                        }`}
+                        key={`${name}-${groupIndex}-${field.label}`}
+                      >
+                        <span>{field.label}</span>
+                        <strong>{formatPrice(field.value, currency)}</strong>
+                      </div>
+                    ))}
+                  </section>
                 ))}
-              </section>
-            ))}
-          </div>
-        ) : (
-          <div className="stored-prices__empty">
-            <strong>Price data unavailable</strong>
-            <span>{title} did not return usable pricing for this card.</span>
+              </div>
+            ) : (
+              <div className="stored-prices__empty">
+                <strong>Price data unavailable</strong>
+                <span>{title} did not return usable pricing for this card.</span>
+              </div>
+            )}
+
+            <footer className="stored-prices__legend">
+              {legend.map((item) => (
+                <p key={item.term}>
+                  <strong>{item.term}:</strong> {item.text}
+                </p>
+              ))}
+            </footer>
           </div>
         )}
-
-        <footer className="stored-prices__legend">
-          {legend.map((item) => (
-            <p key={item.term}>
-              <strong>{item.term}:</strong> {item.text}
-            </p>
-          ))}
-        </footer>
       </article>
 
-      {updatedAt && (
-        <p className="app-view-datestamp">
-          Last updated: {formatDateStamp(updatedAt)}
-        </p>
-      )}
+      <div className="stored-prices__source-footer">
+        <button
+          className="stored-prices__details-toggle"
+          type="button"
+          aria-expanded={showDetails}
+          onClick={onToggleDetails}
+        >
+          <span>{showDetails ? "Hide details" : "View details"}</span>
+          {showDetails ? (
+            <ChevronUp aria-hidden="true" />
+          ) : (
+            <ChevronDown aria-hidden="true" />
+          )}
+        </button>
+        {updatedAt && (
+          <p className="app-view-datestamp">
+            {formatDateStamp(updatedAt)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -193,6 +224,7 @@ function fieldLeafName(label: string) {
 }
 
 export function StoredPrices({ card }: { card: PokemonCard }) {
+  const [showDetails, setShowDetails] = useState(false);
   const tcgHidden = new Set(["Direct Low"]);
   const tcgFields = flatten(card.tcgplayer?.prices)
     .filter(hasNonZeroPrice)
@@ -244,9 +276,10 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             hasPrices={tcgFields.length > 0}
             cardName={card.name}
             updatedAt={card.tcgplayer?.updatedAt}
+            showDetails={showDetails}
+            onToggleDetails={() => setShowDetails((current) => !current)}
             legend={[
-              { term: "Market Price", text: "Average based on recent sales" },
-              { term: "Low/Mid/High", text: "Current listing range" },
+              // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
             ]}
           />
         )}
@@ -266,12 +299,10 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             hasPrices={cardmarketFields.length > 0}
             cardName={card.name}
             updatedAt={card.cardmarket?.updatedAt}
+            showDetails={showDetails}
+            onToggleDetails={() => setShowDetails((current) => !current)}
             legend={[
-              { term: "Trend Price", text: "Algorithmic market value." },
-              {
-                term: "Average Sell Price",
-                text: "Low volume cards can have drastic price fluctuations.",
-              },
+              // { term: "Trend Price", text: "Algorithmic market value." },
             ]}
           />
         )}

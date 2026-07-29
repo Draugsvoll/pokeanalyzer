@@ -22,8 +22,12 @@
   }
 
   &__list {
+    background: var(--bg2);
+    border: var(--border);
+    border-radius: var(--border-radius);
     display: grid;
-    row-gap: var(--card-view-section-gap);
+    grid-template-columns: 1fr;
+    overflow: hidden;
   }
 
   &__section-block {
@@ -34,12 +38,7 @@
   &__section {
     --variant-accent: #fb923c;
     --variant-accent-bg: rgba(251, 146, 60, 0.1);
-    background: var(--bg2);
-    border: var(--border);
-    border-radius: var(--border-radius);
-    box-shadow:
-      0 1rem 2.5rem rgba(0, 0, 0, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    background: transparent;
     overflow: hidden;
     &--reverse {
       --variant-accent: #60a5fa;
@@ -49,33 +48,36 @@
 
   &__section > header {
     align-items: center;
-    border-bottom: 1px solid var(--border-divider);
     display: flex;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    position: relative;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.7rem;
   }
 
-  &__heading {
+  &__card-identity {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem 0.85rem;
+    gap: 0.25rem;
     min-width: 0;
+
+    span {
+      align-items: center;
+      color: var(--font-color-muted);
+      display: inline-flex;
+      font-size: var(--font-size-paragraph-sm);
+      gap: 0.25rem;
+    }
+
+    i {
+      color: var(--font-color-faint);
+      font-style: normal;
+    }
   }
 
-  /* Quiet source stamp — secondary to printing badge + card name */
-  &__brand {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-overline);
-    font-weight: var(--font-weight-bold);
-    left: 50%;
-    letter-spacing: var(--font-tracking-wider);
-    line-height: 1;
-    position: absolute;
-    text-transform: uppercase;
-    top: 50%;
-    transform: translate(-50%, -50%);
+  &__identity-number {
+    font-family: var(--font-family-mono);
   }
 
   &__printing {
@@ -92,18 +94,11 @@
     letter-spacing: var(--font-tracking-wide);
     line-height: 1;
     padding: 0.35rem 0.7rem;
+    white-space: nowrap;
+    width: fit-content;
   }
 
-  &__heading svg { height: 0.8rem; width: 0.8rem; }
-  &__section > header small {
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: var(--border-radius-pill);
-    color: var(--font-color-muted);
-    font-size: var(--font-size-badge);
-    padding: 0.3rem 0.6rem;
-    white-space: nowrap;
-  }
+  &__printing svg { height: 0.8rem; width: 0.8rem; }
   &__table-wrap { padding: 0.25rem; }
   table { border-collapse: collapse; table-layout: fixed; width: 100%; }
   th, td { overflow-wrap: anywhere; padding: var(--padding-row); text-align: right; white-space: normal; }
@@ -113,14 +108,66 @@
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--font-tracking-normal);
   }
-  th:first-child, td:first-child { text-align: left; }
+  th:first-child, td:first-child {
+    text-align: left;
+    width: 24%;
+  }
+  tbody td { padding: 0.7rem 0.65rem; }
   tbody td:first-child { font-weight: var(--font-weight-medium); }
+  tbody tr:first-child { border-top: 1px solid var(--border-divider); }
   td {
-    color: var(--font-color-primary);
     font-size: var(--font-size-paragraph-sm);
   }
   tbody tr + tr { border-top: 1px solid var(--border-divider); }
-  tbody tr:hover td { background: rgba(63, 66, 71, 0.22); }
+  tbody tr:hover td { background: rgba(63, 66, 71, 0.12); }
+  tbody tr:hover td:first-child {
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+  }
+  tbody tr:hover td:last-child {
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  }
+
+  &__conditions-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--border-divider);
+    color: var(--font-color-muted);
+    cursor: pointer;
+    display: flex;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
+    gap: 0.4rem;
+    justify-content: center;
+    padding: var(--padding-row);
+    text-align: left;
+    transition:
+      background-color var(--delay-short) ease,
+      color var(--delay-short) ease;
+    width: 100%;
+
+    &:hover {
+      color: var(--font-color-primary);
+
+      span {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.2rem;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--custom-color-purple);
+      outline-offset: -2px;
+    }
+
+    svg {
+      height: 1rem;
+      width: 1rem;
+    }
+  }
+
   /* Between cell type (paragraph-sm) and full price size */
   &__current {
     color: var(--font-color-primary) !important;
@@ -210,13 +257,4 @@
     }
   }
 
-}
-
-@media (max-width: 40rem) {
-  .just-tcg-variants__section > header { align-items: flex-start; flex-direction: column; gap: 0.6rem; }
-  .just-tcg-variants__brand {
-    left: auto;
-    position: static;
-    transform: none;
-  }
 }

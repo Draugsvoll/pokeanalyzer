@@ -1,28 +1,27 @@
 .stored-prices {
   width: 100%;
 
-  /* One source card per row */
   &__grid {
+    gap: var(--card-view-header-gap);
     display: grid;
     grid-template-columns: 1fr;
-    row-gap: var(--card-view-section-gap);
   }
 
   &__source-block {
-    display: grid;
-    row-gap: var(--card-view-datestamp-gap);
-  }
-
-  &__source {
-    --source-accent: var(--custom-color-teal);
     background: var(--bg2);
     border: var(--border);
     border-radius: var(--border-radius);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
     display: flex;
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
+  }
+
+  &__source {
+    --source-accent: var(--custom-color-teal);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     width: 100%;
 
     &--tcgplayer { --source-accent: var(--custom-color-orange); }
@@ -31,11 +30,10 @@
 
   &__header {
     align-items: flex-start;
-    border-bottom: 1px solid var(--border-divider);
     display: flex;
     gap: 1rem;
     justify-content: space-between;
-    padding: 1.15rem 1.25rem;
+    padding: 0.9rem 1.25rem;
   }
 
   &__identity {
@@ -86,10 +84,50 @@
     }
   }
 
+  &__details-toggle {
+    align-items: center;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--source-accent) 45%, transparent);
+    border-radius: var(--border-radius-pill);
+    color: var(--source-accent);
+    cursor: pointer;
+    display: inline-flex;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-semibold);
+    gap: 0.25rem;
+    line-height: 1;
+    margin: 1rem auto;
+    padding: 0.35rem 0.55rem;
+    padding-left:0;
+    transition: background var(--delay-short) ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--source-accent) 12%, transparent);
+
+      span {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--custom-color-purple);
+      outline-offset: 2px;
+    }
+
+    svg {
+      height: 0.75rem;
+      width: 0.75rem;
+    }
+  }
+
   &__hero {
     display: grid;
     gap: 0.3rem;
     justify-items: end;
+    padding: 0;
     text-align: right;
   }
 
@@ -109,6 +147,29 @@
     font-size: var(--font-size-caption);
     letter-spacing: var(--font-tracking-normal);
     line-height: 1;
+  }
+
+  &__details {
+    border-top: 1px solid var(--border-divider);
+  }
+
+  &__source-footer {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    justify-content: space-between;
+    margin-top: auto;
+    padding: 0.55rem 1.25rem 0.7rem;
+
+    .stored-prices__details-toggle {
+      margin: 0;
+    }
+
+    .app-view-datestamp {
+      margin: 0;
+      width: auto;
+    }
   }
 
   /* Up to 2 price variants (holo / reverse / …) per row, then wrap */
@@ -137,15 +198,25 @@
     }
 
     h4 {
+      align-items: center;
       box-sizing: border-box;
       color: var(--font-color-muted);
+      display: flex;
       font-size: var(--font-size-badge);
       font-weight: var(--font-weight-medium);
+      gap: 0.4rem;
       height: 1.5rem;
       letter-spacing: var(--font-tracking-wider);
       line-height: 1rem;
-      margin: 0 0 -0.1rem;
+      margin: 0 0 0.05rem;
       text-transform: uppercase;
+
+      svg {
+        color: var(--font-color-muted);
+        flex: 0 0 auto;
+        height: 0.8rem;
+        width: 0.8rem;
+      }
     }
   }
 
@@ -218,7 +289,7 @@
     flex-wrap: wrap;
     gap: 0.35rem 1.25rem;
     margin-top: auto;
-    padding: 0.9rem 1.25rem 1.1rem;
+    padding: 0 1.25rem;
 
     p {
       color: var(--font-color-muted);
@@ -234,6 +305,26 @@
     }
   }
 
+}
+
+@media (min-width: 50rem) {
+  .stored-prices__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stored-prices__groups {
+    grid-template-columns: 1fr;
+  }
+
+  .stored-prices__group:nth-child(even) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .stored-prices__group + .stored-prices__group {
+    border-top: 1px solid var(--border-divider);
+    padding-top: 1rem;
+  }
 }
 
 @media (max-width: 40rem) {

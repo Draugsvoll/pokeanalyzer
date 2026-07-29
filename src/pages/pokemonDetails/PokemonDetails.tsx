@@ -674,9 +674,7 @@ function PokemonDetailsForCard() {
                         <span>
                           {portfolioUnavailable
                             ? "Portfolio unavailable"
-                            : cardIsSaved
-                              ? "In portfolio"
-                              : "Add to portfolio"}
+                            : "Portfolio"}
                         </span>
                       </>
                     )}
@@ -735,7 +733,7 @@ function PokemonDetailsForCard() {
                   ) : (
                     <>
                       <Search size={16} strokeWidth={2.25} aria-hidden="true" />
-                      <span>New card</span>
+                      <span>Change card</span>
                     </>
                   )}
                 </Button>
