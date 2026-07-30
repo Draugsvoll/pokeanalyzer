@@ -21,6 +21,60 @@ export type GrokRequestState = {
   response: string;
 };
 
+export type IndependentAnalysisResult =
+  | { fromDatabase: boolean; ok: true; text: string }
+  | { ok: false };
+
+type MarketPricesResponse = {
+  error?: string;
+  priceAnalysis?: IndependentAnalysisResult;
+  salesData?: IndependentAnalysisResult;
+  subscription?: UserSubscription;
+};
+
+export type MarketPricesResult =
+  | {
+      ok: true;
+      priceAnalysis: IndependentAnalysisResult;
+      salesData: IndependentAnalysisResult;
+      subscription: UserSubscription;
+    }
+  | { ok: false };
+
+export async function askMarketPrices(
+  cardId: string,
+  signal?: AbortSignal,
+): Promise<MarketPricesResult> {
+  try {
+    const res = await authenticatedFetch(`${API_URL}/ai/market-prices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId }),
+      signal,
+    });
+    const data = (await res.json()) as MarketPricesResponse;
+
+    if (
+      !res.ok ||
+      !data.subscription ||
+      !data.priceAnalysis ||
+      !data.salesData
+    ) {
+      return { ok: false };
+    }
+
+    return {
+      ok: true,
+      priceAnalysis: data.priceAnalysis,
+      salesData: data.salesData,
+      subscription: data.subscription,
+    };
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    return { ok: false };
+  }
+}
+
 export async function askGrok(
   prompt: string,
   feature: CreditUsageFeature,

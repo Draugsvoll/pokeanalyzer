@@ -7,7 +7,6 @@ import {
   Gem,
   Hash,
   Layers3,
-  ListTodo,
   LineChart,
   Palette,
   Search,
@@ -22,12 +21,15 @@ import {
   getSelectedPokemonFromCache,
   setSelectedPokemonCache,
 } from "../../utils/selectedPokemonCache";
-import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
+import {
+  askGrok,
+  askMarketPrices,
+  type GrokRequestState,
+  type IndependentAnalysisResult,
+} from "../../utils/grok/grokClient";
 import {
   collectorsAnalysisPrompt,
   isWorthGradingPrompt,
-  priceAnalysisPrompt,
-  salesDataPrompt,
   sellMyCardPrompt,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
@@ -86,14 +88,13 @@ type ActiveView =
   | "collector_analysis"
   | "ebay_sold"
   | "prices"
-  | "sales_data"
   | "sell_price"
   | "worth_grading";
 
 type AI_feature = {
   view: Extract<
     ActiveView,
-    "prices" | "collector_analysis" | "ebay_sold" | "sales_data" | "sell_price" | "worth_grading"
+    "prices" | "collector_analysis" | "ebay_sold" | "sell_price" | "worth_grading"
   >;
   title: string;
   description: string;
@@ -148,15 +149,6 @@ const AI_Features: AI_feature[] = [
     color: "yellow",
     creditFeature: "sell_price",
     headerLabel: "Selling recommendation",
-  },
-  {
-    view: "sales_data",
-    title: "Sales Data",
-    description: "Prices and sales volume by grade",
-    icon: ListTodo,
-    color: "purple",
-    creditFeature: "sales_data",
-    headerLabel: "Sales data",
   },
 ];
 
@@ -255,6 +247,9 @@ function PokemonDetailsForCard() {
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
+  const [marketSalesResponse, setMarketSalesResponse] = useState("");
+  const [marketSalesError, setMarketSalesError] = useState("");
+  const [marketSalesLoading, setMarketSalesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [portfolioConfirmation, setPortfolioConfirmation] = useState("");
@@ -353,9 +348,12 @@ function PokemonDetailsForCard() {
 
     setJustTcgLoading(true);
     setGrokLoading(true);
+    setMarketSalesLoading(true);
     setJustTcgError("");
     setGrokError("");
+    setMarketSalesError("");
     setGrokResponse("");
+    setMarketSalesResponse("");
     setJustTcgResult(null);
 
     const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
@@ -374,33 +372,53 @@ function PokemonDetailsForCard() {
         if (isCurrentRequest(signal)) setJustTcgLoading(false);
       });
 
-    const grokRequest = askGrok(
-      priceAnalysisPrompt(card.name, card.set.name, cardNumber),
-      "price_analysis",
-      signal,
-      card.id,
-    )
+    async function applyAnalysisResult(
+      result: IndependentAnalysisResult,
+      setResponse: (value: string) => void,
+      setError: (value: string) => void,
+    ) {
+      if (!result.ok) {
+        setError(FEATURE_ERROR_MESSAGE);
+        return false;
+      }
+      if (result.fromDatabase) {
+        await waitForStoredResponse(signal);
+      }
+      if (signal.aborted) return false;
+      setResponse(result.text);
+      return true;
+    }
+
+    const grokRequest = askMarketPrices(card.id, signal)
       .then(async (result) => {
         if (signal.aborted) return false;
         if (!result.ok) {
           setGrokError(FEATURE_ERROR_MESSAGE);
+          setMarketSalesError(FEATURE_ERROR_MESSAGE);
           return false;
         }
         updateSubscription(result.subscription);
-        if (result.fromDatabase) {
-          await waitForStoredResponse(signal);
-        }
-        if (signal.aborted) return false;
-        setGrokResponse(result.text);
-        return true;
+        const [priceSucceeded, salesSucceeded] = await Promise.all([
+          applyAnalysisResult(result.priceAnalysis, setGrokResponse, setGrokError),
+          applyAnalysisResult(
+            result.salesData,
+            setMarketSalesResponse,
+            setMarketSalesError,
+          ),
+        ]);
+        return priceSucceeded || salesSucceeded;
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return false;
         setGrokError(FEATURE_ERROR_MESSAGE);
+        setMarketSalesError(FEATURE_ERROR_MESSAGE);
         return false;
       })
       .finally(() => {
-        if (isCurrentRequest(signal)) setGrokLoading(false);
+        if (isCurrentRequest(signal)) {
+          setGrokLoading(false);
+          setMarketSalesLoading(false);
+        }
       });
 
     const [justTcgSucceeded, grokSucceeded] = await Promise.all([
@@ -427,7 +445,6 @@ function PokemonDetailsForCard() {
     if (
       aiFeature.view !== "prices" &&
       aiFeature.view !== "collector_analysis" &&
-      aiFeature.view !== "sales_data" &&
       aiFeature.view !== "sell_price" &&
       aiFeature.view !== "worth_grading"
     ) {
@@ -459,15 +476,6 @@ function PokemonDetailsForCard() {
       prompt = sellMyCardPrompt(card.name, card.set.name, card.number);
     }
 
-    if (aiFeature.view === "sales_data") {
-      if (!card.number) {
-        setGrokError(FEATURE_ERROR_MESSAGE);
-        setGrokResponse("");
-        return;
-      }
-      prompt = salesDataPrompt(card.name, card.set.name, card.number);
-    }
-
     setGrokLoading(true);
     setGrokError("");
     setGrokResponse("");
@@ -475,8 +483,7 @@ function PokemonDetailsForCard() {
     const usesStoredCardResponse =
       aiFeature.view === "collector_analysis" ||
       aiFeature.view === "worth_grading" ||
-      aiFeature.view === "sell_price" ||
-      aiFeature.view === "sales_data";
+      aiFeature.view === "sell_price";
     const signal = startRequest();
     try {
       const result = await askGrok(
@@ -947,11 +954,17 @@ function PokemonDetailsForCard() {
                 response: justTcgResult,
               }}
             />
+            <SalesDataView
+              grokRequest={{
+                loading: marketSalesLoading,
+                error: marketSalesError,
+                response: marketSalesResponse,
+              }}
+            />
           </>
         )}
         {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
         {activeView === "sell_price" && <SellPriceView grokRequest={grokRequest} />}
-        {activeView === "sales_data" && <SalesDataView grokRequest={grokRequest} />}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis grokRequest={grokRequest} />
         )}

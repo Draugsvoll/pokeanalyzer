@@ -40,7 +40,6 @@ const ALLOWED_GROK_FEATURES = new Set([
   "market_news",
   "manual_test",
   "price_analysis",
-  "sales_data",
   "sell_price",
   "worth_grading",
 ]);
@@ -79,6 +78,127 @@ function getImageDataUrl(value: unknown, required: boolean) {
 
   return value;
 }
+
+type IndependentAnalysisResult =
+  | { fromDatabase: boolean; ok: true; text: string }
+  | { ok: false };
+
+async function resolveStoredCardAnalysis(
+  cardId: string,
+  storageKey: string,
+  storedResponse: Record<string, unknown> | null,
+  prompt: string,
+  signal: AbortSignal,
+): Promise<IndependentAnalysisResult> {
+  if (storedResponse) {
+    return {
+      fromDatabase: true,
+      ok: true,
+      text: JSON.stringify(storedResponse),
+    };
+  }
+
+  const response = await chat(prompt, signal);
+  const savedResponse = await saveCardGrokResponse(cardId, storageKey, response);
+  if (!savedResponse) {
+    throw new GrokApiError("AI returned invalid analysis JSON", 502);
+  }
+
+  return {
+    fromDatabase: false,
+    ok: true,
+    text: JSON.stringify(savedResponse),
+  };
+}
+
+router.post("/market-prices", async (req: Request, res: Response) => {
+  const signal = getRequestAbortSignal(res);
+  try {
+    const uid = getAuthenticatedUid(res);
+    const cardId = typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
+    if (!cardId || cardId.length > MAX_CARD_ID_LENGTH) {
+      throw new CreditHttpError("A valid cardId is required for card analysis", 400);
+    }
+
+    const priceFeature = getCardGrokFeature("price_analysis")!;
+    const salesFeature = getCardGrokFeature("sales_data")!;
+    const [priceContext, salesContext] = await Promise.all([
+      getCardGrokContext(cardId, priceFeature.storageKey, priceFeature.reuseDays),
+      getCardGrokContext(cardId, salesFeature.storageKey, salesFeature.reuseDays),
+    ]);
+
+    if (!priceContext?.cardName || !salesContext?.cardName) {
+      throw new CreditHttpError("Card not found", 404);
+    }
+    if (
+      !priceContext.setName ||
+      !priceContext.cardNumber ||
+      !salesContext.setName ||
+      !salesContext.cardNumber
+    ) {
+      throw new CreditHttpError("Card is missing set or number data", 422);
+    }
+
+    const result = await runPaidFeature(
+      uid,
+      "price_analysis",
+      async () => {
+        const [priceResult, salesResult] = await Promise.allSettled([
+          resolveStoredCardAnalysis(
+            cardId,
+            priceFeature.storageKey,
+            priceContext.storedResponse,
+            priceAnalysisPrompt(
+              priceContext.cardName,
+              priceContext.setName,
+              priceContext.cardNumber,
+            ),
+            signal,
+          ),
+          resolveStoredCardAnalysis(
+            cardId,
+            salesFeature.storageKey,
+            salesContext.storedResponse,
+            salesDataPrompt(
+              salesContext.cardName,
+              salesContext.setName,
+              salesContext.cardNumber,
+            ),
+            signal,
+          ),
+        ]);
+
+        if (priceResult.status === "rejected" && !isRequestAbort(priceResult.reason, signal)) {
+          logError("AI market price analysis failed", priceResult.reason);
+        }
+        if (salesResult.status === "rejected" && !isRequestAbort(salesResult.reason, signal)) {
+          logError("AI sales data analysis failed", salesResult.reason);
+        }
+
+        const priceAnalysis: IndependentAnalysisResult =
+          priceResult.status === "fulfilled" ? priceResult.value : { ok: false };
+        const salesData: IndependentAnalysisResult =
+          salesResult.status === "fulfilled" ? salesResult.value : { ok: false };
+
+        if (!priceAnalysis.ok && !salesData.ok) {
+          throw new GrokApiError("Both AI market requests failed", 502);
+        }
+
+        return { priceAnalysis, salesData };
+      },
+      signal,
+    );
+
+    res.json({
+      ...result.data,
+      subscription: result.subscription,
+    });
+  } catch (error) {
+    if (isRequestAbort(error, signal)) return;
+    logError("AI market prices route failed", error);
+    sendRouteError(res, error, "Request failed");
+  }
+});
 
 router.post("/", async (req: Request, res: Response) => {
   const signal = getRequestAbortSignal(res);
@@ -144,21 +264,15 @@ router.post("/", async (req: Request, res: Response) => {
         );
       } else if (feature === "worth_grading") {
         prompt = isWorthGradingPrompt(context.cardNameAndSet);
-      } else if (feature === "sell_price" || feature === "sales_data") {
+      } else if (feature === "sell_price") {
         if (!context.setName || !context.cardNumber) {
           throw new CreditHttpError("Card is missing set or number data", 422);
         }
-        prompt = feature === "sell_price"
-          ? sellMyCardPrompt(
-              context.cardName,
-              context.setName,
-              context.cardNumber,
-            )
-          : salesDataPrompt(
-              context.cardName,
-              context.setName,
-              context.cardNumber,
-            );
+        prompt = sellMyCardPrompt(
+          context.cardName,
+          context.setName,
+          context.cardNumber,
+        );
       } else {
         throw new CreditHttpError("Unsupported stored card feature", 400);
       }

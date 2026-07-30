@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
-import type { PaidFeatureResponse, UserSubscription } from "../../../../subscriptions/types";
+import type {
+  PaidFeatureResponse,
+  UserSubscription,
+} from "../../../../subscriptions/types";
 import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
 import {
   getVisibleEbayCompResults,
@@ -9,6 +12,7 @@ import {
 } from "../../../../utils/ebayComps";
 import {
   CalendarDays,
+  ChevronDown,
   ExternalLink,
   Gavel,
   MapPin,
@@ -23,8 +27,11 @@ import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
+import { getFirstTcgPlayerMarketEntry } from "../../../../utils/pokemonPricing";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const RESULTS_BATCH_SIZE = 25;
+const FILTER_TRANSITION_MS = 250;
 
 type EbaySoldViewProps = {
   card: PokemonCard;
@@ -33,11 +40,20 @@ type EbaySoldViewProps = {
 };
 
 type EbaySortOrder =
-  | "default"
-  | "price-asc"
-  | "price-desc"
-  | "date-desc"
-  | "date-asc";
+  "default" | "price-asc" | "price-desc" | "date-desc" | "date-asc";
+type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
+type ListingVariantFilter = {
+  id: string;
+  label: string;
+  kind:
+    | "normal"
+    | "holo"
+    | "reverse-holo"
+    | "first-edition"
+    | "first-edition-holo"
+    | "other";
+  aliases: string[];
+};
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
   { value: "default", label: "Default" },
@@ -45,6 +61,14 @@ const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
   { value: "price-desc", label: "Price: high to low" },
   { value: "date-desc", label: "Newest" },
   { value: "date-asc", label: "Oldest" },
+];
+const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "raw", label: "Raw" },
+  { value: "7", label: "PSA 7" },
+  { value: "8", label: "PSA 8" },
+  { value: "9", label: "PSA 9" },
+  { value: "10", label: "PSA 10" },
 ];
 
 const FEATURED_FIELDS = new Set([
@@ -63,7 +87,9 @@ const FEATURED_FIELDS = new Set([
 ]);
 
 function getField(result: EbayCompResult, key: string) {
-  return result.fields.find((field) => field.key.toLowerCase() === key.toLowerCase())?.value;
+  return result.fields.find(
+    (field) => field.key.toLowerCase() === key.toLowerCase(),
+  )?.value;
 }
 
 function formatPrice(price?: string, currency?: string) {
@@ -120,8 +146,282 @@ function formatHeadline(value: string) {
   return value
     .toLocaleLowerCase("en-US")
     .split(/([\s-]+)/)
-    .map((word) => word.replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase("en-US")))
+    .map((word) =>
+      word.replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase("en-US")),
+    )
     .join("");
+}
+
+function getGradingSearchText(result: EbayCompResult) {
+  const searchableFields = result.fields
+    .filter((field) =>
+      /title|condition|grade|grading|grader|certification/i.test(field.key),
+    )
+    .map((field) => field.value);
+  const searchableText = searchableFields
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("en-US")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const compactText = searchableText.replace(/\s/g, "");
+
+  return { compactText, searchableText };
+}
+
+function hasUsablePrice(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value) && value > 0;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.values(value).some(hasUsablePrice);
+}
+
+function getAvailableVariantFilters(card: PokemonCard): ListingVariantFilter[] {
+  const availableKeys = new Set<string>();
+
+  for (const [key, value] of Object.entries(card.tcgplayer?.prices ?? {})) {
+    if (hasUsablePrice(value))
+      availableKeys.add(key.toLocaleLowerCase("en-US"));
+  }
+  if (
+    Object.entries(card.cardmarket?.prices ?? {}).some(
+      ([key, value]) =>
+        key.toLocaleLowerCase("en-US").startsWith("reverseholo") &&
+        hasUsablePrice(value),
+    )
+  ) {
+    availableKeys.add("reverseholofoil");
+  }
+
+  const variants: ListingVariantFilter[] = [];
+  const add = (variant: ListingVariantFilter) => {
+    if (!variants.some((item) => item.id === variant.id))
+      variants.push(variant);
+  };
+
+  for (const key of availableKeys) {
+    if (key.includes("firstedition") && key.includes("holo")) {
+      add({
+        id: "first-edition-holo",
+        label: "1st Ed. Holo",
+        kind: "first-edition-holo",
+        aliases: ["1st edition holo", "first edition holo", "1st ed holo"],
+      });
+    } else if (key.includes("firstedition")) {
+      add({
+        id: "first-edition",
+        label: "1st Edition",
+        kind: "first-edition",
+        aliases: ["1st edition", "first edition", "1st ed"],
+      });
+    } else if (key.includes("reverse") && key.includes("holo")) {
+      add({
+        id: "reverse-holo",
+        label: "Reverse Holo",
+        kind: "reverse-holo",
+        aliases: [
+          "reverse holo",
+          "reverse holofoil",
+          "reverse foil",
+          "rev holo",
+          "rev foil",
+          "rh",
+        ],
+      });
+    } else if (key.includes("holo")) {
+      add({
+        id: "holo",
+        label: "Holofoil",
+        kind: "holo",
+        aliases: ["holo", "holofoil", "holo foil"],
+      });
+    } else if (key === "normal") {
+      add({
+        id: "normal",
+        label: "Normal",
+        kind: "normal",
+        aliases: ["normal", "non holo", "non holofoil", "regular", "standard"],
+      });
+    }
+  }
+
+  return variants;
+}
+
+function getDefaultListingVariantId(card: PokemonCard): string | null {
+  const variant = getFirstTcgPlayerMarketEntry(
+    card.tcgplayer?.prices,
+  )?.variant.toLocaleLowerCase("en-US");
+
+  if (!variant) return null;
+  if (variant.includes("firstedition") && variant.includes("holo")) {
+    return "first-edition-holo";
+  }
+  if (variant.includes("firstedition")) return "first-edition";
+  if (variant.includes("reverse") && variant.includes("holo")) {
+    return "reverse-holo";
+  }
+  if (variant.includes("holo")) return "holo";
+  if (variant === "normal") return "normal";
+  return null;
+}
+
+function getVariantSearchText(result: EbayCompResult) {
+  return result.fields
+    .filter((field) =>
+      /title|condition|finish|foil|printing|variant|edition/i.test(field.key),
+    )
+    .map((field) => field.value)
+    .join(" ")
+    .toLocaleLowerCase("en-US")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function containsVariantAlias(text: string, alias: string) {
+  const pattern = alias
+    .toLocaleLowerCase("en-US")
+    .trim()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join("\\s*");
+  return (
+    Boolean(pattern) && new RegExp(`(?:^|\\s)${pattern}(?:$|\\s)`).test(text)
+  );
+}
+
+function matchesListingVariant(
+  result: EbayCompResult,
+  variant: ListingVariantFilter,
+  defaultVariantId: string | null,
+) {
+  const text = getVariantSearchText(result);
+  const hasReverseHolo = [
+    "reverse holo",
+    "reverse holofoil",
+    "reverse foil",
+    "rev holo",
+    "rev foil",
+    "rh",
+  ].some((alias) => containsVariantAlias(text, alias));
+  const hasFirstEdition = ["1st edition", "first edition", "1st ed"].some(
+    (alias) => containsVariantAlias(text, alias),
+  );
+  const hasHolo = ["holo", "holofoil", "holo foil"].some((alias) =>
+    containsVariantAlias(text, alias),
+  );
+  const hasNormal = [
+    "normal",
+    "non holo",
+    "non holofoil",
+    "regular",
+    "standard",
+  ].some((alias) => containsVariantAlias(text, alias));
+  const hasExplicitVariant =
+    hasReverseHolo || hasFirstEdition || hasHolo || hasNormal;
+
+  if (!hasExplicitVariant && variant.id === defaultVariantId) {
+    return true;
+  }
+
+  if (variant.kind === "holo") {
+    return hasHolo && !hasReverseHolo && !hasFirstEdition;
+  }
+  if (variant.kind === "first-edition") {
+    return hasFirstEdition && !hasHolo && !hasReverseHolo;
+  }
+  if (variant.kind === "first-edition-holo") {
+    return hasFirstEdition && hasHolo && !hasReverseHolo;
+  }
+  if (variant.kind === "normal") {
+    return hasNormal;
+  }
+
+  return variant.aliases.some((alias) => containsVariantAlias(text, alias));
+}
+
+function isRawListing(result: EbayCompResult) {
+  const { searchableText } = getGradingSearchText(result);
+
+  if (/\b(?:raw|ungraded|not graded)\b/.test(searchableText)) {
+    return true;
+  }
+
+  return !(
+    /\b(?:psa|bgs|cgc|sgc)(?:\b|\d)/.test(searchableText) ||
+    /\b(?:beckett|grade|graded|grading|slab|slabbed|encased|certified|certification)\b/.test(
+      searchableText,
+    )
+  );
+}
+
+function matchesGrade(
+  result: EbayCompResult,
+  grade: Exclude<GradeFilter, "all" | "raw">,
+) {
+  const { compactText, searchableText } = getGradingSearchText(result);
+
+  // Handles PSA 10, BGS-10, CGC Gem Mint 10, SGC10, Beckett 9, and
+  // equivalent compact forms.
+  const grader =
+    "(?:psa|bgs|cgc|sgc|beckett|professional sports authenticator|certified guaranty company|sportscard guaranty corporation)";
+  const compactGrader =
+    "(?:psa|bgs|cgc|sgc|beckett|professionalsportsauthenticator|certifiedguarantycompany|sportscardguarantycorporation)";
+  if (
+    new RegExp(`${compactGrader}[a-z]{0,30}${grade}(?!\\d)`).test(
+      compactText,
+    ) ||
+    new RegExp(`(?:^|\\s)${grade}\\s*${grader}(?:$|\\s)`).test(searchableText)
+  ) {
+    return true;
+  }
+
+  const hasGradeNumber = new RegExp(`(?:^|\\s)${grade}(?:$|\\s)`).test(
+    searchableText,
+  );
+  const hasDirectGradePhrase = new RegExp(
+    `\\b(?:grade|graded|grading|slab|slabbed|encased|certified)\\s*${grade}\\b|\\b${grade}\\s*(?:grade|graded|slab|slabbed|encased|certified)\\b`,
+  ).test(searchableText);
+
+  if (!hasGradeNumber) {
+    return false;
+  }
+  if (hasDirectGradePhrase) {
+    return true;
+  }
+
+  switch (grade) {
+    case "7":
+      return (
+        /\b(?:near mint|nm)\s*7\b|\b7\s*(?:near mint|nm)\b/.test(
+          searchableText,
+        ) && !/\b(?:near mint (?:mint|mt)|nm mt)\b/.test(searchableText)
+      );
+    case "8":
+      return (
+        /\b(?:near mint (?:mint|mt)|nm mt)\s*8\b|\b8\s*(?:near mint (?:mint|mt)|nm mt)\b/.test(
+          searchableText,
+        ) ||
+        compactText.includes("nmmt8") ||
+        compactText.includes("8nmmt")
+      );
+    case "9":
+      return Boolean(
+        searchableText.match(/\bmint\s*9\b|\b9\s*mint\b/) &&
+        !/\b(?:gem|near) mint\s*9\b|\b9\s*(?:gem|near) mint\b/.test(
+          searchableText,
+        ),
+      );
+    case "10":
+      return (
+        /\bgem (?:mint|mt)\s*10\b|\b10\s*gem (?:mint|mt)\b/.test(
+          searchableText,
+        ) ||
+        compactText.includes("gemmint10") ||
+        compactText.includes("10gemmint") ||
+        compactText.includes("gemmt10") ||
+        compactText.includes("10gemmt")
+      );
+  }
 }
 
 export default function EbaySoldView({
@@ -133,11 +433,35 @@ export default function EbaySoldView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sortOrder, setSortOrder] = useState<EbaySortOrder>("default");
+  const [gradeFilter, setGradeFilter] = useState<GradeFilter>("all");
+  const [appliedGradeFilter, setAppliedGradeFilter] =
+    useState<GradeFilter>("all");
+  const [variantFilter, setVariantFilter] = useState("all");
+  const [appliedVariantFilter, setAppliedVariantFilter] = useState("all");
+  const [filtering, setFiltering] = useState(false);
+  const [visibleResultCount, setVisibleResultCount] =
+    useState(RESULTS_BATCH_SIZE);
+  const filterTimerRef = useRef<number | undefined>(undefined);
   const { isCurrentRequest, startRequest } = useAbortableRequest();
+  const availableVariantFilters = useMemo(
+    () => getAvailableVariantFilters(card),
+    [card],
+  );
+  const defaultVariantFilterId = useMemo(
+    () => getDefaultListingVariantId(card),
+    [card],
+  );
 
   useEffect(() => {
     onLoadingChange?.(loading);
   }, [loading, onLoadingChange]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(filterTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     async function loadSoldListings() {
@@ -148,26 +472,41 @@ export default function EbaySoldView({
       setError("");
       setResponse(null);
       setSortOrder("default");
+      setGradeFilter("all");
+      setAppliedGradeFilter("all");
+      setVariantFilter("all");
+      setAppliedVariantFilter("all");
+      setFiltering(false);
+      window.clearTimeout(filterTimerRef.current);
+      setVisibleResultCount(RESULTS_BATCH_SIZE);
 
       try {
-        const res = await authenticatedFetch(`${API_URL}/ebay?${params.toString()}`, {
-          signal,
-        });
-        const data = (await res.json()) as
-          Partial<PaidFeatureResponse<EbayCompsResponse>> & {
-            error?: string;
-            fromDatabase?: boolean;
-            message?: string;
-          };
+        const res = await authenticatedFetch(
+          `${API_URL}/ebay?${params.toString()}`,
+          {
+            signal,
+          },
+        );
+        const data = (await res.json()) as Partial<
+          PaidFeatureResponse<EbayCompsResponse>
+        > & {
+          error?: string;
+          fromDatabase?: boolean;
+          message?: string;
+        };
 
         if (!res.ok) {
           throw new Error(
-            data?.error ?? data?.message ?? "Failed to fetch eBay sold listings",
+            data?.error ??
+              data?.message ??
+              "Failed to fetch eBay sold listings",
           );
         }
 
         if (!data.subscription) {
-          throw new Error("The eBay response did not include subscription data");
+          throw new Error(
+            "The eBay response did not include subscription data",
+          );
         }
         onSubscriptionChange?.(data.subscription);
         if (data.fromDatabase) {
@@ -194,142 +533,300 @@ export default function EbaySoldView({
   if (loading) {
     return <LoadingState>Loading eBay sold listings...</LoadingState>;
   }
-  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (error)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
   const results = getVisibleEbayCompResults(response);
 
   if (!results.length) {
-    return <p className="ebay-sold-view__state">No eBay sold listings found.</p>;
+    return (
+      <p className="ebay-sold-view__state">No eBay sold listings found.</p>
+    );
   }
 
-  const sortedResults = sortOrder === "default"
-    ? results
-    : [...results].sort((firstResult, secondResult) => {
-        const sortingByDate = sortOrder === "date-desc" || sortOrder === "date-asc";
-        const firstValue = sortingByDate
-          ? getEndedAtTimestamp(firstResult)
-          : getNumericSoldPrice(firstResult);
-        const secondValue = sortingByDate
-          ? getEndedAtTimestamp(secondResult)
-          : getNumericSoldPrice(secondResult);
+  const gradeFilteredResults =
+    appliedGradeFilter === "all"
+      ? results
+      : appliedGradeFilter === "raw"
+        ? results.filter(isRawListing)
+        : results.filter((result) => matchesGrade(result, appliedGradeFilter));
+  const selectedVariant = availableVariantFilters.find(
+    (variant) => variant.id === appliedVariantFilter,
+  );
+  const filteredResults = selectedVariant
+    ? gradeFilteredResults.filter((result) =>
+        matchesListingVariant(result, selectedVariant, defaultVariantFilterId),
+      )
+    : gradeFilteredResults;
+  const sortedResults =
+    sortOrder === "default"
+      ? filteredResults
+      : [...filteredResults].sort((firstResult, secondResult) => {
+          const sortingByDate =
+            sortOrder === "date-desc" || sortOrder === "date-asc";
+          const firstValue = sortingByDate
+            ? getEndedAtTimestamp(firstResult)
+            : getNumericSoldPrice(firstResult);
+          const secondValue = sortingByDate
+            ? getEndedAtTimestamp(secondResult)
+            : getNumericSoldPrice(secondResult);
 
-        if (firstValue === null && secondValue === null) return 0;
-        if (firstValue === null) return 1;
-        if (secondValue === null) return -1;
+          if (firstValue === null && secondValue === null) return 0;
+          if (firstValue === null) return 1;
+          if (secondValue === null) return -1;
 
-        return sortOrder === "price-asc" || sortOrder === "date-asc"
-          ? firstValue - secondValue
-          : secondValue - firstValue;
-      });
+          return sortOrder === "price-asc" || sortOrder === "date-asc"
+            ? firstValue - secondValue
+            : secondValue - firstValue;
+        });
+  const visibleResults = sortedResults.slice(0, visibleResultCount);
+  const remainingResultCount = sortedResults.length - visibleResults.length;
+  const nextBatchSize = Math.min(RESULTS_BATCH_SIZE, remainingResultCount);
+
+  function handleSortChange(value: EbaySortOrder) {
+    setSortOrder(value);
+    setVisibleResultCount(RESULTS_BATCH_SIZE);
+  }
+
+  function scheduleFilterChange(nextGrade: GradeFilter, nextVariant: string) {
+    setFiltering(true);
+    setVisibleResultCount(RESULTS_BATCH_SIZE);
+    window.clearTimeout(filterTimerRef.current);
+    filterTimerRef.current = window.setTimeout(() => {
+      setAppliedGradeFilter(nextGrade);
+      setAppliedVariantFilter(nextVariant);
+      setFiltering(false);
+    }, FILTER_TRANSITION_MS);
+  }
+
+  function handleGradeFilterChange(value: GradeFilter) {
+    setGradeFilter(value);
+    scheduleFilterChange(value, variantFilter);
+  }
+
+  function handleVariantFilterChange(value: string) {
+    setVariantFilter(value);
+    scheduleFilterChange(gradeFilter, value);
+  }
 
   return (
     <div className="ebay-sold-view ui-render-fade">
-      <div className="ebay-sold-view__sorting">
-        <span>Sort by</span>
-        <SelectDropdown
-          ariaLabel="Sort eBay sold listings"
-          compact
-          options={EBAY_SORT_OPTIONS}
-          value={sortOrder}
-          onChange={setSortOrder}
-        />
+      <div className="ebay-sold-view__toolbar">
+        <div className="ebay-sold-view__sorting">
+          <span>Sort by</span>
+          <SelectDropdown
+            ariaLabel="Sort eBay sold listings"
+            compact
+            options={EBAY_SORT_OPTIONS}
+            value={sortOrder}
+            onChange={handleSortChange}
+          />
+        </div>
+        <span className="ebay-sold-view__result-count">
+          {sortedResults.length}{" "}
+          {sortedResults.length === 1 ? "result" : "results"}
+        </span>
       </div>
-      <div className="ebay-sold-view__results ui-render-fade" key={sortOrder}>
-        {sortedResults.map((result, index) => {
-          const title = getField(result, "title") ?? "eBay sold listing";
-          const url = getField(result, "url");
-          const endedAt = getField(result, "endedAt");
-          const seller = getField(result, "sellerUsername");
-          const sellerPositive = getField(result, "sellerPositivePercent");
-          const feedbackScore = getField(result, "sellerFeedbackScore");
-          const location = getField(result, "itemLocation");
-          const soldPrice = formatPrice(
-            getField(result, "soldPrice"),
-            getField(result, "soldCurrency"),
-          );
-          const additionalFields = result.fields.filter(
-            (field) => !FEATURED_FIELDS.has(field.key.toLowerCase()),
-          );
-          const hasListingUrl = Boolean(url && /^https?:\/\//i.test(url));
+      <div className="ebay-sold-view__filter-row">
+        <fieldset className="ebay-sold-view__filters">
+          <legend>Grade</legend>
+          <div>
+            {GRADE_FILTERS.map((filter) => (
+              <label key={filter.value}>
+                <input
+                  checked={gradeFilter === filter.value}
+                  name="ebay-grade"
+                  type="radio"
+                  value={filter.value}
+                  onChange={() => handleGradeFilterChange(filter.value)}
+                />
+                <span>{filter.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {availableVariantFilters.length > 0 && (
+          <fieldset className="ebay-sold-view__filters">
+            <legend>Variant</legend>
+            <div>
+              <label>
+                <input
+                  checked={variantFilter === "all"}
+                  name="ebay-card-variant"
+                  type="radio"
+                  value="all"
+                  onChange={() => handleVariantFilterChange("all")}
+                />
+                <span>All</span>
+              </label>
+              {availableVariantFilters.map((variant) => (
+                <label key={variant.id}>
+                  <input
+                    checked={variantFilter === variant.id}
+                    name="ebay-card-variant"
+                    type="radio"
+                    value={variant.id}
+                    onChange={() => handleVariantFilterChange(variant.id)}
+                  />
+                  <span>{variant.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      </div>
+      <div className="ebay-sold-view__results-region" aria-busy={filtering}>
+        {filtering && (
+          <div
+            aria-label="Filtering eBay sold listings"
+            className="ebay-sold-view__filter-overlay"
+            role="status"
+          >
+            <span className="loading-state__spinner" aria-hidden="true" />
+          </div>
+        )}
+        <>
+          {visibleResults.length === 0 && (
+            <p className="ebay-sold-view__state">
+              No matching eBay sold listings found.
+            </p>
+          )}
+          <div
+            className="ebay-sold-view__results ui-render-fade"
+            key={`${appliedGradeFilter}-${appliedVariantFilter}-${sortOrder}`}
+          >
+            {visibleResults.map((result, index) => {
+              const title = getField(result, "title") ?? "eBay sold listing";
+              const url = getField(result, "url");
+              const endedAt = getField(result, "endedAt");
+              const seller = getField(result, "sellerUsername");
+              const sellerPositive = getField(result, "sellerPositivePercent");
+              const feedbackScore = getField(result, "sellerFeedbackScore");
+              const location = getField(result, "itemLocation");
+              const soldPrice = formatPrice(
+                getField(result, "soldPrice"),
+                getField(result, "soldCurrency"),
+              );
+              const additionalFields = result.fields.filter(
+                (field) => !FEATURED_FIELDS.has(field.key.toLowerCase()),
+              );
+              const hasListingUrl = Boolean(url && /^https?:\/\//i.test(url));
 
-          return (
-            <article
-              key={url ?? `${title}-${index}`}
-              className="ebay-sold-view__result card-hover"
-            >
-              <div className="ebay-sold-view__visual">
-                <div className="ebay-sold-view__media">
-                  {result.thumbnailUrl ? (
-                    <img src={result.thumbnailUrl} alt={title} />
-                  ) : (
-                    <Gavel aria-hidden="true" />
-                  )}
-                </div>
-              </div>
-
-              <div className="ebay-sold-view__content">
-                <header className="ebay-sold-view__header">
-                  <div>
-                    <h3>{formatHeadline(title)}</h3>
-                    <div className="ebay-sold-view__badges">
-                      <span><CalendarDays aria-hidden="true" /> {formatDate(endedAt)}</span>
+              return (
+                <article
+                  key={url ?? `${title}-${index}`}
+                  className="ebay-sold-view__result card-hover"
+                >
+                  <div className="ebay-sold-view__visual">
+                    <div className="ebay-sold-view__media">
+                      {result.thumbnailUrl ? (
+                        <img src={result.thumbnailUrl} alt={title} />
+                      ) : (
+                        <Gavel aria-hidden="true" />
+                      )}
                     </div>
                   </div>
-                  <div className="ebay-sold-view__price">
-                    <div className="ebay-sold-view__price-row">
-                      <strong>{soldPrice}</strong>
+
+                  <div className="ebay-sold-view__content">
+                    <header className="ebay-sold-view__header">
+                      <div>
+                        <h3>{formatHeadline(title)}</h3>
+                        <div className="ebay-sold-view__listing-meta">
+                          <span className="ebay-sold-view__sold-date">
+                            <CalendarDays aria-hidden="true" />
+                            Sold {formatDate(endedAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ebay-sold-view__price">
+                        <div className="ebay-sold-view__price-row">
+                          <strong>{soldPrice}</strong>
+                        </div>
+                        {hasListingUrl && (
+                          <a
+                            className="ebay-sold-view__sale-link"
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            View sale <ExternalLink aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    </header>
+
+                    <div className="ebay-sold-view__details">
+                      {seller && (
+                        <div>
+                          <span>
+                            Seller
+                            <strong>
+                              <ShieldCheck aria-hidden="true" />
+                              {seller}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                      {sellerPositive && (
+                        <div>
+                          <span>
+                            Positive feedback<strong>{sellerPositive}%</strong>
+                          </span>
+                        </div>
+                      )}
+                      {feedbackScore && (
+                        <div>
+                          <span>
+                            Feedback score<strong>{feedbackScore}</strong>
+                          </span>
+                        </div>
+                      )}
+                      {location && (
+                        <div>
+                          <span>
+                            Item location
+                            <strong>
+                              <MapPin aria-hidden="true" />
+                              {location}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {hasListingUrl && (
-                      <a
-                        className="ebay-sold-view__sale-link"
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View sale <ExternalLink aria-hidden="true" />
-                      </a>
+
+                    {additionalFields.length > 0 && (
+                      <dl className="ebay-sold-view__extra-fields">
+                        {additionalFields.map((field) => (
+                          <div key={field.key}>
+                            <dt>{formatFieldLabel(field.key)}</dt>
+                            <dd>{field.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
                     )}
                   </div>
-                </header>
-
-                <div className="ebay-sold-view__details">
-                  {seller && (
-                    <div>
-                      <span>Seller<strong><ShieldCheck aria-hidden="true" />{seller}</strong></span>
-                    </div>
-                  )}
-                  {sellerPositive && (
-                    <div>
-                      <span>Positive feedback<strong>{sellerPositive}%</strong></span>
-                    </div>
-                  )}
-                  {feedbackScore && (
-                    <div>
-                      <span>Feedback score<strong>{feedbackScore}</strong></span>
-                    </div>
-                  )}
-                  {location && (
-                    <div>
-                      <span>Item location<strong><MapPin aria-hidden="true" />{location}</strong></span>
-                    </div>
-                  )}
-                </div>
-
-                {additionalFields.length > 0 && (
-                  <dl className="ebay-sold-view__extra-fields">
-                    {additionalFields.map((field) => (
-                      <div key={field.key}>
-                        <dt>{formatFieldLabel(field.key)}</dt>
-                        <dd>{field.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-
-              </div>
-            </article>
-          );
-        })}
+                </article>
+              );
+            })}
+          </div>
+          {remainingResultCount > 0 && (
+            <div className="ebay-sold-view__load-more">
+              <span>
+                Showing {visibleResults.length} of {sortedResults.length}
+              </span>
+              <button
+                className="ebay-sold-view__load-more-button"
+                type="button"
+                onClick={() => {
+                  setVisibleResultCount((count) => count + RESULTS_BATCH_SIZE);
+                }}
+              >
+                Show {nextBatchSize} more
+                <ChevronDown aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </>
       </div>
     </div>
   );

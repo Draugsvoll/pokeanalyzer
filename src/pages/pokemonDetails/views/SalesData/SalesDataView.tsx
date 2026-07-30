@@ -101,7 +101,7 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
       {data.marketPrices.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market">
           <header className="sales-data-view__market-heading">
-            <h3>Current Market Prices by Grade</h3>
+            <h3>PriceCharting (aggregates sales data)</h3>
           </header>
           <div className="sales-data-view__table-wrap">
             <table>

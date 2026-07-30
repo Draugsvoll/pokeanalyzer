@@ -107,6 +107,9 @@ Response must be only a valid JSON format. No extra text before or after the JSO
 Response must be put into the exact structure as the example response below.
 If data not available just leave the field empty.
 
+Notes field is optional. If theres a need to clarify which variant is used, then do it. You can add
+other important information that is not alreay obvious.
+
 
 {
   "title": "Blaine's Charizard #2",
@@ -143,32 +146,9 @@ If data not available just leave the field empty.
       "volume": "~1 sale / month"
     }
   ],
-  "recent_sold": [
-    {
-      "label": "Ungraded / Raw",
-      "range": "$117 – $450 (cleaner copies closer to $300–$400)"
-    },
-    {
-      "label": "Grade 7 – 7.5",
-      "range": "CGC 7.5: $340 – $568 · BGS 7: ~$325"
-    },
-    {
-      "label": "Grade 8 – 8.5",
-      "range": "BGS 8 / 8.5: $517 – $700 · CGC 8.5: ~$700"
-    },
-    {
-      "label": "Grade 9",
-      "range": "BGS 9: $705 – $1,200 · CGC 9: $780 – $1,350"
-    },
-    {
-      "label": "Grade 9.5",
-      "range": "BGS / CGC 9.5: $710 – $1,500 (most recent $800–$1,350)"
-    }
-  ],
   "notes": [
     "This is the Unlimited version (no 1st Edition stamp). 1st Edition is significantly more expensive.",
     "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl.",
-    "PSA 10 remains scarce and commands a large premium."
   ],
 }
 
