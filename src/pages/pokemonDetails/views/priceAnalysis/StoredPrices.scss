@@ -24,8 +24,12 @@
     min-width: 0;
     width: 100%;
 
-    &--tcgplayer { --source-accent: var(--custom-color-orange); }
-    &--cardmarket { --source-accent: var(--custom-color-teal); }
+    &--tcgplayer {
+      --source-accent: var(--custom-color-orange);
+    }
+    &--cardmarket {
+      --source-accent: var(--custom-color-teal);
+    }
   }
 
   &__header {
@@ -99,7 +103,7 @@
     line-height: 1;
     margin: 1rem auto;
     padding: 0.35rem 0.55rem;
-    padding-left:0;
+    padding-left: 0;
     transition: background var(--delay-short) ease;
 
     &:hover {
@@ -147,6 +151,34 @@
     font-size: var(--font-size-caption);
     letter-spacing: var(--font-tracking-normal);
     line-height: 1;
+  }
+
+  &__warning {
+    align-items: flex-start;
+    background: color-mix(in srgb, var(--custom-color-yellow) 9%, var(--bg2));
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-yellow) 28%, transparent);
+    border-radius: calc(var(--border-radius) * 0.75);
+    color: color-mix(
+      in srgb,
+      var(--custom-color-yellow) 70%,
+      var(--font-color-primary)
+    );
+    display: flex;
+    font-size: var(--font-size-caption);
+    gap: 0.55rem;
+    line-height: var(--font-leading-snug);
+    margin: 0 1.25rem 0.9rem;
+    padding: 0.65rem 0.7rem;
+
+    svg {
+      color: var(--custom-color-yellow);
+      flex: 0 0 auto;
+      height: 1rem;
+      margin-top: 0.05rem;
+      stroke-width: 2.25;
+      width: 1rem;
+    }
   }
 
   &__details {
@@ -296,7 +328,7 @@
       font-size: var(--font-size-caption);
       line-height: var(--font-leading-normal);
       margin: 0;
-      padding-left:0;
+      padding-left: 0;
     }
 
     strong {
@@ -304,7 +336,6 @@
       font-weight: var(--font-weight-semibold);
     }
   }
-
 }
 
 @media (min-width: 50rem) {

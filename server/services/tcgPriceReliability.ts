@@ -15,8 +15,11 @@ export type TcgPriceReliabilityFlag = {
 
 export type TcgPriceReliability = {
   status: "normal" | TcgPriceReliabilitySeverity;
+  isFlagged: boolean;
   flags: TcgPriceReliabilityFlag[];
 };
+
+export const MINIMUM_PRICE_FOR_RELIABILITY_WARNING = 25;
 
 function roundedMetric(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -33,6 +36,10 @@ export function assessTcgPriceReliability({
   market: number;
   mid: number | null;
 }): TcgPriceReliability {
+  if (market < MINIMUM_PRICE_FOR_RELIABILITY_WARNING) {
+    return { status: "normal", isFlagged: false, flags: [] };
+  }
+
   const flags: TcgPriceReliabilityFlag[] = [];
 
   if (
@@ -103,5 +110,5 @@ export function assessTcgPriceReliability({
         ? "suspicious"
         : "normal";
 
-  return { status, flags };
+  return { status, isFlagged: status !== "normal", flags };
 }

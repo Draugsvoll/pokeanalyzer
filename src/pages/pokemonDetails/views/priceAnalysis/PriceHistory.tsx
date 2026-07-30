@@ -6,7 +6,10 @@ import {
   type CardPriceHistorySnapshot,
 } from "../../../../services/cardApi";
 import { logClientError } from "../../../../utils/logClientError";
-import { formatTcgPlayerVariantLabel } from "../../../../utils/pokemonPricing";
+import {
+  formatTcgPlayerVariantLabel,
+  TCG_PLAYER_VARIANT_ORDER,
+} from "../../../../utils/pokemonPricing";
 import "./PriceHistory.scss";
 
 const HISTORY_DAYS = 7;
@@ -19,13 +22,12 @@ type PriceSeries = {
   label: string;
 };
 
-const TCGPLAYER_SERIES: PriceSeries[] = [
-  { field: "normal", label: "Normal market" },
-  { field: "holofoil", label: "Holofoil market" },
-  { field: "reverseHolofoil", label: "Reverse Holo market" },
-  { field: "firstEditionHolofoil", label: "1st Ed. Holo market" },
-  { field: "firstEditionNormal", label: "1st Ed. Normal market" },
-];
+const TCGPLAYER_SERIES: PriceSeries[] = TCG_PLAYER_VARIANT_ORDER.map(
+  (field) => ({
+    field,
+    label: `${formatTcgPlayerVariantLabel(field) ?? field} market`,
+  }),
+);
 
 const CARDMARKET_SERIES: PriceSeries[] = [
   { field: "trendPrice", label: "Trend price" },

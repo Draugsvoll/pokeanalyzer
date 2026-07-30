@@ -10,7 +10,7 @@ test("TCG price reliability flags only suspicious internal relationships", () =>
       high: 120,
       market: 85,
     }),
-    { status: "normal", flags: [] },
+    { status: "normal", isFlagged: false, flags: [] },
   );
 
   const belowLow = assessTcgPriceReliability({
@@ -20,6 +20,7 @@ test("TCG price reliability flags only suspicious internal relationships", () =>
     market: 70,
   });
   assert.equal(belowLow.status, "suspicious");
+  assert.equal(belowLow.isFlagged, true);
   assert.equal(belowLow.flags[0]?.code, "market_below_listing_range");
   assert.equal(belowLow.flags[0]?.differencePercent, 30);
 
@@ -40,6 +41,7 @@ test("TCG price reliability flags only suspicious internal relationships", () =>
     market: 300,
   });
   assert.equal(highRisk.status, "high_risk");
+  assert.equal(highRisk.isFlagged, true);
   assert.deepEqual(
     highRisk.flags.map((flag) => flag.code),
     ["market_above_listing_range", "market_far_from_mid"],
@@ -47,13 +49,22 @@ test("TCG price reliability flags only suspicious internal relationships", () =>
 
   const extremeSpread = assessTcgPriceReliability({
     low: 10,
-    mid: 20,
+    mid: 25,
     high: 300,
-    market: 20,
+    market: 25,
   });
   assert.equal(extremeSpread.status, "high_risk");
-  assert.equal(
-    extremeSpread.flags.at(-1)?.code,
-    "extreme_listing_spread",
+  assert.equal(extremeSpread.flags.at(-1)?.code, "extreme_listing_spread");
+});
+
+test("TCG reliability ignores market prices below $25", () => {
+  assert.deepEqual(
+    assessTcgPriceReliability({
+      low: 0.01,
+      mid: 0.5,
+      high: 250,
+      market: 24.99,
+    }),
+    { status: "normal", isFlagged: false, flags: [] },
   );
 });

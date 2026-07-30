@@ -1,6 +1,7 @@
 import type {
   AddPortfolioCardResponse,
   HydratedPortfolioResponse,
+  PortfolioPriceSource,
   PortfolioReference,
   PortfolioReferencesResponse,
 } from "../types/portfolio";
@@ -90,6 +91,20 @@ export function updatePortfolioCardPriceSource(
 ) {
   return portfolioRequest<PortfolioReference>(
     `/cards/${encodeURIComponent(cardId)}/price-source`,
+    expectedUid,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ priceSource }),
+    },
+  );
+}
+
+export function updatePortfolioPriceSource(
+  priceSource: PortfolioPriceSource,
+  expectedUid: string,
+) {
+  return portfolioRequest<{ portfolioPriceSource: PortfolioPriceSource }>(
+    "/price-source",
     expectedUid,
     {
       method: "PATCH",

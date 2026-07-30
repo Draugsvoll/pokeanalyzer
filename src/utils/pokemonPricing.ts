@@ -1,14 +1,13 @@
 import type { CardMarket, TCGPlayer } from "../types/pokemon/pricing";
+import {
+  getOrderedTcgPlayerVariantKeys,
+  TCG_PLAYER_VARIANT_ORDER,
+  type TcgPlayerVariantKey,
+} from "../../shared/tcgPlayerVariants";
 
-export const TCG_PLAYER_VARIANT_ORDER = [
-  "normal",
-  "holofoil",
-  "reverseHolofoil",
-  "firstEditionHolofoil",
-  "firstEditionNormal",
-] as const;
+export { TCG_PLAYER_VARIANT_ORDER };
 
-export type TCGPlayerVariantKey = (typeof TCG_PLAYER_VARIANT_ORDER)[number];
+export type TCGPlayerVariantKey = TcgPlayerVariantKey;
 
 export type CardPriceSource = "tcgplayer" | "cardmarket";
 
@@ -78,7 +77,11 @@ export function formatTcgPlayerVariantLabel(
   const labels: Record<TCGPlayerVariantKey, string> = {
     normal: "Normal",
     holofoil: "Holofoil",
+    unlimited: "Unlimited",
+    unlimitedHolofoil: "Unlimited Holofoil",
     reverseHolofoil: "Reverse Holo",
+    "1stEdition": "1st Edition",
+    "1stEditionHolofoil": "1st Ed. Holo",
     firstEditionHolofoil: "1st Ed. Holo",
     firstEditionNormal: "1st Ed. Normal",
   };
@@ -115,17 +118,10 @@ export function listTcgPlayerMarketEntries(
   if (!prices || typeof prices !== "object") return [];
 
   const entries: TcgPlayerMarketEntry[] = [];
-  const seen = new Set<string>();
+  const priceRecord = prices as Record<string, unknown>;
 
-  for (const key of TCG_PLAYER_VARIANT_ORDER) {
-    seen.add(key);
-    const price = readPositiveMarket(prices[key]);
-    if (price != null) entries.push({ price, variant: key });
-  }
-
-  for (const [key, variant] of Object.entries(prices)) {
-    if (seen.has(key)) continue;
-    const price = readPositiveMarket(variant);
+  for (const key of getOrderedTcgPlayerVariantKeys(priceRecord)) {
+    const price = readPositiveMarket(priceRecord[key]);
     if (price != null) entries.push({ price, variant: key });
   }
 
@@ -247,6 +243,16 @@ export function pickDefaultCardPriceOption(
   return (
     options.find((option) => option.source === preferredSource) ?? options[0]
   );
+}
+
+export function getDefaultCardPriceOptionForSource(
+  card: {
+    tcgplayer?: TCGPlayer | null;
+    cardmarket?: CardMarket | null;
+  },
+  source: CardPriceSource,
+): CardPriceOption | undefined {
+  return listCardPriceOptions(card).find((option) => option.source === source);
 }
 
 /** Selected option id → price option, else default for the card. */

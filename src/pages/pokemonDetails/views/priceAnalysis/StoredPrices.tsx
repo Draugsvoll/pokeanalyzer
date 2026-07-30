@@ -1,7 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink, Layers3 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Layers3,
+  TriangleAlert,
+} from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { formatDateStamp } from "../../../../utils/formatDateStamp";
+import { getDefaultCardPriceOptionForSource } from "../../../../utils/pokemonPricing";
 import "./StoredPrices.scss";
 
 type FlatPriceField = { label: string; value: number | string };
@@ -45,7 +52,9 @@ function getSafeSourceUrl(value: string | undefined) {
 
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : null;
   } catch {
     return null;
   }
@@ -77,7 +86,8 @@ function group(fields: FlatPriceField[], splitReverse = false) {
         name,
         [...values].sort(
           (a, b) =>
-            Number(/market|trend/i.test(b.label)) - Number(/market|trend/i.test(a.label)),
+            Number(/market|trend/i.test(b.label)) -
+            Number(/market|trend/i.test(a.label)),
         ),
       ] as const,
   );
@@ -99,6 +109,7 @@ type SourceCardProps = {
   updatedAt?: string;
   showDetails: boolean;
   onToggleDetails: () => void;
+  isPriceFlagged: boolean;
 };
 
 function SourceCard({
@@ -117,10 +128,13 @@ function SourceCard({
   updatedAt,
   showDetails,
   onToggleDetails,
+  isPriceFlagged,
 }: SourceCardProps) {
   return (
     <div className="stored-prices__source-block">
-      <article className={`stored-prices__source stored-prices__source--${accent}`}>
+      <article
+        className={`stored-prices__source stored-prices__source--${accent}`}
+      >
         <header className="stored-prices__header">
           <div className="stored-prices__identity">
             <h3>{title}</h3>
@@ -146,12 +160,24 @@ function SourceCard({
           </div>
         </header>
 
+        {isPriceFlagged && (
+          <div className="stored-prices__warning" role="status">
+            <TriangleAlert aria-hidden="true" />
+            <span>
+              Potentially unstable price. Check the extended price data to verify.
+            </span>
+          </div>
+        )}
+
         {showDetails && (
           <div className="stored-prices__details">
             {hasPrices ? (
               <div className="stored-prices__groups">
                 {groups.map(([name, fields], groupIndex) => (
-                  <section className="stored-prices__group" key={`${name}-${groupIndex}`}>
+                  <section
+                    className="stored-prices__group"
+                    key={`${name}-${groupIndex}`}
+                  >
                     <h4>
                       {name === "Prices" ? null : (
                         <>
@@ -163,7 +189,9 @@ function SourceCard({
                     {fields.map((field) => (
                       <div
                         className={`stored-prices__price${
-                          highlight.test(field.label) ? " stored-prices__price--highlight" : ""
+                          highlight.test(field.label)
+                            ? " stored-prices__price--highlight"
+                            : ""
                         }`}
                         key={`${name}-${groupIndex}-${field.label}`}
                       >
@@ -177,7 +205,9 @@ function SourceCard({
             ) : (
               <div className="stored-prices__empty">
                 <strong>Price data unavailable</strong>
-                <span>{title} did not return usable pricing for this card.</span>
+                <span>
+                  {title} did not return usable pricing for this card.
+                </span>
               </div>
             )}
 
@@ -207,9 +237,7 @@ function SourceCard({
           )}
         </button>
         {updatedAt && (
-          <p className="app-view-datestamp">
-            {formatDateStamp(updatedAt)}
-          </p>
+          <p className="app-view-datestamp">{formatDateStamp(updatedAt)}</p>
         )}
       </div>
     </div>
@@ -254,8 +282,11 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
 
   const tcgGroups = group(tcgFields);
   const cardmarketGroups = group(cardmarketFields, true);
-  const tcgMarket = tcgFields.find((field) => /market$/i.test(field.label));
-  const cardmarketTrend = cardmarketFields.find((field) => /trend price$/i.test(field.label));
+  const tcgDefaultPrice = getDefaultCardPriceOptionForSource(card, "tcgplayer");
+  const cardmarketDefaultPrice = getDefaultCardPriceOptionForSource(
+    card,
+    "cardmarket",
+  );
   const tcgplayerUrl = getSafeSourceUrl(card.tcgplayer?.url);
   const cardmarketUrl = getSafeSourceUrl(card.cardmarket?.url);
 
@@ -268,7 +299,9 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             title="TCGPlayer"
             region="US Market"
             url={tcgplayerUrl}
-            heroPrice={tcgMarket ? formatPrice(tcgMarket.value, "USD") : "—"}
+            heroPrice={
+              tcgDefaultPrice ? formatPrice(tcgDefaultPrice.price, "USD") : "—"
+            }
             heroLabel="Market Price"
             groups={tcgGroups}
             currency="USD"
@@ -278,9 +311,12 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             updatedAt={card.tcgplayer?.updatedAt}
             showDetails={showDetails}
             onToggleDetails={() => setShowDetails((current) => !current)}
-            legend={[
-              // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
-            ]}
+            isPriceFlagged={card.priceReliability?.tcgplayer.isFlagged ?? false}
+            legend={
+              [
+                // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
+              ]
+            }
           />
         )}
         {hasCardmarketSource && (
@@ -290,7 +326,9 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             region="EU Market"
             url={cardmarketUrl}
             heroPrice={
-              cardmarketTrend ? formatPrice(cardmarketTrend.value, "EUR") : "—"
+              cardmarketDefaultPrice
+                ? formatPrice(cardmarketDefaultPrice.price, "EUR")
+                : "—"
             }
             heroLabel="Trend Price"
             groups={cardmarketGroups}
@@ -301,9 +339,14 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             updatedAt={card.cardmarket?.updatedAt}
             showDetails={showDetails}
             onToggleDetails={() => setShowDetails((current) => !current)}
-            legend={[
-              // { term: "Trend Price", text: "Algorithmic market value." },
-            ]}
+            isPriceFlagged={
+              card.priceReliability?.cardmarket.isFlagged ?? false
+            }
+            legend={
+              [
+                // { term: "Trend Price", text: "Algorithmic market value." },
+              ]
+            }
           />
         )}
       </div>

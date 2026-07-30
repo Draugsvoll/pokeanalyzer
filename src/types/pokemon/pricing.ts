@@ -12,7 +12,12 @@ export type TCGPlayer = {
   prices: {
     normal?: PriceData;
     holofoil?: PriceData;
+    unlimited?: PriceData;
+    unlimitedHolofoil?: PriceData;
     reverseHolofoil?: PriceData;
+    "1stEdition"?: PriceData;
+    "1stEditionHolofoil"?: PriceData;
+    /** Legacy aliases retained for older cached or imported cards. */
     firstEditionHolofoil?: PriceData;
     firstEditionNormal?: PriceData;
   };

@@ -56,7 +56,7 @@ type ListingVariantFilter = {
 };
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
-  { value: "default", label: "Default" },
+  { value: "default", label: "—" },
   { value: "price-asc", label: "Price: low to high" },
   { value: "price-desc", label: "Price: high to low" },
   { value: "date-desc", label: "Newest" },

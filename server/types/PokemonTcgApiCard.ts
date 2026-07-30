@@ -9,7 +9,12 @@ export type TcgPlayerPriceVariant = {
 export type TcgPlayerPrices = {
   normal?: TcgPlayerPriceVariant;
   holofoil?: TcgPlayerPriceVariant;
+  unlimited?: TcgPlayerPriceVariant;
+  unlimitedHolofoil?: TcgPlayerPriceVariant;
   reverseHolofoil?: TcgPlayerPriceVariant;
+  "1stEdition"?: TcgPlayerPriceVariant;
+  "1stEditionHolofoil"?: TcgPlayerPriceVariant;
+  /** Legacy aliases retained for older cached or imported cards. */
   firstEditionHolofoil?: TcgPlayerPriceVariant;
   firstEditionNormal?: TcgPlayerPriceVariant;
 };

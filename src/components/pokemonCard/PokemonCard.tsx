@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import BaseCard from "../basecard/BaseCard";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { useNavigate } from "react-router-dom";
+import { TriangleAlert } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import type { PortfolioPriceSnapshot } from "../../types/portfolio";
 import { formatDateStamp } from "../../utils/formatDateStamp";
@@ -9,6 +10,7 @@ import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
   getHistoricalPriceForOption,
   getCardPriceSourceLabel,
+  getDefaultCardPriceOptionForSource,
   listCardPriceOptions,
   pickDefaultCardPriceOption,
   type CardPriceOption,
@@ -34,9 +36,11 @@ type PokemonCardProps = {
   onConfirmPriceOption?: () => void | Promise<void>;
   onCancelPriceOption?: () => void;
   confirmingPriceOption?: boolean;
+  lockPriceSource?: boolean;
   showRarityBadge?: boolean;
   latestPriceSnapshot?: PortfolioPriceSnapshot | null;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
+  showPriceWarning?: boolean;
 };
 
 function formatPriceChange(value: number) {
@@ -54,9 +58,11 @@ export function PokemonCard({
   onConfirmPriceOption,
   onCancelPriceOption,
   confirmingPriceOption = false,
+  lockPriceSource = false,
   showRarityBadge = false,
   latestPriceSnapshot,
   comparisonPriceSnapshot,
+  showPriceWarning = false,
 }: PokemonCardProps) {
   const navigate = useNavigate();
   const sourcePanelId = useId();
@@ -67,11 +73,14 @@ export function PokemonCard({
   const isControlled = selectedPriceOptionId !== undefined;
   const requiresConfirm = Boolean(onConfirmPriceOption);
   const priceOptions = useMemo(() => listCardPriceOptions(card), [card]);
+  const defaultPriceOption = lockPriceSource
+    ? getDefaultCardPriceOptionForSource(card, priceSource)
+    : pickDefaultCardPriceOption(priceOptions, priceSource);
   const validInternalOptionId =
     internalOptionId &&
     priceOptions.some((option) => option.id === internalOptionId)
       ? internalOptionId
-      : (pickDefaultCardPriceOption(priceOptions, priceSource)?.id ?? null);
+      : (defaultPriceOption?.id ?? null);
   const selectedOptionId = isControlled
     ? selectedPriceOptionId
     : validInternalOptionId;
@@ -97,7 +106,7 @@ export function PokemonCard({
 
   const activeOption: CardPriceOption | undefined =
     priceOptions.find((option) => option.id === selectedOptionId) ??
-    pickDefaultCardPriceOption(priceOptions, priceSource);
+    defaultPriceOption;
 
   const displayedPrice = activeOption?.price;
   const latestSnapshotPrice =
@@ -138,7 +147,7 @@ export function PokemonCard({
     ? getCardPriceSourceLabel(activeOption.source)
     : getCardPriceSourceLabel(priceSource);
   const variantLabel = activeOption?.label;
-  const canPickSource = priceOptions.length > 0;
+  const canPickSource = !lockPriceSource && priceOptions.length > 0;
 
   const selectOption = (optionId: string) => {
     // Already saved selection — ignore
@@ -236,6 +245,16 @@ export function PokemonCard({
                   ? `${currencySymbol}${money.format(displayedPrice)}`
                   : "—"}
               </span>
+              {showPriceWarning && (
+                <span
+                  className="pokemon-card__price-warning"
+                  role="img"
+                  aria-label="Potentially unstable price"
+                  title="Potentially unstable price"
+                >
+                  <TriangleAlert aria-hidden="true" />
+                </span>
+              )}
               {showPriceChange &&
                 (formattedPriceChange &&
                 priceChangeTone &&
@@ -259,111 +278,115 @@ export function PokemonCard({
             </div>
           </div>
 
-          <div className="pokemon-card__variant-row">
-            <span
-              className={`badge-small badge-small--${
-                activeOption?.source ?? priceSource
-              }`}
-            >
-              {sourceLabel}
-            </span>
+          {!lockPriceSource && (
+            <div className="pokemon-card__variant-row">
+              <span
+                className={`badge-small badge-small--${
+                  activeOption?.source ?? priceSource
+                }`}
+              >
+                {sourceLabel}
+              </span>
 
-            {canPickSource && (
-              <div className="pokemon-card__source">
-                <button
-                  type="button"
-                  className={`pokemon-card__source-toggle${sourceOpen ? " is-open" : ""}`}
-                  aria-expanded={sourceOpen}
-                  aria-controls={sourcePanelId}
-                  onClick={() => {
-                    if (sourceOpen) closeSource();
-                    else setSourceOpen(true);
-                  }}
-                >
-                  <span className="pokemon-card__source-label">Source</span>
-                  <span
-                    className="pokemon-card__source-chevron"
-                    aria-hidden="true"
+              {canPickSource && (
+                <div className="pokemon-card__source">
+                  <button
+                    type="button"
+                    className={`pokemon-card__source-toggle${sourceOpen ? " is-open" : ""}`}
+                    aria-expanded={sourceOpen}
+                    aria-controls={sourcePanelId}
+                    onClick={() => {
+                      if (sourceOpen) closeSource();
+                      else setSourceOpen(true);
+                    }}
                   >
-                    {sourceOpen ? "▴" : "▾"}
-                  </span>
-                </button>
-
-                {sourceOpen && (
-                  <div className="pokemon-card__source-flyout ui-render-fade">
-                    <div
-                      id={sourcePanelId}
-                      className="pokemon-card__source-panel ui-popover-surface"
-                      role="radiogroup"
-                      aria-label="Price source"
+                    <span className="pokemon-card__source-label">Source</span>
+                    <span
+                      className="pokemon-card__source-chevron"
+                      aria-hidden="true"
                     >
-                      {priceOptions.map((option) => {
-                        const inputId = `${sourcePanelId}-${option.id}`;
-                        const checked = option.id === activeOption?.id;
-                        const isPending = option.id === pendingPriceOptionId;
-                        const pretext = getCardPriceSourceLabel(option.source);
+                      {sourceOpen ? "▴" : "▾"}
+                    </span>
+                  </button>
 
-                        return (
-                          <label
-                            key={option.id}
-                            htmlFor={inputId}
-                            className={[
-                              "pokemon-card__source-option",
-                              checked ? "is-selected" : "",
-                              isPending ? "is-pending" : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                          >
-                            <input
-                              className="app-radio"
-                              id={inputId}
-                              type="radio"
-                              name={`${sourcePanelId}-price`}
-                              value={option.id}
-                              checked={checked}
-                              onChange={() => selectOption(option.id)}
-                            />
-                            <span className="pokemon-card__source-option-label">
-                              <span
-                                className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
-                              >
-                                {pretext}
+                  {sourceOpen && (
+                    <div className="pokemon-card__source-flyout ui-render-fade">
+                      <div
+                        id={sourcePanelId}
+                        className="pokemon-card__source-panel ui-popover-surface"
+                        role="radiogroup"
+                        aria-label="Price source"
+                      >
+                        {priceOptions.map((option) => {
+                          const inputId = `${sourcePanelId}-${option.id}`;
+                          const checked = option.id === activeOption?.id;
+                          const isPending = option.id === pendingPriceOptionId;
+                          const pretext = getCardPriceSourceLabel(
+                            option.source,
+                          );
+
+                          return (
+                            <label
+                              key={option.id}
+                              htmlFor={inputId}
+                              className={[
+                                "pokemon-card__source-option",
+                                checked ? "is-selected" : "",
+                                isPending ? "is-pending" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            >
+                              <input
+                                className="app-radio"
+                                id={inputId}
+                                type="radio"
+                                name={`${sourcePanelId}-price`}
+                                value={option.id}
+                                checked={checked}
+                                onChange={() => selectOption(option.id)}
+                              />
+                              <span className="pokemon-card__source-option-label">
+                                <span
+                                  className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
+                                >
+                                  {pretext}
+                                </span>
+                                <span className="pokemon-card__source-option-name">
+                                  {option.label}
+                                </span>
                               </span>
-                              <span className="pokemon-card__source-option-name">
-                                {option.label}
+                              <span className="pokemon-card__source-option-price">
+                                {option.currencySymbol}
+                                {option.price}
                               </span>
-                            </span>
-                            <span className="pokemon-card__source-option-price">
-                              {option.currencySymbol}
-                              {option.price}
-                            </span>
-                          </label>
-                        );
-                      })}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      {pendingPriceOptionId && (
+                        <ConfirmPopover
+                          className="pokemon-card__source-confirm"
+                          label="Update?"
+                          confirmLabel="OK"
+                          aria-label="Confirm price source change"
+                          confirming={confirmingPriceOption}
+                          onConfirm={() => {
+                            void (async () => {
+                              await onConfirmPriceOption?.();
+                              setSourceOpen(false);
+                            })();
+                          }}
+                          onCancel={closeSource}
+                        />
+                      )}
                     </div>
-
-                    {pendingPriceOptionId && (
-                      <ConfirmPopover
-                        className="pokemon-card__source-confirm"
-                        label="Update?"
-                        confirmLabel="OK"
-                        aria-label="Confirm price source change"
-                        confirming={confirmingPriceOption}
-                        onConfirm={() => {
-                          void (async () => {
-                            await onConfirmPriceOption?.();
-                            setSourceOpen(false);
-                          })();
-                        }}
-                        onCancel={closeSource}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </BaseCard>
