@@ -7,6 +7,7 @@ import {
   Gem,
   Hash,
   Layers3,
+  ListTodo,
   LineChart,
   Palette,
   Search,
@@ -26,6 +27,7 @@ import {
   collectorsAnalysisPrompt,
   isWorthGradingPrompt,
   priceAnalysisPrompt,
+  salesDataPrompt,
   sellMyCardPrompt,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
@@ -41,6 +43,8 @@ import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
 import { SellPriceView } from "./views/SellPrice/SellPriceView";
+import { SalesDataView } from "./views/SalesData/SalesDataView";
+import { FEATURE_ERROR_MESSAGE } from "./views/featureError";
 import {
   fetchJustTcgCard,
   verifyJustTcgCard,
@@ -82,13 +86,14 @@ type ActiveView =
   | "collector_analysis"
   | "ebay_sold"
   | "prices"
+  | "sales_data"
   | "sell_price"
   | "worth_grading";
 
 type AI_feature = {
   view: Extract<
     ActiveView,
-    "prices" | "collector_analysis" | "ebay_sold" | "sell_price" | "worth_grading"
+    "prices" | "collector_analysis" | "ebay_sold" | "sales_data" | "sell_price" | "worth_grading"
   >;
   title: string;
   description: string;
@@ -143,6 +148,15 @@ const AI_Features: AI_feature[] = [
     color: "yellow",
     creditFeature: "sell_price",
     headerLabel: "Selling recommendation",
+  },
+  {
+    view: "sales_data",
+    title: "Sales Data",
+    description: "Prices and sales volume by grade",
+    icon: ListTodo,
+    color: "purple",
+    creditFeature: "sales_data",
+    headerLabel: "Sales data",
   },
 ];
 
@@ -332,7 +346,7 @@ function PokemonDetailsForCard() {
     if (!card) return false;
 
     if (!card.number) {
-      setJustTcgError("This card has no card number");
+      setJustTcgError(FEATURE_ERROR_MESSAGE);
       return false;
     }
     const cardNumber = card.number;
@@ -353,9 +367,7 @@ function PokemonDetailsForCard() {
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return false;
-        setJustTcgError(
-          error instanceof Error ? error.message : "JustTCG request failed",
-        );
+        setJustTcgError(FEATURE_ERROR_MESSAGE);
         return false;
       })
       .finally(() => {
@@ -371,7 +383,7 @@ function PokemonDetailsForCard() {
       .then(async (result) => {
         if (signal.aborted) return false;
         if (!result.ok) {
-          setGrokError(result.error);
+          setGrokError(FEATURE_ERROR_MESSAGE);
           return false;
         }
         updateSubscription(result.subscription);
@@ -384,7 +396,7 @@ function PokemonDetailsForCard() {
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return false;
-        setGrokError(error instanceof Error ? error.message : "Price analysis failed");
+        setGrokError(FEATURE_ERROR_MESSAGE);
         return false;
       })
       .finally(() => {
@@ -415,6 +427,7 @@ function PokemonDetailsForCard() {
     if (
       aiFeature.view !== "prices" &&
       aiFeature.view !== "collector_analysis" &&
+      aiFeature.view !== "sales_data" &&
       aiFeature.view !== "sell_price" &&
       aiFeature.view !== "worth_grading"
     ) {
@@ -439,37 +452,46 @@ function PokemonDetailsForCard() {
 
     if (aiFeature.view === "sell_price") {
       if (!card.number) {
-        setGrokError("This card has no card number");
+        setGrokError(FEATURE_ERROR_MESSAGE);
         setGrokResponse("");
         return;
       }
       prompt = sellMyCardPrompt(card.name, card.set.name, card.number);
     }
 
+    if (aiFeature.view === "sales_data") {
+      if (!card.number) {
+        setGrokError(FEATURE_ERROR_MESSAGE);
+        setGrokResponse("");
+        return;
+      }
+      prompt = salesDataPrompt(card.name, card.set.name, card.number);
+    }
+
     setGrokLoading(true);
     setGrokError("");
     setGrokResponse("");
 
+    const usesStoredCardResponse =
+      aiFeature.view === "collector_analysis" ||
+      aiFeature.view === "worth_grading" ||
+      aiFeature.view === "sell_price" ||
+      aiFeature.view === "sales_data";
     const signal = startRequest();
     try {
       const result = await askGrok(
         prompt,
         aiFeature.creditFeature,
         signal,
-        aiFeature.view === "collector_analysis" || aiFeature.view === "worth_grading"
-          ? card.id
-          : undefined,
+        usesStoredCardResponse ? card.id : undefined,
       );
       if (signal.aborted) return;
 
       if (!result.ok) {
-        setGrokError(result.error);
+        setGrokError(FEATURE_ERROR_MESSAGE);
       } else {
         updateSubscription(result.subscription);
-        if (
-          result.fromDatabase &&
-          (aiFeature.view === "collector_analysis" || aiFeature.view === "worth_grading")
-        ) {
+        if (result.fromDatabase && usesStoredCardResponse) {
           await waitForStoredResponse(signal);
         }
         if (signal.aborted) return;
@@ -477,7 +499,7 @@ function PokemonDetailsForCard() {
       }
     } catch (error) {
       if (!isAbortError(error)) {
-        setGrokError(error instanceof Error ? error.message : "Analysis failed");
+        setGrokError(FEATURE_ERROR_MESSAGE);
       }
     } finally {
       if (isCurrentRequest(signal)) setGrokLoading(false);
@@ -929,6 +951,7 @@ function PokemonDetailsForCard() {
         )}
         {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
         {activeView === "sell_price" && <SellPriceView grokRequest={grokRequest} />}
+        {activeView === "sales_data" && <SalesDataView grokRequest={grokRequest} />}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis grokRequest={grokRequest} />
         )}

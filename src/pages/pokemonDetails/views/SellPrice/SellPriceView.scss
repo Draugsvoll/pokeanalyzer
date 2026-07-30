@@ -7,8 +7,7 @@
   width: 100%;
 }
 
-.sell-price-view__step,
-.sell-price-view__json {
+.sell-price-view__step {
   background: var(--bg2);
   border: var(--border);
   border-radius: var(--border-radius);
@@ -117,29 +116,6 @@
         width: 0.5rem;
       }
     }
-  }
-}
-
-.sell-price-view__json {
-  min-width: 0;
-  overflow: hidden;
-
-  h3 {
-    border-bottom: 1px solid var(--border-divider);
-    color: var(--font-color-primary);
-    margin: 0;
-    padding: 1rem 1.15rem;
-  }
-
-  pre {
-    color: var(--font-color-secondary);
-    font-family: monospace;
-    font-size: var(--font-size-caption);
-    line-height: 1.6;
-    margin: 0;
-    overflow-x: auto;
-    padding: 1rem 1.15rem;
-    white-space: pre;
   }
 }
 

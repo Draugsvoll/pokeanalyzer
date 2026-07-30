@@ -1,6 +1,7 @@
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./SellPriceView.scss";
 
 type SellPriceViewProps = {
@@ -116,6 +117,8 @@ function parseSellPriceSteps(parsed: unknown): SellPriceStep[] | null {
     ? parsed
     : isRecord(parsed) && Array.isArray(parsed.steps)
       ? parsed.steps
+      : isRecord(parsed) && Array.isArray(parsed.results)
+        ? parsed.results
       : isRecord(parsed)
         ? [parsed]
         : null;
@@ -152,14 +155,14 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Calculating selling price...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{error}</p>;
+  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const parsedResponse = parseJsonText(response);
   const steps = parseSellPriceSteps(parsedResponse);
-  const prettyResponse = parsedResponse === null
-    ? response
-    : JSON.stringify(parsedResponse, null, 2);
+  if (!steps?.length) {
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  }
 
   return (
     <section className="sell-price-view ui-render-fade">
@@ -215,10 +218,6 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
         </ol>
       )}
 
-      <section className="sell-price-view__json">
-        <h3>Full JSON response</h3>
-        <pre>{prettyResponse}</pre>
-      </section>
     </section>
   );
 }

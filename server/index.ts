@@ -66,7 +66,7 @@ const grokLimiter = rateLimit({
   keyGenerator: (_req, res) => String(res.locals.authUid),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many Grok requests. Please wait and try again." },
+  message: { error: "Too many AI requests. Please wait and try again." },
 });
 
 const paidApiLimiter = rateLimit({

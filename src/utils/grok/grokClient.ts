@@ -37,10 +37,10 @@ export async function askGrok(
     const data = (await res.json()) as GrokResponse;
 
     if (!res.ok) {
-      return { ok: false, error: data.error ?? "Grok request failed" };
+      return { ok: false, error: data.error ?? "AI request failed" };
     }
     if (!data.subscription) {
-      return { ok: false, error: "Grok response did not include subscription data" };
+      return { ok: false, error: "AI response did not include subscription data" };
     }
 
     return {
@@ -53,7 +53,7 @@ export async function askGrok(
     if (isAbortError(error)) throw error;
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not reach the Grok endpoint",
+      error: error instanceof Error ? error.message : "Could not reach the AI endpoint",
     };
   }
 }

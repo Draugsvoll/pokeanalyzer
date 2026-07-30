@@ -44,13 +44,13 @@ export default function GrokTester() {
 
   return (
     <section className="grok-tester">
-      <h1>Grok test</h1>
+      <h1>AI test</h1>
 
       <textarea
         className="grok-tester__textarea"
         value={question}
         onChange={(event) => setQuestion(event.target.value)}
-        placeholder="Ask Grok something..."
+        placeholder="Ask AI something..."
         rows={6}
       />
 
@@ -60,7 +60,7 @@ export default function GrokTester() {
         onClick={handleAskGrok}
         disabled={!question.trim() || isLoading}
       >
-        {isLoading ? "Asking..." : "Ask Grok"}
+        {isLoading ? "Asking..." : "Ask AI"}
       </Button>
 
       {error && <p className="grok-tester__error">{error}</p>}

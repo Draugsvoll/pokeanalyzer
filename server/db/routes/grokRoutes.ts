@@ -7,6 +7,8 @@ import {
   isWorthGradingPrompt,
   priceAnalysisPrompt,
   PsaGradingPrompt,
+  salesDataPrompt,
+  sellMyCardPrompt,
 } from "../../../src/utils/grok/grokPrompts.js";
 import { getAuthenticatedUid } from "../../security/auth.js";
 import { logError } from "../../security/logging.js";
@@ -38,6 +40,7 @@ const ALLOWED_GROK_FEATURES = new Set([
   "market_news",
   "manual_test",
   "price_analysis",
+  "sales_data",
   "sell_price",
   "worth_grading",
 ]);
@@ -85,7 +88,7 @@ router.post("/", async (req: Request, res: Response) => {
     const feature = typeof req.body?.feature === "string" ? req.body.feature.trim() : "";
 
     if (!ALLOWED_GROK_FEATURES.has(feature)) {
-      throw new CreditHttpError("Invalid Grok feature", 400);
+      throw new CreditHttpError("Invalid AI feature", 400);
     }
 
     const adminUid = process.env.ADMIN_UID?.trim();
@@ -141,6 +144,21 @@ router.post("/", async (req: Request, res: Response) => {
         );
       } else if (feature === "worth_grading") {
         prompt = isWorthGradingPrompt(context.cardNameAndSet);
+      } else if (feature === "sell_price" || feature === "sales_data") {
+        if (!context.setName || !context.cardNumber) {
+          throw new CreditHttpError("Card is missing set or number data", 422);
+        }
+        prompt = feature === "sell_price"
+          ? sellMyCardPrompt(
+              context.cardName,
+              context.setName,
+              context.cardNumber,
+            )
+          : salesDataPrompt(
+              context.cardName,
+              context.setName,
+              context.cardNumber,
+            );
       } else {
         throw new CreditHttpError("Unsupported stored card feature", 400);
       }
@@ -163,7 +181,7 @@ router.post("/", async (req: Request, res: Response) => {
           response,
         );
         if (!storedResponse) {
-          throw new CreditHttpError("Grok returned invalid analysis JSON", 502);
+          throw new CreditHttpError("AI returned invalid analysis JSON", 502);
         }
         return JSON.stringify(storedResponse);
       },
@@ -177,7 +195,7 @@ router.post("/", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
-    logError("Grok query route failed", error);
+    logError("AI query route failed", error);
     sendRouteError(res, error, "Request failed");
   }
 });
@@ -201,8 +219,8 @@ router.post("/psa-grade", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
-    logError("Grok PSA grading route failed", error);
-    sendRouteError(res, error, "Grok PSA grading request failed");
+    logError("AI PSA grading route failed", error);
+    sendRouteError(res, error, "AI PSA grading request failed");
   }
 });
 
@@ -224,8 +242,8 @@ router.post("/identify-card", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
-    logError("Grok card identification route failed", error);
-    sendRouteError(res, error, "Grok card identification request failed");
+    logError("AI card identification route failed", error);
+    sendRouteError(res, error, "AI card identification request failed");
   }
 });
 
@@ -248,8 +266,8 @@ router.post("/authenticity-check", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
-    logError("Grok authenticity check route failed", error);
-    sendRouteError(res, error, "Grok authenticity check request failed");
+    logError("AI authenticity check route failed", error);
+    sendRouteError(res, error, "AI authenticity check request failed");
   }
 });
 

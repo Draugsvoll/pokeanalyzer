@@ -99,27 +99,146 @@ and shall only be filled if you have reliable data.
   }
 }
 `
+
+const salesData: string = `
+Can you fetch sold data based on grading for this card at PriceCharting website?
+
+Response must be only a valid JSON format. No extra text before or after the JSON format.
+Response must be put into the exact structure as the example response below.
+If data not available just leave the field empty.
+
+
+{
+  "title": "Blaine's Charizard #2",
+  "subtitle": "Gym Challenge • Unlimited • Rare Holo • PriceCharting Data",
+  "market_prices": [
+    {
+      "grade": "Ungraded",
+      "price": "$272",
+      "volume": "~1 sale / week"
+    },
+    {
+      "grade": "Grade 7",
+      "price": "$568",
+      "volume": "~2 sales / week"
+    },
+    {
+      "grade": "Grade 8",
+      "price": "$830",
+      "volume": "~3 sales / week"
+    },
+    {
+      "grade": "Grade 9",
+      "price": "$1,173",
+      "volume": "~3 sales / week"
+    },
+    {
+      "grade": "Grade 9.5",
+      "price": "$1,290",
+      "volume": "~6 sales / year"
+    },
+    {
+      "grade": "PSA 10",
+      "price": "$6,000",
+      "volume": "~1 sale / month"
+    }
+  ],
+  "recent_sold": [
+    {
+      "label": "Ungraded / Raw",
+      "range": "$117 – $450 (cleaner copies closer to $300–$400)"
+    },
+    {
+      "label": "Grade 7 – 7.5",
+      "range": "CGC 7.5: $340 – $568 · BGS 7: ~$325"
+    },
+    {
+      "label": "Grade 8 – 8.5",
+      "range": "BGS 8 / 8.5: $517 – $700 · CGC 8.5: ~$700"
+    },
+    {
+      "label": "Grade 9",
+      "range": "BGS 9: $705 – $1,200 · CGC 9: $780 – $1,350"
+    },
+    {
+      "label": "Grade 9.5",
+      "range": "BGS / CGC 9.5: $710 – $1,500 (most recent $800–$1,350)"
+    }
+  ],
+  "notes": [
+    "This is the Unlimited version (no 1st Edition stamp). 1st Edition is significantly more expensive.",
+    "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl.",
+    "PSA 10 remains scarce and commands a large premium."
+  ],
+}
+
+
+`
+
 const sellMyCard: string = `
-  How much should i sell this card for? give a summarized response in a valid json format.
-  No extra text before or after the JSON format. The format must strictly be a list of steps,
-  and each step then have a list of substeps.
+  How much should I sell this card for? Give a summarized response as valid JSON.
+  No extra text before or after the JSON. The root must be an object with a "steps" array.
+  Each step must contain a "title" and a "substeps" array.
 
-  The first step must be price recomendations,
-  include different conditions/grading. Dont make a step about inspecting condition.
-  For the first step, every substep must be an object with exactly two fields:
-  "label" for the condition or grade, and "price" for its recommended price range.
+  The first category must be price recommendations,
+  include different conditions/grading.
 
-  The second step lets me know the general sales volume of this card and what sources everything is based on.
+  Don't make a step about inspecting condition.
+
+  The second category lets me know the general sales volume of this card and what sources everything is based on.
   Use reliable sources and make sure we know roughly how often it sells. For example per week, month, or year.
+  Use one substep per grading category.
 
+  Third category: How fast can I realistically expect to sell this card? Consider different markets and conditions.
 
-  Third step: How fast can i realistically expect to sell this card? consider different markets and conditions.
+  Fourth category: I need to know different marketplaces available and what each one is best for.
 
-  fourth step: I need to know different marketplaces available and what each one is best for.
+  Other category (optional): Include any other valuable, applicable information.
 
-  Other steps:Any other valuable information and how its applicable let me know.
+  Don't blend different categories together. Name each step based on its content.
 
-  Don't blend different categories together in a step. Name each step based on its content.
+  Example response:
+
+  {
+    "steps": [
+      {
+        "title": "Price Recommendations",
+        "substeps": [
+          {
+            "label": "PSA 9",
+            "price": "$100-$150"
+          },
+          {
+            "label": "PSA 8",
+            "price": "$200-$250"
+          }
+        ]
+      },
+      {
+        "title": "Sales Volume and Sources",
+        "substeps": [
+          "",
+          "",
+          ""
+        ]
+      },
+      {
+        "title": "Expected Sales Time",
+        "substeps": [
+          "",
+          ""
+          ""
+        ]
+      },
+      {
+        "title": "",
+        "substeps": [
+          "",
+          ""
+        ]
+      }
+    ]
+  }
 
 `;
 
@@ -491,6 +610,19 @@ export function sellMyCardPrompt(
   cardNumber: string | number
 ): string {
   return `${sellMyCard.trim()}
+
+Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
+}
+
+export function salesDataPrompt(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number
+): string {
+  return `${salesData.trim()}
 
 Card details:
 "card-name": ${JSON.stringify(cardName)}

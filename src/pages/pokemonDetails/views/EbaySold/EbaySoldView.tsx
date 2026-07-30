@@ -20,6 +20,7 @@ import {
   useAbortableRequest,
 } from "../../../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 
@@ -178,11 +179,7 @@ export default function EbaySoldView({
       } catch (requestError) {
         if (isAbortError(requestError)) return;
         if (!signal.aborted) {
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "Failed to fetch eBay sold listings"
-          );
+          setError(FEATURE_ERROR_MESSAGE);
         }
       } finally {
         if (isCurrentRequest(signal)) {
@@ -197,7 +194,7 @@ export default function EbaySoldView({
   if (loading) {
     return <LoadingState>Loading eBay sold listings...</LoadingState>;
   }
-  if (error) return <p className="card-view__page-error">{error}</p>;
+  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
   const results = getVisibleEbayCompResults(response);
 

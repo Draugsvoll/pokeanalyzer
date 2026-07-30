@@ -31,7 +31,7 @@ function getXaiApiKey() {
   const apiKey = process.env.XAI_API_KEY?.replace(/^(Bearer|Token)\s+/i, "").trim();
 
   if (!apiKey || apiKey === "your_xai_api_key_here") {
-    throw new GrokApiError("Grok API key is not configured", 500);
+    throw new GrokApiError("AI API key is not configured", 500);
   }
 
   return apiKey;
@@ -94,11 +94,11 @@ async function requestGrokResponse(
         isRetryableGrokError(error);
 
       if (!shouldRetry) throw error;
-      console.warn("Grok request failed; retrying once");
+      console.warn("AI request failed; retrying once");
     }
   }
 
-  throw new GrokApiError("Grok query request failed");
+  throw new GrokApiError("AI query request failed");
 }
 
 function isRetryableGrokError(error: unknown) {
@@ -144,18 +144,18 @@ async function requestGrokResponseOnce(
 
   if (!response.ok) {
     console.error(
-      `Grok query request failed with status ${response.status}${
+      `AI query request failed with status ${response.status}${
         data.error?.code ? ` and code ${data.error.code}` : ""
       }`
     );
-    throw new GrokApiError("Grok query request failed", response.status);
+    throw new GrokApiError("AI query request failed", response.status);
   }
 
   const content = getResponseText(data);
 
   if (!content) {
-    console.error("Grok returned no text content");
-    throw new GrokApiError("Grok returned an empty response", 502);
+    console.error("AI returned no text content");
+    throw new GrokApiError("AI returned an empty response", 502);
   }
 
   return content;
