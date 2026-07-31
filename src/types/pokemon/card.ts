@@ -37,4 +37,10 @@ export type PokemonCard = {
   quantity?: number;
   /** Selected price option id, e.g. "tcgplayer:holofoil" | "cardmarket:trendPrice" */
   priceSource?: string;
+  priceReliability?: Record<
+    "tcgplayer" | "cardmarket",
+    {
+      isFlagged: boolean;
+    }
+  >;
 };

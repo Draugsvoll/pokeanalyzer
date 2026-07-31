@@ -7,6 +7,7 @@ import grokRoutes from "./db/routes/grokRoutes.js";
 import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
+import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
@@ -66,7 +67,7 @@ const grokLimiter = rateLimit({
   keyGenerator: (_req, res) => String(res.locals.authUid),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many Grok requests. Please wait and try again." },
+  message: { error: "Too many AI requests. Please wait and try again." },
 });
 
 const paidApiLimiter = rateLimit({
@@ -111,7 +112,7 @@ app.use((req, res, next) => {
 });
 app.use(attachRequestAbortSignal);
 app.use(
-  "/grok",
+  "/ai",
   requireVerifiedUser,
   grokLimiter,
   express.json({ limit: "28mb" }),
@@ -449,27 +450,7 @@ app.get("/api/cards/:id/price-history", async (req, res) => {
   }
 });
 
-// FETCH SINGLE CARD BY ID
-app.get("/api/cards/:id", async (req, res) => {
-  try {
-    const row = await dbGet<{ raw_json: string }>(
-      `
-      SELECT raw_json
-      FROM cards
-      WHERE id = ?
-      `,
-      [req.params.id],
-    );
-    if (!row) {
-      res.status(404).json({ error: "Card not found" });
-      return;
-    }
-    res.json(parsePublicStoredCard(String(row.raw_json)));
-  } catch (err) {
-    logError("Failed to fetch card", err);
-    res.status(500).json({ error: "Failed to fetch card" });
-  }
-});
+app.use("/api/cards", cardDetailsRoutes);
 
 const PORT = process.env.PORT || 3001;
 

@@ -5,6 +5,7 @@ export const priceAnalysis: string =
 If the data is available, please show todays market prices for the pokemon card i provided.
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
+Make sure to include the source "PriceCharting" if it has available data.
 If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
 
 In market_data field, you can add different types of market price data, as long as its
@@ -99,17 +100,127 @@ and shall only be filled if you have reliable data.
 }
 `
 
-export function priceAnalysisPrompt(
-  name: string,
-  setName: string,
-  number: string | number
-): string {
-  return `"name": ${JSON.stringify(name)},
-          "set": ${JSON.stringify(setName)},
-          "number": ${JSON.stringify(String(number))},
+const salesData: string = `
+Can you fetch sold data based on grading for this card at PriceCharting website?
 
-          ${priceAnalysis}`;
+Response must be only a valid JSON format. No extra text before or after the JSON format.
+Response must be put into the exact structure as the example response below.
+If data not available just leave the field empty.
+
+Notes field is optional. If theres a need to clarify which variant is used, then do it. You can add
+other important information that is not alreay obvious.
+
+
+{
+  "title": "Blaine's Charizard #2",
+  "subtitle": "Gym Challenge • Unlimited • Rare Holo • PriceCharting Data",
+  "market_prices": [
+    {
+      "grade": "Ungraded",
+      "price": "$272.83",
+      "volume": "~1 sale / week"
+    },
+    {
+      "grade": "Grade 7",
+      "price": "$568.23",
+      "volume": "~2 sales / week"
+    },
+    {
+      "grade": "Grade 8",
+      "price": "$830.00",
+      "volume": "~3 sales / week"
+    },
+    {
+      "grade": "Grade 9",
+      "price": "$1,173.92",
+      "volume": "~3 sales / week"
+    },
+    {
+      "grade": "Grade 9.5",
+      "price": "$1,290.02",
+      "volume": "~6 sales / year"
+    },
+    {
+      "grade": "PSA 10",
+      "price": "$6,000.25",
+      "volume": "~1 sale / month"
+    }
+  ],
+  "notes": [
+    "This is the Unlimited version (no 1st Edition stamp). 1st Edition is significantly more expensive.",
+    "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl."
+  ]
 }
+
+
+`
+
+const sellMyCard: string = `
+  How much should I sell this card for? Give a summarized response as valid JSON.
+  No extra text before or after the JSON. The root must be an object with a "steps" array.
+  Each step must contain a "title" and a "substeps" array.
+
+  The first category must be price recommendations,
+  include different conditions/grading.
+
+  Don't make a step about inspecting condition.
+
+  The second category lets me know the general sales volume of this card and what sources everything is based on.
+  Use reliable sources and make sure we know roughly how often it sells. For example per week, month, or year.
+  Use one substep per grading category.
+
+  Third category: How fast can I realistically expect to sell this card? Consider different markets and conditions.
+
+  Fourth category: I need to know different marketplaces available and what each one is best for.
+
+  Other category (optional): Include any other valuable, applicable information.
+
+  Don't blend different categories together. Name each step based on its content.
+
+  Example response:
+
+  {
+    "steps": [
+      {
+        "title": "Price Recommendations",
+        "substeps": [
+          {
+            "label": "PSA 9",
+            "price": "$100-$150"
+          },
+          {
+            "label": "PSA 8",
+            "price": "$200-$250"
+          }
+        ]
+      },
+      {
+        "title": "Sales Volume and Sources",
+        "substeps": [
+          "",
+          "",
+          ""
+        ]
+      },
+      {
+        "title": "Expected Sales Time",
+        "substeps": [
+          "",
+          ""
+          ""
+        ]
+      },
+      {
+        "title": "",
+        "substeps": [
+          "",
+          ""
+        ]
+      }
+    ]
+  }
+
+`;
 
 const identifyCard: string =
 `
@@ -328,7 +439,7 @@ in the form of summary/keywords, place the text before the number. Must be under
 Return a clean JSON object with exactly these keys:
 - verdict: A short, direct conclusion (1 sentence). Don't mention sales volume in this field.
 - market_summary: An object containing raw value, PSA 8, PSA 9, PSA 10, and grading cost
-- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read, dont use too many details and prices.
+- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read for humans, dont use too many details and prices.
 - action: A concise summary. 1-3 sentences. Keep it straight to the point and only valueable information.
 
 Card to analyze:
@@ -459,4 +570,42 @@ export function authenticityCheckPrompt(
       ...images.slice(1),
     ],
   };
+}
+
+export function priceAnalysisPrompt(
+  name: string,
+  setName: string,
+  number: string | number
+): string {
+  return `"name": ${JSON.stringify(name)},
+          "set": ${JSON.stringify(setName)},
+          "number": ${JSON.stringify(String(number))},
+
+          ${priceAnalysis}`;
+}
+
+export function sellMyCardPrompt(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number
+): string {
+  return `${sellMyCard.trim()}
+
+Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
+}
+
+export function salesDataPrompt(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number
+): string {
+  return `${salesData.trim()}
+
+Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
 }

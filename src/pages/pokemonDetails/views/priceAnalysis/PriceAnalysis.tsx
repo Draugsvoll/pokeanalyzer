@@ -1,16 +1,19 @@
 import { ChartLine, ExternalLink, Globe2, Search, Store } from "lucide-react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
 import { StoredPrices } from "./StoredPrices";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { formatDateStamp } from "../../../../utils/formatDateStamp";
+import { SalesDataView } from "../SalesData/SalesDataView";
 import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
   card: PokemonCard;
   grokRequest: GrokRequestState;
+  salesDataRequest: GrokRequestState;
   justTcgRequest: {
     loading: boolean;
     error: string;
@@ -74,11 +77,13 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching sources...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{error}</p>;
+  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const parsed = parseJsonText(response);
-  if (!isRecord(parsed)) return <p>{response}</p>;
+  if (!isRecord(parsed)) {
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  }
 
   const marketData = Array.isArray(parsed.market_data)
     ? parsed.market_data.filter(isRecord)
@@ -189,7 +194,7 @@ function JustTcgPriceAnalysis({
   }
 
   if (justTcgRequest.error) {
-    return <p className="card-view__page-error">{justTcgRequest.error}</p>;
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
   if (justTcgRequest.response === null) {
@@ -203,11 +208,13 @@ export function PriceAnalysis({
   card,
   grokRequest,
   justTcgRequest,
+  salesDataRequest,
 }: PriceAnalysisProps) {
   return (
     <div className="price-analysis-view">
       <StoredPrices card={card} />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
+      <SalesDataView grokRequest={salesDataRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </div>
   );

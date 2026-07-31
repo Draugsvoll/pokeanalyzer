@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router, type RequestHandler, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { dbAll, dbGet } from "../db.js";
 import { parsePublicStoredCard } from "../cardSerialization.js";
@@ -15,6 +15,7 @@ import {
   type PortfolioPriceSnapshot,
   type PortfolioPriceSnapshotRow,
 } from "../portfolioPriceSnapshots.js";
+import { assessDefaultCardPrices } from "../../services/defaultPriceReliability.js";
 
 const router = Router();
 const MAX_QUANTITY = 1_000_000;
@@ -26,6 +27,15 @@ type PortfolioEntry = {
   cardId: string;
   quantity: number;
   priceSource?: string;
+};
+
+type PortfolioPriceSource = "tcgplayer" | "cardmarket";
+
+type MergeableUserDocument = {
+  set: (
+    data: { portfolioPriceSource: PortfolioPriceSource },
+    options: { merge: true },
+  ) => Promise<unknown>;
 };
 
 class PortfolioHttpError extends Error {
@@ -97,6 +107,25 @@ function getPriceSource(value: unknown) {
   return priceSource;
 }
 
+function getPortfolioPriceSource(value: unknown): PortfolioPriceSource {
+  if (value === "tcgplayer" || value === "cardmarket") return value;
+  throw new PortfolioHttpError(
+    "priceSource must be tcgplayer or cardmarket",
+    400,
+  );
+}
+
+function parseStoredPortfolioPriceSource(value: unknown): PortfolioPriceSource {
+  return value === "cardmarket" ? "cardmarket" : "tcgplayer";
+}
+
+export async function savePortfolioPriceSourcePreference(
+  document: MergeableUserDocument,
+  portfolioPriceSource: PortfolioPriceSource,
+) {
+  await document.set({ portfolioPriceSource }, { merge: true });
+}
+
 function parseStoredPortfolioEntry(
   cardId: string,
   data: unknown,
@@ -154,6 +183,10 @@ async function requireCardInDatabase(cardId: string) {
 
 function portfolioCollection(uid: string) {
   return adminDb.collection(`users/${uid}/portfolio`);
+}
+
+function userDocument(uid: string) {
+  return adminDb.doc(`users/${uid}`);
 }
 
 async function getPortfolioEntries(uid: string): Promise<PortfolioEntry[]> {
@@ -222,14 +255,19 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
       continue;
     }
 
+    const priceSnapshots = snapshotsByCardId.get(entry.cardId);
+    const priceReliability = assessDefaultCardPrices(
+      card,
+      priceSnapshots?.["24h"]?.cardmarketPrices,
+    );
+
     cards.push({
       ...card,
       id: entry.cardId,
       quantity: entry.quantity,
       ...(entry.priceSource && { priceSource: entry.priceSource }),
-      ...(snapshotsByCardId.has(entry.cardId) && {
-        priceSnapshots: snapshotsByCardId.get(entry.cardId),
-      }),
+      priceReliability,
+      ...(priceSnapshots && { priceSnapshots }),
     });
   }
 
@@ -245,6 +283,76 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
   }
 
   return { cards, missingCardIds };
+}
+
+type HydratedPortfolioHandlerDependencies = {
+  authenticatedUid: (res: Response) => string;
+  loadEntries: (uid: string) => Promise<PortfolioEntry[]>;
+  loadHydratedCards: typeof getHydratedCards;
+  loadStoredPriceSource: (uid: string) => Promise<unknown>;
+};
+
+export function createHydratedPortfolioHandler(
+  dependencies: Partial<HydratedPortfolioHandlerDependencies> = {},
+): RequestHandler {
+  const authenticatedUid = dependencies.authenticatedUid ?? getAuthenticatedUid;
+  const loadEntries = dependencies.loadEntries ?? getPortfolioEntries;
+  const loadHydratedCards = dependencies.loadHydratedCards ?? getHydratedCards;
+  const loadStoredPriceSource =
+    dependencies.loadStoredPriceSource ??
+    (async (uid: string) => {
+      const snapshot = await userDocument(uid).get();
+      return snapshot.data()?.portfolioPriceSource;
+    });
+
+  return async (_req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    try {
+      const uid = authenticatedUid(res);
+      const [entries, storedPriceSource] = await Promise.all([
+        loadEntries(uid),
+        loadStoredPriceSource(uid),
+      ]);
+      const { cards, missingCardIds } = await loadHydratedCards(entries);
+      const portfolioPriceSource =
+        parseStoredPortfolioPriceSource(storedPriceSource);
+      res.json({ cards, entries, missingCardIds, portfolioPriceSource });
+    } catch (error) {
+      sendPortfolioError(res, error, "Failed to load hydrated portfolio");
+    }
+  };
+}
+
+type UpdatePortfolioPriceSourceHandlerDependencies = {
+  authenticatedUid: (res: Response) => string;
+  savePriceSource: (
+    uid: string,
+    priceSource: PortfolioPriceSource,
+  ) => Promise<void>;
+};
+
+export function createUpdatePortfolioPriceSourceHandler(
+  dependencies: Partial<UpdatePortfolioPriceSourceHandlerDependencies> = {},
+): RequestHandler {
+  const authenticatedUid = dependencies.authenticatedUid ?? getAuthenticatedUid;
+  const savePriceSource =
+    dependencies.savePriceSource ??
+    (async (uid: string, priceSource: PortfolioPriceSource) => {
+      await savePortfolioPriceSourcePreference(userDocument(uid), priceSource);
+    });
+
+  return async (req, res) => {
+    try {
+      const uid = authenticatedUid(res);
+      const portfolioPriceSource = getPortfolioPriceSource(
+        req.body?.priceSource,
+      );
+      await savePriceSource(uid, portfolioPriceSource);
+      res.json({ portfolioPriceSource });
+    } catch (error) {
+      sendPortfolioError(res, error, "Failed to update portfolio price source");
+    }
+  };
 }
 
 function portfolioCardRef(uid: string, cardId: string) {
@@ -274,17 +382,17 @@ router.get("/cards", portfolioReadLimiter, async (_req, res) => {
   }
 });
 
-router.get("/cards/hydrated", portfolioReadLimiter, async (_req, res) => {
-  res.setHeader("Cache-Control", "private, no-store");
-  try {
-    const uid = getAuthenticatedUid(res);
-    const entries = await getPortfolioEntries(uid);
-    const { cards, missingCardIds } = await getHydratedCards(entries);
-    res.json({ cards, entries, missingCardIds });
-  } catch (error) {
-    sendPortfolioError(res, error, "Failed to load hydrated portfolio");
-  }
-});
+router.get(
+  "/cards/hydrated",
+  portfolioReadLimiter,
+  createHydratedPortfolioHandler(),
+);
+
+router.patch(
+  "/price-source",
+  portfolioWriteLimiter,
+  createUpdatePortfolioPriceSourceHandler(),
+);
 
 router.post("/cards", portfolioWriteLimiter, async (req, res) => {
   try {

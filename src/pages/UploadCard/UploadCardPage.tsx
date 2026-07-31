@@ -53,7 +53,7 @@ const uploadOptions = [
 const analysisOptions = [
   {
     type: "psa",
-    endpoint: "/grok/psa-grade",
+    endpoint: "/ai/psa-grade",
     label: "Get PSA Estimate",
     loadingLabel: "Analyzing...",
     includeBackImage: true,
@@ -61,7 +61,7 @@ const analysisOptions = [
   },
   {
     type: "authenticity",
-    endpoint: "/grok/authenticity-check",
+    endpoint: "/ai/authenticity-check",
     label: "Check Authenticity",
     loadingLabel: "Checking...",
     includeBackImage: true,

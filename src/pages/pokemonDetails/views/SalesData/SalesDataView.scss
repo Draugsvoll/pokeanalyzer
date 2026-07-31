@@ -1,0 +1,179 @@
+.sales-data-view {
+  --sales-data-accent: var(--feature-accent, var(--custom-color-purple));
+
+  display: grid;
+  gap: var(--card-view-section-gap);
+  margin: 0 auto;
+  max-width: 72rem;
+  width: 100%;
+}
+
+.sales-data-view__panel {
+  background: var(--bg2);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+
+  > header {
+    align-items: center;
+    border-bottom: 1px solid var(--border-divider);
+    display: flex;
+    gap: 0.65rem;
+    padding: 1rem 1.25rem;
+
+    svg {
+      color: var(--sales-data-accent);
+      height: 1.1rem;
+      width: 1.1rem;
+    }
+
+    h3 {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h3);
+      margin: 0;
+    }
+  }
+}
+
+.sales-data-view__table-wrap {
+  overflow-x: auto;
+  padding: 0.25rem;
+}
+
+.sales-data-view__market table {
+  border-collapse: collapse;
+  min-width: 32rem;
+  table-layout: fixed;
+  width: 100%;
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+    padding: var(--padding-row);
+    text-align: right;
+    white-space: normal;
+  }
+
+  thead th {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-normal);
+    text-transform: uppercase;
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+    width: 34%;
+  }
+
+  tbody tr {
+    border-top: 1px solid var(--border-divider);
+  }
+
+  tbody tr:hover th,
+  tbody tr:hover td {
+    background: rgba(63, 66, 71, 0.12);
+  }
+
+  tbody th {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
+  }
+
+  tbody td {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-paragraph-sm);
+  }
+
+  tbody td:nth-child(2) {
+    color: var(--sales-data-accent);
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-paragraph);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-tight);
+  }
+}
+
+@media (max-width: 42rem) {
+  .sales-data-view__market table {
+    min-width: 28rem;
+
+    th:first-child,
+    td:first-child {
+      width: 38%;
+    }
+  }
+}
+
+.sales-data-view__sold-list {
+  display: grid;
+
+  article {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1.4rem 1.65rem;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--border-divider);
+    }
+  }
+
+  span {
+    color: var(--sales-data-accent);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-regular);
+    overflow-wrap: anywhere;
+  }
+}
+
+.sales-data-view__notes {
+  border-top: 1px solid var(--border-divider);
+  padding: 1rem 1.25rem;
+
+  ul {
+    display: grid;
+    gap: 0.65rem;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 1.35rem;
+  }
+
+  li {
+    color: var(--font-color-secondary);
+    line-height: var(--font-leading-relaxed);
+    position: relative;
+
+    &::before {
+      background: var(--sales-data-accent);
+      border-radius: var(--border-radius-round);
+      content: "";
+      height: 0.45rem;
+      left: -1.25rem;
+      position: absolute;
+      top: 0.55rem;
+      width: 0.45rem;
+    }
+  }
+
+  &--standalone {
+    border-top: var(--border);
+  }
+}
+
+.sales-data-view > footer {
+  color: var(--font-color-faint);
+  font-size: var(--font-size-caption);
+  text-align: center;
+}

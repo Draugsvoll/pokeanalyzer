@@ -44,6 +44,40 @@
     width: 0.9rem;
   }
 
+  &__value {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  &__leading-icon {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  &__leading-icon svg {
+    height: 0.85rem;
+    width: 0.85rem;
+  }
+
+  &__secondary {
+    color: var(--font-color-muted);
+    font-weight: var(--font-weight-regular);
+    letter-spacing: var(--font-tracking-normal);
+  }
+
+  &__secondary i {
+    color: var(--font-color-faint);
+    font-style: normal;
+    margin-right: 0.35rem;
+  }
+
+  &__option &__secondary {
+    margin-left: 0.35rem;
+  }
+
   &__toggle.is-open &__chevron {
     transform: rotate(180deg);
   }

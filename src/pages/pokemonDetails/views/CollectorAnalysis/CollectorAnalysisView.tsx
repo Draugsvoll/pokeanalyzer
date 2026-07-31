@@ -2,6 +2,7 @@ import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-r
 import type { CSSProperties } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./CollectorAnalysisView.scss";
 
@@ -56,12 +57,12 @@ export default function CollectorAnalysis({
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Building collector report...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{error}</p>;
+  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const analysis = parseCollectorAnalysis(response);
   if (!analysis) {
-    return <p className="card-view__page-error">The collector analysis returned invalid JSON.</p>;
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
   const totalScore = Math.min(100, Math.max(0, Number(analysis.totalScore) || 0));

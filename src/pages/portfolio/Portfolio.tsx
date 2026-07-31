@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, TriangleAlert, X } from "lucide-react";
 import Button from "../../components/button/Button";
 import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
@@ -9,15 +9,19 @@ import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
-import { getHydratedPortfolio } from "../../services/portfolioApi";
+import {
+  getHydratedPortfolio,
+  updatePortfolioPriceSource,
+} from "../../services/portfolioApi";
 import type {
   PortfolioCard,
   PortfolioComparisonPeriod,
+  PortfolioPriceSource,
 } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
+  getDefaultCardPriceOptionForSource,
   getHistoricalPriceForOption,
-  resolveCardPriceOption,
 } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
 
@@ -59,15 +63,19 @@ const CHANGE_PERIOD_OPTIONS: {
   { value: "30d", label: "30 day" },
 ];
 
-function getPortfolioCardPrice(card: PortfolioCard) {
-  return resolveCardPriceOption(card, card.priceSource)?.price ?? null;
+function getPortfolioCardPrice(
+  card: PortfolioCard,
+  priceSource: PortfolioPriceSource,
+) {
+  return getDefaultCardPriceOptionForSource(card, priceSource)?.price ?? null;
 }
 
 function getPortfolioCardPriceChange(
   card: PortfolioCard,
   period: PortfolioChangePeriod,
+  priceSource: PortfolioPriceSource,
 ) {
-  const option = resolveCardPriceOption(card, card.priceSource);
+  const option = getDefaultCardPriceOptionForSource(card, priceSource);
   const latestSnapshot = card.priceSnapshots?.latest;
   const comparisonSnapshot = card.priceSnapshots?.[period];
   if (!option || !latestSnapshot || !comparisonSnapshot) {
@@ -85,11 +93,8 @@ function PortfolioForCurrentUser() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { replacePortfolioReferences } = usePortfolioCache();
-  const {
-    removePokemonFromPortfolio,
-    updatePokemonQuantity,
-    updatePokemonPriceSource,
-  } = usePokemonPortfolio();
+  const { removePokemonFromPortfolio, updatePokemonQuantity } =
+    usePokemonPortfolio();
   const activePortfolioRequestRef = useRef(0);
   const [portfolio, setPortfolio] = useState<PortfolioCard[]>([]);
   const [loadingPortfolio, setLoadingPortfolio] = useState(true);
@@ -109,13 +114,11 @@ function PortfolioForCurrentUser() {
   const [updatingRemovalId, setUpdatingRemovalId] = useState<string | null>(
     null,
   );
-  const [pendingPriceSource, setPendingPriceSource] = useState<{
-    cardId: string;
-    priceSource: string;
-  } | null>(null);
-  const [updatingPriceSourceId, setUpdatingPriceSourceId] = useState<
-    string | null
-  >(null);
+  const [savedPriceSource, setSavedPriceSource] =
+    useState<PortfolioPriceSource>("tcgplayer");
+  const [priceSource, setPriceSource] =
+    useState<PortfolioPriceSource>("tcgplayer");
+  const [savingPriceSource, setSavingPriceSource] = useState(false);
   const [nameFilter, setNameFilter] = useState("");
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("");
   const [changePeriod, setChangePeriod] =
@@ -140,8 +143,14 @@ function PortfolioForCurrentUser() {
         const response = await getHydratedPortfolio(user.uid, signal);
         if (signal?.aborted || requestId !== activePortfolioRequestRef.current)
           return;
+        const storedPriceSource =
+          response.portfolioPriceSource === "cardmarket"
+            ? "cardmarket"
+            : "tcgplayer";
         setPortfolio(response.cards);
         setMissingCardIds(response.missingCardIds);
+        setSavedPriceSource(storedPriceSource);
+        setPriceSource(storedPriceSource);
         replacePortfolioReferences(response.entries);
       } catch (error) {
         if (signal?.aborted || requestId !== activePortfolioRequestRef.current)
@@ -179,29 +188,31 @@ function PortfolioForCurrentUser() {
   }, [loadPortfolio]);
 
   // Sum each card's selected price × quantity (USD / EUR kept separate)
-  const { totalUsd, totalEur, cardsUsd, cardsEur } = useMemo(() => {
-    let totalUsd = 0;
-    let totalEur = 0;
-    let cardsUsd = 0;
-    let cardsEur = 0;
+  const { totalValue, valuedCardCount } = useMemo(() => {
+    let totalValue = 0;
+    let valuedCardCount = 0;
 
     for (const card of portfolio) {
       const quantity = cardQuantity(card);
-      const option = resolveCardPriceOption(card, card.priceSource);
+      const option = getDefaultCardPriceOptionForSource(card, priceSource);
       if (!option) continue;
 
-      const line = option.price * quantity;
-      if (option.currencySymbol === "$") {
-        totalUsd += line;
-        cardsUsd += quantity;
-      } else {
-        totalEur += line;
-        cardsEur += quantity;
-      }
+      totalValue += option.price * quantity;
+      valuedCardCount += quantity;
     }
 
-    return { totalUsd, totalEur, cardsUsd, cardsEur };
-  }, [portfolio]);
+    return { totalValue, valuedCardCount };
+  }, [portfolio, priceSource]);
+
+  const unstablePriceCardCount = useMemo(
+    () =>
+      portfolio.reduce(
+        (count, card) =>
+          count + (card.priceReliability?.[priceSource]?.isFlagged ? 1 : 0),
+        0,
+      ),
+    [portfolio, priceSource],
+  );
 
   const filteredPortfolio = useMemo(() => {
     const terms = normalizeFilterValue(nameFilter).split(/\s+/).filter(Boolean);
@@ -232,8 +243,8 @@ function PortfolioForCurrentUser() {
         card,
         index,
         value: isPriceSort
-          ? getPortfolioCardPrice(card)
-          : getPortfolioCardPriceChange(card, changePeriod),
+          ? getPortfolioCardPrice(card, priceSource)
+          : getPortfolioCardPriceChange(card, changePeriod, priceSource),
       }))
       .sort((a, b) => {
         if (a.value == null && b.value == null) return a.index - b.index;
@@ -244,7 +255,7 @@ function PortfolioForCurrentUser() {
         return difference || a.index - b.index;
       })
       .map(({ card }) => card);
-  }, [changePeriod, filteredPortfolio, portfolioSort]);
+  }, [changePeriod, filteredPortfolio, portfolioSort, priceSource]);
 
   const requestQuantityChange = (card: PortfolioCard, amount: number) => {
     if (updatingQuantityId) return;
@@ -293,48 +304,44 @@ function PortfolioForCurrentUser() {
     }
   };
 
-  const confirmPriceSourceChange = async () => {
-    if (!pendingPriceSource) return;
+  const priceSourceChanged = priceSource !== savedPriceSource;
 
-    setUpdatingPriceSourceId(pendingPriceSource.cardId);
-    const ok = await updatePokemonPriceSource(
-      pendingPriceSource.cardId,
-      pendingPriceSource.priceSource,
-    );
-    setUpdatingPriceSourceId(null);
-    if (!ok) return;
+  const savePriceSource = async () => {
+    if (!user || !priceSourceChanged || savingPriceSource) return;
 
-    setPortfolio((current) =>
-      current.map((card) =>
-        card.id === pendingPriceSource.cardId
-          ? { ...card, priceSource: pendingPriceSource.priceSource }
-          : card,
-      ),
-    );
-    setPendingPriceSource(null);
+    setSavingPriceSource(true);
+    try {
+      const response = await updatePortfolioPriceSource(priceSource, user.uid);
+      setSavedPriceSource(response.portfolioPriceSource);
+      setPriceSource(response.portfolioPriceSource);
+    } catch (error) {
+      logClientError("Failed to save portfolio price source", error);
+      alert("Failed to save collection price source.");
+    } finally {
+      setSavingPriceSource(false);
+    }
   };
 
   useEffect(() => {
-    if (!pendingQuantity && !pendingRemoval && !pendingPriceSource) return;
+    if (!pendingQuantity && !pendingRemoval) return;
 
     const cancelWhenClickingOutside = (event: PointerEvent) => {
       const target = event.target;
       if (
         target instanceof Element &&
         target.closest(
-          ".ui-confirm-popover, .portfolio__quantity-control, .portfolio__quantity-display, .pokemon-card__source, .pokemon-card__source-flyout",
+          ".ui-confirm-popover, .portfolio__quantity-control, .portfolio__quantity-display",
         )
       )
         return;
       setPendingQuantity(null);
       setPendingRemoval(null);
-      setPendingPriceSource(null);
     };
 
     document.addEventListener("pointerdown", cancelWhenClickingOutside);
     return () =>
       document.removeEventListener("pointerdown", cancelWhenClickingOutside);
-  }, [pendingQuantity, pendingRemoval, pendingPriceSource]);
+  }, [pendingQuantity, pendingRemoval]);
 
   if (authLoading || loadingPortfolio) {
     return (
@@ -415,12 +422,6 @@ function PortfolioForCurrentUser() {
                   )}
                 </div>
               </div>
-              {nameFilter.trim() && (
-                <span className="portfolio__filter-count" aria-live="polite">
-                  {filteredPortfolio.length}{" "}
-                  {filteredPortfolio.length === 1 ? "card" : "cards"}
-                </span>
-              )}
               <div
                 className="portfolio__timeframe"
                 role="radiogroup"
@@ -461,44 +462,94 @@ function PortfolioForCurrentUser() {
                   onChange={setPortfolioSort}
                 />
               </div>
+              <div className="portfolio__total" aria-live="polite">
+                <div className="portfolio__total-heading">
+                  <span className="portfolio__total-label">
+                    Collection value
+                  </span>
+                </div>
+                <strong className="portfolio__total-market-value">
+                  {totalValue > 0
+                    ? `${priceSource === "tcgplayer" ? "$" : "€"}${money.format(totalValue)}`
+                    : "—"}
+                </strong>
+                <div
+                  className="portfolio__value-source-options"
+                  role="radiogroup"
+                  aria-label="Collection value price source"
+                  aria-busy={savingPriceSource || undefined}
+                >
+                  <div className="portfolio__value-source-radios">
+                    <label>
+                      <input
+                        className="app-radio"
+                        type="radio"
+                        name="portfolio-value-source"
+                        value="tcgplayer"
+                        checked={priceSource === "tcgplayer"}
+                        disabled={savingPriceSource}
+                        onChange={() => setPriceSource("tcgplayer")}
+                      />
+                      <span>TCGPlayer</span>
+                    </label>
+                    <label>
+                      <input
+                        className="app-radio"
+                        type="radio"
+                        name="portfolio-value-source"
+                        value="cardmarket"
+                        checked={priceSource === "cardmarket"}
+                        disabled={savingPriceSource}
+                        onChange={() => setPriceSource("cardmarket")}
+                      />
+                      <span>Cardmarket</span>
+                    </label>
+                  </div>
+                  {priceSourceChanged && (
+                    <Button
+                      size="xsmall"
+                      disabled={savingPriceSource}
+                      aria-busy={savingPriceSource || undefined}
+                      aria-label={
+                        savingPriceSource
+                          ? "Saving collection price source"
+                          : undefined
+                      }
+                      onClick={() => {
+                        void savePriceSource();
+                      }}
+                    >
+                      {savingPriceSource ? (
+                        <span className="app-btn__spinner" aria-hidden="true" />
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <span className="portfolio__total-count">
+                  {valuedCardCount}{" "}
+                  {valuedCardCount === 1 ? "card valued" : "Cards"}
+                </span>
+              </div>
             </div>
           )}
         </div>
-        {portfolio.length > 0 && (
-          <div className="portfolio__total" aria-live="polite">
-            <span className="portfolio__total-label">Total value</span>
-            <div className="portfolio__total-markets">
-              <div className="portfolio__total-market portfolio__total-market--usd">
-                <div className="portfolio__total-market-heading">
-                  <span className="badge-small portfolio__total-market-label">
-                    TCG Player · USD
-                  </span>
-                  <span className="badge-small portfolio__total-count">
-                    {cardsUsd} {cardsUsd === 1 ? "card" : "cards"}
-                  </span>
-                </div>
-                <strong className="portfolio__total-market-value">
-                  {totalUsd > 0 ? `$${money.format(totalUsd)}` : "—"}
-                </strong>
-              </div>
-              <div
-                className="portfolio__total-market-divider"
-                aria-hidden="true"
-              />
-              <div className="portfolio__total-market portfolio__total-market--eur">
-                <div className="portfolio__total-market-heading">
-                  <span className="badge-small portfolio__total-market-label">
-                    Cardmarket · EUR
-                  </span>
-                  <span className="badge-small portfolio__total-count">
-                    {cardsEur} {cardsEur === 1 ? "card" : "cards"}
-                  </span>
-                </div>
-                <strong className="portfolio__total-market-value">
-                  {totalEur > 0 ? `€${money.format(totalEur)}` : "—"}
-                </strong>
-              </div>
-            </div>
+        {unstablePriceCardCount > 0 && (
+          <div
+            className="portfolio__price-warning"
+            role="status"
+            aria-live="polite"
+          >
+            <TriangleAlert aria-hidden="true" />
+            <span>
+              {unstablePriceCardCount}{" "}
+              {unstablePriceCardCount === 1 ? "card has a" : "cards have"}{" "}
+              potentially unstable{" "}
+              {unstablePriceCardCount === 1 ? "price" : "prices"}. Please check
+              the price feature to verify. This happens on TCG and Cardmarket
+              prices with low listing counts or high volatility.
+            </span>
           </div>
         )}
       </div>
@@ -536,8 +587,7 @@ function PortfolioForCurrentUser() {
               key={card.id}
               className={`portfolio__card${
                 pendingQuantity?.cardId === card.id ||
-                pendingRemoval?.cardId === card.id ||
-                pendingPriceSource?.cardId === card.id
+                pendingRemoval?.cardId === card.id
                   ? " portfolio__card--confirming"
                   : ""
               }`}
@@ -550,26 +600,12 @@ function PortfolioForCurrentUser() {
                   comparisonPriceSnapshot={
                     card.priceSnapshots?.[changePeriod] ?? null
                   }
+                  priceSource={priceSource}
+                  lockPriceSource
                   showRarityBadge
-                  selectedPriceOptionId={card.priceSource ?? null}
-                  pendingPriceOptionId={
-                    pendingPriceSource?.cardId === card.id
-                      ? pendingPriceSource.priceSource
-                      : null
+                  showPriceWarning={
+                    card.priceReliability?.[priceSource]?.isFlagged ?? false
                   }
-                  confirmingPriceOption={updatingPriceSourceId === card.id}
-                  onPriceOptionChange={(optionId) => {
-                    if (optionId === (card.priceSource ?? null)) {
-                      setPendingPriceSource(null);
-                      return;
-                    }
-                    setPendingPriceSource({
-                      cardId: card.id,
-                      priceSource: optionId,
-                    });
-                  }}
-                  onConfirmPriceOption={confirmPriceSourceChange}
-                  onCancelPriceOption={() => setPendingPriceSource(null)}
                 />
               </div>
               <div className="portfolio__card-actions ui-fade">

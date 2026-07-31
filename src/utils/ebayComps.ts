@@ -58,7 +58,7 @@ export function getEbayCompsQuery(card: {
 
 export function getVisibleEbayCompResults(
   data: EbayCompsResponse,
-  limit = 20
+  limit = 250
 ): EbayCompResult[] {
   return getEbayCompsCards(data)
     .slice(0, limit)

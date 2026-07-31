@@ -801,7 +801,7 @@ async function stageCompleteCatalog(
             pageStats.metadataUpdates += 1;
             warnings.add(
               "metadata_changes_detected",
-              "Existing cards had upstream metadata changes; the complete upstream card will be stored while Grok remains protected",
+              "Existing cards had upstream metadata changes; the complete upstream card will be stored while AI analysis remains protected",
               incomingCard.id,
             );
           }

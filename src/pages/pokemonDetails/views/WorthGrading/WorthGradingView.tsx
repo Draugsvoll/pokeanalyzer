@@ -6,6 +6,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import "./WorthGradingView.scss";
 
@@ -38,11 +39,11 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching grading value...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{error}</p>;
+  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const data = parseResponse(response);
-  if (!data) return <p className="worth-grading-view__raw">{response}</p>;
+  if (!data) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
   const market = data.market_summary ?? {};
   const marketRows = [

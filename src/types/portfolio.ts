@@ -6,6 +6,8 @@ export type PortfolioReference = {
   priceSource?: string;
 };
 
+export type PortfolioPriceSource = "tcgplayer" | "cardmarket";
+
 export type PortfolioCard = PokemonCard & {
   quantity: number;
   priceSource?: string;
@@ -31,6 +33,7 @@ export type PortfolioReferencesResponse = {
 export type HydratedPortfolioResponse = PortfolioReferencesResponse & {
   cards: PortfolioCard[];
   missingCardIds: string[];
+  portfolioPriceSource: PortfolioPriceSource;
 };
 
 export type AddPortfolioCardResponse = {
