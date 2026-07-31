@@ -117,39 +117,39 @@ other important information that is not alreay obvious.
   "market_prices": [
     {
       "grade": "Ungraded",
-      "price": "$272",
+      "price": "$272.83",
       "volume": "~1 sale / week"
     },
     {
       "grade": "Grade 7",
-      "price": "$568",
+      "price": "$568.23",
       "volume": "~2 sales / week"
     },
     {
       "grade": "Grade 8",
-      "price": "$830",
+      "price": "$830.00",
       "volume": "~3 sales / week"
     },
     {
       "grade": "Grade 9",
-      "price": "$1,173",
+      "price": "$1,173.92",
       "volume": "~3 sales / week"
     },
     {
       "grade": "Grade 9.5",
-      "price": "$1,290",
+      "price": "$1,290.02",
       "volume": "~6 sales / year"
     },
     {
       "grade": "PSA 10",
-      "price": "$6,000",
+      "price": "$6,000.25",
       "volume": "~1 sale / month"
     }
   ],
   "notes": [
     "This is the Unlimited version (no 1st Edition stamp). 1st Edition is significantly more expensive.",
-    "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl.",
-  ],
+    "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl."
+  ]
 }
 
 

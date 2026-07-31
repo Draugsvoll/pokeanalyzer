@@ -531,28 +531,27 @@ function PortfolioForCurrentUser() {
                   {valuedCardCount}{" "}
                   {valuedCardCount === 1 ? "card valued" : "Cards"}
                 </span>
-                {unstablePriceCardCount > 0 && (
-                  <div
-                    className="portfolio__price-warning"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <TriangleAlert aria-hidden="true" />
-                    <span>
-                      {unstablePriceCardCount}{" "}
-                      {unstablePriceCardCount === 1
-                        ? "card has a"
-                        : "cards have"}{" "}
-                      potentially unstable{" "}
-                      {unstablePriceCardCount === 1 ? "price" : "prices"}.
-                      Please check the price feature to verify. This happens on TCG and Cardmarket prices with low listing counts or high volatility.
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           )}
         </div>
+        {unstablePriceCardCount > 0 && (
+          <div
+            className="portfolio__price-warning"
+            role="status"
+            aria-live="polite"
+          >
+            <TriangleAlert aria-hidden="true" />
+            <span>
+              {unstablePriceCardCount}{" "}
+              {unstablePriceCardCount === 1 ? "card has a" : "cards have"}{" "}
+              potentially unstable{" "}
+              {unstablePriceCardCount === 1 ? "price" : "prices"}. Please check
+              the price feature to verify. This happens on TCG and Cardmarket
+              prices with low listing counts or high volatility.
+            </span>
+          </div>
+        )}
       </div>
 
       {missingCardIds.length > 0 && (

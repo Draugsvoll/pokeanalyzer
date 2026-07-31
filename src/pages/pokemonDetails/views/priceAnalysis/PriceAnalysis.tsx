@@ -7,11 +7,13 @@ import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
 import { StoredPrices } from "./StoredPrices";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { formatDateStamp } from "../../../../utils/formatDateStamp";
+import { SalesDataView } from "../SalesData/SalesDataView";
 import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
   card: PokemonCard;
   grokRequest: GrokRequestState;
+  salesDataRequest: GrokRequestState;
   justTcgRequest: {
     loading: boolean;
     error: string;
@@ -206,11 +208,13 @@ export function PriceAnalysis({
   card,
   grokRequest,
   justTcgRequest,
+  salesDataRequest,
 }: PriceAnalysisProps) {
   return (
     <div className="price-analysis-view">
       <StoredPrices card={card} />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
+      <SalesDataView grokRequest={salesDataRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </div>
   );

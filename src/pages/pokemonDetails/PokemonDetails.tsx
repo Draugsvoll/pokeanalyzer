@@ -45,7 +45,6 @@ import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
 import { SellPriceView } from "./views/SellPrice/SellPriceView";
-import { SalesDataView } from "./views/SalesData/SalesDataView";
 import { FEATURE_ERROR_MESSAGE } from "./views/featureError";
 import {
   fetchJustTcgCard,
@@ -948,17 +947,15 @@ function PokemonDetailsForCard() {
             <PriceAnalysis
               card={card}
               grokRequest={grokRequest}
+              salesDataRequest={{
+                loading: marketSalesLoading,
+                error: marketSalesError,
+                response: marketSalesResponse,
+              }}
               justTcgRequest={{
                 loading: justTcgLoading,
                 error: justTcgError,
                 response: justTcgResult,
-              }}
-            />
-            <SalesDataView
-              grokRequest={{
-                loading: marketSalesLoading,
-                error: marketSalesError,
-                response: marketSalesResponse,
               }}
             />
           </>

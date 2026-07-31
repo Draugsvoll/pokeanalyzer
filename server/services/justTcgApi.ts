@@ -27,6 +27,7 @@ export async function fetchJustTcgCard(
     number,
     include_price_history: "true",
     include_statistics: "allTime",
+    priceHistoryDuration: "180d",
     limit: "20",
   });
 

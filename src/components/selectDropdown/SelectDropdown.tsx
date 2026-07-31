@@ -1,16 +1,18 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import "./SelectDropdown.scss";
 
 export type SelectDropdownOption<T extends string> = {
   value: T;
   label: string;
+  secondaryLabel?: string;
 };
 
 type SelectDropdownProps<T extends string> = {
   ariaLabel: string;
   className?: string;
   compact?: boolean;
+  leadingIcon?: ReactNode;
   onChange: (value: T) => void;
   options: SelectDropdownOption<T>[];
   value: T;
@@ -20,6 +22,7 @@ export function SelectDropdown<T extends string>({
   ariaLabel,
   className = "",
   compact = false,
+  leadingIcon,
   onChange,
   options,
   value,
@@ -27,10 +30,8 @@ export function SelectDropdown<T extends string>({
   const menuId = useId();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const selectedLabel =
-    options.find((option) => option.value === value)?.label ??
-    options[0]?.label ??
-    "";
+  const selectedOption =
+    options.find((option) => option.value === value) ?? options[0];
 
   useEffect(() => {
     if (!open) return;
@@ -75,7 +76,23 @@ export function SelectDropdown<T extends string>({
         aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
       >
-        <span>{selectedLabel}</span>
+        <span className="ui-select-dropdown__value">
+          {leadingIcon && (
+            <span
+              className="ui-select-dropdown__leading-icon"
+              aria-hidden="true"
+            >
+              {leadingIcon}
+            </span>
+          )}
+          <span>{selectedOption?.label ?? ""}</span>
+          {selectedOption?.secondaryLabel && (
+            <span className="ui-select-dropdown__secondary">
+              <i aria-hidden="true">•</i>
+              {selectedOption.secondaryLabel}
+            </span>
+          )}
+        </span>
         <ChevronDown
           className="ui-select-dropdown__chevron"
           aria-hidden="true"
@@ -103,7 +120,13 @@ export function SelectDropdown<T extends string>({
                 setOpen(false);
               }}
             >
-              {option.label}
+              <span>{option.label}</span>
+              {option.secondaryLabel && (
+                <span className="ui-select-dropdown__secondary">
+                  <i aria-hidden="true">•</i>
+                  {option.secondaryLabel}
+                </span>
+              )}
             </button>
           ))}
         </div>

@@ -1,4 +1,3 @@
-import { Info } from "lucide-react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
@@ -80,11 +79,32 @@ function parseSalesData(response: string): SalesData | null {
   return hasDisplayableContent ? data : null;
 }
 
+function Notes({
+  notes,
+  standalone = false,
+}: {
+  notes: string[];
+  standalone?: boolean;
+}) {
+  return (
+    <section
+      className={`sales-data-view__notes${standalone ? " sales-data-view__notes--standalone sales-data-view__panel" : ""}`}
+    >
+      <ul>
+        {notes.map((note, index) => (
+          <li key={`${note}-${index}`}>{note}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function SalesDataView({ grokRequest }: SalesDataViewProps) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching sales data...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (error)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const data = parseSalesData(response);
@@ -101,7 +121,7 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
       {data.marketPrices.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market">
           <header className="sales-data-view__market-heading">
-            <h3>PriceCharting (aggregates sales data)</h3>
+            <h3>Sales Volume (PriceCharting)</h3>
           </header>
           <div className="sales-data-view__table-wrap">
             <table>
@@ -123,6 +143,7 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
               </tbody>
             </table>
           </div>
+          {data.notes.length > 0 && <Notes notes={data.notes} />}
         </section>
       )}
 
@@ -142,18 +163,8 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
         </section>
       )}
 
-      {data.notes.length > 0 && (
-        <section className="sales-data-view__panel sales-data-view__notes">
-          <header>
-            <Info aria-hidden="true" />
-            <h3>Notes</h3>
-          </header>
-          <ul>
-            {data.notes.map((note, index) => (
-              <li key={`${note}-${index}`}>{note}</li>
-            ))}
-          </ul>
-        </section>
+      {data.notes.length > 0 && data.marketPrices.length === 0 && (
+        <Notes notes={data.notes} standalone />
       )}
 
       {data.footer && <footer>{data.footer}</footer>}

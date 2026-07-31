@@ -121,6 +121,7 @@
     border: 1px solid
       color-mix(in srgb, var(--custom-color-yellow) 28%, transparent);
     border-radius: calc(var(--border-radius) * 0.75);
+    box-sizing: border-box;
     color: color-mix(
       in srgb,
       var(--custom-color-yellow) 70%,
@@ -129,9 +130,11 @@
     display: flex;
     font-size: var(--font-size-caption);
     gap: 0.55rem;
+    grid-column: 1 / -1;
     line-height: var(--font-leading-snug);
-    max-width: 18rem;
+    max-width: 42rem;
     padding: 0.65rem 0.7rem;
+    width: 100%;
 
     svg {
       color: var(--custom-color-yellow);
