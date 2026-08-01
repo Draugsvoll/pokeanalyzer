@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -6,7 +7,7 @@ import {
   getBiggestMovers,
   getGeneralNewsPrompt,
 } from "../../src/utils/grok/grokPrompts.js";
-import { assertExplicitDatabaseTarget } from "../db/db.js";
+import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
 import {
   assertNewsContentSchemaCompatible,
   NEWS_FEEDS,
@@ -17,6 +18,16 @@ import {
   parseBiggestMoversResponse,
   parseGeneralNewsResponse,
 } from "./newsGeneration.js";
+import {
+  acquireScriptLock,
+  ensureScriptLockTable,
+  releaseScriptLock,
+  renewScriptLock,
+  SCHEDULED_MAINTENANCE_LOCK_NAME,
+  type ScriptLock,
+} from "./scriptLocks.js";
+
+const NEWS_GENERATION_LOCK_TTL_SECONDS = 15 * 60;
 
 async function saveInvalidResponse(
   responseName: string,
@@ -66,6 +77,17 @@ function validateArguments(args: string[]): boolean {
 
 type GenerationResult<T> =
   { ok: true; payload: T } | { ok: false; error: Error };
+
+async function renewNewsLock(lock: ScriptLock): Promise<void> {
+  const renewed = await renewScriptLock(
+    lock.name,
+    lock.token,
+    NEWS_GENERATION_LOCK_TTL_SECONDS,
+  );
+  if (!renewed) {
+    throw new Error("The news generation lock was lost");
+  }
+}
 
 async function runGeneration<T>(
   name: string,
@@ -121,67 +143,98 @@ async function saveGeneration<T>(
 async function main(): Promise<void> {
   const dryRun = validateArguments(process.argv.slice(2));
   assertExplicitDatabaseTarget();
+  await ensureScriptLockTable();
   await assertNewsContentSchemaCompatible();
 
-  const generalNewsResult = await runGeneration(
-    "latest_news",
-    getGeneralNewsPrompt,
-    parseGeneralNewsResponse,
-    (payload) => `${payload.items.length} items`,
+  const lock: ScriptLock = {
+    name: SCHEDULED_MAINTENANCE_LOCK_NAME,
+    token: randomUUID(),
+  };
+  const acquired = await acquireScriptLock(
+    lock.name,
+    lock.token,
+    NEWS_GENERATION_LOCK_TTL_SECONDS,
   );
-
-  const biggestMoversResult = await runGeneration(
-    "biggest_movers",
-    getBiggestMovers,
-    parseBiggestMoversResponse,
-    (payload) => `${payload.cards.length} cards`,
-  );
-
-  const taskErrors = (
-    await Promise.all([
-      saveGeneration("latest_news", generalNewsResult, dryRun, (payload) =>
-        saveNewsFeed(NEWS_FEEDS.generalNews, payload),
-      ),
-      saveGeneration("biggest_movers", biggestMoversResult, dryRun, (payload) =>
-        saveNewsFeed(NEWS_FEEDS.biggestMovers, payload),
-      ),
-    ])
-  ).filter((error): error is Error => error !== null);
-
-  if (taskErrors.length > 0) {
-    const successfulTasks = 2 - taskErrors.length;
-    console.warn(
-      `NEWS WARNING [partial_run]: ${taskErrors.length} of 2 tasks failed; ${
-        dryRun
-          ? "no database rows were changed"
-          : `${successfulTasks} database row(s) were updated`
-      }`,
-    );
-    throw new AggregateError(
-      taskErrors,
-      "News generation finished with errors",
-      { cause: taskErrors[0] },
-    );
+  if (!acquired) {
+    throw new Error("Another news generation run is already active");
   }
 
-  console.log(
-    dryRun
-      ? "Dry run complete; both responses passed and no database rows changed"
-      : "News generation finished successfully; 2 database rows updated",
-  );
+  try {
+    await renewNewsLock(lock);
+    const generalNewsResult = await runGeneration(
+      "latest_news",
+      getGeneralNewsPrompt,
+      parseGeneralNewsResponse,
+      (payload) => `${payload.items.length} items`,
+    );
+    await renewNewsLock(lock);
+
+    const biggestMoversResult = await runGeneration(
+      "biggest_movers",
+      getBiggestMovers,
+      parseBiggestMoversResponse,
+      (payload) => `${payload.cards.length} cards`,
+    );
+    await renewNewsLock(lock);
+
+    const taskErrors = (
+      await Promise.all([
+        saveGeneration("latest_news", generalNewsResult, dryRun, (payload) =>
+          saveNewsFeed(NEWS_FEEDS.generalNews, payload),
+        ),
+        saveGeneration("biggest_movers", biggestMoversResult, dryRun, (payload) =>
+          saveNewsFeed(NEWS_FEEDS.biggestMovers, payload),
+        ),
+      ])
+    ).filter((error): error is Error => error !== null);
+    await renewNewsLock(lock);
+
+    if (taskErrors.length > 0) {
+      const successfulTasks = 2 - taskErrors.length;
+      console.warn(
+        `NEWS WARNING [partial_run]: ${taskErrors.length} of 2 tasks failed; ${
+          dryRun
+            ? "no database rows were changed"
+            : `${successfulTasks} database row(s) were updated`
+        }`,
+      );
+      throw new AggregateError(
+        taskErrors,
+        "News generation finished with errors",
+        { cause: taskErrors[0] },
+      );
+    }
+
+    console.log(
+      dryRun
+        ? "Dry run complete; both responses passed and no database rows changed"
+        : "News generation finished successfully; 2 database rows updated",
+    );
+  } finally {
+    const released = await releaseScriptLock(lock);
+    if (!released) {
+      console.warn(
+        "NEWS WARNING [lock_release]: The news generation lock was already released or replaced",
+      );
+    }
+  }
 }
 
-main().catch((error: unknown) => {
-  const normalizedError =
-    error instanceof Error ? error : new Error(String(error));
-  console.error("News generation failed", {
-    name: normalizedError.name,
-    message: normalizedError.message,
+main()
+  .catch((error: unknown) => {
+    const normalizedError =
+      error instanceof Error ? error : new Error(String(error));
+    console.error("News generation failed", {
+      name: normalizedError.name,
+      message: normalizedError.message,
+    });
+
+    if (normalizedError.cause instanceof Error) {
+      console.error("Root error", normalizedError.cause.message);
+    }
+
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    closeDatabase();
   });
-
-  if (normalizedError.cause instanceof Error) {
-    console.error("Root error", normalizedError.cause.message);
-  }
-
-  process.exitCode = 1;
-});

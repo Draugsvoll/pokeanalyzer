@@ -20,6 +20,10 @@ export const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN || undefined,
 });
 
+export function closeDatabase(): void {
+  db.close();
+}
+
 export function assertExplicitDatabaseTarget(): void {
   const error = implicitLocalDatabaseError(
     process.env.TURSO_DATABASE_URL,

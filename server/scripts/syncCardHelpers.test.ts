@@ -22,8 +22,11 @@ import {
   providerPriceChanged,
   sanitizeIncomingCard,
   SNAPSHOT_APPLY_MISMATCH_COUNT_SQL,
-  SYNC_LOCK_TABLE_SQL,
 } from "./syncCardHelpers.js";
+import {
+  SCHEDULED_MAINTENANCE_LOCK_NAME,
+  SCRIPT_LOCK_TABLE_SQL,
+} from "./scriptLocks.js";
 
 function completeCard(
   overrides: Record<string, unknown> = {},
@@ -453,13 +456,13 @@ test("a price-only update can create a missing provider and removes a stale prov
 test("sync lock blocks overlap and permits stale takeover", async () => {
   const client = createClient({ url: "file::memory:" });
   try {
-    await client.execute(SYNC_LOCK_TABLE_SQL);
+    await client.execute(SCRIPT_LOCK_TABLE_SQL);
     const first = await client.execute(
-      buildAcquireSyncLock("card-sync", "one", 900),
+      buildAcquireSyncLock(SCHEDULED_MAINTENANCE_LOCK_NAME, "one", 900),
     );
     assert.equal(first.rows[0]?.token, "one");
     const overlap = await client.execute(
-      buildAcquireSyncLock("card-sync", "two", 900),
+      buildAcquireSyncLock(SCHEDULED_MAINTENANCE_LOCK_NAME, "two", 900),
     );
     assert.equal(overlap.rows.length, 0);
 
@@ -467,13 +470,16 @@ test("sync lock blocks overlap and permits stale takeover", async () => {
       "UPDATE sync_locks SET expires_at = unixepoch('now') - 1",
     );
     const takeover = await client.execute(
-      buildAcquireSyncLock("card-sync", "three", 900),
+      buildAcquireSyncLock(SCHEDULED_MAINTENANCE_LOCK_NAME, "three", 900),
     );
     assert.equal(takeover.rows[0]?.token, "three");
 
-    await client.execute(buildReleaseSyncLock("card-sync", "one"));
+    await client.execute(
+      buildReleaseSyncLock(SCHEDULED_MAINTENANCE_LOCK_NAME, "one"),
+    );
     const locked = await client.execute(
-      "SELECT token FROM sync_locks WHERE name = 'card-sync'",
+      "SELECT token FROM sync_locks WHERE name = ?",
+      [SCHEDULED_MAINTENANCE_LOCK_NAME],
     );
     assert.equal(locked.rows[0]?.token, "three");
   } finally {

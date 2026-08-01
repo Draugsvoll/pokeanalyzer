@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   assertExplicitDatabaseTarget,
+  closeDatabase,
   dbAll,
   dbBatch,
   dbExecute,
@@ -43,11 +44,14 @@ import {
   providerPriceChanged,
   sanitizeIncomingCard,
   SNAPSHOT_APPLY_MISMATCH_COUNT_SQL,
-  SYNC_LOCK_TABLE_SQL,
   type CardColumns,
   type JsonObject,
   type ProviderPriceState,
 } from "./syncCardHelpers.js";
+import {
+  SCHEDULED_MAINTENANCE_LOCK_NAME,
+  SCRIPT_LOCK_TABLE_SQL,
+} from "./scriptLocks.js";
 import {
   exitCodeForSyncStatus,
   safeSyncErrorMessage,
@@ -268,7 +272,7 @@ function addProviderWarnings(
 async function ensureOperationalTables(): Promise<void> {
   await dbBatch(
     [
-      SYNC_LOCK_TABLE_SQL,
+      SCRIPT_LOCK_TABLE_SQL,
       SYNC_RUN_TABLE_SQL,
       SYNC_RUN_STARTED_INDEX_SQL,
       CARD_SYNC_STAGE_TABLE_SQL,
@@ -353,7 +357,7 @@ async function finishAudit(
 
 async function acquireLock(token: string): Promise<boolean> {
   const statement = buildAcquireSyncLock(
-    SYNC_NAME,
+    SCHEDULED_MAINTENANCE_LOCK_NAME,
     token,
     LOCK_TTL_SECONDS,
   );
@@ -363,7 +367,7 @@ async function acquireLock(token: string): Promise<boolean> {
 
 async function renewLock(token: string): Promise<void> {
   const statement = buildRenewSyncLock(
-    SYNC_NAME,
+    SCHEDULED_MAINTENANCE_LOCK_NAME,
     token,
     LOCK_TTL_SECONDS,
   );
@@ -374,7 +378,10 @@ async function renewLock(token: string): Promise<void> {
 }
 
 async function releaseLock(token: string): Promise<void> {
-  const statement = buildReleaseSyncLock(SYNC_NAME, token);
+  const statement = buildReleaseSyncLock(
+    SCHEDULED_MAINTENANCE_LOCK_NAME,
+    token,
+  );
   const result = await dbRun(statement.sql, statement.args);
   if (result.changes !== 1) {
     throw new Error("The card sync lock could not be released");
@@ -1047,7 +1054,7 @@ export async function runCardSync(
     acquired = await acquireLock(token);
     if (!acquired) {
       throw new Error(
-        "Another card sync is already running; no live changes were made",
+        "Another scheduled maintenance job is already running; no live changes were made",
       );
     }
     const abandonedAudits = await markAbandonedAudits(runId);
@@ -1225,5 +1232,8 @@ if (isDirectRun()) {
     .catch((error: unknown) => {
       logError("Card sync failed", error);
       process.exitCode = 1;
+    })
+    .finally(() => {
+      closeDatabase();
     });
 }

@@ -25,15 +25,6 @@ export type SyncSqlStatement = {
   args: Array<string | number | null>;
 };
 
-export const SYNC_LOCK_TABLE_SQL = `
-  CREATE TABLE IF NOT EXISTS sync_locks (
-    name TEXT PRIMARY KEY,
-    token TEXT NOT NULL,
-    acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at INTEGER NOT NULL
-  )
-`;
-
 export const CARD_SYNC_STAGE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS card_sync_stage (
     run_id TEXT NOT NULL,

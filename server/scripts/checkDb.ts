@@ -1,6 +1,7 @@
 // npm run db:check
 import {
   assertExplicitDatabaseTarget,
+  closeDatabase,
   dbGet,
 } from "../db/db.js";
 import { assertDatabaseSchemaCompatible } from "../db/schemaValidation.js";
@@ -34,4 +35,6 @@ async function checkDb() {
   }
 }
 
-void checkDb();
+void checkDb().finally(() => {
+  closeDatabase();
+});
