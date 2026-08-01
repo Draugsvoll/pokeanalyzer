@@ -156,7 +156,9 @@ async function main(): Promise<void> {
     NEWS_GENERATION_LOCK_TTL_SECONDS,
   );
   if (!acquired) {
-    throw new Error("Another news generation run is already active");
+    throw new Error(
+      "Another scheduled maintenance job is already running; no live changes were made",
+    );
   }
 
   try {
