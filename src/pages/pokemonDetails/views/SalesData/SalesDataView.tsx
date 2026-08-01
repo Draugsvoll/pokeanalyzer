@@ -24,6 +24,7 @@ type SalesData = {
   marketPrices: MarketPrice[];
   notes: string[];
   recentSold: RecentSale[];
+  subtitle: string;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -68,6 +69,7 @@ function parseSalesData(response: string): SalesData | null {
     marketPrices,
     notes,
     recentSold,
+    subtitle: "PriceCharting Data",
   };
 
   const hasDisplayableContent =
@@ -121,27 +123,21 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
       {data.marketPrices.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market">
           <header className="sales-data-view__market-heading">
-            <h3>Sales Volume (PriceCharting)</h3>
+            <div>
+              <h3>Sales Volume</h3>
+              <p>{data.subtitle}</p>
+            </div>
           </header>
-          <div className="sales-data-view__table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Grade</th>
-                  <th scope="col">Price</th>
-                  <th scope="col">Volume</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.marketPrices.map((market, index) => (
-                  <tr key={`${market.grade}-${index}`}>
-                    <th scope="row">{market.grade || "Grade unavailable"}</th>
-                    <td>{market.price || "—"}</td>
-                    <td>{market.volume || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="sales-data-view__market-grid">
+            {data.marketPrices.map((market, index) => (
+              <article key={`${market.grade}-${index}`}>
+                <span>{market.grade || "Grade unavailable"}</span>
+                <strong>{market.price || "~"}</strong>
+                <small className="sales-data-view__volume-badge">
+                  {market.volume || "~"}
+                </small>
+              </article>
+            ))}
           </div>
           {data.notes.length > 0 && <Notes notes={data.notes} />}
         </section>

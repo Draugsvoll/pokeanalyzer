@@ -5,13 +5,11 @@ import {
   BadgeDollarSign,
   CalendarDays,
   Gem,
-  Hash,
-  Layers3,
   LineChart,
   Palette,
   Search,
+  ShoppingCart,
   Star,
-  Tag,
   type LucideIcon,
 } from "lucide-react";
 import "./PokemonDetails.scss";
@@ -36,10 +34,7 @@ import Button from "../../components/button/Button";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
 import EbaySoldView from "./views/EbaySold/EbaySoldView";
-import {
-  getCustomColors,
-  type CustomColors,
-} from "../../utils/customStylings";
+import { getCustomColors, type CustomColors } from "../../utils/customStylings";
 import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -67,6 +62,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
+import { getDefaultCardPriceOptionForSource } from "../../utils/pokemonPricing";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -82,6 +78,13 @@ type CardInfoField = {
   highlight?: boolean;
 };
 
+type MarketCard = {
+  label: string;
+  tone: "tcgplayer" | "cardmarket";
+  url?: string;
+  value: string | undefined;
+};
+
 type ActiveView =
   | "empty_view"
   | "collector_analysis"
@@ -93,7 +96,11 @@ type ActiveView =
 type AI_feature = {
   view: Extract<
     ActiveView,
-    "prices" | "collector_analysis" | "ebay_sold" | "sell_price" | "worth_grading"
+    | "prices"
+    | "collector_analysis"
+    | "ebay_sold"
+    | "sell_price"
+    | "worth_grading"
   >;
   title: string;
   description: string;
@@ -174,17 +181,41 @@ function formatReleaseDate(value: string | undefined) {
   return releaseDateFormatter.format(date);
 }
 
+function formatCompactPrice(
+  value: number | undefined,
+  currency: "USD" | "EUR",
+) {
+  if (value === undefined) return undefined;
+
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    currencyDisplay: "narrowSymbol",
+    maximumFractionDigits: 2,
+    style: "currency",
+  }).format(value);
+}
+
+function getSafeSourceUrl(value: string | undefined) {
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getDisplaySubtype(card: PokemonCard) {
+  return card.subtypes?.find((subtype) =>
+    /^(basic|stage\s*\d+|v|vmax|vstar|ex|gx)$/i.test(subtype),
+  );
+}
+
 function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   return [
-    { icon: Layers3, label: "Series", value: card.set?.series },
-    {
-      icon: Gem,
-      label: "Rarity",
-      value: card.rarity ?? "N/A",
-      highlight: true,
-    },
-    { icon: Hash, label: "Card number", value: formatCardNumber(card) },
-    { icon: Tag, label: "Set size", value: card.set.total },
     { icon: Palette, label: "Artist", value: card.artist },
     {
       icon: CalendarDays,
@@ -194,15 +225,41 @@ function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   ];
 }
 
+function getMarketCards(card: PokemonCard): MarketCard[] {
+  const tcgPrice = getDefaultCardPriceOptionForSource(card, "tcgplayer");
+  const cardmarketPrice = getDefaultCardPriceOptionForSource(
+    card,
+    "cardmarket",
+  );
+
+  return [
+    {
+      label: "TCGPlayer",
+      tone: "tcgplayer",
+      url: getSafeSourceUrl(card.tcgplayer?.url),
+      value: formatCompactPrice(tcgPrice?.price, "USD"),
+    },
+    {
+      label: "Cardmarket",
+      tone: "cardmarket",
+      url: getSafeSourceUrl(card.cardmarket?.url),
+      value: formatCompactPrice(cardmarketPrice?.price, "EUR"),
+    },
+  ];
+}
+
 function getJustTcgCardNumber(result: unknown): string | undefined {
-  if (!result || typeof result !== "object" || !("data" in result)) return undefined;
+  if (!result || typeof result !== "object" || !("data" in result))
+    return undefined;
 
   const data = result.data;
-  if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object") return undefined;
+  if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object")
+    return undefined;
 
   const number = "number" in data[0] ? data[0].number : undefined;
   if (typeof number === "string" && number.trim()) return number;
-  if (typeof number === "number" && Number.isFinite(number)) return String(number);
+  if (typeof number === "number" && Number.isFinite(number))
+    return String(number);
 
   return undefined;
 }
@@ -217,9 +274,8 @@ function PokemonDetailsForCard() {
   const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
-  const [searchResultsHost, setSearchResultsHost] = useState<HTMLDivElement | null>(
-    null,
-  );
+  const [searchResultsHost, setSearchResultsHost] =
+    useState<HTMLDivElement | null>(null);
   const cachedCard = useMemo(
     () => (id ? getSelectedPokemonFromCache(id) : null),
     [id],
@@ -239,7 +295,7 @@ function PokemonDetailsForCard() {
     ? cardRequestState.loading
     : Boolean(id) && !cachedCard;
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
-    cachedCard?.images?.large ?? cachedCard?.images?.small
+    cachedCard?.images?.large ?? cachedCard?.images?.small,
   );
   const [activeView, setActiveView] = useState<ActiveView>("empty_view");
   const [showCardSearch, setShowCardSearch] = useState(false);
@@ -257,28 +313,17 @@ function PokemonDetailsForCard() {
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
   const [ebayLoading, setEbayLoading] = useState(false);
   const [featureCooldown, setFeatureCooldown] = useState(false);
-  const {
-    abortActiveRequest,
-    isCurrentRequest,
-    startRequest,
-  } = useAbortableRequest();
+  const { abortActiveRequest, isCurrentRequest, startRequest } =
+    useAbortableRequest();
   const { user: authUser } = useAuth();
-  const { savePokemonToPortfolio, removePokemonFromPortfolio } = usePokemonPortfolio();
-  const {
-    isCardSaved,
-    loadingPortfolioReferences,
-    portfolioReferencesError,
-  } = usePortfolioCache();
-  const {
-    loadingSubscription,
-    subscription,
-    updateSubscription,
-  } = useMembershipSubscription();
-  const {
-    creditMessage,
-    creditsRemaining,
-    updatingCredits,
-  } = useCredits(subscription);
+  const { savePokemonToPortfolio, removePokemonFromPortfolio } =
+    usePokemonPortfolio();
+  const { isCardSaved, loadingPortfolioReferences, portfolioReferencesError } =
+    usePortfolioCache();
+  const { loadingSubscription, subscription, updateSubscription } =
+    useMembershipSubscription();
+  const { creditMessage, creditsRemaining, updatingCredits } =
+    useCredits(subscription);
 
   useLayoutEffect(() => {
     routeCardIdRef.current = id;
@@ -329,7 +374,7 @@ function PokemonDetailsForCard() {
       if (!success) return;
 
       showPortfolioConfirmation(
-        cardWasSaved ? "Removed from portfolio" : "Added to portfolio"
+        cardWasSaved ? "Removed from portfolio" : "Added to portfolio",
       );
     } finally {
       setUpdatingPortfolio(false);
@@ -357,9 +402,7 @@ function PokemonDetailsForCard() {
 
     const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
       .then((result) => {
-        setJustTcgResult(
-          verifyJustTcgCard(result, card.set.name, cardNumber),
-        );
+        setJustTcgResult(verifyJustTcgCard(result, card.set.name, cardNumber));
         return true;
       })
       .catch((error: unknown) => {
@@ -398,7 +441,11 @@ function PokemonDetailsForCard() {
         }
         updateSubscription(result.subscription);
         const [priceSucceeded, salesSucceeded] = await Promise.all([
-          applyAnalysisResult(result.priceAnalysis, setGrokResponse, setGrokError),
+          applyAnalysisResult(
+            result.priceAnalysis,
+            setGrokResponse,
+            setGrokError,
+          ),
           applyAnalysisResult(
             result.salesData,
             setMarketSalesResponse,
@@ -428,7 +475,8 @@ function PokemonDetailsForCard() {
   }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
-    if (!card || featureCooldown || !subscription || creditsRemaining < 1) return;
+    if (!card || featureCooldown || !subscription || creditsRemaining < 1)
+      return;
 
     setFeatureCooldown(true);
     abortActiveRequest();
@@ -450,7 +498,9 @@ function PokemonDetailsForCard() {
       return;
     }
 
-    const cardNameAndSet = [card?.name, card?.set?.name].filter(Boolean).join(" ");
+    const cardNameAndSet = [card?.name, card?.set?.name]
+      .filter(Boolean)
+      .join(" ");
     if (aiFeature.view === "prices") {
       await handlePriceAnalysis(startRequest());
       return;
@@ -512,9 +562,12 @@ function PokemonDetailsForCard() {
     }
   }
 
-  useEffect(() => () => {
-    window.clearTimeout(portfolioConfirmationTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(portfolioConfirmationTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const requestSequence = ++cardRequestSequenceRef.current;
@@ -572,11 +625,7 @@ function PokemonDetailsForCard() {
       scrollToCardView?: boolean;
     } | null;
 
-    if (
-      !navigationState?.scrollToCardView ||
-      !card ||
-      card.id !== id
-    ) {
+    if (!navigationState?.scrollToCardView || !card || card.id !== id) {
       return;
     }
 
@@ -655,15 +704,23 @@ function PokemonDetailsForCard() {
     );
   }
 
-  const displayedCardNumber = getJustTcgCardNumber(justTcgResult) ?? card.number;
+  const displayedCardNumber =
+    getJustTcgCardNumber(justTcgResult) ?? card.number;
+  const formattedDisplayedCardNumber = formatCardNumber(
+    card,
+    displayedCardNumber,
+  );
   const infoFields = getCardSetInfoFields(card);
+  const marketCards = getMarketCards(card);
+  const displaySubtype = getDisplaySubtype(card);
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
-    updatingPortfolio ||
-    (Boolean(authUser) && loadingPortfolioReferences);
+    updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
   const portfolioUnavailable =
     Boolean(authUser) && Boolean(portfolioReferencesError);
-  const activeFeature = AI_Features.find((feature) => feature.view === activeView);
+  const activeFeature = AI_Features.find(
+    (feature) => feature.view === activeView,
+  );
 
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
@@ -688,7 +745,44 @@ function PokemonDetailsForCard() {
 
             <div className="card-view__info-side">
               <div className="card-view__title-row">
-                <h2 className="card-view__title">{card.name}</h2>
+                <div
+                  className="card-view__title-copy"
+                  data-card-number={formattedDisplayedCardNumber}
+                >
+                  {formattedDisplayedCardNumber && (
+                    <span className="card-view__title-number-accessible">
+                      Card number {formattedDisplayedCardNumber}
+                    </span>
+                  )}
+                  <h2 className="card-view__title">{card.name}</h2>
+                  {card.set?.name && (
+                    <p className="card-view__title-set">
+                      {card.set.images?.symbol && (
+                        <img
+                          src={card.set.images.symbol}
+                          alt={`${card.set.name} symbol`}
+                        />
+                      )}
+                      <span>{card.set.name}</span>
+                      {card.set?.series && (
+                        <>
+                          <i aria-hidden="true">•</i>
+                          <span>{card.set.series}</span>
+                        </>
+                      )}
+                    </p>
+                  )}
+                  {(card.rarity || displaySubtype) && (
+                    <div className="card-view__title-badges">
+                      {card.rarity && (
+                        <span className="card-view__title-badge--rarity">
+                          {card.rarity}
+                        </span>
+                      )}
+                      {displaySubtype && <span>{displaySubtype}</span>}
+                    </div>
+                  )}
+                </div>
                 <div className="card-view__portfolio-control">
                   <Button
                     variant="portfolio"
@@ -733,19 +827,35 @@ function PokemonDetailsForCard() {
                     )}
                   </Button>
                   {portfolioConfirmation && (
-                    <span className="card-view__portfolio-confirmation" role="status">
+                    <span
+                      className="card-view__portfolio-confirmation"
+                      role="status"
+                    >
                       {portfolioConfirmation}
                     </span>
                   )}
                 </div>
               </div>
-              {card.set?.name && (
-                <p className="card-view__title-set">
-                  <i aria-hidden="true">•</i>
-                  <img src={card.set.images?.symbol} alt={`${card.set.name} symbol`} />
-                  {card.set.name}
-                </p>
-              )}
+              <div className="card-view__market-cards">
+                {marketCards.map((market) => {
+                  return (
+                    <article
+                      className={`card-view__market-card card-view__market-card--${market.tone}`}
+                      key={market.label}
+                    >
+                      <div className="card-view__market-card-top">
+                        <span>{market.label}</span>
+                        {market.url && (
+                          <a href={market.url} rel="noreferrer" target="_blank">
+                            Buy <ShoppingCart aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                      <strong>{market.value ?? "N/A"}</strong>
+                    </article>
+                  );
+                })}
+              </div>
 
               <div className="card-view__info-grid">
                 {infoFields.map((field) => {
@@ -761,7 +871,9 @@ function PokemonDetailsForCard() {
                         <span className="card-view__label">{field.label}</span>
                         <span
                           className={`card-view__value${
-                            field.highlight ? " card-view__value--highlight" : ""
+                            field.highlight
+                              ? " card-view__value--highlight"
+                              : ""
                           }`}
                         >
                           {field.value ?? "N/A"}
@@ -780,7 +892,11 @@ function PokemonDetailsForCard() {
                 >
                   {showCardSearch ? (
                     <>
-                      <ArrowDown size={16} strokeWidth={2.25} aria-hidden="true" />
+                      <ArrowDown
+                        size={16}
+                        strokeWidth={2.25}
+                        aria-hidden="true"
+                      />
                       <span>Hide</span>
                     </>
                   ) : (
@@ -820,35 +936,28 @@ function PokemonDetailsForCard() {
         </span>
         <span className="card-view__credit-divider" aria-hidden="true" />
         <span className="card-view__credit-copy">
-          {loadingSubscription
-            ? (
-              <span
-                className="card-view__credit-spinner"
-                role="status"
-                aria-label="Laster credits"
-              />
-            )
-            : subscription
-              ? (
-                <span className="card-view__credit-balance">
-                  {creditsRemaining} Credits left
-                </span>
-              )
-              : (
-                <>
-                  <Button
-                    variant="micro"
-                    onClick={() => setShowLoginModal(true)}
-                  >
-                    Log in
-                  </Button>
-                  {" or "}
-                  <Link className="card-view__credit-link" to="/signup">
-                    Sign up
-                  </Link>
-                  {" for free credits"}
-                </>
-              )}
+          {loadingSubscription ? (
+            <span
+              className="card-view__credit-spinner"
+              role="status"
+              aria-label="Laster credits"
+            />
+          ) : subscription ? (
+            <span className="card-view__credit-balance">
+              {creditsRemaining} Credits left
+            </span>
+          ) : (
+            <>
+              <Button variant="micro" onClick={() => setShowLoginModal(true)}>
+                Log in
+              </Button>
+              {" or "}
+              <Link className="card-view__credit-link" to="/signup">
+                Sign up
+              </Link>
+              {" for free credits"}
+            </>
+          )}
         </span>
         {creditMessage && (
           <small className="card-view__credit-message">{creditMessage}</small>
@@ -860,7 +969,10 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      <div ref={featureButtonsRef} className="card-view__actions feature-buttons__row">
+      <div
+        ref={featureButtonsRef}
+        className="card-view__actions feature-buttons__row"
+      >
         {AI_Features.map((aiFeature) => {
           const Icon = aiFeature.icon;
           const isFeatureLoading =
@@ -914,17 +1026,16 @@ function PokemonDetailsForCard() {
         key={activeView}
         className={`card-view__page ui-render-fade${
           activeView === "prices" ? " card-view__page--prices" : ""
-        }${
-          activeView === "ebay_sold" ? " card-view__page--ebay" : ""
-        }`}
+        }${activeView === "ebay_sold" ? " card-view__page--ebay" : ""}`}
         style={activeFeature ? getCustomColors(activeFeature.color) : undefined}
         aria-live="polite"
       >
-
         {activeFeature && (
           <CardFeatureHeader
             card={card}
-            cardNumber={activeView === "prices" ? displayedCardNumber : undefined}
+            cardNumber={
+              activeView === "prices" ? displayedCardNumber : undefined
+            }
             color={activeFeature.color}
             icon={activeFeature.icon}
             label={activeFeature.headerLabel}
@@ -932,8 +1043,7 @@ function PokemonDetailsForCard() {
         )}
 
         {activeView === "empty_view" && (
-          <div className="card-view__empty-view" aria-hidden="true">
-          </div>
+          <div className="card-view__empty-view" aria-hidden="true"></div>
         )}
         {activeView === "ebay_sold" && (
           <EbaySoldView
@@ -960,13 +1070,16 @@ function PokemonDetailsForCard() {
             />
           </>
         )}
-        {activeView === "worth_grading" && <WorthGradingView grokRequest={grokRequest} />}
-        {activeView === "sell_price" && <SellPriceView grokRequest={grokRequest} />}
+        {activeView === "worth_grading" && (
+          <WorthGradingView grokRequest={grokRequest} />
+        )}
+        {activeView === "sell_price" && (
+          <SellPriceView grokRequest={grokRequest} />
+        )}
         {activeView === "collector_analysis" && (
           <CollectorAnalysis grokRequest={grokRequest} />
         )}
       </section>
-
     </div>
   );
 }

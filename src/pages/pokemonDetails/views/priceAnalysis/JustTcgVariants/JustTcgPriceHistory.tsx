@@ -1,6 +1,5 @@
 import { useId, useState, type PointerEvent } from "react";
 import { Layers3 } from "lucide-react";
-import { SelectDropdown } from "../../../../../components/selectDropdown/SelectDropdown";
 import type {
   JustTcgPricePoint,
   JustTcgVariant,
@@ -9,13 +8,24 @@ import type {
 
 const VIEWBOX_WIDTH = 800;
 const VIEWBOX_HEIGHT = 300;
-const PLOT_LEFT = 68;
-const PLOT_RIGHT = 22;
+const PLOT_LEFT = 42;
+const PLOT_RIGHT = 8;
 const PLOT_TOP = 20;
 const PLOT_BOTTOM = 42;
 const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT_LEFT - PLOT_RIGHT;
 const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
-const Y_TICK_COUNT = 5;
+const Y_TICK_COUNT = 6;
+
+export function JustTcgHistoryIntro() {
+  return (
+    <div className="just-tcg-history__intro">
+      <h3>Sales price history</h3>
+      <p>
+        Real sales data aggregated by <strong>JustTCG</strong>.
+      </p>
+    </div>
+  );
+}
 
 const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -56,6 +66,25 @@ function formatDate(timestamp: number, includeYear = false) {
   return formatter.format(new Date(timestamp));
 }
 
+function createSmoothPath(points: { x: number; y: number }[]) {
+  if (!points.length) return "";
+  if (points.length === 1) return `M${points[0].x},${points[0].y}`;
+
+  return points.slice(1).reduce((path, point, index) => {
+    const pointIndex = index + 1;
+    const previous = points[pointIndex - 1];
+    const beforePrevious = points[pointIndex - 2] ?? previous;
+    const next = points[pointIndex + 1] ?? point;
+    const tension = 0.12;
+    const firstControlX = previous.x + (point.x - beforePrevious.x) * tension;
+    const firstControlY = previous.y + (point.y - beforePrevious.y) * tension;
+    const secondControlX = point.x - (next.x - previous.x) * tension;
+    const secondControlY = point.y - (next.y - previous.y) * tension;
+
+    return `${path} C${firstControlX},${firstControlY} ${secondControlX},${secondControlY} ${point.x},${point.y}`;
+  }, `M${points[0].x},${points[0].y}`);
+}
+
 function getChartGeometry(points: JustTcgPricePoint[]) {
   const firstTimestamp = points[0].timestamp;
   const lastTimestamp = points.at(-1)!.timestamp;
@@ -77,9 +106,7 @@ function getChartGeometry(points: JustTcgPricePoint[]) {
       ((point.timestamp - firstTimestamp) / timestampRange) * PLOT_WIDTH,
     y: PLOT_TOP + (1 - (point.price - minimum) / priceRange) * PLOT_HEIGHT,
   }));
-  const linePath = positioned
-    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x},${point.y}`)
-    .join(" ");
+  const linePath = createSmoothPath(positioned);
   const areaPath = `${linePath} L${positioned.at(-1)!.x},${
     PLOT_TOP + PLOT_HEIGHT
   } L${positioned[0].x},${PLOT_TOP + PLOT_HEIGHT} Z`;
@@ -137,7 +164,7 @@ function PriceHistoryChart({ variant }: { variant: JustTcgVariant }) {
     <>
       <div className="just-tcg-history__summary">
         <div className="just-tcg-history__latest">
-          <span>Latest market price</span>
+          <span>Market price</span>
           <strong>{formatUsd(currentMarketPrice)}</strong>
           <small>{formatDate(latest.timestamp, true)}</small>
         </div>
@@ -290,90 +317,12 @@ function PriceHistoryChart({ variant }: { variant: JustTcgVariant }) {
   );
 }
 
-function SelectedVariantPrices({ group }: { group: JustTcgVariantGroup }) {
-  return (
-    <div className="just-tcg-history__selected-prices">
-      <section className="just-tcg-variants__section">
-        <div className="just-tcg-variants__table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Condition</th>
-                <th>Current Price</th>
-                <th>All-Time High</th>
-                <th>All-Time Low</th>
-                <th>Below ATH</th>
-              </tr>
-            </thead>
-            <tbody>
-              {group.variants.map((variant) => {
-                const canCalculateBelowAth =
-                  variant.price !== undefined &&
-                  variant.allTimeHigh !== undefined &&
-                  variant.allTimeHigh > 0;
-                const belowAmount = canCalculateBelowAth
-                  ? Math.max(0, variant.allTimeHigh! - variant.price!)
-                  : undefined;
-                const belowPercent = canCalculateBelowAth
-                  ? (belowAmount! / variant.allTimeHigh!) * 100
-                  : undefined;
-
-                return (
-                  <tr key={variant.id}>
-                    <td>{variant.condition}</td>
-                    <td className="just-tcg-variants__current">
-                      {formatUsd(variant.price)}
-                    </td>
-                    <td className="just-tcg-variants__high">
-                      <span className="just-tcg-variants__stat">
-                        <span className="just-tcg-variants__stat-value">
-                          {formatUsd(variant.allTimeHigh)}
-                        </span>
-                        {variant.allTimeHighDate && (
-                          <small className="just-tcg-variants__stat-date">
-                            {formatStatisticDate(variant.allTimeHighDate)}
-                          </small>
-                        )}
-                      </span>
-                    </td>
-                    <td className="just-tcg-variants__low">
-                      <span className="just-tcg-variants__stat">
-                        <span className="just-tcg-variants__stat-value">
-                          {formatUsd(variant.allTimeLow)}
-                        </span>
-                        {variant.allTimeLowDate && (
-                          <small className="just-tcg-variants__stat-date">
-                            {formatStatisticDate(variant.allTimeLowDate)}
-                          </small>
-                        )}
-                      </span>
-                    </td>
-                    <td className="just-tcg-variants__below">
-                      {belowAmount === undefined ? (
-                        "—"
-                      ) : (
-                        <>
-                          <span>-{formatUsd(belowAmount)}</span>
-                          <small>({belowPercent!.toFixed(1)}%)</small>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 export function JustTcgPriceHistory({
   groups,
 }: {
   groups: JustTcgVariantGroup[];
 }) {
+  const controlId = useId().replaceAll(":", "");
   const [selectedGroupId, setSelectedGroupId] = useState(
     () => groups[0]?.id ?? "",
   );
@@ -395,16 +344,20 @@ export function JustTcgPriceHistory({
   const multipleSets =
     new Set(groups.map((group) => group.setName).filter(Boolean)).size > 1;
 
+  function selectGroup(groupId: string) {
+    setSelectedGroupId(groupId);
+    const nextGroup = groups.find((group) => group.id === groupId);
+    const firstCondition =
+      nextGroup?.variants.find((variant) => variant.priceHistory.length >= 2)
+        ?.condition ?? nextGroup?.variants[0]?.condition;
+    if (firstCondition) setSelectedCondition(firstCondition);
+  }
+
   if (!selectedGroup || !selectedVariant) {
-    const fallbackGroup = groups[0];
     return (
       <section className="just-tcg-history just-tcg-history--empty">
         <header>
-          <CardIdentity
-            cardName={fallbackGroup?.cardName}
-            cardNumber={fallbackGroup?.cardNumber}
-            setName={fallbackGroup?.setName}
-          />
+          <JustTcgHistoryIntro />
         </header>
         <p>Historical pricing is unavailable for this card.</p>
       </section>
@@ -414,55 +367,62 @@ export function JustTcgPriceHistory({
   return (
     <section className="just-tcg-history">
       <header>
-        <CardIdentity
-          cardName={selectedGroup.cardName}
-          cardNumber={selectedGroup.cardNumber}
-          setName={selectedGroup.setName}
-        />
+        <JustTcgHistoryIntro />
         <div className="just-tcg-history__controls">
-          <div>
-            <span>Variant</span>
-            <SelectDropdown
-              ariaLabel="Select price history variant"
-              className={`just-tcg-history__variant-select${
-                selectedGroup.printing.toLowerCase().includes("reverse")
-                  ? " is-reverse"
-                  : ""
-              }`}
-              compact
-              leadingIcon={<Layers3 />}
-              onChange={(groupId) => {
-                setSelectedGroupId(groupId);
-                const nextGroup = groups.find((group) => group.id === groupId);
-                const firstCondition =
-                  nextGroup?.variants.find(
-                    (variant) => variant.priceHistory.length >= 2,
-                  )?.condition ?? nextGroup?.variants[0]?.condition;
-                if (firstCondition) setSelectedCondition(firstCondition);
-              }}
-              options={groups.map((group) => ({
-                label: group.printing,
-                ...(multipleSets &&
-                  group.setName && { secondaryLabel: group.setName }),
-                value: group.id,
-              }))}
-              value={selectedGroup.id}
-            />
-          </div>
-          <div>
-            <span>Condition</span>
-            <SelectDropdown
-              ariaLabel="Select price history condition"
-              className="just-tcg-history__condition-select"
-              compact
-              onChange={setSelectedCondition}
-              options={selectedGroup.variants.map((variant) => ({
-                label: variant.condition,
-                value: variant.condition,
-              }))}
-              value={selectedVariant.condition}
-            />
-          </div>
+          <fieldset
+            aria-label="Variant"
+            className="just-tcg-history__radio-group just-tcg-history__radio-group--variant"
+          >
+            <div>
+              {groups.map((group) => (
+                <label
+                  className={
+                    group.printing.toLowerCase().includes("reverse")
+                      ? "is-reverse"
+                      : undefined
+                  }
+                  key={group.id}
+                >
+                  <input
+                    checked={selectedGroup.id === group.id}
+                    name={`${controlId}-variant`}
+                    type="radio"
+                    value={group.id}
+                    onChange={() => selectGroup(group.id)}
+                  />
+                  <span>
+                    <Layers3 aria-hidden="true" />
+                    <strong>{group.printing}</strong>
+                    {multipleSets && group.setName && (
+                      <>
+                        <i aria-hidden="true">•</i>
+                        <small>{group.setName}</small>
+                      </>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset
+            aria-label="Condition"
+            className="just-tcg-history__radio-group just-tcg-history__radio-group--condition"
+          >
+            <div>
+              {selectedGroup.variants.map((variant) => (
+                <label key={variant.id}>
+                  <input
+                    checked={selectedVariant.condition === variant.condition}
+                    name={`${controlId}-condition`}
+                    type="radio"
+                    value={variant.condition}
+                    onChange={() => setSelectedCondition(variant.condition)}
+                  />
+                  <span>{variant.condition}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
       </header>
       {selectedVariant.priceHistory.length >= 2 ? (
@@ -475,36 +435,7 @@ export function JustTcgPriceHistory({
           </span>
         </div>
       )}
-      <SelectedVariantPrices group={selectedGroup} />
     </section>
-  );
-}
-
-function CardIdentity({
-  cardName,
-  cardNumber,
-  setName,
-}: {
-  cardName?: string;
-  cardNumber?: string;
-  setName?: string;
-}) {
-  return (
-    <div className="just-tcg-history__card-identity">
-      <h3>{cardName ?? "Price history"}</h3>
-      {cardNumber && (
-        <>
-          <i aria-hidden="true">•</i>
-          <span className="just-tcg-history__card-number">{cardNumber}</span>
-        </>
-      )}
-      {setName && (
-        <>
-          <i aria-hidden="true">•</i>
-          <span>{setName}</span>
-        </>
-      )}
-    </div>
   );
 }
 

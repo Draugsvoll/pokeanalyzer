@@ -33,7 +33,9 @@
   filter: brightness(1.15);
 }
 
-.app-btn:active { transform: translateY(1px); }
+.app-btn:active {
+  transform: translateY(1px);
+}
 
 .app-btn:disabled {
   cursor: not-allowed;
@@ -76,11 +78,8 @@
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(
-      in srgb,
-      var(--custom-color-purple) 16%,
-      transparent
-    );
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--custom-color-purple) 16%, transparent);
     outline: none;
   }
 }
@@ -102,31 +101,27 @@
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(
-      in srgb,
-      var(--custom-color-purple) 16%,
-      transparent
-    );
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--custom-color-purple) 16%, transparent);
     outline: none;
   }
 }
 
 .app-btn-xsmall {
-   background: transparent;
+  background: transparent;
   border: var(--border);
   color: var(--font-color-primary);
-  min-width:5.5rem;
+  min-width: 5.5rem;
 
   &:hover:not(:disabled) {
     background: var(--bg2);
   }
-
 }
 .app-btn--secondary {
   background: transparent;
   border: var(--border);
   color: var(--font-color-primary);
-  min-width:7.5rem;
+  min-width: 7.5rem;
 
   &:hover:not(:disabled) {
     background: var(--bg2);
@@ -162,7 +157,9 @@
     width: 1.15rem;
   }
 
-  span { grid-column: 2; }
+  span {
+    grid-column: 2;
+  }
 
   &:hover:not(:disabled) {
     background: #1a1c23;
@@ -171,7 +168,7 @@
 }
 
 .app-btn--hero {
-  min-width:12rem;
+  min-width: 12rem;
   background: linear-gradient(
     135deg,
     var(--custom-color-blue) 0%,
@@ -201,16 +198,16 @@
 }
 
 .app-btn--portfolio {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(203, 213, 225, 0.18);
+  background: rgba(255, 255, 255, 0.045);
+  border: 0;
   border-radius: var(--border-radius-pill);
-  color: var(--font-color-secondary);
+  color: var(--font-color-primary);
   font-size: var(--font-size-badge);
   line-height: 1;
   min-height: 0;
-  min-width: 8.5rem;
+  min-width: 8rem;
   overflow: hidden;
-  padding: 0.48rem 0.7rem;
+  padding: 0.6rem 1.25rem;
   white-space: nowrap;
 
   svg {
@@ -220,21 +217,27 @@
   }
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--custom-color-yellow) 9%, var(--bg2));
-    border-color: color-mix(in srgb, var(--custom-color-yellow) 30%, transparent);
-    color: color-mix(in srgb, var(--custom-color-yellow) 75%, white);
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--font-color-primary);
     filter: none;
   }
 
   &[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--custom-color-yellow) 10%, transparent);
+    background: rgba(255, 255, 255, 0.045);
     color: var(--custom-color-yellow);
 
-    svg { fill: currentColor; }
+    svg {
+      fill: currentColor;
+    }
+  }
+
+  &[aria-pressed="true"]:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.065);
   }
 
   &[aria-busy="true"] {
-    opacity: 0.72;
+    color: var(--font-color-secondary);
+    opacity: 0.82;
   }
 }
 
@@ -250,7 +253,9 @@
 }
 
 @keyframes app-btn-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .app-btn-pill--account {
@@ -321,6 +326,12 @@
   padding: 0.7rem 1.65rem;
 }
 
-.app-btn--full-width { width: 100%; }
-.app-btn--fit-content { width: fit-content; }
-.app-btn--grow { flex: 1 1 auto; }
+.app-btn--full-width {
+  width: 100%;
+}
+.app-btn--fit-content {
+  width: fit-content;
+}
+.app-btn--grow {
+  flex: 1 1 auto;
+}

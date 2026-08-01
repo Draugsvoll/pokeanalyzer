@@ -2,8 +2,8 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   Layers3,
+  ShoppingCart,
   TriangleAlert,
 } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
@@ -99,7 +99,6 @@ type SourceCardProps = {
   region: string;
   url: string | null;
   heroPrice: string;
-  heroLabel: string;
   groups: ReturnType<typeof group>;
   currency: "USD" | "EUR";
   highlight: RegExp;
@@ -118,7 +117,6 @@ function SourceCard({
   region,
   url,
   heroPrice,
-  heroLabel,
   groups,
   currency,
   highlight,
@@ -130,33 +128,37 @@ function SourceCard({
   onToggleDetails,
   isPriceFlagged,
 }: SourceCardProps) {
+  const buyLink = url ? (
+    <a
+      className="stored-prices__link"
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Buy ${cardName} on ${title}`}
+    >
+      Buy
+      <ShoppingCart aria-hidden="true" />
+    </a>
+  ) : null;
+
   return (
     <div className="stored-prices__source-block">
       <article
         className={`stored-prices__source stored-prices__source--${accent}`}
       >
         <header className="stored-prices__header">
+          <span className="stored-prices__currency-icon" aria-hidden="true">
+            {accent === "tcgplayer" ? "$" : "€"}
+          </span>
           <div className="stored-prices__identity">
             <h3>{title}</h3>
             <div className="stored-prices__meta">
               <span className="stored-prices__region">{region}</span>
-              {url && (
-                <a
-                  className="stored-prices__link"
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Buy ${cardName} on ${title}`}
-                >
-                  Buy
-                  <ExternalLink aria-hidden="true" />
-                </a>
-              )}
             </div>
           </div>
           <div className="stored-prices__hero">
             <strong className="stored-prices__hero-price">{heroPrice}</strong>
-            <span className="stored-prices__hero-label">{heroLabel}</span>
+            {buyLink}
           </div>
         </header>
 
@@ -164,7 +166,8 @@ function SourceCard({
           <div className="stored-prices__warning" role="status">
             <TriangleAlert aria-hidden="true" />
             <span>
-              Potentially unstable price. Check the extended price data to verify.
+              Potentially unstable price. Check the extended price data to
+              verify.
             </span>
           </div>
         )}
@@ -178,14 +181,12 @@ function SourceCard({
                     className="stored-prices__group"
                     key={`${name}-${groupIndex}`}
                   >
-                    <h4>
-                      {name === "Prices" ? null : (
-                        <>
-                          <Layers3 aria-hidden="true" />
-                          <span>{name}</span>
-                        </>
-                      )}
-                    </h4>
+                    {name !== "Prices" && (
+                      <h4>
+                        <Layers3 aria-hidden="true" />
+                        <span>{name}</span>
+                      </h4>
+                    )}
                     {fields.map((field) => (
                       <div
                         className={`stored-prices__price${
@@ -252,7 +253,8 @@ function fieldLeafName(label: string) {
 }
 
 export function StoredPrices({ card }: { card: PokemonCard }) {
-  const [showDetails, setShowDetails] = useState(false);
+  const [showTcgplayerDetails, setShowTcgplayerDetails] = useState(false);
+  const [showCardmarketDetails, setShowCardmarketDetails] = useState(false);
   const tcgHidden = new Set(["Direct Low"]);
   const tcgFields = flatten(card.tcgplayer?.prices)
     .filter(hasNonZeroPrice)
@@ -302,15 +304,16 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             heroPrice={
               tcgDefaultPrice ? formatPrice(tcgDefaultPrice.price, "USD") : "—"
             }
-            heroLabel="Market Price"
             groups={tcgGroups}
             currency="USD"
             highlight={/market/i}
             hasPrices={tcgFields.length > 0}
             cardName={card.name}
             updatedAt={card.tcgplayer?.updatedAt}
-            showDetails={showDetails}
-            onToggleDetails={() => setShowDetails((current) => !current)}
+            showDetails={showTcgplayerDetails}
+            onToggleDetails={() =>
+              setShowTcgplayerDetails((current) => !current)
+            }
             isPriceFlagged={card.priceReliability?.tcgplayer.isFlagged ?? false}
             legend={
               [
@@ -330,15 +333,16 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
                 ? formatPrice(cardmarketDefaultPrice.price, "EUR")
                 : "—"
             }
-            heroLabel="Trend Price"
             groups={cardmarketGroups}
             currency="EUR"
             highlight={/trend/i}
             hasPrices={cardmarketFields.length > 0}
             cardName={card.name}
             updatedAt={card.cardmarket?.updatedAt}
-            showDetails={showDetails}
-            onToggleDetails={() => setShowDetails((current) => !current)}
+            showDetails={showCardmarketDetails}
+            onToggleDetails={() =>
+              setShowCardmarketDetails((current) => !current)
+            }
             isPriceFlagged={
               card.priceReliability?.cardmarket.isFlagged ?? false
             }
