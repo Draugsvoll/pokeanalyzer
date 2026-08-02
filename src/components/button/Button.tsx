@@ -16,6 +16,14 @@ type ButtonProps = Omit<
     | "primary"
     | "secondary"
     | "warning";
+  /**
+   * Fill for the default (pill) accent button only.
+   * - solid: full accent fill (Search CTA blue by default)
+   * - soft: half-transparent wash (mock “Analyze with AI”)
+   * - ghost: transparent fill + accent border
+   * Override accent with style={getCustomColors("purple"|"blue"|…)}.
+   */
+  fill?: "solid" | "soft" | "ghost";
   size?: "xsmall" | "small" | "medium" | "large";
   fullWidth?: boolean;
   fitContent?: boolean;
@@ -24,6 +32,7 @@ type ButtonProps = Omit<
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = "default",
+  fill = "solid",
   size = "medium",
   fullWidth = false,
   fitContent = false,
@@ -37,11 +46,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     "app-btn",
     variant === "default" ? "app-btn-pill" : `app-btn--${variant}`,
     variant === "secondary" && "app-btn-pill",
+    /* fill modes only apply to default accent pill */
+    variant === "default" && `app-btn-pill--${fill}`,
     `app-btn--${size}`,
     fullWidth && "app-btn--full-width",
     fitContent && "app-btn--fit-content",
     grow && "app-btn--grow",
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <button

@@ -160,7 +160,7 @@ export default function Profile() {
                 alt={profileName ? `${profileName}'s profile avatar` : "Profile avatar"}
               />
             ) : (
-              <div className="profile__avatar profile__avatar--fallback">
+              <div className="avatar-initials profile__avatar profile__avatar--fallback">
                 {profileInitial}
               </div>
             )}

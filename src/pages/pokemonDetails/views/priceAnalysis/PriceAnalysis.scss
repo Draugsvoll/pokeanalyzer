@@ -1,6 +1,8 @@
 .price-analysis-view {
+  box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
+  max-width: 100%;
   width: 100%;
 }
 
@@ -11,8 +13,8 @@
 .grok-price-analysis {
   color: var(--font-color-body);
   display: grid;
-  margin: 0 auto;
-  max-width: 64rem;
+  margin: 0;
+  max-width: 100%;
   row-gap: var(--card-view-datestamp-gap);
   width: 100%;
 

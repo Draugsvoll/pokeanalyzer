@@ -1,4 +1,10 @@
-import { useId, useState, type PointerEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type PointerEvent,
+} from "react";
 import { Layers3 } from "lucide-react";
 import type {
   JustTcgPricePoint,
@@ -15,13 +21,51 @@ const PLOT_BOTTOM = 42;
 const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT_LEFT - PLOT_RIGHT;
 const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
 const Y_TICK_COUNT = 6;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Client-side windows over the 180d JustTCG series (API max). */
+const HISTORY_PERIODS = [
+  { id: "7d", label: "7D", changeLabel: "7-day change", days: 7 },
+  { id: "30d", label: "30D", changeLabel: "30-day change", days: 30 },
+  { id: "90d", label: "90D", changeLabel: "90-day change", days: 90 },
+  { id: "180d", label: "180D", changeLabel: "180-day change", days: 180 },
+] as const;
+
+type HistoryPeriodId = (typeof HISTORY_PERIODS)[number]["id"];
+
+function filterHistoryByPeriod(
+  points: JustTcgPricePoint[],
+  days: number,
+): JustTcgPricePoint[] {
+  if (points.length === 0) return [];
+
+  const latestTimestamp = points.at(-1)!.timestamp;
+  const cutoff = latestTimestamp - days * MS_PER_DAY;
+  const filtered = points.filter((point) => point.timestamp >= cutoff);
+
+  // Sparse series: keep the last point before the window so the chart can start.
+  if (
+    filtered.length > 0 &&
+    filtered[0].timestamp > cutoff &&
+    filtered.length < points.length
+  ) {
+    const priorIndex = points.findIndex(
+      (point) => point.timestamp === filtered[0].timestamp,
+    );
+    if (priorIndex > 0) {
+      return [points[priorIndex - 1], ...filtered];
+    }
+  }
+
+  return filtered;
+}
 
 export function JustTcgHistoryIntro() {
   return (
     <div className="just-tcg-history__intro">
-      <h3>Sales price history</h3>
+      <h3>Price history</h3>
       <p>
-        Real sales data aggregated by <strong>JustTCG</strong>.
+        Sales data aggregated by <strong>JustTCG</strong>.
       </p>
     </div>
   );
@@ -129,19 +173,33 @@ function getEvenlySpacedPoints(points: JustTcgPricePoint[], count: number) {
   return indexes.map((index) => points[index]);
 }
 
-function PriceHistoryChart({ variant }: { variant: JustTcgVariant }) {
+function PriceHistoryChart({
+  variant,
+  points,
+  changeLabel,
+  periodKey,
+}: {
+  variant: JustTcgVariant;
+  points: JustTcgPricePoint[];
+  changeLabel: string;
+  periodKey: string;
+}) {
   const gradientId = useId().replaceAll(":", "");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const points = variant.priceHistory;
-  const geometry = getChartGeometry(points);
+  const geometry = useMemo(() => getChartGeometry(points), [points]);
   const hoveredPoint =
     hoveredIndex === null ? null : geometry.positioned[hoveredIndex];
   const dateTicks = getEvenlySpacedPoints(points, 5);
   const latest = points.at(-1)!;
   const first = points[0];
   const currentMarketPrice = variant.price ?? latest.price;
-  const change = currentMarketPrice - first.price;
+  // Change over the selected window (window start → latest in series)
+  const change = latest.price - first.price;
   const changePercent = first.price > 0 ? (change / first.price) * 100 : null;
+
+  useEffect(() => {
+    setHoveredIndex(null);
+  }, [periodKey]);
 
   function updateHoveredPoint(event: PointerEvent<SVGRectElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -169,7 +227,7 @@ function PriceHistoryChart({ variant }: { variant: JustTcgVariant }) {
           <small>{formatDate(latest.timestamp, true)}</small>
         </div>
         <div>
-          <span>180-day change</span>
+          <span>{changeLabel}</span>
           <strong
             className={
               change > 0
@@ -213,7 +271,7 @@ function PriceHistoryChart({ variant }: { variant: JustTcgVariant }) {
         </div>
       </div>
 
-      <div className="just-tcg-history__chart-wrap">
+      <div className="just-tcg-history__chart-wrap" key={periodKey}>
         <svg
           className="just-tcg-history__chart"
           viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
@@ -337,10 +395,22 @@ export function JustTcgPriceHistory({
       ""
     );
   });
+  const [selectedPeriodId, setSelectedPeriodId] =
+    useState<HistoryPeriodId>("180d");
   const selectedVariant =
     selectedGroup?.variants.find(
       (variant) => variant.condition === selectedCondition,
     ) ?? selectedGroup?.variants[0];
+  const selectedPeriod =
+    HISTORY_PERIODS.find((period) => period.id === selectedPeriodId) ??
+    HISTORY_PERIODS[HISTORY_PERIODS.length - 1];
+  const periodPoints = useMemo(() => {
+    if (!selectedVariant) return [];
+    return filterHistoryByPeriod(
+      selectedVariant.priceHistory,
+      selectedPeriod.days,
+    );
+  }, [selectedVariant, selectedPeriod.days]);
   const multipleSets =
     new Set(groups.map((group) => group.setName).filter(Boolean)).size > 1;
 
@@ -404,34 +474,62 @@ export function JustTcgPriceHistory({
               ))}
             </div>
           </fieldset>
-          <fieldset
-            aria-label="Condition"
-            className="just-tcg-history__radio-group just-tcg-history__radio-group--condition"
-          >
-            <div>
-              {selectedGroup.variants.map((variant) => (
-                <label key={variant.id}>
-                  <input
-                    checked={selectedVariant.condition === variant.condition}
-                    name={`${controlId}-condition`}
-                    type="radio"
-                    value={variant.condition}
-                    onChange={() => setSelectedCondition(variant.condition)}
-                  />
-                  <span>{variant.condition}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <div className="just-tcg-history__segment-row">
+            <fieldset
+              aria-label="Condition"
+              className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--condition"
+            >
+              <div>
+                {selectedGroup.variants.map((variant) => (
+                  <label key={variant.id}>
+                    <input
+                      checked={selectedVariant.condition === variant.condition}
+                      name={`${controlId}-condition`}
+                      type="radio"
+                      value={variant.condition}
+                      onChange={() => setSelectedCondition(variant.condition)}
+                    />
+                    <span>{variant.condition}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset
+              aria-label="Time period"
+              className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--period"
+            >
+              <div>
+                {HISTORY_PERIODS.map((period) => (
+                  <label key={period.id}>
+                    <input
+                      checked={selectedPeriodId === period.id}
+                      name={`${controlId}-period`}
+                      type="radio"
+                      value={period.id}
+                      onChange={() => setSelectedPeriodId(period.id)}
+                    />
+                    <span>{period.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
         </div>
       </header>
-      {selectedVariant.priceHistory.length >= 2 ? (
-        <PriceHistoryChart variant={selectedVariant} />
+      {selectedVariant.priceHistory.length >= 2 && periodPoints.length >= 2 ? (
+        <PriceHistoryChart
+          changeLabel={selectedPeriod.changeLabel}
+          periodKey={`${selectedVariant.id}-${selectedPeriod.id}`}
+          points={periodPoints}
+          variant={selectedVariant}
+        />
       ) : (
         <div className="just-tcg-history__chart-empty" role="status">
           <strong>Historical pricing unavailable</strong>
           <span>
-            No price history was returned for {selectedVariant.condition}.
+            {selectedVariant.priceHistory.length < 2
+              ? `No price history was returned for ${selectedVariant.condition}.`
+              : `Not enough data points for the ${selectedPeriod.label} window.`}
           </span>
         </div>
       )}

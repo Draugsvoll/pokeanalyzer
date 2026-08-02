@@ -1,9 +1,11 @@
 .sell-price-view {
   --sell-price-accent: var(--feature-accent, var(--custom-color-yellow));
 
+  box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
-  margin: 0 auto;
+  margin: 0;
+  max-width: 100%;
   width: 100%;
 }
 

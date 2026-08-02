@@ -1,7 +1,8 @@
 .profile {
   padding: 2rem;
-  max-width: 72rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   color: var(--font-color-body);
 
   p {
@@ -23,31 +24,33 @@
   }
 
   .profile__card {
+    background: var(--bg-card);
     color: var(--font-color-primary);
     overflow: hidden;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-card);
     margin-top: 1rem;
     border: var(--border);
-    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.22);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   }
 
   .profile__avatar {
     flex: 0 0 auto;
-    width: 4.75rem;
     height: 4.75rem;
-    border-radius: var(--border-radius-round);
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 0 0 0.4rem rgba(255, 255, 255, 0.035);
+    width: 4.75rem;
   }
 
-  .profile__avatar--fallback {
-    display: grid;
-    place-items: center;
-    background: var(--bg2);
-    color: var(--font-color-primary);
+  /* Size/type only — fill, border, glow from shared .avatar-initials */
+  .profile__avatar--fallback.avatar-initials {
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-extrabold);
+  }
+
+  /* Photo avatars keep a neutral soft ring */
+  .profile__avatar:not(.avatar-initials) {
+    border: 1px solid rgba(166, 108, 255, 0.32);
+    border-radius: var(--radius-round);
+    box-shadow: var(--avatar-initials-ring);
   }
 
   .profile__identity {

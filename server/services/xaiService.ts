@@ -143,13 +143,23 @@ async function requestGrokResponseOnce(
   const data = (await response.json()) as GrokResponse;
 
   if (!response.ok) {
+    const detail = [data.error?.code, data.error?.message]
+      .filter(Boolean)
+      .join(": ");
     console.error(
       `AI query request failed with status ${response.status}${
-        data.error?.code ? ` and code ${data.error.code}` : ""
-      }`
+        detail ? ` (${detail})` : ""
+      }`,
     );
-    throw new GrokApiError("AI query request failed", response.status);
+    // 403 from xAI = key rejected / no access to model or feature (not app CORS)
+    throw new GrokApiError(
+      response.status === 403
+        ? "xAI rejected the API key or this model/feature (403)"
+        : "AI query request failed",
+      response.status,
+    );
   }
+
 
   const content = getResponseText(data);
 

@@ -7,9 +7,11 @@
   --collector-accent-secondary: color-mix(in srgb, var(--collector-accent) 72%, white);
   --collector-score-background: #20212c;
 
+  box-sizing: border-box;
   display: grid;
   gap: 1rem;
-  margin: 0 auto;
+  margin: 0;
+  max-width: 100%;
   width: 100%;
 
   &__state {
@@ -226,8 +228,8 @@
 
     p {
       margin: 0;
-      max-width: 48rem;
-      padding-left:0;
+      max-width: 100%;
+      padding-left: 0;
     }
   }
 }

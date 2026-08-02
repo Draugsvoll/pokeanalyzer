@@ -128,7 +128,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--trend-accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--trend-accent) 36%, transparent);
-  border-radius: 999px;
+  border-radius: var(--border-radius-control);
   color: var(--trend-accent);
   display: inline-flex;
   flex: 0 0 auto;

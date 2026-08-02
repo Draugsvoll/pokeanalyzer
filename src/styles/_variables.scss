@@ -1,165 +1,253 @@
 /* ==========================================================================
-   GLOBAL CSS VARIABLES
-   Single source of truth for colors, type, chrome, and shared tokens.
+   Design tokens — locked to product mock (one system for the whole app)
    ========================================================================== */
 
 :root {
-  /* ----- Surfaces / chrome ----- */
-  --bg: #191724;
-  --bg3: #292639;
-  --bg2: linear-gradient(
-    145deg,
-    color-mix(
-        in srgb,
-        var(--custom-color-purple) 7%,
-        rgba(255, 255, 255, 0.045)
-      )
-      0%,
-    rgba(255, 255, 255, 0.018) 72%
-  );
-  --bg3: linear-gradient(
-    135deg,
-    rgba(32, 35, 46, 0.9) 0%,
-    rgba(22, 24, 31, 0.92) 52%,
-    rgba(11, 12, 16, 0.94) 100%
-  );
-  --bg5: color-mix(in srgb, var(--bg) 94%, #1a1826);
+  /* ----- Palette (mock DevTools) ----- */
+  --bg: #0b0d14; /* slightly less dark than #080a0f */
+  --bg2: #0e111a;
+  --surface: #10141c;
+  --surface2: #151a24;
+  --surface3: #1a202c;
+  --border-color: rgba(255, 255, 255, 0.07);
+  --border-color-strong: rgba(255, 255, 255, 0.11);
+  --text: #f5f7fa;
+  --secondary: #a6afbd;
+  --muted: #6f7988;
+  --blue: #4ea8ff;
+  --blue-soft: rgba(78, 168, 255, 0.12);
+  --ai: #a66cff;
+  --green: #4ade80;
+  --red: #ff6b6b;
+  --yellow: #fbbf24;
+  --orange: #ff9b3f;
+  --teal: #26c6c3;
+  --shadow:
+    0 1px 0 rgba(255, 255, 255, 0.025) inset, 0 14px 44px rgba(0, 0, 0, 0.22);
 
-  --primary-color: #2b3252;
-  --primary-hover: #303757;
-  --custom-color-purple: #a855f7;
-  --custom-color-teal: #14b8a6;
-  --custom-color-yellow: #facc15;
-  --custom-color-orange: #fb923c;
-  --custom-color-pink: #f43f5e;
-  --custom-color-blue: #1b95c9;
+  /* Aliases used across the codebase */
+  --bg-elevated: var(--bg2);
+  --bg-panel: var(--surface);
+  --bg-card: var(--surface);
+  --bg-card-hover: var(--surface2);
+  --bg-input: rgba(255, 255, 255, 0.03);
+  --bg-input-strong: rgba(255, 255, 255, 0.05);
+  /*
+   * Search shell — mock left (focused): soft outer band, not a hard neon ring
+   */
+  --search-surface: #10141c;
+  --search-border: rgba(100, 150, 220, 0.38);
+  --search-border-focus: rgba(110, 165, 255, 0.55);
+  /* Unfocused: slight outer ring; focused: only a notch stronger */
+  --search-ring: 0 0 0 2px rgba(78, 168, 255, 0.12);
+  --search-ring-focus: 0 0 0 3px rgba(78, 168, 255, 0.15);
+  --search-divider: rgba(255, 255, 255, 0.12);
+  --bg-nav-active: rgba(255, 255, 255, 0.08);
+  --bg-header: var(--bg);
+  --bg3: var(--surface2);
+  --bg5: var(--bg2);
+  --primary-color: var(--surface3);
+  --primary-hover: color-mix(in srgb, var(--surface3) 82%, white);
 
-  --border: 1px solid #2e334f;
-  --border-hover: 1px solid #3d4b5f;
-  --border-divider: rgba(255, 255, 255, 0.065);
-  --border-radius: 12px;
-  --border-radius-pill: 999px;
-  --border-radius-round: 50%;
-  --delay-short: 0.2s;
+  --custom-color-purple: var(--ai);
+  --custom-color-purple-soft: color-mix(in srgb, var(--ai) 70%, white);
+  --custom-color-teal: var(--teal);
+  --custom-color-yellow: var(--yellow);
+  --custom-color-orange: var(--orange);
+  --custom-color-pink: var(--red);
+  --custom-color-blue: var(--blue);
+  --custom-color-blue-bright: #6bb8ff;
+  --custom-color-green: var(--green);
+  --custom-color-red: var(--red);
+  --custom-color-chart: var(--blue);
+
+  --border: 1px solid var(--border-color);
+  --border-hover: 1px solid var(--border-color-strong);
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.06);
+  --border-divider: var(--border-color);
+
+  /* ----- Spacing (4px grid — use only these) ----- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  /* ----- Radii (mock: rounded-square controls, not full pills) ----- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px; /* buttons, inputs, search, chips */
+  --radius-lg: 18px; /* cards / panels */
+  --radius-xl: 22px;
+  --radius-control: 12px; /* primary control radius — mock “square” */
+  --radius-pill: 999px; /* badges / chips — full pill */
+  --radius-round: 50%; /* avatars / dots only */
+
+  /* App-wide aliases — components should use these */
+  --border-radius: var(--radius-md);
+  --border-radius-sm: var(--radius-sm);
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
+  --border-radius-card: var(--radius-lg);
+  --border-radius-control: var(--radius-control);
+  --border-radius-pill: var(--radius-pill);
+  --border-radius-round: var(--radius-round);
+
+  --delay-short: 0.18s;
   --hover-lift: -2px;
-  --hover-shadow: 0 0 14px rgba(168, 85, 247, 0.1);
-  /* Shared purple hover (header links, default buttons, etc.) */
-  --hover-purple-bg: color-mix(
-    in srgb,
-    var(--custom-color-purple) 16%,
-    transparent
-  );
-  --hover-purple-border: color-mix(
-    in srgb,
-    var(--custom-color-purple) 35%,
-    transparent
-  );
-  --hover-purple-text: color-mix(
-    in srgb,
-    var(--custom-color-purple) 45%,
-    white
-  );
+  --hover-shadow: var(--shadow);
 
-  /* Shared custom dropdown chrome */
-  --dropdown-trigger-bg: var(--bg2);
+  /*
+   * Single content column — ONLY place that caps app width (main + header).
+   * All page content should be width: 100% and inherit this.
+   */
+  --shell-max-width: 1320px;
+  /* Search bar — sizings matched to mock left */
+  --search-max-width: 735px;
+  --search-height: 60px;
+  --search-pad: 10px;
+  --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
+  --search-field-pad-x: 16px;
+  --search-btn-height: 42px;
+  --search-btn-min-width: 86px;
+  --search-btn-pad-x: 18px;
+  --search-icon-gap: 8px;
+  --search-radius: 14px;
+  --btn-height: 40px;
+  --btn-height-sm: 34px;
+  --header-height: 64px;
+  --header-control-height: 36px;
+  --header-pad-y: 20px;
+  --header-gap: 24px;
+  --header-actions-gap: 8px;
+  --logo-size: 26px;
+  /* Shared initials avatar (header + profile) */
+  --avatar-size: var(--header-control-height);
+  --avatar-radius: var(--radius-round);
+  /* Promo-badge wash (original transparency) + soft outer glow rings */
+  --avatar-initials-bg: rgba(166, 108, 255, 0.12);
+  --avatar-initials-border: rgba(166, 108, 255, 0.28);
+  --avatar-initials-text: #c4b5fd;
+  --avatar-initials-ring:
+    0 0 0 3px rgba(166, 108, 255, 0.1), 0 0 0 6px rgba(166, 108, 255, 0.04);
+  --page-pad-x: 24px;
+  --page-pad-x-lg: 32px;
+  --page-pad-x-xl: 40px;
+  --page-pad-y: 24px;
+  --section-gap: 140px;
+  --card-gap: 28px;
+  --card-pad: 20px;
+
+  /* Section headings (e.g. “Search results”) + card type */
+  --font-size-section-title: 20px;
+  --font-weight-section-title: 600;
+  --font-size-results-meta: 13px;
+  --font-size-card-title: 14px;
+  --font-size-card-meta: 12px;
+
+  --hover-purple-bg: color-mix(in srgb, var(--ai) 16%, transparent);
+  --hover-purple-border: color-mix(in srgb, var(--ai) 35%, transparent);
+  --hover-purple-text: color-mix(in srgb, var(--ai) 45%, white);
+
+  --dropdown-trigger-bg: var(--bg-input);
   --dropdown-menu-bg: var(--bg5);
-  --dropdown-border: 1px solid rgba(255, 255, 255, 0.11);
-  --dropdown-border-hover: rgba(255, 255, 255, 0.2);
+  --dropdown-border: 1px solid rgba(255, 255, 255, 0.1);
+  --dropdown-border-hover: rgba(255, 255, 255, 0.18);
   --dropdown-menu-border: var(--border);
-  --dropdown-menu-radius: var(--border-radius);
-  --dropdown-menu-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.38);
-  --dropdown-trigger-radius: var(--border-radius-pill);
-  --dropdown-trigger-height: 2.75rem;
-  --dropdown-option-radius: calc(var(--border-radius) * 0.7);
+  --dropdown-menu-radius: var(--radius-md);
+  --dropdown-menu-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  --dropdown-trigger-radius: var(--radius-control);
+  --dropdown-trigger-height: var(--btn-height);
+  --dropdown-option-radius: var(--radius-sm);
   --dropdown-option-hover-bg: var(--hover-purple-bg);
-  --dropdown-option-selected-bg: color-mix(
-    in srgb,
-    var(--custom-color-purple) 22%,
-    transparent
-  );
+  --dropdown-option-selected-bg: color-mix(in srgb, var(--ai) 22%, transparent);
   --dropdown-focus-ring: 0 0 0 3px
-    color-mix(in srgb, var(--custom-color-purple) 18%, transparent);
+    color-mix(in srgb, var(--ai) 16%, transparent);
   --dropdown-z-index: 120;
-  --radio-option-state-bg: color-mix(
-    in srgb,
-    var(--font-color-primary) 5%,
-    transparent
-  );
-  /* Shared data-row padding (JustTCG table, grading market rows, etc.) */
+  --radio-option-state-bg: color-mix(in srgb, var(--text) 5%, transparent);
   --padding-row: 0.85rem 0.65rem;
 
-  /* Shared content column width (/card shell, upload analyzer, feature pages) */
-  --content-width: 48rem;
-  --card-view-section-gap: 2.5rem;
-  --card-view-header-gap: 1rem;
-  --card-view-datestamp-gap: 0.35rem;
+  /* Legacy alias → fill shell (do not re-cap page content) */
+  --content-width: 100%;
+  /* Card detail panel only — centered compact shell (exception to full shell width) */
+  --card-view-max-width: 52rem;
+  --card-view-section-gap: var(--space-8);
+  --card-view-header-gap: var(--space-4);
+  --card-view-datestamp-gap: var(--space-1);
 
-  /* ----- Font families ----- */
-  --font-family-base: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Type */
+  --font-family-base:
+    Inter, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-family-price: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family-price: var(--font-family-base);
 
-  /* ----- Font colors ----- */
-  --font-color-primary: #ffffff;
-  --font-color-body: #ececf3;
-  --font-color-secondary: #dde1e6;
-  --font-color-muted: #94a3b8;
-  --font-color-faint: #71717a;
-  --font-color-error: #f87171;
-  --font-color-success: #34d399;
-  --font-color-warning: #fbbf24;
+  --font-color-primary: var(--text);
+  --font-color-body: var(--text);
+  --font-color-secondary: var(--secondary);
+  --font-color-muted: var(--muted);
+  --font-color-faint: #5a6270;
+  --font-color-error: var(--red);
+  --font-color-success: var(--green);
+  --font-color-warning: var(--yellow);
 
-  /* ----- Font sizes ----- */
-  --font-size-display: 2.5rem;
-  --font-size-h1: 2rem;
-  --font-size-h2: 1.5rem;
-  --font-size-h3: 1.2rem;
-  --font-size-h4: 0.95rem;
-  --font-size-paragraph: 0.92rem;
-  --font-size-paragraph-sm: 0.85rem;
-  --font-size-label: 0.78rem;
-  --font-size-value: 0.95rem;
-  --font-size-caption: 0.75rem;
-  --font-size-badge: 0.68rem;
-  --font-size-overline: 0.7rem;
-  --font-size-nav: 0.95rem;
-  --font-size-button: 0.9rem;
-  --font-size-price: 1rem;
-  --font-size-price-md: 1.4rem;
-  --font-size-price-lg: 1.85rem;
-  --font-size-price-xl: 2.35rem;
+  --font-size-display: 48px;
+  --font-size-h1: 32px;
+  --font-size-h2: 24px;
+  --font-size-h3: 18px;
+  --font-size-h4: 15px;
+  --font-size-paragraph: 14px;
+  --font-size-paragraph-sm: 13px;
+  --font-size-label: 12px;
+  --font-size-value: 14px;
+  --font-size-caption: 12px;
+  --font-size-badge: 10px;
+  --font-size-overline: 11px;
+  --font-size-nav: 13px;
+  --font-size-button: 14px;
+  --font-size-logo: 15px;
+  --font-size-price: 16px;
+  --font-size-price-md: 22px;
+  --font-size-price-lg: 30px;
+  --font-size-price-xl: 38px;
+  --font-size-body: var(--font-size-paragraph);
 
-  /* ----- Font weights ----- */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
 
-  /* ----- Letter spacing ----- */
-  --font-tracking-tight: -0.015em;
-  --font-tracking-normal: 0.01em;
-  --font-tracking-button: 0.02rem;
+  --font-tracking-tight: -0.02em;
+  --font-tracking-normal: 0;
+  --font-tracking-button: 0;
   --font-tracking-wide: 0.06em;
-  --font-tracking-wider: 0.1em;
+  --font-tracking-wider: 0.12em;
 
-  /* ----- Line heights ----- */
-  --font-leading-tight: 1.15;
+  --font-leading-tight: 1.1;
   --font-leading-snug: 1.3;
   --font-leading-normal: 1.5;
-  --font-leading-relaxed: 1.65;
+  --font-leading-relaxed: 1.6;
 
-  /* ----- Legacy aliases (prefer --font-* above) ----- */
-  --text: var(--font-color-primary);
-  --text-h: var(--font-color-primary);
+  --text-h: var(--text);
   --text-grey-tint: #eef0f3;
-  --text-soft: var(--font-color-secondary);
-  --muted: var(--font-color-muted);
+  --text-soft: var(--secondary);
   --font-size-title: var(--font-size-h4);
   --font-size-subtitle: var(--font-size-paragraph-sm);
 }
 
-/* SCSS aliases for @use in component stylesheets if needed */
-$price-value-letter-spacing: 0.06em;
+$price-value-letter-spacing: 0.04em;
 $price-value-font-family:
-  Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  Inter,
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  Helvetica,
+  Arial,
+  sans-serif;

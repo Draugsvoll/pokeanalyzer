@@ -611,69 +611,76 @@ export default function EbaySoldView({
 
   return (
     <div className="ebay-sold-view ui-render-fade">
-      <div className="ebay-sold-view__toolbar">
-        <div className="ebay-sold-view__sorting">
-          <span>Sort by</span>
-          <SelectDropdown
-            ariaLabel="Sort eBay sold listings"
-            compact
-            options={EBAY_SORT_OPTIONS}
-            value={sortOrder}
-            onChange={handleSortChange}
-          />
-        </div>
-        <span className="ebay-sold-view__result-count">
-          {sortedResults.length}{" "}
-          {sortedResults.length === 1 ? "result" : "results"}
-        </span>
-      </div>
-      <div className="ebay-sold-view__filter-row">
-        <fieldset className="ebay-sold-view__filters">
-          <legend>Grade</legend>
-          <div>
-            {GRADE_FILTERS.map((filter) => (
-              <label key={filter.value}>
-                <input
-                  checked={gradeFilter === filter.value}
-                  name="ebay-grade"
-                  type="radio"
-                  value={filter.value}
-                  onChange={() => handleGradeFilterChange(filter.value)}
-                />
-                <span>{filter.label}</span>
-              </label>
-            ))}
+      <div className="ebay-sold-view__surface">
+        <div className="ebay-sold-view__filter-row">
+          <div className="ebay-sold-view__filter-groups">
+            <fieldset className="ebay-sold-view__filters">
+              <legend>Grade</legend>
+              <div>
+                {GRADE_FILTERS.map((filter) => (
+                  <label key={filter.value}>
+                    <input
+                      checked={gradeFilter === filter.value}
+                      name="ebay-grade"
+                      type="radio"
+                      value={filter.value}
+                      onChange={() => handleGradeFilterChange(filter.value)}
+                    />
+                    <span>{filter.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {availableVariantFilters.length > 0 && (
+              <fieldset className="ebay-sold-view__filters">
+                <legend>Variant</legend>
+                <div>
+                  <label>
+                    <input
+                      checked={variantFilter === "all"}
+                      name="ebay-card-variant"
+                      type="radio"
+                      value="all"
+                      onChange={() => handleVariantFilterChange("all")}
+                    />
+                    <span>All</span>
+                  </label>
+                  {availableVariantFilters.map((variant) => (
+                    <label key={variant.id}>
+                      <input
+                        checked={variantFilter === variant.id}
+                        name="ebay-card-variant"
+                        type="radio"
+                        value={variant.id}
+                        onChange={() => handleVariantFilterChange(variant.id)}
+                      />
+                      <span>{variant.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
           </div>
-        </fieldset>
-        {availableVariantFilters.length > 0 && (
-          <fieldset className="ebay-sold-view__filters">
-            <legend>Variant</legend>
-            <div>
-              <label>
-                <input
-                  checked={variantFilter === "all"}
-                  name="ebay-card-variant"
-                  type="radio"
-                  value="all"
-                  onChange={() => handleVariantFilterChange("all")}
-                />
-                <span>All</span>
-              </label>
-              {availableVariantFilters.map((variant) => (
-                <label key={variant.id}>
-                  <input
-                    checked={variantFilter === variant.id}
-                    name="ebay-card-variant"
-                    type="radio"
-                    value={variant.id}
-                    onChange={() => handleVariantFilterChange(variant.id)}
-                  />
-                  <span>{variant.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
+          <div className="ebay-sold-view__sort-panel">
+            <label className="ebay-sold-view__sorting">
+              <span>Sort by</span>
+              <SelectDropdown
+                ariaLabel="Sort eBay sold listings"
+                compact
+                options={EBAY_SORT_OPTIONS}
+                value={sortOrder}
+                onChange={handleSortChange}
+              />
+            </label>
+          </div>
+        </div>
+        <div className="ebay-sold-view__summary-bar">
+          <span>Listings</span>
+          <strong>
+            {sortedResults.length}{" "}
+            {sortedResults.length === 1 ? "result" : "results"}
+          </strong>
+        </div>
       </div>
       <div className="ebay-sold-view__results-region" aria-busy={filtering}>
         {filtering && (

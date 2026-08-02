@@ -2,24 +2,19 @@
   background:
     radial-gradient(
       circle at 100% 0%,
-      color-mix(in srgb, var(--custom-color-purple) 18%, transparent),
+      color-mix(in srgb, var(--custom-color-purple) 14%, transparent),
       transparent 14rem
     ),
-    var(--bg3);
-  border: 1px solid color-mix(
-    in srgb,
-    var(--custom-color-purple) 30%,
-    rgba(255, 255, 255, 0.1)
-  );
-  border-radius: calc(var(--border-radius) + 0.25rem);
+    var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius-card);
   box-shadow:
-    0 1.75rem 5rem rgba(0, 0, 0, 0.4),
-    0 0 2rem color-mix(in srgb, var(--custom-color-purple) 10%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 1.75rem 5rem rgba(0, 0, 0, 0.45),
+    0 0 2rem color-mix(in srgb, var(--custom-color-purple) 8%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   max-width: 26rem;
   padding: 1.75rem;
   width: 100%;
-
 }
 
 .auth-card__google { margin-bottom: 1rem; }
@@ -89,12 +84,12 @@
   input {
     background: rgba(10, 10, 16, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-control);
     color: var(--font-color-primary);
     font: inherit;
     min-height: 3rem;
     outline: none;
-    padding: 0.7rem 0.85rem;
+    padding: 0.7rem 1rem;
     transition:
       background-color var(--delay-short) ease,
       border-color var(--delay-short) ease,
@@ -124,7 +119,7 @@
 }
 
 .auth-notice {
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-md);
   font-size: var(--font-size-paragraph-sm);
   margin: 0;
   padding: 0.65rem 0.75rem;

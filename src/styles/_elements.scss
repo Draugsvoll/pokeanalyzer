@@ -42,17 +42,19 @@ h6 {
 }
 
 /* ----- Body / inline ----- */
+/* Do not put default padding on `p` — it breaks centered UI (hero, forms, cards). */
 p {
   font-size: var(--font-size-paragraph);
   font-weight: var(--font-weight-regular);
-  padding:0.5rem;
+  margin: 0;
+  padding: 0;
 }
 
+/* Do not force label size on every span — it overrides logo, nav, buttons. */
 span {
   color: inherit;
   font-family: inherit;
   letter-spacing: inherit;
-  font-size: var(--font-size-label);
 }
 
 small {
@@ -94,6 +96,21 @@ textarea {
   letter-spacing: var(--font-tracking-normal);
 }
 
+/*
+ * Mock control chrome: rounded-square (12px), not full pills.
+ */
+button,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select,
+textarea {
+  border-radius: var(--border-radius-control);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  border-radius: var(--border-radius-sm);
+}
+
 /* Section labels (e.g. Market Snapshot, Other market sources) */
 .app-subheader {
   color: var(--font-color-muted);
@@ -133,10 +150,11 @@ textarea {
   cursor: pointer;
   transition:
     border-color var(--delay-short) ease,
-    box-shadow var(--delay-short) ease;
+    box-shadow var(--delay-short) ease,
+    transform var(--delay-short) ease;
 
   &:hover {
-    border: var(--border-hover);
+    border-color: rgba(255, 255, 255, 0.13);
     box-shadow: var(--hover-shadow);
   }
 }
@@ -227,21 +245,85 @@ textarea {
   }
 }
 
+/*
+ * Shared card grid — Explore results + Portfolio (same columns, gap, breakpoints).
+ */
+.card-grid {
+  background: transparent;
+  display: grid;
+  gap: var(--card-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Shared initials avatar — header + profile.
+ * Soft purple wash (promo badge) + concentric outer glow rings.
+ */
+.avatar-initials {
+  align-items: center;
+  background: var(--avatar-initials-bg);
+  border: 1px solid var(--avatar-initials-border);
+  border-radius: var(--radius-round);
+  box-shadow: var(--avatar-initials-ring);
+  box-sizing: border-box;
+  color: var(--avatar-initials-text);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-weight: 650;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
 /* Shared rarity treatment; individual views may adjust only sizing/casing. */
 .card-rarity-badge {
   align-items: center;
-  background: rgba(250, 204, 21, 0.12);
-  border: 1px solid rgba(250, 204, 21, 0.32);
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
-  color: var(--custom-color-yellow);
+  color: var(--yellow);
   display: inline-flex;
   font-size: var(--font-size-badge);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--font-tracking-wide);
+  font-weight: 650;
+  letter-spacing: 0.01em;
   line-height: 1;
-  padding: 0.38rem 0.7rem;
-  text-transform: uppercase;
+  padding: 4px 8px;
+  text-transform: none;
   white-space: nowrap;
   width: fit-content;
+
+  &--common {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--muted);
+  }
+
+  &--uncommon {
+    background: rgba(166, 175, 189, 0.1);
+    border-color: rgba(166, 175, 189, 0.22);
+    color: var(--secondary);
+  }
+
+  &--rare {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.28);
+    color: var(--yellow);
+  }
+
+  &--promo {
+    background: rgba(166, 108, 255, 0.12);
+    border-color: rgba(166, 108, 255, 0.28);
+    color: #c4b5fd;
+  }
 }

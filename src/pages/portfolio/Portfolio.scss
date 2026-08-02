@@ -1,7 +1,8 @@
 .portfolio {
   color: var(--font-color-body);
   margin: 0 auto;
-  max-width: 72rem;
+  width: 100%;
+  max-width: 100%;
   padding: 2rem 0;
   padding-bottom: 8rem;
 
@@ -41,8 +42,10 @@
   }
 
   &__total {
+    background: var(--bg-card);
     border: var(--border);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-card);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -51,7 +54,7 @@
     margin-left: auto;
     margin-right: 0;
     max-width: 100%;
-    padding: 0.85rem 1.1rem 0.95rem;
+    padding: 0.95rem 1.15rem 1rem;
     text-align: left;
     width: fit-content;
   }
@@ -381,17 +384,16 @@
     }
   }
 
-  .grid-view-container {
-    column-gap: 0rem;
-    row-gap: 2rem;
-  }
+  /* Card grid: shared .card-grid — no local gap/column overrides */
 
   &__card {
     align-items: center;
     display: flex;
+    min-width: 0;
     overflow: visible;
     position: relative;
     transition: transform var(--delay-short) ease;
+    width: 100%;
     z-index: 0;
 
     &:hover {

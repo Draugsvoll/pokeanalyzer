@@ -69,7 +69,7 @@
       var(--psa-theme),
       color-mix(in srgb, var(--psa-theme) 30%, transparent)
     );
-    border-radius: 999px;
+    border-radius: var(--border-radius-control);
     content: "";
     height: 68%;
     left: 0;
@@ -165,7 +165,7 @@
 
   &::before {
     background: var(--psa-theme);
-    border-radius: 999px 999px 0 0;
+    border-radius: var(--border-radius-control) var(--border-radius-control) 0 0;
     content: "";
     height: 2px;
     left: 1rem;

@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowDown,
+  ArrowUp,
   BadgeDollarSign,
   CalendarDays,
+  Coins,
   Gem,
   LineChart,
   Palette,
@@ -11,6 +12,7 @@ import {
   ShoppingCart,
   Star,
   type LucideIcon,
+  Wallet,
 } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/welcomeView/WelcomeView.scss";
@@ -107,54 +109,55 @@ type AI_feature = {
   icon: LucideIcon;
   color: CustomColors;
   creditFeature: CreditUsageFeature;
-  headerLabel: string;
+  /** Large analysis heading under the feature eyebrow */
+  analysisTitle: string;
 };
 
 const AI_Features: AI_feature[] = [
   {
     view: "prices",
-    title: "Markedspriser",
-    description: "TCGPlayer og Cardmarket",
+    title: "Market analysis",
+    description: "TCGPlayer, Cardmarket & sales history",
     icon: LineChart,
     color: "orange",
     creditFeature: "price_analysis",
-    headerLabel: "Market prices",
+    analysisTitle: "Extended price data",
   },
   {
     view: "collector_analysis",
-    title: "Samlerverdi",
-    description: "AI-rangering for samlere",
+    title: "Collector value",
+    description: "AI score for long-term collectibility",
     icon: Gem,
     color: "blue",
     creditFeature: "collector_analysis",
-    headerLabel: "Collector analysis",
+    analysisTitle: "Collectibility breakdown",
   },
   {
     view: "ebay_sold",
-    title: "eBay solgte",
-    description: "Nylig solgte kort",
+    title: "eBay sold",
+    description: "Recent comps from real sales",
     icon: BadgeDollarSign,
     color: "teal",
     creditFeature: "ebay_sold",
-    headerLabel: "eBay sold listings",
+    analysisTitle: "Recent sold listings",
   },
   {
     view: "worth_grading",
     title: "Worth grading?",
-    description: "See if this card is worth getting PSA graded",
+    description: "PSA economics for this card",
     icon: BadgeDollarSign,
     color: "pink",
     creditFeature: "worth_grading",
-    headerLabel: "Grading analysis",
+    analysisTitle: "Grading economics",
   },
   {
     view: "sell_price",
-    title: "Sell Price",
-    description: "Where and what should i sell this card for?",
+    title: "Sell guidance",
+    description: "Where and what to list for",
     icon: BadgeDollarSign,
     color: "yellow",
     creditFeature: "sell_price",
-    headerLabel: "Selling recommendation",
+    analysisTitle: "Selling recommendation",
   },
 ];
 
@@ -838,21 +841,31 @@ function PokemonDetailsForCard() {
               </div>
               <div className="card-view__market-cards">
                 {marketCards.map((market) => {
+                  const MarketCardElement = market.url ? "a" : "article";
+
                   return (
-                    <article
+                    <MarketCardElement
+                      aria-label={
+                        market.url
+                          ? `Buy ${market.label} listing`
+                          : `${market.label} market price`
+                      }
                       className={`card-view__market-card card-view__market-card--${market.tone}`}
+                      href={market.url}
                       key={market.label}
+                      rel={market.url ? "noreferrer" : undefined}
+                      target={market.url ? "_blank" : undefined}
                     >
                       <div className="card-view__market-card-top">
                         <span>{market.label}</span>
                         {market.url && (
-                          <a href={market.url} rel="noreferrer" target="_blank">
+                          <span className="card-view__market-card-buy">
                             Buy <ShoppingCart aria-hidden="true" />
-                          </a>
+                          </span>
                         )}
                       </div>
                       <strong>{market.value ?? "N/A"}</strong>
-                    </article>
+                    </MarketCardElement>
                   );
                 })}
               </div>
@@ -887,22 +900,23 @@ function PokemonDetailsForCard() {
               <div className="card-view__info-actions">
                 <Button
                   ref={changeCardButtonRef}
+                  fill="ghost"
+                  style={getCustomColors("blue")}
                   onClick={() => setShowCardSearch((open) => !open)}
                   aria-expanded={showCardSearch}
                 >
                   {showCardSearch ? (
                     <>
-                      <ArrowDown
+                      <ArrowUp
                         size={16}
                         strokeWidth={2.25}
                         aria-hidden="true"
                       />
-                      <span>Hide</span>
+                      <span>Close</span>
                     </>
                   ) : (
                     <>
-                      <Search size={16} strokeWidth={2.25} aria-hidden="true" />
-                      <span>Change card</span>
+                      <span>Switch Card</span>
                     </>
                   )}
                 </Button>
@@ -929,155 +943,164 @@ function PokemonDetailsForCard() {
         )}
       </div>
 
-      <div className="card-view__credit-note">
-        <span className="card-view__credit-cost">
-          <strong>1 Credit</strong>
-          <span className="card-view__credit-meta">per analysis</span>
-        </span>
-        <span className="card-view__credit-divider" aria-hidden="true" />
-        <span className="card-view__credit-copy">
-          {loadingSubscription ? (
-            <span
-              className="card-view__credit-spinner"
-              role="status"
-              aria-label="Laster credits"
-            />
-          ) : subscription ? (
-            <span className="card-view__credit-balance">
-              {creditsRemaining} Credits left
-            </span>
-          ) : (
-            <>
-              <Button variant="micro" onClick={() => setShowLoginModal(true)}>
-                Log in
-              </Button>
-              {" or "}
-              <Link className="card-view__credit-link" to="/signup">
-                Sign up
-              </Link>
-              {" for free credits"}
-            </>
-          )}
-        </span>
-        {creditMessage && (
-          <small className="card-view__credit-message">{creditMessage}</small>
-        )}
-      </div>
-
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
 
-      <div
-        ref={featureButtonsRef}
-        className="card-view__actions feature-buttons__row"
-      >
-        {AI_Features.map((aiFeature) => {
-          const Icon = aiFeature.icon;
-          const isFeatureLoading =
-            activeView === aiFeature.view &&
-            (grokLoading ||
-              (aiFeature.view === "prices" && justTcgLoading) ||
-              (aiFeature.view === "ebay_sold" && ebayLoading));
-
-          return (
-            <button
-              key={aiFeature.view}
-              type="button"
-              className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}${
-                isFeatureLoading ? " is-loading" : ""
-              }`}
-              style={getCustomColors(aiFeature.color)}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleFeatureClick(aiFeature)}
-              disabled={
-                loadingSubscription ||
-                updatingCredits ||
-                grokLoading ||
-                justTcgLoading ||
-                ebayLoading ||
-                featureCooldown ||
-                creditsRemaining < 1
-              }
-              aria-pressed={activeView === aiFeature.view}
-              aria-busy={isFeatureLoading}
-            >
-              <span className="feature-button__icon" aria-hidden="true">
-                {isFeatureLoading ? (
-                  <span className="feature-button__spinner" />
-                ) : (
-                  <Icon size={22} strokeWidth={2} />
-                )}
+      <div className="card-view__analysis-panel">
+        <div className="card-view__credit-note">
+          <span className="card-view__credit-cost">
+            <Coins aria-hidden="true" />
+            <strong>1 Credit</strong>
+            <span className="card-view__credit-meta">per analysis</span>
+          </span>
+          <span className="card-view__credit-divider" aria-hidden="true" />
+          <span className="card-view__credit-copy">
+            {loadingSubscription ? (
+              <span
+                className="card-view__credit-spinner"
+                role="status"
+                aria-label="Laster credits"
+              />
+            ) : subscription ? (
+              <span className="card-view__credit-balance">
+                <Wallet aria-hidden="true" />
+                {creditsRemaining} Credits
               </span>
-              <span className="feature-button__text">
-                <span className="feature-button__title">{aiFeature.title}</span>
-                <span className="feature-button__description">
-                  {aiFeature.description}
+            ) : (
+              <>
+                <Button variant="micro" onClick={() => setShowLoginModal(true)}>
+                  Log in
+                </Button>
+                <span className="card-view__credit-auth-muted">or</span>
+                <Link className="card-view__credit-link" to="/signup">
+                  Sign up
+                </Link>
+                <span className="card-view__credit-auth-muted">
+                  for free credits
                 </span>
-              </span>
-            </button>
-          );
-        })}
-        {/* <PriceHistory cardId={card.id} /> */}
+              </>
+            )}
+          </span>
+          {creditMessage && (
+            <small className="card-view__credit-message">{creditMessage}</small>
+          )}
+        </div>
+
+        <div
+          ref={featureButtonsRef}
+          className="card-view__actions feature-buttons__row"
+        >
+          {AI_Features.map((aiFeature) => {
+            const Icon = aiFeature.icon;
+            const isFeatureLoading =
+              activeView === aiFeature.view &&
+              (grokLoading ||
+                (aiFeature.view === "prices" && justTcgLoading) ||
+                (aiFeature.view === "ebay_sold" && ebayLoading));
+
+            return (
+              <button
+                key={aiFeature.view}
+                type="button"
+                className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}${
+                  isFeatureLoading ? " is-loading" : ""
+                }`}
+                style={getCustomColors(aiFeature.color)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleFeatureClick(aiFeature)}
+                disabled={
+                  loadingSubscription ||
+                  updatingCredits ||
+                  grokLoading ||
+                  justTcgLoading ||
+                  ebayLoading ||
+                  featureCooldown ||
+                  creditsRemaining < 1
+                }
+                aria-pressed={activeView === aiFeature.view}
+                aria-busy={isFeatureLoading}
+              >
+                <span className="feature-button__icon" aria-hidden="true">
+                  {isFeatureLoading ? (
+                    <span className="feature-button__spinner" />
+                  ) : (
+                    <Icon size={22} strokeWidth={2} />
+                  )}
+                </span>
+                <span className="feature-button__text">
+                  <span className="feature-button__title">
+                    {aiFeature.title}
+                  </span>
+                  <span className="feature-button__description">
+                    {aiFeature.description}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+          {/* <PriceHistory cardId={card.id} /> */}
+        </div>
       </div>
 
       <section
-        key={activeView}
-        className={`card-view__page ui-render-fade${
+        className={`card-view__page${
           activeView === "prices" ? " card-view__page--prices" : ""
         }${activeView === "ebay_sold" ? " card-view__page--ebay" : ""}`}
-        style={activeFeature ? getCustomColors(activeFeature.color) : undefined}
         aria-live="polite"
       >
-        {activeFeature && (
-          <CardFeatureHeader
-            card={card}
-            cardNumber={
-              activeView === "prices" ? displayedCardNumber : undefined
-            }
-            color={activeFeature.color}
-            icon={activeFeature.icon}
-            label={activeFeature.headerLabel}
-          />
+        {activeFeature && activeView !== "empty_view" && (
+          <div
+            key={activeView}
+            className="card-view__active-feature ui-render-fade"
+            style={getCustomColors(activeFeature.color)}
+          >
+            <CardFeatureHeader
+              color={activeFeature.color}
+              featureName={activeFeature.title}
+              analysisTitle={activeFeature.analysisTitle}
+            />
+
+            <div className="card-view__active-body">
+              {activeView === "ebay_sold" && (
+                <EbaySoldView
+                  card={card}
+                  onSubscriptionChange={updateSubscription}
+                  onLoadingChange={setEbayLoading}
+                />
+              )}
+              {activeView === "prices" && (
+                <PriceAnalysis
+                  card={card}
+                  grokRequest={grokRequest}
+                  salesDataRequest={{
+                    loading: marketSalesLoading,
+                    error: marketSalesError,
+                    response: marketSalesResponse,
+                  }}
+                  justTcgRequest={{
+                    loading: justTcgLoading,
+                    error: justTcgError,
+                    response: justTcgResult,
+                  }}
+                />
+              )}
+              {activeView === "worth_grading" && (
+                <WorthGradingView grokRequest={grokRequest} />
+              )}
+              {activeView === "sell_price" && (
+                <SellPriceView grokRequest={grokRequest} />
+              )}
+              {activeView === "collector_analysis" && (
+                <CollectorAnalysis grokRequest={grokRequest} />
+              )}
+            </div>
+          </div>
         )}
 
         {activeView === "empty_view" && (
           <div className="card-view__empty-view" aria-hidden="true"></div>
-        )}
-        {activeView === "ebay_sold" && (
-          <EbaySoldView
-            card={card}
-            onSubscriptionChange={updateSubscription}
-            onLoadingChange={setEbayLoading}
-          />
-        )}
-        {activeView === "prices" && (
-          <>
-            <PriceAnalysis
-              card={card}
-              grokRequest={grokRequest}
-              salesDataRequest={{
-                loading: marketSalesLoading,
-                error: marketSalesError,
-                response: marketSalesResponse,
-              }}
-              justTcgRequest={{
-                loading: justTcgLoading,
-                error: justTcgError,
-                response: justTcgResult,
-              }}
-            />
-          </>
-        )}
-        {activeView === "worth_grading" && (
-          <WorthGradingView grokRequest={grokRequest} />
-        )}
-        {activeView === "sell_price" && (
-          <SellPriceView grokRequest={grokRequest} />
-        )}
-        {activeView === "collector_analysis" && (
-          <CollectorAnalysis grokRequest={grokRequest} />
         )}
       </section>
     </div>

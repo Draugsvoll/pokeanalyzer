@@ -1,10 +1,11 @@
 .sales-data-view {
   --sales-data-accent: var(--feature-accent, var(--custom-color-purple));
 
+  box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
-  margin: 0 auto;
-  max-width: 72rem;
+  margin: 0;
+  max-width: 100%;
   width: 100%;
 }
 
@@ -37,9 +38,22 @@
     p {
       color: var(--font-color-muted);
       font-size: var(--font-size-paragraph-sm);
-      padding-top:0.2rem;
+      margin: 0;
+      padding-top: 0.2rem;
       padding-left: 0;
     }
+  }
+}
+
+.sales-data-view__market-heading > div {
+  align-items: end;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  width: 100%;
+
+  p {
+    text-align: right;
   }
 }
 
@@ -90,7 +104,8 @@
 
   .sales-data-view__volume-badge {
     background: color-mix(in srgb, var(--font-color-primary) 6%, transparent);
-    border: 1px solid color-mix(in srgb, var(--font-color-primary) 9%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--font-color-primary) 9%, transparent);
     border-radius: var(--border-radius-pill);
     color: var(--font-color-secondary);
     justify-self: start;
@@ -137,6 +152,15 @@
 }
 
 @media (max-width: 36rem) {
+  .sales-data-view__market-heading > div {
+    align-items: start;
+    grid-template-columns: 1fr;
+
+    p {
+      text-align: left;
+    }
+  }
+
   .sales-data-view__market-grid {
     grid-template-columns: 1fr;
     padding-inline: 1.1rem;

@@ -7,5 +7,11 @@ type GridViewProps = {
 };
 
 export function GridView({ children, className = "" }: GridViewProps) {
-  return <div className={`grid-view-container${className ? ` ${className}` : ""}`}>{children}</div>;
+  return (
+    <div
+      className={`card-grid grid-view-container${className ? ` ${className}` : ""}`}
+    >
+      {children}
+    </div>
+  );
 }

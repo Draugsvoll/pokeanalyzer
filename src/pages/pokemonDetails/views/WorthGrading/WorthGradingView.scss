@@ -1,9 +1,11 @@
 /* Typography: global tokens only. Layout + accents local. */
 
 .worth-grading-view {
+  box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
-  margin: 0 auto;
+  margin: 0;
+  max-width: 100%;
   width: 100%;
 }
 
@@ -48,7 +50,7 @@
   .worth-grading-view__panel-body {
     color: var(--font-color-secondary);
     margin: 0;
-    max-width: 42rem;
+    max-width: 100%;
     padding: 0;
     text-align: left;
   }

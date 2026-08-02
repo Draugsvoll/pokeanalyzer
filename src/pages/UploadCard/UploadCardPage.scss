@@ -2,8 +2,8 @@
   grid-template-columns: minmax(22rem, 36rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
-  max-width: var(--content-width);
-  margin: auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 
@@ -148,7 +148,8 @@
 .card-grader {
   display: grid;
   grid-template-columns: 1fr;
-  max-width: var(--content-width);
+  max-width: 100%;
+  width: 100%;
 }
 
 .card-grader__header {
