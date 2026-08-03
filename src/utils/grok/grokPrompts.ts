@@ -6,6 +6,7 @@ If the data is available, please show todays market prices for the pokemon card 
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
 Make sure to include the source "PriceCharting" if it has available data.
+When using PriceCharting, make sure to include the most recent sales data for the card, and include the range of prices for the most recent sales, if it's available.
 If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
 
 In market_data field, you can add different types of market price data, as long as its
@@ -403,9 +404,10 @@ a valid json, as formatted below. the overview field must be as concise and rele
 collector as possible, but it should only shortly explain the cards role as a collectable,
 dont explain the score or pokemon-stats in this field. Avoid stating exact price numbers for the card.
 The finalNote field should be a summarized conclusion of what made its final score, and how
-collectors should approach it.
+collectors should approach it. The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
 
 totalScore
+verdict
 overview
 categories - each categori has fields: score, name, text
 finalNote

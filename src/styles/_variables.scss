@@ -12,7 +12,7 @@
   --border-color: rgba(255, 255, 255, 0.07);
   --border-color-strong: rgba(255, 255, 255, 0.11);
   --text: #f5f7fa;
-  --secondary: #a6afbd;
+  --secondary: #c2c8d3;
   --muted: #6f7988;
   --blue: #4ea8ff;
   --blue-soft: rgba(78, 168, 255, 0.12);
@@ -177,9 +177,9 @@
   /* Legacy alias → fill shell (do not re-cap page content) */
   --content-width: 100%;
   /* Card detail panel only — centered compact shell (exception to full shell width) */
-  --card-view-max-width: 52rem;
-  --card-view-section-gap: var(--space-8);
-  --card-view-header-gap: var(--space-4);
+  --card-view-max-width: 76rem;
+  --card-view-section-gap: var(--space-7);
+  --card-view-header-gap: var(--space-2);
   --card-view-datestamp-gap: var(--space-1);
 
   /* Type */

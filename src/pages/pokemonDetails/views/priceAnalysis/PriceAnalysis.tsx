@@ -19,6 +19,10 @@ type PriceAnalysisProps = {
     error: string;
     response: unknown;
   };
+  onGenerateReport?: () => void;
+  reportLoading?: boolean;
+  reportAvailable?: boolean;
+  reportDisabled?: boolean;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -179,7 +183,7 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
 
       {lastUpdated && (
         <p className="app-view-datestamp">
-          Last updated: {formatDateStamp(lastUpdated)}
+          Updated: {formatDateStamp(lastUpdated)}
         </p>
       )}
     </section>
@@ -190,7 +194,7 @@ function JustTcgPriceAnalysis({
   justTcgRequest,
 }: Pick<PriceAnalysisProps, "justTcgRequest">) {
   if (justTcgRequest.loading) {
-    return <LoadingState>Fetching JustTCG prices...</LoadingState>;
+    return <LoadingState>Fetching price history...</LoadingState>;
   }
 
   if (justTcgRequest.error) {
@@ -209,10 +213,20 @@ export function PriceAnalysis({
   grokRequest,
   justTcgRequest,
   salesDataRequest,
+  onGenerateReport,
+  reportLoading = false,
+  reportAvailable = false,
+  reportDisabled = false,
 }: PriceAnalysisProps) {
   return (
     <div className="price-analysis-view">
-      <StoredPrices card={card} />
+      <StoredPrices
+        card={card}
+        onGenerateReport={onGenerateReport}
+        reportLoading={reportLoading}
+        reportAvailable={reportAvailable}
+        reportDisabled={reportDisabled}
+      />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
       <SalesDataView grokRequest={salesDataRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />

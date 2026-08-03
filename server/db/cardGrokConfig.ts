@@ -2,12 +2,12 @@ export const CARD_GROK_FEATURES = {
   collector_analysis: {
     storageKey: "collectors_analysis",
     // Change this number to control how long Samlerverdi is reused.
-    reuseDays: 30,
+    reuseDays: 1,
   },
   price_analysis: {
     storageKey: "price_analysis",
     // Change this number to control how long Markedspriser is reused.
-    reuseDays: 3,
+    reuseDays: 1,
   },
   ebay_sold: {
     storageKey: "ebay_sold",
@@ -27,7 +27,7 @@ export const CARD_GROK_FEATURES = {
   sales_data: {
     storageKey: "sales_data",
     // Change this number to control how long sales data is reused.
-    reuseDays: -1,
+    reuseDays: 1,
   },
 } as const;
 

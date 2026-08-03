@@ -4,7 +4,11 @@
 .collector-ranking {
   /* Match feature button + header (yellow) */
   --collector-accent: var(--feature-accent, var(--custom-color-yellow));
-  --collector-accent-secondary: color-mix(in srgb, var(--collector-accent) 72%, white);
+  --collector-accent-secondary: color-mix(
+    in srgb,
+    var(--collector-accent) 72%,
+    white
+  );
   --collector-score-background: #20212c;
 
   box-sizing: border-box;
@@ -23,18 +27,14 @@
   &__summary {
     align-items: center;
     background: var(--bg2);
-    backdrop-filter: blur(18px) saturate(120%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: var(--border);
     border-radius: var(--border-radius);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.055),
-      0 1rem 2.5rem rgba(0, 0, 0, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
     display: flex;
     gap: 1.5rem;
     overflow: hidden;
     padding: 1.25rem;
     position: relative;
-    -webkit-backdrop-filter: blur(18px) saturate(120%);
   }
 
   &__score {
@@ -45,7 +45,8 @@
       var(--collector-score-background) 0
     );
     border-radius: var(--border-radius-round);
-    box-shadow: 0 0 1.5rem color-mix(in srgb, var(--collector-accent) 22%, transparent);
+    box-shadow: 0 0 1.5rem
+      color-mix(in srgb, var(--collector-accent) 22%, transparent);
     display: grid;
     flex: 0 0 7rem;
     height: 7rem;
@@ -68,9 +69,7 @@
 
     /* Big score number — not a normal strong */
     strong {
-      background: linear-gradient(135deg, #fff 22%, #fef9c3 62%, var(--collector-accent-secondary));
-      background-clip: text;
-      color: transparent;
+      color: var(--font-color-primary);
       font-family: var(--font-family-price);
       font-size: var(--font-size-price-xl);
       font-variant-numeric: tabular-nums;
@@ -92,19 +91,26 @@
 
     /* Eyebrow overline — not a normal span */
     > span {
-      background: linear-gradient(90deg, var(--collector-accent), var(--collector-accent-secondary));
-      background-clip: text;
-      color: transparent;
+      color: var(--collector-accent);
       font-size: var(--font-size-caption);
       font-weight: var(--font-weight-bold);
       letter-spacing: var(--font-tracking-wider);
       text-transform: uppercase;
     }
 
+    .collector-ranking__verdict {
+      color: var(--font-color-primary);
+      display: block;
+      font-size: var(--font-size-h4);
+      font-weight: var(--font-weight-bold);
+      line-height: var(--font-leading-snug);
+      margin-top: 0.45rem;
+    }
+
     h4 {
       font-weight: var(--font-weight-medium);
-      margin: 0.4rem 0 0;
-      color:var(--font-color-secondary);
+      margin: 0.45rem 0 0;
+      color: var(--font-color-secondary);
     }
   }
 
@@ -116,8 +122,7 @@
 
   &__category {
     background: var(--bg2);
-    backdrop-filter: blur(16px) saturate(115%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: var(--border);
     border-radius: var(--border-radius);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
     min-width: 0;
@@ -128,11 +133,17 @@
     -webkit-backdrop-filter: blur(16px) saturate(115%);
 
     &:hover {
-      border-color: color-mix(in srgb, var(--collector-accent) 32%, transparent);
+      border-color: color-mix(
+        in srgb,
+        var(--collector-accent) 32%,
+        transparent
+      );
       transform: translateY(-1px);
     }
 
-    &:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    &:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
 
     p {
       margin: 0.55rem 0 0;
@@ -147,8 +158,6 @@
 
     h4 {
       align-items: center;
-      background: linear-gradient(90deg, #f4f4f5, #fef9c3 72%, var(--collector-accent-secondary));
-      background-clip: text;
       color: var(--font-color-secondary);
       display: flex;
       font-weight: var(--font-weight-medium);
@@ -173,9 +182,7 @@
 
     /* Category score — price-style number */
     strong {
-      background: linear-gradient(135deg, var(--collector-accent), var(--collector-accent-secondary));
-      background-clip: text;
-      color: transparent;
+      color: var(--collector-accent);
       font-family: var(--font-family-price);
       font-size: var(--font-size-price-md);
       font-variant-numeric: tabular-nums;
@@ -199,7 +206,8 @@
         var(--collector-accent-secondary)
       );
       border-radius: var(--border-radius-pill);
-      box-shadow: 0 0 0.85rem color-mix(in srgb, var(--collector-accent) 35%, transparent);
+      box-shadow: 0 0 0.85rem
+        color-mix(in srgb, var(--collector-accent) 35%, transparent);
       display: block;
       height: 100%;
     }
@@ -207,19 +215,15 @@
 
   &__conclusion {
     background: var(--bg2);
-    backdrop-filter: blur(16px) saturate(115%);
     border: var(--border);
     border-radius: var(--border-radius);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
     display: grid;
     padding: 1.15rem 1.25rem;
-    -webkit-backdrop-filter: blur(16px) saturate(115%);
 
     h4 {
-      background: linear-gradient(90deg, var(--collector-accent), var(--collector-accent-secondary));
-      background-clip: text;
       border-bottom: 1px solid var(--border-divider);
-      color: transparent;
+      color: var(--collector-accent);
       font-weight: var(--font-weight-bold);
       letter-spacing: var(--font-tracking-normal);
       margin: 0;
@@ -235,8 +239,12 @@
 }
 
 @media (max-width: 42rem) {
-  .collector-ranking__categories { grid-template-columns: 1fr; }
-  .collector-ranking__category:last-child:nth-child(odd) { grid-column: auto; }
+  .collector-ranking__categories {
+    grid-template-columns: 1fr;
+  }
+  .collector-ranking__category:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 32rem) {
@@ -252,6 +260,11 @@
     width: 6rem;
   }
 
-  .collector-ranking__score > div { height: 4.6rem; width: 4.6rem; }
-  .collector-ranking__score strong { font-size: var(--font-size-price-lg); }
+  .collector-ranking__score > div {
+    height: 4.6rem;
+    width: 4.6rem;
+  }
+  .collector-ranking__score strong {
+    font-size: var(--font-size-price-lg);
+  }
 }

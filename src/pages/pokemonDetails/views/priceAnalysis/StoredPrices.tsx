@@ -7,8 +7,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
-import { formatDateStamp } from "../../../../utils/formatDateStamp";
 import { getDefaultCardPriceOptionForSource } from "../../../../utils/pokemonPricing";
+import { getCustomColors } from "../../../../utils/customStylings";
+import Button from "../../../../components/button/Button";
 import "./StoredPrices.scss";
 
 type FlatPriceField = { label: string; value: number | string };
@@ -105,7 +106,6 @@ type SourceCardProps = {
   hasPrices: boolean;
   legend: { term: string; text: string }[];
   cardName: string;
-  updatedAt?: string;
   showDetails: boolean;
   onToggleDetails: () => void;
   isPriceFlagged: boolean;
@@ -123,7 +123,6 @@ function SourceCard({
   hasPrices,
   legend,
   cardName,
-  updatedAt,
   showDetails,
   onToggleDetails,
   isPriceFlagged,
@@ -161,16 +160,6 @@ function SourceCard({
             {buyLink}
           </div>
         </header>
-
-        {isPriceFlagged && (
-          <div className="stored-prices__warning" role="status">
-            <TriangleAlert aria-hidden="true" />
-            <span>
-              Potentially unstable price. Check the extended price data to
-              verify.
-            </span>
-          </div>
-        )}
 
         {showDetails && (
           <div className="stored-prices__details">
@@ -223,6 +212,13 @@ function SourceCard({
         )}
       </article>
 
+      {isPriceFlagged && (
+        <div className="stored-prices__warning" role="status">
+          <TriangleAlert aria-hidden="true" />
+          <span>Unreliable price data detected - Use market analysis to verify prices.</span>
+        </div>
+      )}
+
       <div className="stored-prices__source-footer">
         <button
           className="stored-prices__details-toggle"
@@ -237,9 +233,6 @@ function SourceCard({
             <ChevronDown aria-hidden="true" />
           )}
         </button>
-        {updatedAt && (
-          <p className="app-view-datestamp">{formatDateStamp(updatedAt)}</p>
-        )}
       </div>
     </div>
   );
@@ -252,7 +245,19 @@ function fieldLeafName(label: string) {
     ?.replace(/^(?:Reverse Holo|Holo) /, "");
 }
 
-export function StoredPrices({ card }: { card: PokemonCard }) {
+export function StoredPrices({
+  card,
+  onGenerateReport,
+  reportLoading = false,
+  reportAvailable = false,
+  reportDisabled = false,
+}: {
+  card: PokemonCard;
+  onGenerateReport?: () => void;
+  reportLoading?: boolean;
+  reportAvailable?: boolean;
+  reportDisabled?: boolean;
+}) {
   const [showTcgplayerDetails, setShowTcgplayerDetails] = useState(false);
   const [showCardmarketDetails, setShowCardmarketDetails] = useState(false);
   const tcgHidden = new Set(["Direct Low"]);
@@ -280,7 +285,7 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
 
   const hasTcgplayerSource = Boolean(card.tcgplayer);
   const hasCardmarketSource = Boolean(card.cardmarket);
-  if (!hasTcgplayerSource && !hasCardmarketSource) return null;
+  const hasStoredPriceSource = hasTcgplayerSource || hasCardmarketSource;
 
   const tcgGroups = group(tcgFields);
   const cardmarketGroups = group(cardmarketFields, true);
@@ -291,12 +296,19 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
   );
   const tcgplayerUrl = getSafeSourceUrl(card.tcgplayer?.url);
   const cardmarketUrl = getSafeSourceUrl(card.cardmarket?.url);
+  const hideStoredPricePrompt = reportLoading || reportAvailable;
 
   return (
-    <div className="stored-prices">
+    <div
+      className={`stored-prices${
+        hideStoredPricePrompt ? " stored-prices--hide-prompt" : ""
+      }`}
+    >
+      {hasStoredPriceSource && (
       <div className="stored-prices__grid">
         {hasTcgplayerSource && (
-          <SourceCard
+          <div className="stored-prices__source-stack">
+            <SourceCard
             accent="tcgplayer"
             title="TCGPlayer"
             region="US Market"
@@ -309,7 +321,6 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             highlight={/market/i}
             hasPrices={tcgFields.length > 0}
             cardName={card.name}
-            updatedAt={card.tcgplayer?.updatedAt}
             showDetails={showTcgplayerDetails}
             onToggleDetails={() =>
               setShowTcgplayerDetails((current) => !current)
@@ -320,7 +331,8 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
                 // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
               ]
             }
-          />
+            />
+          </div>
         )}
         {hasCardmarketSource && (
           <SourceCard
@@ -338,7 +350,6 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
             highlight={/trend/i}
             hasPrices={cardmarketFields.length > 0}
             cardName={card.name}
-            updatedAt={card.cardmarket?.updatedAt}
             showDetails={showCardmarketDetails}
             onToggleDetails={() =>
               setShowCardmarketDetails((current) => !current)
@@ -354,6 +365,31 @@ export function StoredPrices({ card }: { card: PokemonCard }) {
           />
         )}
       </div>
+      )}
+      {!reportLoading && !reportAvailable && (
+        <>
+          <aside className="stored-prices__disclaimer">
+            <div>
+              <TriangleAlert aria-hidden="true" />
+              <p>
+                TCGPlayer and Cardmarket are not realiable. They are limited by
+                internal activity and don't seperate prices by condition or
+                listings/sales.
+              </p>
+            </div>
+          </aside>
+          <div className="stored-prices__report-action">
+            <Button
+              fill="solid"
+              style={getCustomColors("orange")}
+              onClick={onGenerateReport}
+              disabled={!onGenerateReport || reportDisabled}
+            >
+              Market Analysis Report
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

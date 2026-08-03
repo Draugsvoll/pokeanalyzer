@@ -1,6 +1,8 @@
 /* Typography: global tokens only. Layout + accents local. */
 
 .worth-grading-view {
+  --worth-grading-accent: var(--feature-accent, var(--font-color-error));
+
   box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
@@ -30,19 +32,33 @@
 /* ----- Text panels (verdict / summary): one left indent for all copy ----- */
 .worth-grading-view__panel {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.8rem;
   justify-items: start;
-  padding: 1.2rem 1.25rem;
+  padding: 1.35rem 1.45rem;
+  position: relative;
   text-align: left;
+
+  &::before {
+    background: var(--worth-grading-accent);
+    border-radius: var(--border-radius-pill);
+    content: "";
+    height: calc(100% - 2.7rem);
+    left: 0;
+    opacity: 0.9;
+    position: absolute;
+    top: 1.35rem;
+    width: 2px;
+  }
 
   h2 {
     border-bottom: 1px solid var(--border-divider);
+    color: var(--font-color-primary);
     font-size: var(--font-size-h3);
     font-weight: var(--font-weight-bold);
-    letter-spacing: var(--font-tracking-normal);
+    letter-spacing: var(--font-tracking-tight);
     line-height: var(--font-leading-snug);
     margin: 0;
-    padding-bottom: 1rem;
+    padding-bottom: 0.95rem;
     width: 100%;
   }
 
@@ -81,22 +97,21 @@
 /* ----- Market snapshot ----- */
 .worth-grading-view__market {
   display: grid;
-  overflow: hidden;
+  padding: 1.25rem 1.35rem 1.35rem;
 }
 
 .worth-grading-view__market-header {
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   gap: 0.75rem;
   justify-content: space-between;
-  padding: 1.25rem 1.15rem;
+  padding: 0 0 1rem;
 
   h3 {
     align-items: center;
-    color: var(--font-color-secondary);
+    color: var(--font-color-primary);
     display: inline-flex;
-    font-size: 1.05rem;
+    font-size: var(--font-size-h3);
     font-weight: var(--font-weight-bold);
     gap: 0.5rem;
     margin: 0;
@@ -116,26 +131,27 @@
 
 .worth-grading-view__market-body {
   display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .worth-grading-view__market-row {
   align-items: center;
-  display: flex;
+  background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
+  border: 1px solid var(--border-divider);
+  border-radius: calc(var(--border-radius) - 2px);
+  display: grid;
   gap: 1rem;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
-  padding: 1.1rem 1.15rem;
-
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--border-divider);
-  }
+  padding: 1rem;
 
   > div {
     align-items: center;
     color: var(--font-color-secondary);
     display: flex;
     font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-semibold);
     gap: 0.55rem;
     min-width: 0;
 
@@ -167,6 +183,10 @@
   }
 }
 
+.worth-grading-view__market-row--red {
+  grid-column: 1 / -1;
+}
+
 .worth-grading-view__market-row--default > span {
   color: var(--font-color-primary);
 }
@@ -196,6 +216,15 @@
 }
 
 @media (max-width: 36rem) {
+  .worth-grading-view__panel,
+  .worth-grading-view__market {
+    padding-inline: 1.1rem;
+  }
+
+  .worth-grading-view__market-body {
+    grid-template-columns: 1fr;
+  }
+
   .worth-grading-view__market-row {
     align-items: flex-start;
   }

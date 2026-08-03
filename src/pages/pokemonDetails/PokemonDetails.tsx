@@ -8,8 +8,8 @@ import {
   Gem,
   LineChart,
   Palette,
+  Repeat2,
   Search,
-  ShoppingCart,
   Star,
   type LucideIcon,
   Wallet,
@@ -58,13 +58,11 @@ import {
   useAbortableRequest,
 } from "../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
-import { CardFeatureHeader } from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
-import { getDefaultCardPriceOptionForSource } from "../../utils/pokemonPricing";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -80,11 +78,9 @@ type CardInfoField = {
   highlight?: boolean;
 };
 
-type MarketCard = {
+type DossierFact = {
   label: string;
-  tone: "tcgplayer" | "cardmarket";
-  url?: string;
-  value: string | undefined;
+  value: string | number | undefined;
 };
 
 type ActiveView =
@@ -125,7 +121,7 @@ const AI_Features: AI_feature[] = [
   },
   {
     view: "collector_analysis",
-    title: "Collector value",
+    title: "Collectors value",
     description: "AI score for long-term collectibility",
     icon: Gem,
     color: "blue",
@@ -134,7 +130,7 @@ const AI_Features: AI_feature[] = [
   },
   {
     view: "ebay_sold",
-    title: "eBay sold",
+    title: "eBay sales",
     description: "Recent comps from real sales",
     icon: BadgeDollarSign,
     color: "teal",
@@ -143,7 +139,7 @@ const AI_Features: AI_feature[] = [
   },
   {
     view: "worth_grading",
-    title: "Worth grading?",
+    title: "Grading",
     description: "PSA economics for this card",
     icon: BadgeDollarSign,
     color: "pink",
@@ -152,7 +148,7 @@ const AI_Features: AI_feature[] = [
   },
   {
     view: "sell_price",
-    title: "Sell guidance",
+    title: "Sell guide",
     description: "Where and what to list for",
     icon: BadgeDollarSign,
     color: "yellow",
@@ -184,33 +180,6 @@ function formatReleaseDate(value: string | undefined) {
   return releaseDateFormatter.format(date);
 }
 
-function formatCompactPrice(
-  value: number | undefined,
-  currency: "USD" | "EUR",
-) {
-  if (value === undefined) return undefined;
-
-  return new Intl.NumberFormat("en-US", {
-    currency,
-    currencyDisplay: "narrowSymbol",
-    maximumFractionDigits: 2,
-    style: "currency",
-  }).format(value);
-}
-
-function getSafeSourceUrl(value: string | undefined) {
-  if (!value) return undefined;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.toString()
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 function getDisplaySubtype(card: PokemonCard) {
   return card.subtypes?.find((subtype) =>
     /^(basic|stage\s*\d+|v|vmax|vstar|ex|gx)$/i.test(subtype),
@@ -228,27 +197,50 @@ function getCardSetInfoFields(card: PokemonCard): CardInfoField[] {
   ];
 }
 
-function getMarketCards(card: PokemonCard): MarketCard[] {
-  const tcgPrice = getDefaultCardPriceOptionForSource(card, "tcgplayer");
-  const cardmarketPrice = getDefaultCardPriceOptionForSource(
-    card,
-    "cardmarket",
-  );
+function compactList(values: Array<string | number> | undefined) {
+  const cleanValues = values
+    ?.map((value) => String(value).trim())
+    .filter(Boolean);
+  return cleanValues?.length ? cleanValues.join(", ") : undefined;
+}
+
+function formatEffects(
+  effects: Array<{ type: string; value: string }> | undefined,
+) {
+  return effects
+    ?.map((effect) => [effect.type, effect.value].filter(Boolean).join(" "))
+    .filter(Boolean)
+    .join(", ");
+}
+
+function getDossierFacts(card: PokemonCard): DossierFact[] {
+  const weakness = formatEffects(card.weaknesses);
+  const resistance = formatEffects(card.resistances);
 
   return [
+    { label: "Type", value: compactList(card.types) },
+    { label: "HP", value: card.hp },
+    { label: "Evolves from", value: card.evolvesFrom },
     {
-      label: "TCGPlayer",
-      tone: "tcgplayer",
-      url: getSafeSourceUrl(card.tcgplayer?.url),
-      value: formatCompactPrice(tcgPrice?.price, "USD"),
+      label: "Pokédex",
+      value: card.nationalPokedexNumbers?.length
+        ? `#${card.nationalPokedexNumbers.join(", #")}`
+        : undefined,
     },
     {
-      label: "Cardmarket",
-      tone: "cardmarket",
-      url: getSafeSourceUrl(card.cardmarket?.url),
-      value: formatCompactPrice(cardmarketPrice?.price, "EUR"),
+      label: "Retreat",
+      value:
+        card.convertedRetreatCost !== undefined
+          ? `${card.convertedRetreatCost} Energy`
+          : compactList(card.retreatCost),
     },
-  ];
+    {
+      label: "Legality",
+      value: card.legalities?.unlimited ?? card.set?.legalities?.unlimited,
+    },
+    { label: "Weakness", value: weakness },
+    { label: "Resistance", value: resistance },
+  ].filter((fact) => fact.value !== undefined && fact.value !== "");
 }
 
 function getJustTcgCardNumber(result: unknown): string | undefined {
@@ -274,7 +266,6 @@ function PokemonDetailsForCard() {
   const cardViewRef = useRef<HTMLDivElement>(null);
   const featureButtonsRef = useRef<HTMLDivElement>(null);
   const changeCardButtonRef = useRef<HTMLButtonElement>(null);
-  const portfolioConfirmationTimerRef = useRef<number | undefined>(undefined);
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] =
@@ -300,7 +291,8 @@ function PokemonDetailsForCard() {
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
     cachedCard?.images?.large ?? cachedCard?.images?.small,
   );
-  const [activeView, setActiveView] = useState<ActiveView>("empty_view");
+  const [cardImageFailed, setCardImageFailed] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [showCardSearch, setShowCardSearch] = useState(false);
   const [grokResponse, setGrokResponse] = useState("");
   const [grokError, setGrokError] = useState("");
@@ -310,7 +302,6 @@ function PokemonDetailsForCard() {
   const [marketSalesLoading, setMarketSalesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
-  const [portfolioConfirmation, setPortfolioConfirmation] = useState("");
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
@@ -332,6 +323,10 @@ function PokemonDetailsForCard() {
     routeCardIdRef.current = id;
   }, [id]);
 
+  useEffect(() => {
+    setCardImageFailed(false);
+  }, [cardImageSrc]);
+
   function scrollToFeatureButtons() {
     requestAnimationFrame(() => {
       const changeCardButton = changeCardButtonRef.current;
@@ -342,14 +337,6 @@ function PokemonDetailsForCard() {
         behavior: "smooth",
       });
     });
-  }
-
-  function showPortfolioConfirmation(message: string) {
-    window.clearTimeout(portfolioConfirmationTimerRef.current);
-    setPortfolioConfirmation(message);
-    portfolioConfirmationTimerRef.current = window.setTimeout(() => {
-      setPortfolioConfirmation("");
-    }, 1000);
   }
 
   async function handlePortfolioToggle() {
@@ -363,7 +350,7 @@ function PokemonDetailsForCard() {
     }
 
     if (!authUser) {
-      showPortfolioConfirmation("Du må være logget inn for å lagre kort.");
+      setShowLoginModal(true);
       return;
     }
 
@@ -375,10 +362,6 @@ function PokemonDetailsForCard() {
         : await savePokemonToPortfolio(card);
 
       if (!success) return;
-
-      showPortfolioConfirmation(
-        cardWasSaved ? "Removed from portfolio" : "Added to portfolio",
-      );
     } finally {
       setUpdatingPortfolio(false);
     }
@@ -478,13 +461,27 @@ function PokemonDetailsForCard() {
   }
 
   async function handleFeatureClick(aiFeature: AI_feature) {
+    abortActiveRequest();
+    setActiveView(aiFeature.view);
+    scrollToFeatureButtons();
+
+    if (aiFeature.view === "prices") {
+      setGrokResponse("");
+      setGrokError("");
+      setGrokLoading(false);
+      setJustTcgResult(null);
+      setJustTcgError("");
+      setJustTcgLoading(false);
+      setMarketSalesResponse("");
+      setMarketSalesError("");
+      setMarketSalesLoading(false);
+      return;
+    }
+
     if (!card || featureCooldown || !subscription || creditsRemaining < 1)
       return;
 
     setFeatureCooldown(true);
-    abortActiveRequest();
-    setActiveView(aiFeature.view);
-    scrollToFeatureButtons();
 
     // ebay handles in its own component
     if (aiFeature.view === "ebay_sold") {
@@ -493,7 +490,6 @@ function PokemonDetailsForCard() {
 
     //safety guard, must qualify the features
     if (
-      aiFeature.view !== "prices" &&
       aiFeature.view !== "collector_analysis" &&
       aiFeature.view !== "sell_price" &&
       aiFeature.view !== "worth_grading"
@@ -504,11 +500,6 @@ function PokemonDetailsForCard() {
     const cardNameAndSet = [card?.name, card?.set?.name]
       .filter(Boolean)
       .join(" ");
-    if (aiFeature.view === "prices") {
-      await handlePriceAnalysis(startRequest());
-      return;
-    }
-
     let prompt = "";
 
     if (aiFeature.view === "collector_analysis") {
@@ -565,12 +556,16 @@ function PokemonDetailsForCard() {
     }
   }
 
-  useEffect(
-    () => () => {
-      window.clearTimeout(portfolioConfirmationTimerRef.current);
-    },
-    [],
-  );
+  async function handleGenerateMarketAnalysis() {
+    if (!card || featureCooldown || !subscription || creditsRemaining < 1)
+      return;
+
+    setFeatureCooldown(true);
+    abortActiveRequest();
+    setActiveView("prices");
+    scrollToFeatureButtons();
+    await handlePriceAnalysis(startRequest());
+  }
 
   useEffect(() => {
     const requestSequence = ++cardRequestSequenceRef.current;
@@ -714,8 +709,38 @@ function PokemonDetailsForCard() {
     displayedCardNumber,
   );
   const infoFields = getCardSetInfoFields(card);
-  const marketCards = getMarketCards(card);
+  const dossierFacts = getDossierFacts(card);
   const displaySubtype = getDisplaySubtype(card);
+  const getFactValue = (label: string) =>
+    dossierFacts.find((fact) => fact.label === label)?.value;
+  const detailSections = [
+    {
+      title: "Gameplay",
+      items: [
+        { label: "Type", value: getFactValue("Type") },
+        { label: "HP", value: getFactValue("HP") },
+        { label: "Weakness", value: getFactValue("Weakness") },
+        { label: "Resistance", value: getFactValue("Resistance") },
+      ],
+    },
+    {
+      title: "Details",
+      items: [
+        { label: "Stage", value: displaySubtype },
+        { label: "Pokédex", value: getFactValue("Pokédex") },
+        { label: "Evolves from", value: getFactValue("Evolves from") },
+        { label: "Retreat", value: getFactValue("Retreat") },
+        { label: "Legality", value: getFactValue("Legality") },
+      ],
+    },
+  ]
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => item.value !== undefined && item.value !== "",
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -724,7 +749,6 @@ function PokemonDetailsForCard() {
   const activeFeature = AI_Features.find(
     (feature) => feature.view === activeView,
   );
-
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
     error: grokError,
@@ -738,189 +762,217 @@ function PokemonDetailsForCard() {
         <div className="card-view__shell">
           <div className="card-view__details">
             <div className="card-view__image-side">
-              <img
-                key={card.id}
-                className="card-view__image ui-render-fade"
-                src={cardImageSrc}
-                alt={card.name}
-              />
+              {cardImageSrc && !cardImageFailed ? (
+                <img
+                  key={card.id}
+                  className="card-view__image ui-render-fade"
+                  src={cardImageSrc}
+                  alt={card.name}
+                  onError={() => setCardImageFailed(true)}
+                />
+              ) : (
+                <div className="card-view__image-placeholder" role="img">
+                  <Search aria-hidden="true" />
+                  <span>Card image unavailable</span>
+                </div>
+              )}
             </div>
 
             <div className="card-view__info-side">
-              <div className="card-view__title-row">
-                <div
-                  className="card-view__title-copy"
-                  data-card-number={formattedDisplayedCardNumber}
-                >
-                  {formattedDisplayedCardNumber && (
-                    <span className="card-view__title-number-accessible">
-                      Card number {formattedDisplayedCardNumber}
-                    </span>
-                  )}
-                  <h2 className="card-view__title">{card.name}</h2>
-                  {card.set?.name && (
-                    <p className="card-view__title-set">
-                      {card.set.images?.symbol && (
-                        <img
-                          src={card.set.images.symbol}
-                          alt={`${card.set.name} symbol`}
-                        />
+              <div className="card-view__identity">
+                <div className="card-view__identity-top">
+                  <div className="card-view__title-row">
+                    <div
+                      className="card-view__title-copy"
+                      data-card-number={formattedDisplayedCardNumber}
+                    >
+                      {formattedDisplayedCardNumber && (
+                        <span className="card-view__title-number-accessible">
+                          Card number {formattedDisplayedCardNumber}
+                        </span>
                       )}
-                      <span>{card.set.name}</span>
-                      {card.set?.series && (
+                      <h2 className="card-view__title">{card.name}</h2>
+                      {card.set?.name && (
+                        <p className="card-view__title-set">
+                          {card.set.images?.symbol && (
+                            <img
+                              src={card.set.images.symbol}
+                              alt={`${card.set.name} symbol`}
+                            />
+                          )}
+                          <span>{card.set.name}</span>
+                          {card.set?.series && (
+                            <>
+                              <i aria-hidden="true">•</i>
+                              <span>{card.set.series}</span>
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {(card.rarity || displaySubtype) && (
+                        <div className="card-view__title-badges">
+                          {card.rarity && (
+                            <span className="card-view__title-badge--rarity">
+                              {card.rarity}
+                            </span>
+                          )}
+                          {displaySubtype && <span>{displaySubtype}</span>}
+                        </div>
+                      )}
+                    </div>
+                    <div className="card-view__portfolio-control">
+                      <Button
+                        variant="portfolio"
+                        disabled={portfolioBusy || portfolioUnavailable}
+                        onClick={handlePortfolioToggle}
+                        aria-label={
+                          portfolioUnavailable
+                            ? "Portfolio is unavailable"
+                            : updatingPortfolio
+                              ? "Updating portfolio"
+                              : authUser && loadingPortfolioReferences
+                                ? "Checking portfolio"
+                                : cardIsSaved
+                                  ? "Remove from portfolio"
+                                  : "Add to portfolio"
+                        }
+                        aria-pressed={cardIsSaved}
+                        aria-busy={portfolioBusy}
+                        title={
+                          portfolioUnavailable
+                            ? "Portfolio is unavailable"
+                            : updatingPortfolio
+                              ? "Updating portfolio"
+                              : authUser && loadingPortfolioReferences
+                                ? "Checking portfolio"
+                                : cardIsSaved
+                                  ? "Remove from portfolio"
+                                  : "Add to portfolio"
+                        }
+                      >
+                        {portfolioBusy ? (
+                          <span
+                            className="app-btn__spinner"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <>
+                            <Star aria-hidden="true" />
+                            <span>
+                              {portfolioUnavailable
+                                ? "Unavailable"
+                                : cardIsSaved
+                                  ? "In portfolio"
+                                  : "Add to portfolio"}
+                            </span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <section
+                  className="card-view__info-section"
+                  aria-label="Card credits"
+                >
+                  <div className="card-view__info-grid">
+                    {infoFields.map((field) => {
+                      const FieldIcon = field.icon;
+
+                      return (
+                        <div key={field.label} className="card-view__info-item">
+                          <FieldIcon
+                            aria-hidden="true"
+                            className="card-view__info-icon"
+                          />
+                          <div className="card-view__info-copy">
+                            <span className="card-view__label">
+                              {field.label}
+                            </span>
+                            <span
+                              className={`card-view__value${
+                                field.highlight
+                                  ? " card-view__value--highlight"
+                                  : ""
+                              }`}
+                            >
+                              {field.value ?? "N/A"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+                {card.flavorText && (
+                  <section
+                    className="card-view__info-section card-view__info-section--flavor"
+                    aria-label="Flavor text"
+                  >
+                    <p className="card-view__flavor-text">
+                      {card.flavorText}
+                    </p>
+                  </section>
+                )}
+
+                <div className="card-view__info-actions">
+                  <div className="card-view__change-card">
+                    <Button
+                      ref={changeCardButtonRef}
+                      fill="ghost"
+                      fullWidth
+                      style={getCustomColors("blue")}
+                      onClick={() => setShowCardSearch((open) => !open)}
+                      aria-expanded={showCardSearch}
+                    >
+                      {showCardSearch ? (
                         <>
-                          <i aria-hidden="true">•</i>
-                          <span>{card.set.series}</span>
+                          <ArrowUp
+                            size={16}
+                            strokeWidth={2.25}
+                            aria-hidden="true"
+                          />
+                          <span>Close</span>
+                        </>
+                      ) : (
+                        <>
+                          <Repeat2
+                            size={16}
+                            strokeWidth={2.25}
+                            aria-hidden="true"
+                          />
+                          <span>Switch card</span>
                         </>
                       )}
-                    </p>
-                  )}
-                  {(card.rarity || displaySubtype) && (
-                    <div className="card-view__title-badges">
-                      {card.rarity && (
-                        <span className="card-view__title-badge--rarity">
-                          {card.rarity}
-                        </span>
-                      )}
-                      {displaySubtype && <span>{displaySubtype}</span>}
-                    </div>
-                  )}
-                </div>
-                <div className="card-view__portfolio-control">
-                  <Button
-                    variant="portfolio"
-                    disabled={portfolioBusy || portfolioUnavailable}
-                    onClick={handlePortfolioToggle}
-                    aria-label={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : authUser && loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                    aria-pressed={cardIsSaved}
-                    aria-busy={portfolioBusy}
-                    title={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : authUser && loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                  >
-                    {portfolioBusy ? (
-                      <span className="app-btn__spinner" aria-hidden="true" />
-                    ) : (
-                      <>
-                        <Star aria-hidden="true" />
-                        <span>
-                          {portfolioUnavailable
-                            ? "Portfolio unavailable"
-                            : "Portfolio"}
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                  {portfolioConfirmation && (
-                    <span
-                      className="card-view__portfolio-confirmation"
-                      role="status"
-                    >
-                      {portfolioConfirmation}
-                    </span>
-                  )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <div className="card-view__market-cards">
-                {marketCards.map((market) => {
-                  const MarketCardElement = market.url ? "a" : "article";
 
-                  return (
-                    <MarketCardElement
-                      aria-label={
-                        market.url
-                          ? `Buy ${market.label} listing`
-                          : `${market.label} market price`
-                      }
-                      className={`card-view__market-card card-view__market-card--${market.tone}`}
-                      href={market.url}
-                      key={market.label}
-                      rel={market.url ? "noreferrer" : undefined}
-                      target={market.url ? "_blank" : undefined}
-                    >
-                      <div className="card-view__market-card-top">
-                        <span>{market.label}</span>
-                        {market.url && (
-                          <span className="card-view__market-card-buy">
-                            Buy <ShoppingCart aria-hidden="true" />
-                          </span>
-                        )}
-                      </div>
-                      <strong>{market.value ?? "N/A"}</strong>
-                    </MarketCardElement>
-                  );
-                })}
-              </div>
-
-              <div className="card-view__info-grid">
-                {infoFields.map((field) => {
-                  const FieldIcon = field.icon;
-
-                  return (
-                    <div key={field.label} className="card-view__info-item">
-                      <FieldIcon
-                        aria-hidden="true"
-                        className="card-view__info-icon"
-                      />
-                      <div className="card-view__info-copy">
-                        <span className="card-view__label">{field.label}</span>
-                        <span
-                          className={`card-view__value${
-                            field.highlight
-                              ? " card-view__value--highlight"
-                              : ""
-                          }`}
-                        >
-                          {field.value ?? "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="card-view__info-actions">
-                <Button
-                  ref={changeCardButtonRef}
-                  fill="ghost"
-                  style={getCustomColors("blue")}
-                  onClick={() => setShowCardSearch((open) => !open)}
-                  aria-expanded={showCardSearch}
+              {detailSections.length > 0 && (
+                <aside
+                  className="card-view__detail-panel"
+                  aria-label="Card details"
                 >
-                  {showCardSearch ? (
-                    <>
-                      <ArrowUp
-                        size={16}
-                        strokeWidth={2.25}
-                        aria-hidden="true"
-                      />
-                      <span>Close</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Switch Card</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+                  {detailSections.map((section) => (
+                    <section
+                      className="card-view__detail-section"
+                      key={section.title}
+                    >
+                      <h3>{section.title}</h3>
+                      <dl>
+                        {section.items.map((item) => (
+                          <div key={item.label}>
+                            <dt>{item.label}</dt>
+                            <dd>{item.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                  ))}
+                </aside>
+              )}
             </div>
           </div>
 
@@ -948,8 +1000,14 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      <div className="card-view__analysis-panel">
-        <div className="card-view__credit-note">
+      <div className="card-view__credit-bar">
+        <div
+          className={`card-view__credit-note${
+            !subscription && !loadingSubscription
+              ? " card-view__credit-note--auth"
+              : ""
+          }`}
+        >
           <span className="card-view__credit-cost">
             <Coins aria-hidden="true" />
             <strong>1 Credit</strong>
@@ -987,7 +1045,9 @@ function PokemonDetailsForCard() {
             <small className="card-view__credit-message">{creditMessage}</small>
           )}
         </div>
+      </div>
 
+      <section className="card-view__analysis-panel">
         <div
           ref={featureButtonsRef}
           className="card-view__actions feature-buttons__row"
@@ -1011,13 +1071,15 @@ function PokemonDetailsForCard() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleFeatureClick(aiFeature)}
                 disabled={
-                  loadingSubscription ||
-                  updatingCredits ||
-                  grokLoading ||
-                  justTcgLoading ||
-                  ebayLoading ||
-                  featureCooldown ||
-                  creditsRemaining < 1
+                  aiFeature.view === "prices"
+                    ? loadingSubscription || updatingCredits
+                    : loadingSubscription ||
+                      updatingCredits ||
+                      grokLoading ||
+                      justTcgLoading ||
+                      ebayLoading ||
+                      featureCooldown ||
+                      creditsRemaining < 1
                 }
                 aria-pressed={activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}
@@ -1042,66 +1104,75 @@ function PokemonDetailsForCard() {
           })}
           {/* <PriceHistory cardId={card.id} /> */}
         </div>
-      </div>
 
-      <section
-        className={`card-view__page${
-          activeView === "prices" ? " card-view__page--prices" : ""
-        }${activeView === "ebay_sold" ? " card-view__page--ebay" : ""}`}
-        aria-live="polite"
-      >
-        {activeFeature && activeView !== "empty_view" && (
-          <div
-            key={activeView}
-            className="card-view__active-feature ui-render-fade"
-            style={getCustomColors(activeFeature.color)}
-          >
-            <CardFeatureHeader
-              color={activeFeature.color}
-              featureName={activeFeature.title}
-              analysisTitle={activeFeature.analysisTitle}
-            />
-
-            <div className="card-view__active-body">
-              {activeView === "ebay_sold" && (
-                <EbaySoldView
-                  card={card}
-                  onSubscriptionChange={updateSubscription}
-                  onLoadingChange={setEbayLoading}
-                />
-              )}
-              {activeView === "prices" && (
-                <PriceAnalysis
-                  card={card}
-                  grokRequest={grokRequest}
-                  salesDataRequest={{
-                    loading: marketSalesLoading,
-                    error: marketSalesError,
-                    response: marketSalesResponse,
-                  }}
-                  justTcgRequest={{
-                    loading: justTcgLoading,
-                    error: justTcgError,
-                    response: justTcgResult,
-                  }}
-                />
-              )}
-              {activeView === "worth_grading" && (
-                <WorthGradingView grokRequest={grokRequest} />
-              )}
-              {activeView === "sell_price" && (
-                <SellPriceView grokRequest={grokRequest} />
-              )}
-              {activeView === "collector_analysis" && (
-                <CollectorAnalysis grokRequest={grokRequest} />
-              )}
+        <div
+          className={`card-view__page${
+            activeView === "prices" ? " card-view__page--prices" : ""
+          }${activeView === "ebay_sold" ? " card-view__page--ebay" : ""}`}
+          aria-live="polite"
+        >
+          {activeFeature && activeView !== "empty_view" && (
+            <div
+              key={activeView}
+              className="card-view__active-feature ui-render-fade"
+              style={getCustomColors(activeFeature.color)}
+            >
+              <div className="card-view__active-body">
+                {activeView === "ebay_sold" && (
+                  <EbaySoldView
+                    card={card}
+                    onSubscriptionChange={updateSubscription}
+                    onLoadingChange={setEbayLoading}
+                  />
+                )}
+                {activeView === "prices" && (
+                  <PriceAnalysis
+                    card={card}
+                    grokRequest={grokRequest}
+                    onGenerateReport={() => void handleGenerateMarketAnalysis()}
+                    reportLoading={
+                      grokLoading || justTcgLoading || marketSalesLoading
+                    }
+                    reportAvailable={Boolean(
+                      grokResponse || justTcgResult || marketSalesResponse,
+                    )}
+                    reportDisabled={
+                      featureCooldown ||
+                      !subscription ||
+                      creditsRemaining < 1 ||
+                      grokLoading ||
+                      justTcgLoading ||
+                      marketSalesLoading
+                    }
+                    salesDataRequest={{
+                      loading: marketSalesLoading,
+                      error: marketSalesError,
+                      response: marketSalesResponse,
+                    }}
+                    justTcgRequest={{
+                      loading: justTcgLoading,
+                      error: justTcgError,
+                      response: justTcgResult,
+                    }}
+                  />
+                )}
+                {activeView === "worth_grading" && (
+                  <WorthGradingView grokRequest={grokRequest} />
+                )}
+                {activeView === "sell_price" && (
+                  <SellPriceView grokRequest={grokRequest} />
+                )}
+                {activeView === "collector_analysis" && (
+                  <CollectorAnalysis grokRequest={grokRequest} />
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeView === "empty_view" && (
-          <div className="card-view__empty-view" aria-hidden="true"></div>
-        )}
+          {activeView === "empty_view" && (
+            <div className="card-view__empty-view" aria-hidden="true"></div>
+          )}
+        </div>
       </section>
     </div>
   );

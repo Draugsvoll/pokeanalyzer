@@ -1,4 +1,11 @@
-import { Clock3, Gem, Landmark, Palette, Users, type LucideIcon } from "lucide-react";
+import {
+  Clock3,
+  Gem,
+  Landmark,
+  Palette,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import type { CSSProperties } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -14,6 +21,7 @@ type CollectorCategory = {
 
 type CollectorAnalysisData = {
   totalScore: string;
+  verdict: string;
   overview: string;
   categories: CollectorCategory[];
   finalNote: string;
@@ -25,7 +33,9 @@ type CollectorAnalysisProps = {
 
 const categoryIcons: LucideIcon[] = [Gem, Users, Landmark, Palette, Clock3];
 
-function parseCollectorAnalysis(response: string): CollectorAnalysisData | null {
+function parseCollectorAnalysis(
+  response: string,
+): CollectorAnalysisData | null {
   const value = parseJsonText(response);
 
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -34,8 +44,11 @@ function parseCollectorAnalysis(response: string): CollectorAnalysisData | null 
   if (!Array.isArray(data.categories)) return null;
 
   const categories = data.categories
-    .filter((category): category is Record<string, unknown> =>
-      Boolean(category) && typeof category === "object" && !Array.isArray(category)
+    .filter(
+      (category): category is Record<string, unknown> =>
+        Boolean(category) &&
+        typeof category === "object" &&
+        !Array.isArray(category),
     )
     .map((category) => ({
       name: String(category.name ?? "Category"),
@@ -45,6 +58,7 @@ function parseCollectorAnalysis(response: string): CollectorAnalysisData | null 
 
   return {
     totalScore: String(data.totalScore ?? "0"),
+    verdict: String(data.verdict ?? ""),
     overview: String(data.overview ?? ""),
     categories,
     finalNote: String(data.finalNote ?? ""),
@@ -57,7 +71,8 @@ export default function CollectorAnalysis({
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Building collector report...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (error)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const analysis = parseCollectorAnalysis(response);
@@ -65,7 +80,10 @@ export default function CollectorAnalysis({
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
-  const totalScore = Math.min(100, Math.max(0, Number(analysis.totalScore) || 0));
+  const totalScore = Math.min(
+    100,
+    Math.max(0, Number(analysis.totalScore) || 0),
+  );
 
   return (
     <div className="collector-ranking ui-render-fade">
@@ -83,6 +101,11 @@ export default function CollectorAnalysis({
         </div>
         <div className="collector-ranking__overview">
           <span>Overall score</span>
+          {analysis.verdict && (
+            <strong className="collector-ranking__verdict">
+              {analysis.verdict}
+            </strong>
+          )}
           <h4>{analysis.overview}</h4>
         </div>
       </div>
@@ -93,9 +116,15 @@ export default function CollectorAnalysis({
           const score = Math.min(100, Math.max(0, Number(category.score) || 0));
 
           return (
-            <article key={`${category.name}-${index}`} className="collector-ranking__category">
+            <article
+              key={`${category.name}-${index}`}
+              className="collector-ranking__category"
+            >
               <div className="collector-ranking__category-title">
-                <h4><Icon size={19} aria-hidden="true" />{category.name}</h4>
+                <h4>
+                  <Icon size={19} aria-hidden="true" />
+                  {category.name}
+                </h4>
                 <strong>{score}</strong>
               </div>
               <div

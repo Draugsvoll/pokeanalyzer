@@ -1,5 +1,6 @@
 export function waitForStoredResponse(signal: AbortSignal) {
-  const delayMs = 1000 + Math.random() * 3000;
+  // delay here
+  const delayMs = 1000 + Math.random() * 3;
 
   return new Promise<void>((resolve, reject) => {
     const handleAbort = () => {

@@ -2,7 +2,6 @@ import {
   BadgeDollarSign,
   ChartNoAxesCombined,
   CircleDollarSign,
-  Gavel,
   ReceiptText,
 } from "lucide-react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -56,6 +55,10 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
   return (
     <section className="worth-grading-view ui-render-fade">
+      <article className="worth-grading-view__card worth-grading-view__panel">
+        <h2>{data.verdict ?? "Grading verdict unavailable"}</h2>
+        {data.summary && <p>{data.summary}</p>}
+      </article>
 
       <div className="worth-grading-view__card worth-grading-view__market">
         <header className="worth-grading-view__market-header">
@@ -80,14 +83,6 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
           ))}
         </div>
       </div>
-
-      <article className="worth-grading-view__card worth-grading-view__panel">
-        <span className="worth-grading-view__eyebrow">
-          <Gavel aria-hidden="true" /> Verdict
-        </span>
-        <h2>{data.verdict ?? "Grading verdict unavailable"}</h2>
-        {data.summary && <p>{data.summary}</p>}
-      </article>
 
       {/* <article className="worth-grading-view__card worth-grading-view__panel">
         <span className="worth-grading-view__eyebrow worth-grading-view__eyebrow--action">

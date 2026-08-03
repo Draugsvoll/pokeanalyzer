@@ -159,7 +159,7 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
       <JustTcgPriceHistory groups={groups} />
       {latestUpdatedAt && (
         <p className="app-view-datestamp">
-          Last updated: {formatDateStamp(latestUpdatedAt)}
+          Updated: {formatDateStamp(latestUpdatedAt)}
         </p>
       )}
     </div>

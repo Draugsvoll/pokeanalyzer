@@ -69,7 +69,7 @@ function parseSalesData(response: string): SalesData | null {
     marketPrices,
     notes,
     recentSold,
-    subtitle: "PriceCharting Data",
+    subtitle: "PriceCharting",
   };
 
   const hasDisplayableContent =

@@ -1,36 +1,38 @@
 .loading-state {
   align-items: center;
   color: var(--font-color-muted);
-  display: inline-flex;
-  gap: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
   justify-content: center;
-  line-height: 1;
   margin-inline: auto;
-  /* Sit closer under feature headers */
-  padding: 0.35rem 0.5rem 0.85rem;
+  min-height: 8rem;
+  padding: 1.5rem;
   text-align: center;
   width: 100%;
 }
 
 .loading-state__spinner {
   animation: loading-state-spin 0.75s linear infinite;
-  border: 2px solid color-mix(in srgb, var(--custom-color-blue) 22%, transparent);
+  border: 3px solid
+    color-mix(in srgb, var(--feature-accent, var(--custom-color-blue)) 24%, transparent);
   border-radius: var(--border-radius-round);
-  border-top-color: var(--custom-color-blue);
+  border-top-color: var(--feature-accent, var(--custom-color-blue));
   box-sizing: border-box;
   display: block;
   flex: 0 0 auto;
-  height: 0.9rem;
-  width: 0.9rem;
+  height: 2rem;
+  width: 2rem;
 }
 
 .loading-state__text {
   color: inherit;
   display: block;
+  color: var(--font-color-secondary);
   font-size: var(--font-size-paragraph);
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: var(--font-tracking-normal);
-  line-height: 1;
+  line-height: var(--font-leading-snug);
   margin: 0;
 }
 

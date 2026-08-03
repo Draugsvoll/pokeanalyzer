@@ -65,7 +65,7 @@ export function JustTcgHistoryIntro() {
     <div className="just-tcg-history__intro">
       <h3>Price history</h3>
       <p>
-        Sales data aggregated by <strong>JustTCG</strong>.
+        Sales aggregated by <strong>JustTCG</strong>.
       </p>
     </div>
   );

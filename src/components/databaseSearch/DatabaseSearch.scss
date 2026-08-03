@@ -89,6 +89,7 @@
     padding: 0;
     text-align: left;
 
+
     .explore-search-shell,
     .database-search-container {
       background: var(--surface2);
@@ -98,7 +99,8 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
       margin: 0;
       max-width: none;
-      width: 100%;
+      width: min(49rem, 100%);
+      margin-left: 1rem;
 
       &:focus-within {
         border-color: var(--search-border-focus);

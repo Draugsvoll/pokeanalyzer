@@ -14,6 +14,7 @@
   border: var(--border);
   border-radius: var(--border-radius);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  overflow: hidden;
 }
 
 .sell-price-view__steps {
@@ -25,8 +26,6 @@
 }
 
 .sell-price-view__step--pricing {
-  overflow: hidden;
-
   > header {
     border-bottom: 1px solid var(--border-divider);
     padding: 1.4rem 1.65rem;
@@ -80,8 +79,6 @@
 }
 
 .sell-price-view__step--guidance {
-  overflow: hidden;
-
   > header {
     align-items: center;
     border-bottom: 1px solid var(--border-divider);
