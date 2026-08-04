@@ -88,13 +88,16 @@ export async function saveCardGrokResponse(
   storageKey: string,
   response: unknown,
 ) {
-  const parsedResponse = typeof response === "string"
-    ? parseJsonObject(response)
-    : isJsonObject(response)
-      ? response
-      : Array.isArray(response)
-        ? { results: response }
-        : null;
+  const parsedResponse =
+    storageKey === "worth_grading" && typeof response === "string"
+      ? { html: response }
+      : typeof response === "string"
+        ? parseJsonObject(response)
+        : isJsonObject(response)
+          ? response
+          : Array.isArray(response)
+            ? { results: response }
+            : null;
   if (!parsedResponse) return null;
 
   const storedResponse = {

@@ -421,28 +421,278 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-You are a PSA grader for pokemon cards.
-You need to analyze if it makes financial sense to get a card PSA graded.
-Assume the card is in the area of average to good condition, and then see if the numbers
-involved makes it profitable.
+Do a grading analysis of my pokemon card
+
+Requirements:
+Research only English versions of the card.
+Include every variant you can find reliable market data for (always check PriceCharting as its reliable).
+
+For each variant include:
+Raw / Ungraded
+PSA 7
+PSA 8
+PSA 9
+PSA 10
+Find the current estimated market value for each grade.
+
+Determine the correct PSA grading service based on the estimated value for each PSA grade.
+Select the lowest PSA service whose maximum declared value covers the estimated market value.
+Use that service's grading fee when calculating the Profit after grading. Find out all the
+PSA grading fees for every service (- Regular
+- Express
+- Super Express
+- Walk-Through
+- Premium 1
+- Premium 2
+- Premium 3
+- Premium 5
+- Premium 10).
+
+Populate all of the following services:
+- Regular
+- Express
+- Super Express
+- Walk-Through
+- Premium 1
+- Premium 2
+- Premium 3
+- Premium 5
+- Premium 10
+
+For each service include:
+- Price
+- Maximum Declared Value
+- Estimated Turnaround
+These values are required for the "Current PSA Grading Fees" section.
+If a service is not visible on the main PSA pricing page, perform an additional search for that specific service before leaving it blank.
+
+Calculate:
+Profit after grading = Estimated graded value − Raw value − Grading fee
+
+The Conclusion at the top should recommend the minimum PSA grade where grading is likely worth it, taking grading fees and normal selling costs into account.
+If information cannot be found, simply leave that field empty.
+Don't invent prices or variants.
+Output
+
+In the optional notes field, dont add source or variant name.
+Only valuable extra information that is specific to this instance. For example if the sales volume of the card is very low.
+
+Return only valid HTML.
+
+Do not include:
+
+Markdown
+CSS
+Explanations outside the HTML
+
+Use this structure.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{CARD_NAME}} Grading Analysis</title>
+</head>
+
+<body>
+
+<main>
+
+<section>
+
+<h2>Conclusion</h2>
+
+<div class="summary-grid">
+
+<!-- Repeat once for every variant -->
+
+<article class="card featured">
+
+<h3>{{VARIANT_NAME}}</h3>
+
+<div class="threshold">
+{{MINIMUM_RECOMMENDED_GRADE}}
+</div>
+
+<p class="muted">
+{{SHORT_REASON}}
+</p>
+
+</article>
+
+</div>
+
+</section>
 
 
-Do the following:
+<!-- Repeat once for every variant -->
 
-1. Research the current market values (raw + PSA 8/9/10). Only use reliable sources.
-  Fint out how sales volume are for the card.
-2. Research grading costs, fees etc
-3. Give a recommendation
+<section>
 
-Specifially for prices on (raw + PSA 8/9/10), make it an estimated average price-range.
-for example "$32-$38". In grading cost, mention the things you included for the number
-in the form of summary/keywords, place the text before the number. Must be under 10 words.
+<h2>{{VARIANT_NAME}}</h2>
 
-Return a clean JSON object with exactly these keys:
-- verdict: A short, direct conclusion (1 sentence). Don't mention sales volume in this field.
-- market_summary: An object containing raw value, PSA 8, PSA 9, PSA 10, and grading cost
-- summary: Make it clear why and how the numbers add up. Shortly mention recent prices and sales volume, and its sources (keep it conscise).Make it easy to read for humans, dont use too many details and prices.
-- action: A concise summary. 1-3 sentences. Keep it straight to the point and only valueable information.
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>Grade</th>
+<th>Estimated value</th>
+<th>Grading fee</th>
+<th>Profit after grading</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+<td class="grade">Raw</td>
+<td>{{RAW_VALUE}}</td>
+<td>—</td>
+<td>Baseline</td>
+</tr>
+
+<tr class="{{PSA7_ROW_CLASS}}">
+<td class="grade">PSA 7</td>
+<td>{{PSA7_VALUE}}</td>
+<td>{{PSA7_FEE}}</td>
+<td class="{{PSA7_VALUE_CLASS}}">
+{{PSA7_VALUE_INCREASE}}
+</td>
+</tr>
+
+<tr class="{{PSA8_ROW_CLASS}}">
+<td class="grade">PSA 8</td>
+<td>{{PSA8_VALUE}}</td>
+<td>{{PSA8_FEE}}</td>
+<td class="{{PSA8_VALUE_CLASS}}">
+{{PSA8_VALUE_INCREASE}}
+</td>
+</tr>
+
+<tr class="{{PSA9_ROW_CLASS}}">
+<td class="grade">PSA 9</td>
+<td>{{PSA9_VALUE}}</td>
+<td>{{PSA9_FEE}}</td>
+<td class="{{PSA9_VALUE_CLASS}}">
+{{PSA9_VALUE_INCREASE}}
+</td>
+</tr>
+
+<tr class="{{PSA10_ROW_CLASS}}">
+<td class="grade">PSA 10</td>
+<td>{{PSA10_VALUE}}</td>
+<td>{{PSA10_FEE}}</td>
+<td class="{{PSA10_VALUE_CLASS}}">
+{{PSA10_VALUE_INCREASE}}
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+<!-- Optional -->
+
+<section>
+
+<h3>Notes</h3>
+
+<p>
+
+{{OPTIONAL_NOTES}}
+
+</p>
+
+</section>
+
+</section>
+
+
+<section>
+
+<h2>Current PSA Grading Fees</h2>
+
+<div class="cost-grid">
+
+<article class="card">
+<h3>Regular</h3>
+<div class="price">{{REGULAR_PRICE}}</div>
+<p class="muted">Max Declared Value: {{REGULAR_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{REGULAR_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Express</h3>
+<div class="price">{{EXPRESS_PRICE}}</div>
+<p class="muted">Max Declared Value: {{EXPRESS_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{EXPRESS_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Super Express</h3>
+<div class="price">{{SUPER_PRICE}}</div>
+<p class="muted">Max Declared Value: {{SUPER_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{SUPER_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Walk-Through</h3>
+<div class="price">{{WALK_PRICE}}</div>
+<p class="muted">Max Declared Value: {{WALK_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{WALK_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Premium 1</h3>
+<div class="price">{{PREMIUM1_PRICE}}</div>
+<p class="muted">Max Declared Value: {{PREMIUM1_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{PREMIUM1_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Premium 2</h3>
+<div class="price">{{PREMIUM2_PRICE}}</div>
+<p class="muted">Max Declared Value: {{PREMIUM2_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{PREMIUM2_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Premium 3</h3>
+<div class="price">{{PREMIUM3_PRICE}}</div>
+<p class="muted">Max Declared Value: {{PREMIUM3_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{PREMIUM3_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Premium 5</h3>
+<div class="price">{{PREMIUM5_PRICE}}</div>
+<p class="muted">Max Declared Value: {{PREMIUM5_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{PREMIUM5_TURNAROUND}}</p>
+</article>
+
+<article class="card">
+<h3>Premium 10</h3>
+<div class="price">{{PREMIUM10_PRICE}}</div>
+<p class="muted">Max Declared Value: {{PREMIUM10_MAX}}</p>
+<p class="muted">Estimated Turnaround: {{PREMIUM10_TURNAROUND}}</p>
+</article>
+
+</div>
+
+</section>
+
+</main>
+
+</body>
+
+</html>
 
 Card to analyze:
 

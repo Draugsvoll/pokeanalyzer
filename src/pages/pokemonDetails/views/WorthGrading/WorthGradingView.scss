@@ -1,5 +1,3 @@
-/* Typography: global tokens only. Layout + accents local. */
-
 .worth-grading-view {
   --worth-grading-accent: var(--feature-accent, var(--font-color-error));
 
@@ -11,221 +9,433 @@
   width: 100%;
 }
 
-.worth-grading-view__state {
-  color: var(--font-color-muted);
-  padding: 1rem;
-  text-align: center;
-}
-
-.worth-grading-view__raw {
-  color: var(--font-color-secondary);
-  white-space: pre-wrap;
-}
-
 .worth-grading-view__card {
-  background: var(--bg2);
-  border: var(--border);
-  border-radius: var(--border-radius);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-/* ----- Text panels (verdict / summary): one left indent for all copy ----- */
-.worth-grading-view__panel {
+.worth-grading-view__html {
   display: grid;
-  gap: 0.8rem;
-  justify-items: start;
-  padding: 1.35rem 1.45rem;
-  position: relative;
-  text-align: left;
+  gap: 1.1rem;
+  overflow: hidden;
+  padding: 1.15rem;
 
-  &::before {
-    background: var(--worth-grading-accent);
-    border-radius: var(--border-radius-pill);
-    content: "";
-    height: calc(100% - 2.7rem);
-    left: 0;
-    opacity: 0.9;
-    position: absolute;
-    top: 1.35rem;
-    width: 2px;
+  .section,
+  section,
+  main,
+  > div:not([class]),
+  > article {
+    background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
+    border: 1px solid var(--border-divider);
+    border-radius: calc(var(--border-radius) - 2px);
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    overflow: hidden;
+    padding: 1.25rem 1.35rem 1.35rem;
+    position: relative;
+  }
+
+  main {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    gap: 1.1rem;
+    padding: 0;
+  }
+
+  h2,
+  h3,
+  p,
+  ul,
+  table {
+    margin: 0;
   }
 
   h2 {
-    border-bottom: 1px solid var(--border-divider);
+    align-items: center;
+    border-bottom: 1px solid
+      color-mix(in srgb, var(--worth-grading-accent) 18%, var(--border-divider));
     color: var(--font-color-primary);
-    font-size: var(--font-size-h3);
+    display: flex;
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-tight);
     line-height: var(--font-leading-snug);
-    margin: 0;
-    padding-bottom: 0.95rem;
-    width: 100%;
+    min-width: 0;
+    padding-bottom: 0.9rem;
+
+    &::before {
+      background: color-mix(in srgb, var(--worth-grading-accent) 16%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--worth-grading-accent) 28%, transparent);
+      border-radius: var(--border-radius-sm);
+      content: "";
+      flex: 0 0 auto;
+      height: 0.8rem;
+      margin-right: 0.65rem;
+      width: 0.8rem;
+    }
+  }
+
+  h3 {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-snug);
   }
 
   p,
-  .worth-grading-view__panel-body {
+  li,
+  td {
     color: var(--font-color-secondary);
-    margin: 0;
-    max-width: 100%;
-    padding: 0;
-    text-align: left;
-  }
-}
-
-.worth-grading-view__eyebrow {
-  align-items: center;
-  color: var(--font-color-success);
-  display: inline-flex;
-  font-size: var(--font-size-overline);
-  font-weight: var(--font-weight-bold);
-  gap: 0.4rem;
-  letter-spacing: var(--font-tracking-wider);
-  margin: 0;
-  text-transform: uppercase;
-
-  svg {
-    flex: 0 0 auto;
-    height: 0.85rem;
-    width: 0.85rem;
-  }
-
-  &--action {
-    color: var(--custom-color-yellow);
-  }
-}
-
-/* ----- Market snapshot ----- */
-.worth-grading-view__market {
-  display: grid;
-  padding: 1.25rem 1.35rem 1.35rem;
-}
-
-.worth-grading-view__market-header {
-  align-items: center;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-  padding: 0 0 1rem;
-
-  h3 {
-    align-items: center;
-    color: var(--font-color-primary);
-    display: inline-flex;
-    font-size: var(--font-size-h3);
-    font-weight: var(--font-weight-bold);
-    gap: 0.5rem;
-    margin: 0;
-
-    svg {
-      color: var(--font-color-error);
-      height: 1rem;
-      width: 1rem;
-    }
-  }
-
-  > span {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-caption);
-  }
-}
-
-.worth-grading-view__market-body {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.worth-grading-view__market-row {
-  align-items: center;
-  background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
-  border: 1px solid var(--border-divider);
-  border-radius: calc(var(--border-radius) - 2px);
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-width: 0;
-  padding: 1rem;
-
-  > div {
-    align-items: center;
-    color: var(--font-color-secondary);
-    display: flex;
     font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-semibold);
-    gap: 0.55rem;
-    min-width: 0;
+    line-height: var(--font-leading-normal);
+  }
 
-    strong {
-      color: inherit;
-      font-size: inherit;
-      font-weight: inherit;
+  p {
+    max-width: 78rem;
+
+    strong:first-child {
+      color: var(--font-color-primary);
+      font-weight: var(--font-weight-bold);
     }
   }
 
-  svg {
-    color: var(--font-color-muted);
-    flex: 0 0 auto;
-    height: 1rem;
-    width: 1rem;
+  .summary-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
   }
 
-  /* Match JustTCG ATH/ATL price value type */
-  > span {
+  .cost-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  }
+
+  .card {
+    background: color-mix(in srgb, var(--font-color-primary) 3.5%, transparent);
+    border: 1px solid var(--border-divider);
+    border-radius: calc(var(--border-radius) - 2px);
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .card.featured {
+    background: color-mix(in srgb, var(--worth-grading-accent) 7%, transparent);
+    border-color: color-mix(
+      in srgb,
+      var(--worth-grading-accent) 28%,
+      var(--border-divider)
+    );
+  }
+
+  .threshold {
     color: var(--font-color-primary);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-paragraph);
-    font-variant-numeric: tabular-nums;
-    font-weight: var(--font-weight-semibold);
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-tight);
-    line-height: 1.1;
-    text-align: right;
+    line-height: 1;
+  }
+
+  .price {
+    color: var(--font-color-primary);
+    font-family: var(--font-family-price);
+    font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-tight);
+    line-height: 1;
+  }
+
+  .muted {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-paragraph-sm);
+  }
+
+  section section {
+    background: color-mix(in srgb, var(--font-color-primary) 2%, transparent);
+    border-style: dashed;
+    gap: 0.65rem;
+    margin-top: 0.1rem;
+    padding: 0.95rem 1rem;
+  }
+
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
+    border: 1px solid var(--border-divider);
+    border-radius: var(--border-radius-sm);
+    color: var(--font-color-secondary);
+    min-width: 0;
+    padding: 0.55rem 0.7rem 0.55rem 1.6rem;
+    position: relative;
+
+    &::before {
+      background: color-mix(
+        in srgb,
+        var(--worth-grading-accent) 72%,
+        white
+      );
+      border-radius: var(--border-radius-pill);
+      content: "";
+      height: 0.35rem;
+      left: 0.75rem;
+      position: absolute;
+      top: 1.05em;
+      width: 0.35rem;
+    }
+  }
+
+  .note {
+    background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
+    border: 1px solid var(--border-divider);
+    border-radius: var(--border-radius-sm);
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    padding: 0.7rem 0.8rem;
+  }
+
+  .warning {
+    background: color-mix(in srgb, var(--font-color-warning) 8%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--font-color-warning) 24%, transparent);
+    border-radius: calc(var(--border-radius) - 2px);
+    padding: 0.85rem 0.95rem;
+
+    p {
+      color: var(--font-color-secondary);
+    }
+  }
+
+  .source {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+  }
+
+  .positive {
+    color: var(--font-color-success);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .profit {
+    color: var(--font-color-success);
+  }
+
+  .negative {
+    color: var(--font-color-error);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .loss {
+    color: var(--font-color-error);
+  }
+
+  .neutral {
+    color: var(--font-color-muted);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .marginal,
+  .break-even,
+  .breakeven {
+    color: var(--font-color-warning);
+  }
+
+  table {
+    background: color-mix(in srgb, var(--bg2) 88%, transparent);
+    border: 1px solid var(--border-divider);
+    border-radius: calc(var(--border-radius) - 2px);
+    border-collapse: separate;
+    border-spacing: 0;
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .table-wrap::-webkit-scrollbar {
+    height: 0.5rem;
+  }
+
+  .table-wrap::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--font-color-primary) 12%, transparent);
+    border-radius: var(--border-radius-pill);
+  }
+
+  .table-wrap table {
+    overflow-x: visible;
+  }
+
+  table::-webkit-scrollbar {
+    height: 0.5rem;
+  }
+
+  table::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--font-color-primary) 12%, transparent);
+    border-radius: var(--border-radius-pill);
+  }
+
+  thead,
+  tbody {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  tr {
+    display: table-row;
+    min-width: 100%;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid var(--border-divider);
+    min-width: 8rem;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  td:first-child {
+    color: var(--font-color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .grade {
+    color: var(--font-color-primary);
+    font-weight: var(--font-weight-bold);
     white-space: nowrap;
   }
-}
 
-.worth-grading-view__market-row--red {
-  grid-column: 1 / -1;
-}
+  td:not(:first-child) {
+    font-family: var(--font-family-price);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--font-tracking-tight);
+  }
 
-.worth-grading-view__market-row--default > span {
-  color: var(--font-color-primary);
-}
+  th {
+    background: color-mix(in srgb, var(--worth-grading-accent) 10%, var(--bg2));
+    border-bottom-color: color-mix(
+      in srgb,
+      var(--worth-grading-accent) 18%,
+      var(--border-divider)
+    );
+    color: var(--font-color-primary);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
+    text-transform: uppercase;
+  }
 
-.worth-grading-view__market-row--amber > span {
-  color: var(--font-color-warning);
-}
+  tr:last-child td {
+    border-bottom: 0;
+  }
 
-.worth-grading-view__market-row--green {
-  svg {
+  tbody tr:hover td {
+    background: color-mix(in srgb, var(--font-color-primary) 2.5%, transparent);
+  }
+
+  tr.positive td,
+  tr.profit td {
+    background: color-mix(in srgb, var(--font-color-success) 5%, transparent);
+  }
+
+  tr.positive td:last-child,
+  tr.profit td:last-child {
     color: var(--font-color-success);
+    font-weight: var(--font-weight-bold);
   }
 
-  > span {
-    color: var(--font-color-success);
+  tr.negative td,
+  tr.loss td {
+    background: color-mix(in srgb, var(--font-color-error) 5%, transparent);
   }
-}
 
-.worth-grading-view__market-row--red {
-  svg {
+  tr.negative td:last-child,
+  tr.loss td:last-child {
     color: var(--font-color-error);
+    font-weight: var(--font-weight-bold);
   }
 
-  > span {
-    color: var(--font-color-error);
+  tr.neutral td,
+  tr.marginal td,
+  tr.break-even td,
+  tr.breakeven td {
+    background: color-mix(in srgb, var(--font-color-warning) 5%, transparent);
+  }
+
+  tr.neutral td:last-child,
+  tr.marginal td:last-child,
+  tr.break-even td:last-child,
+  tr.breakeven td:last-child {
+    color: var(--font-color-warning);
+    font-weight: var(--font-weight-bold);
+  }
+
+  a {
+    color: var(--worth-grading-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
 @media (max-width: 36rem) {
-  .worth-grading-view__panel,
-  .worth-grading-view__market {
-    padding-inline: 1.1rem;
-  }
+  .worth-grading-view__html {
+    padding: 0.9rem;
 
-  .worth-grading-view__market-body {
-    grid-template-columns: 1fr;
-  }
+    .section,
+    section,
+    main,
+    > div:not([class]),
+    > article {
+      padding: 1.05rem 1rem;
+    }
 
-  .worth-grading-view__market-row {
-    align-items: flex-start;
+    main {
+      padding: 0;
+    }
+
+    h2 {
+      align-items: flex-start;
+      font-size: var(--font-size-paragraph);
+    }
+
+    ul {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    thead,
+    tbody {
+      min-width: 38rem;
+    }
+
+    th,
+    td {
+      min-width: 8rem;
+      padding: 0.7rem 0.75rem;
+    }
   }
 }
