@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Search, TriangleAlert, X } from "lucide-react";
+import { Search, TriangleAlert, X } from "lucide-react";
+import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
 import Button from "../../components/button/Button";
-import { ConfirmPopover } from "../../components/confirmPopover/ConfirmPopover";
 import { GridView } from "../../components/gridView/GridView";
-import { PokemonCard } from "../../components/pokemonCard/PokemonCard";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
-import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import {
   getHydratedPortfolio,
   updatePortfolioPriceSource,
@@ -93,27 +91,11 @@ function PortfolioForCurrentUser() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { replacePortfolioReferences } = usePortfolioCache();
-  const { removePokemonFromPortfolio, updatePokemonQuantity } =
-    usePokemonPortfolio();
   const activePortfolioRequestRef = useRef(0);
   const [portfolio, setPortfolio] = useState<PortfolioCard[]>([]);
   const [loadingPortfolio, setLoadingPortfolio] = useState(true);
   const [portfolioError, setPortfolioError] = useState("");
   const [missingCardIds, setMissingCardIds] = useState<string[]>([]);
-  const [updatingQuantityId, setUpdatingQuantityId] = useState<string | null>(
-    null,
-  );
-  const [pendingQuantity, setPendingQuantity] = useState<{
-    cardId: string;
-    quantity: number;
-  } | null>(null);
-  const [pendingRemoval, setPendingRemoval] = useState<{
-    cardId: string;
-    cardName: string;
-  } | null>(null);
-  const [updatingRemovalId, setUpdatingRemovalId] = useState<string | null>(
-    null,
-  );
   const [savedPriceSource, setSavedPriceSource] =
     useState<PortfolioPriceSource>("tcgplayer");
   const [priceSource, setPriceSource] =
@@ -257,54 +239,19 @@ function PortfolioForCurrentUser() {
       .map(({ card }) => card);
   }, [changePeriod, filteredPortfolio, portfolioSort, priceSource]);
 
-  const requestQuantityChange = (card: PortfolioCard, amount: number) => {
-    if (updatingQuantityId) return;
+  const priceSourceChanged = priceSource !== savedPriceSource;
 
-    const currentQuantity =
-      pendingQuantity?.cardId === card.id
-        ? pendingQuantity.quantity
-        : (card.quantity ?? 1);
-    const nextQuantity = currentQuantity + amount;
-    if (nextQuantity < 1) return;
-
-    setPendingQuantity({ cardId: card.id, quantity: nextQuantity });
-  };
-
-  const confirmQuantityChange = async () => {
-    if (!pendingQuantity) return;
-
-    const { cardId, quantity } = pendingQuantity;
-    setUpdatingQuantityId(cardId);
-    const updated = await updatePokemonQuantity(cardId, quantity);
-    setUpdatingQuantityId(null);
-    if (!updated) return;
-
+  const handleCardQuantityUpdated = (cardId: string, quantity: number) => {
     setPortfolio((current) =>
       current.map((card) =>
         card.id === cardId ? { ...card, quantity } : card,
       ),
     );
-    setPendingQuantity(null);
   };
 
-  const confirmRemoval = async () => {
-    if (!pendingRemoval) return;
-
-    const { cardId } = pendingRemoval;
-    setUpdatingRemovalId(cardId);
-
-    try {
-      const removed = await removePokemonFromPortfolio(cardId, false);
-      if (!removed) return;
-
-      setPortfolio((current) => current.filter((card) => card.id !== cardId));
-      setPendingRemoval(null);
-    } finally {
-      setUpdatingRemovalId(null);
-    }
+  const handleCardRemoved = (cardId: string) => {
+    setPortfolio((current) => current.filter((card) => card.id !== cardId));
   };
-
-  const priceSourceChanged = priceSource !== savedPriceSource;
 
   const savePriceSource = async () => {
     if (!user || !priceSourceChanged || savingPriceSource) return;
@@ -321,27 +268,6 @@ function PortfolioForCurrentUser() {
       setSavingPriceSource(false);
     }
   };
-
-  useEffect(() => {
-    if (!pendingQuantity && !pendingRemoval) return;
-
-    const cancelWhenClickingOutside = (event: PointerEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest(
-          ".ui-confirm-popover, .portfolio__quantity-control, .portfolio__quantity-display",
-        )
-      )
-        return;
-      setPendingQuantity(null);
-      setPendingRemoval(null);
-    };
-
-    document.addEventListener("pointerdown", cancelWhenClickingOutside);
-    return () =>
-      document.removeEventListener("pointerdown", cancelWhenClickingOutside);
-  }, [pendingQuantity, pendingRemoval]);
 
   if (authLoading || loadingPortfolio) {
     return (
@@ -583,120 +509,23 @@ function PortfolioForCurrentUser() {
       ) : (
         <GridView>
           {visiblePortfolio.map((card) => (
-            <div
+            <PokemonCardPortfolioView
               key={card.id}
-              className={`portfolio__card${
-                pendingQuantity?.cardId === card.id ||
-                pendingRemoval?.cardId === card.id
-                  ? " portfolio__card--confirming"
-                  : ""
-              }`}
-            >
-              <div className="portfolio__card-main">
-                <PokemonCard
-                  card={card}
-                  quantity={card.quantity}
-                  latestPriceSnapshot={card.priceSnapshots?.latest ?? null}
-                  comparisonPriceSnapshot={
-                    card.priceSnapshots?.[changePeriod] ?? null
-                  }
-                  priceSource={priceSource}
-                  lockPriceSource
-                  showRarityBadge
-                  showPriceWarning={
-                    card.priceReliability?.[priceSource]?.isFlagged ?? false
-                  }
-                />
-              </div>
-              <div className="portfolio__card-actions ui-fade">
-                <div className="portfolio__quantity-control">
-                  <button
-                    type="button"
-                    className="portfolio__quantity-button"
-                    aria-label={`Increase ${card.name} quantity`}
-                    disabled={updatingQuantityId === card.id}
-                    onClick={() => requestQuantityChange(card, 1)}
-                  >
-                    <ChevronUp aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="portfolio__quantity-display">
-                  <input
-                    className="portfolio__quantity"
-                    aria-label={`${card.name} quantity`}
-                    type="number"
-                    min="1"
-                    readOnly
-                    value={
-                      pendingQuantity?.cardId === card.id
-                        ? pendingQuantity.quantity
-                        : (card.quantity ?? 1)
-                    }
-                  />
-                  {pendingQuantity?.cardId === card.id && (
-                    <ConfirmPopover
-                      className="portfolio__quantity-confirm"
-                      label="Update?"
-                      confirmLabel="OK"
-                      aria-label="Confirm quantity change"
-                      confirmDisabled={
-                        pendingQuantity.quantity === (card.quantity ?? 1)
-                      }
-                      confirming={updatingQuantityId === card.id}
-                      onConfirm={() => {
-                        void confirmQuantityChange();
-                      }}
-                      onCancel={() => setPendingQuantity(null)}
-                    />
-                  )}
-                </div>
-                <div className="portfolio__quantity-control">
-                  <button
-                    type="button"
-                    className="portfolio__quantity-button"
-                    aria-label={`Decrease ${card.name} quantity`}
-                    disabled={
-                      (pendingQuantity?.cardId === card.id
-                        ? pendingQuantity.quantity
-                        : (card.quantity ?? 1)) <= 1 ||
-                      updatingQuantityId === card.id
-                    }
-                    onClick={() => requestQuantityChange(card, -1)}
-                  >
-                    <ChevronDown aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="portfolio__remove-control">
-                  <button
-                    type="button"
-                    className="portfolio__remove-card"
-                    aria-label={`Remove ${card.name} from portfolio`}
-                    title="Remove from portfolio"
-                    onClick={() =>
-                      setPendingRemoval({
-                        cardId: card.id,
-                        cardName: card.name,
-                      })
-                    }
-                  >
-                    <X aria-hidden="true" />
-                  </button>
-                  {pendingRemoval?.cardId === card.id && (
-                    <ConfirmPopover
-                      className="portfolio__quantity-confirm"
-                      label="Delete?"
-                      confirmLabel="OK"
-                      aria-label="Confirm card removal"
-                      confirming={updatingRemovalId === card.id}
-                      onConfirm={() => {
-                        void confirmRemoval();
-                      }}
-                      onCancel={() => setPendingRemoval(null)}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
+              card={card}
+              quantity={cardQuantity(card)}
+              latestPriceSnapshot={card.priceSnapshots?.latest ?? null}
+              comparisonPriceSnapshot={
+                card.priceSnapshots?.[changePeriod] ?? null
+              }
+              priceSource={priceSource}
+              lockPriceSource
+              showRarityBadge
+              showPriceWarning={
+                card.priceReliability?.[priceSource]?.isFlagged ?? false
+              }
+              onQuantityUpdated={handleCardQuantityUpdated}
+              onRemoved={handleCardRemoved}
+            />
           ))}
         </GridView>
       )}

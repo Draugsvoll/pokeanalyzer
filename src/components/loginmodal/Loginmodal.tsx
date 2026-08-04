@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
 import "./Loginmodal.scss";
 import Button from "../button/Button";
 import { login, signInWithGoogle } from "../../services/auth";
@@ -20,8 +19,6 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
-  const location = useLocation();
   const { showNotification } = useNotification();
 
   if (!isOpen) return null;
@@ -30,9 +27,6 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
     onClose();
     showNotification("Du er nå logget inn.");
 
-    if (location.pathname === "/" || location.pathname === "/portfolio") {
-      navigate("/profile", { replace: true });
-    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
   BadgeDollarSign,
@@ -261,7 +261,6 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
 
 function PokemonDetailsForCard() {
   const { id } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
@@ -599,26 +598,6 @@ function PokemonDetailsForCard() {
       controller.abort();
     };
   }, [cachedCard, id]);
-
-  useEffect(() => {
-    const navigationState = location.state as {
-      card?: PokemonCard;
-      scrollToCardView?: boolean;
-    } | null;
-
-    if (!navigationState?.scrollToCardView || !card || card.id !== id) {
-      return;
-    }
-
-    navigate(location.pathname, {
-      preventScrollReset: true,
-      replace: true,
-      state: {
-        ...navigationState,
-        scrollToCardView: false,
-      },
-    });
-  }, [card, id, location.pathname, location.state, navigate]);
 
   useEffect(() => {
     let image: HTMLImageElement | null = null;

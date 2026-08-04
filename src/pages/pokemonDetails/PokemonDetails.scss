@@ -10,6 +10,7 @@
   margin: 0 auto;
   max-width: 100%;
   padding: 3rem 0rem;
+  padding-bottom:2rem;
   width: 100%;
 
   &--status {
@@ -861,7 +862,7 @@
     font-size: var(--font-size-caption);
     font-weight: var(--font-weight-semibold);
     line-height: 1;
-    padding: 0;
+    padding: 2rem 1rem;
     text-decoration: underline;
     text-decoration-color: color-mix(
       in srgb,
@@ -1167,7 +1168,7 @@
 
 @media (max-width: 40rem) {
   .card-view {
-    padding: 2rem 1rem;
+    padding: 0;
 
     &__shell {
       width: 100%;

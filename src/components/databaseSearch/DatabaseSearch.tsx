@@ -1,21 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
-import type { PokemonCard } from "../../types/pokemon";
-import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
-import { formatCardNumber } from "../../utils/formatCardNumber";
+import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
+import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
-const money = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 type DatabaseSearchProps = {
   autoFocusName?: boolean;
@@ -38,36 +31,16 @@ const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
   { value: "release-oldest", label: "Oldest releases" },
 ];
 
-function rarityBadgeClass(rarity: string): string {
-  const r = rarity.toLowerCase();
-  if (r.includes("common") && !r.includes("uncommon")) {
-    return "card-rarity-badge card-rarity-badge--common";
-  }
-  if (r.includes("uncommon")) {
-    return "card-rarity-badge card-rarity-badge--uncommon";
-  }
-  if (r.includes("promo")) {
-    return "card-rarity-badge card-rarity-badge--promo";
-  }
-  if (r.includes("rare") || r.includes("holo") || r.includes("ultra")) {
-    return "card-rarity-badge card-rarity-badge--rare";
-  }
-  return "card-rarity-badge";
-}
-
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
   resultsPortalEl = null,
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
   const [setSeries, setSetSeries] = useState("");
   const [cardNumber, setCardNumber] = useState("");
-  const [results, setResults] = useState<PokemonCard[]>([]);
+  const [results, setResults] = useState<PokemonCardType[]>([]);
   const [resultRenderKey, setResultRenderKey] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
@@ -116,12 +89,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         : aSortPrice - bSortPrice;
     });
   }, [results, sortDirection]);
-
-  const handleClick = (card: PokemonCard) => {
-    navigateToPokemonCard(navigate, card, {
-      scrollToCardView: location.pathname.startsWith("/card"),
-    });
-  };
 
   async function handleSearch() {
     if (!canSearch || isSearching) return;
@@ -336,70 +303,12 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                 <div
                   className="explore-results explore-results--grid card-grid"
                 >
-                {sortedResults.map((card) => {
-                  const price = getTcgPlayerMarketPrice(card.tcgplayer?.prices);
-                  const numberLabel = formatCardNumber(card);
-                  const setLabel = [
-                    card.set?.name,
-                    numberLabel
-                      ? `${numberLabel}${
-                          card.set?.printedTotal
-                            ? `/${card.set.printedTotal}`
-                            : ""
-                        }`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-
-                  return (
-                    <article
-                      key={card.id}
-                      className="database-card explore-card card-hover"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleClick(card)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          handleClick(card);
-                        }
-                      }}
-                    >
-                      <div className="database-card__image explore-card__image">
-                        <img src={card.images?.small} alt={card.name} />
-                      </div>
-                      <div className="database-card__content explore-card__body">
-                        <header className="database-card__header explore-card__title-row">
-                          <div>
-                            <h3>{card.name}</h3>
-                            <p className="explore-card__set">
-                              {setLabel || card.set?.name || "—"}
-                            </p>
-                          </div>
-                          {card.rarity && (
-                            <span className={rarityBadgeClass(card.rarity)}>
-                              {card.rarity}
-                            </span>
-                          )}
-                        </header>
-
-                        <div className="explore-card__price-row">
-                          <div className="explore-card__price">
-                            <span className="explore-card__price-label">
-                              From
-                            </span>
-                            <strong>
-                              {price != null
-                                ? `$${money.format(price)}`
-                                : "—"}
-                            </strong>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                {sortedResults.map((card) => (
+                  <PokemonCardView
+                    key={card.id}
+                    card={card}
+                  />
+                ))}
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PokemonCard } from '../pokemonCard/PokemonCard';
+import { PokemonCardView } from '../pokemonCardView/PokemonCardView';
 import type { PokemonCard as PokemonCardType } from '../../types/pokemon';
 import pokemonCards from '../../data/pokemon-cards.json';
 import './Swimlane.scss';
@@ -13,7 +13,7 @@ export const Swimlane: React.FC = () => {
   
         <div className="swimlane">
           {cards.map(card => (
-            <PokemonCard key={card.id} card={card}/>
+            <PokemonCardView key={card.id} card={card} />
           ))}
         </div>
       
