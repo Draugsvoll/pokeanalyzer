@@ -47,9 +47,9 @@
   &__details {
     align-items: center;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: 2rem;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
     justify-content: space-evenly;
     /* Horizontal padding while stacked; cleared on desktop row layout */
     padding: 1.65rem;
@@ -83,6 +83,19 @@
     gap: 1rem;
     justify-content: center;
     padding: 0;
+  }
+
+  &__image-actions {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: stretch;
+    max-width: 100%;
+    width: 17.5rem;
+
+    .card-view__portfolio-control {
+      justify-self: stretch;
+      width: 100%;
+    }
   }
 
   &__image {
@@ -126,7 +139,7 @@
   &__change-card {
     justify-self: center;
     min-width: 0;
-    width: min(14rem, 100%);
+    width: 100%;
 
     .app-btn {
       background: color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
@@ -158,7 +171,7 @@
     box-sizing: border-box;
     display: grid;
     flex: 1 1 auto;
-    gap: 2.35rem;
+    gap: 1.9rem;
     grid-template-columns: minmax(0, 1fr);
     height: 100%;
     justify-content: stretch;
@@ -172,12 +185,24 @@
     align-content: space-between;
     align-self: stretch;
     display: grid;
-    gap: 1.35rem;
+    gap: 0;
+    grid-template-rows: repeat(3, auto);
     min-width: 0;
   }
 
   &__identity-top,
   &__info-section {
+    min-width: 0;
+  }
+
+  &__info-section--flavor {
+    align-self: start;
+  }
+
+  &__lower-sections {
+    align-self: end;
+    display: grid;
+    gap: 1.25rem;
     min-width: 0;
   }
 
@@ -187,17 +212,6 @@
 
   &__info-section {
     min-width: 0;
-  }
-
-  &__info-actions {
-    align-self: end;
-    display: grid;
-    justify-items: center;
-    margin-top: 0.15rem;
-
-    > * {
-      min-width: 0;
-    }
   }
 
   &__title {
@@ -254,9 +268,8 @@
 
   &__title-row {
     align-items: flex-start;
-    display: grid;
+    display: block;
     gap: 1rem;
-    grid-template-columns: minmax(0, 1fr) auto;
     min-width: 0;
   }
 
@@ -325,8 +338,8 @@
 
   &__info-grid {
     display: grid;
+    gap: 1.2rem 2.4rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.45rem 3rem;
     font-size: var(--font-size-paragraph-sm);
     padding-top: 0;
   }
@@ -348,13 +361,11 @@
   }
 
   &__detail-panel {
-    align-self: stretch;
-    border-left: 1px solid var(--border-divider);
     display: grid;
-    gap: 2rem;
+    gap: 1.4rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
-    padding:1rem;
-    padding-left: 2.4rem;
+    padding-top: 0;
   }
 
   &__detail-section {
@@ -363,7 +374,7 @@
     border-radius: 0;
     box-shadow: none;
     display: grid;
-    gap: 1.25rem;
+    gap: 1rem;
     min-width: 0;
     padding: 0;
 
@@ -1125,8 +1136,8 @@
 @media (min-width: 48rem) {
   .card-view__details {
     align-items: stretch;
-    flex-direction: row;
     gap: 2.8rem;
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
     justify-content: space-evenly;
     padding: 2rem 2.35rem;
   }
@@ -1140,8 +1151,7 @@
     /* flex-basis (not width alone) sizes flex items — keep these in sync */
     align-items: stretch;
     align-self: stretch;
-    grid-auto-rows: minmax(0, 1fr);
-    grid-template-columns: minmax(18rem, 1fr) minmax(18rem, 24rem);
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
 
@@ -1150,7 +1160,7 @@
   }
 
   .card-view__detail-panel {
-    min-height: 100%;
+    min-height: 0;
   }
 }
 
@@ -1163,6 +1173,7 @@
     }
 
     &__details {
+      grid-template-columns: 1fr;
       padding: 1.25rem 1rem;
     }
 
@@ -1182,12 +1193,10 @@
     }
 
     &__title-row {
-      grid-template-columns: 1fr;
+      display: block;
     }
 
     &__portfolio-control {
-      justify-self: start;
-      margin-top: 0;
       min-width: 0;
     }
 
@@ -1200,10 +1209,8 @@
     }
 
     &__detail-panel {
-      border-left: 0;
       grid-template-columns: 1fr;
-      padding-left: 0;
-      padding-block: 0;
+      padding-top: 1.35rem;
     }
 
     &__dossier {

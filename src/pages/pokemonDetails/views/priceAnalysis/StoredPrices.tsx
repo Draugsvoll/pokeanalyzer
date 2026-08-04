@@ -367,28 +367,16 @@ export function StoredPrices({
       </div>
       )}
       {!reportLoading && !reportAvailable && (
-        <>
-          <aside className="stored-prices__disclaimer">
-            <div>
-              <TriangleAlert aria-hidden="true" />
-              <p>
-                TCGPlayer and Cardmarket are not realiable. They are limited by
-                internal activity and don't seperate prices by condition or
-                listings/sales.
-              </p>
-            </div>
-          </aside>
-          <div className="stored-prices__report-action">
-            <Button
-              fill="solid"
-              style={getCustomColors("orange")}
-              onClick={onGenerateReport}
-              disabled={!onGenerateReport || reportDisabled}
-            >
-              Market Analysis Report
-            </Button>
-          </div>
-        </>
+        <div className="stored-prices__report-action">
+          <Button
+            fill="solid"
+            style={getCustomColors("orange")}
+            onClick={onGenerateReport}
+            disabled={!onGenerateReport || reportDisabled}
+          >
+            Full Market Analysis
+          </Button>
+        </div>
       )}
     </div>
   );

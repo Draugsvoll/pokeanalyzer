@@ -776,6 +776,85 @@ function PokemonDetailsForCard() {
                   <span>Card image unavailable</span>
                 </div>
               )}
+              <div className="card-view__image-actions">
+                <div className="card-view__change-card">
+                  <Button
+                    ref={changeCardButtonRef}
+                    fill="ghost"
+                    fullWidth
+                    style={getCustomColors("blue")}
+                    onClick={() => setShowCardSearch((open) => !open)}
+                    aria-expanded={showCardSearch}
+                  >
+                    {showCardSearch ? (
+                      <>
+                        <ArrowUp
+                          size={16}
+                          strokeWidth={2.25}
+                          aria-hidden="true"
+                        />
+                        <span>Close</span>
+                      </>
+                    ) : (
+                      <>
+                        <Repeat2
+                          size={16}
+                          strokeWidth={2.25}
+                          aria-hidden="true"
+                        />
+                        <span>Switch card</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="card-view__portfolio-control">
+                  <Button
+                    variant="portfolio"
+                    fullWidth
+                    disabled={portfolioBusy || portfolioUnavailable}
+                    onClick={handlePortfolioToggle}
+                    aria-label={
+                      portfolioUnavailable
+                        ? "Portfolio is unavailable"
+                        : updatingPortfolio
+                          ? "Updating portfolio"
+                          : authUser && loadingPortfolioReferences
+                            ? "Checking portfolio"
+                            : cardIsSaved
+                              ? "Remove from portfolio"
+                              : "Add to portfolio"
+                    }
+                    aria-pressed={cardIsSaved}
+                    aria-busy={portfolioBusy}
+                    title={
+                      portfolioUnavailable
+                        ? "Portfolio is unavailable"
+                        : updatingPortfolio
+                          ? "Updating portfolio"
+                          : authUser && loadingPortfolioReferences
+                            ? "Checking portfolio"
+                            : cardIsSaved
+                              ? "Remove from portfolio"
+                              : "Add to portfolio"
+                    }
+                  >
+                    {portfolioBusy ? (
+                      <span className="app-btn__spinner" aria-hidden="true" />
+                    ) : (
+                      <>
+                        <Star aria-hidden="true" />
+                        <span>
+                          {portfolioUnavailable
+                            ? "Unavailable"
+                            : cardIsSaved
+                              ? "In portfolio"
+                              : "Add to portfolio"}
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="card-view__info-side">
@@ -820,55 +899,6 @@ function PokemonDetailsForCard() {
                         </div>
                       )}
                     </div>
-                    <div className="card-view__portfolio-control">
-                      <Button
-                        variant="portfolio"
-                        disabled={portfolioBusy || portfolioUnavailable}
-                        onClick={handlePortfolioToggle}
-                        aria-label={
-                          portfolioUnavailable
-                            ? "Portfolio is unavailable"
-                            : updatingPortfolio
-                              ? "Updating portfolio"
-                              : authUser && loadingPortfolioReferences
-                                ? "Checking portfolio"
-                                : cardIsSaved
-                                  ? "Remove from portfolio"
-                                  : "Add to portfolio"
-                        }
-                        aria-pressed={cardIsSaved}
-                        aria-busy={portfolioBusy}
-                        title={
-                          portfolioUnavailable
-                            ? "Portfolio is unavailable"
-                            : updatingPortfolio
-                              ? "Updating portfolio"
-                              : authUser && loadingPortfolioReferences
-                                ? "Checking portfolio"
-                                : cardIsSaved
-                                  ? "Remove from portfolio"
-                                  : "Add to portfolio"
-                        }
-                      >
-                        {portfolioBusy ? (
-                          <span
-                            className="app-btn__spinner"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <>
-                            <Star aria-hidden="true" />
-                            <span>
-                              {portfolioUnavailable
-                                ? "Unavailable"
-                                : cardIsSaved
-                                  ? "In portfolio"
-                                  : "Add to portfolio"}
-                            </span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
                   </div>
                 </div>
 
@@ -905,74 +935,45 @@ function PokemonDetailsForCard() {
                     })}
                   </div>
                 </section>
-                {card.flavorText && (
-                  <section
-                    className="card-view__info-section card-view__info-section--flavor"
-                    aria-label="Flavor text"
-                  >
-                    <p className="card-view__flavor-text">
-                      {card.flavorText}
-                    </p>
-                  </section>
-                )}
+                {(card.flavorText || detailSections.length > 0) && (
+                  <div className="card-view__lower-sections">
+                    {card.flavorText && (
+                      <section
+                        className="card-view__info-section card-view__info-section--flavor"
+                        aria-label="Flavor text"
+                      >
+                        <p className="card-view__flavor-text">
+                          {card.flavorText}
+                        </p>
+                      </section>
+                    )}
 
-                <div className="card-view__info-actions">
-                  <div className="card-view__change-card">
-                    <Button
-                      ref={changeCardButtonRef}
-                      fill="ghost"
-                      fullWidth
-                      style={getCustomColors("blue")}
-                      onClick={() => setShowCardSearch((open) => !open)}
-                      aria-expanded={showCardSearch}
-                    >
-                      {showCardSearch ? (
-                        <>
-                          <ArrowUp
-                            size={16}
-                            strokeWidth={2.25}
-                            aria-hidden="true"
-                          />
-                          <span>Close</span>
-                        </>
-                      ) : (
-                        <>
-                          <Repeat2
-                            size={16}
-                            strokeWidth={2.25}
-                            aria-hidden="true"
-                          />
-                          <span>Switch card</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {detailSections.length > 0 && (
-                <aside
-                  className="card-view__detail-panel"
-                  aria-label="Card details"
-                >
-                  {detailSections.map((section) => (
-                    <section
-                      className="card-view__detail-section"
-                      key={section.title}
-                    >
-                      <h3>{section.title}</h3>
-                      <dl>
-                        {section.items.map((item) => (
-                          <div key={item.label}>
-                            <dt>{item.label}</dt>
-                            <dd>{item.value}</dd>
-                          </div>
+                    {detailSections.length > 0 && (
+                      <aside
+                        className="card-view__detail-panel"
+                        aria-label="Card details"
+                      >
+                        {detailSections.map((section) => (
+                          <section
+                            className="card-view__detail-section"
+                            key={section.title}
+                          >
+                            <h3>{section.title}</h3>
+                            <dl>
+                              {section.items.map((item) => (
+                                <div key={item.label}>
+                                  <dt>{item.label}</dt>
+                                  <dd>{item.value}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </section>
                         ))}
-                      </dl>
-                    </section>
-                  ))}
-                </aside>
-              )}
+                      </aside>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

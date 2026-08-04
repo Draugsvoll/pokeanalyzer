@@ -28,45 +28,6 @@
     min-width: 0;
   }
 
-  &__disclaimer {
-    align-items: center;
-    background: var(--bg2);
-    border: var(--border);
-    border-radius: var(--border-radius);
-    display: block;
-    padding: 0.85rem 1rem;
-    width:fit-content;
-    margin: 1rem auto;
-
-    > div {
-      align-items: flex-start;
-      display: flex;
-      gap: 0.65rem;
-      min-width: 0;
-    }
-
-    svg {
-      color: var(--font-color-muted);
-      flex: 0 0 auto;
-      height: 1rem;
-      margin-top: 0.1rem;
-      stroke-width: 2.25;
-      width: 1rem;
-    }
-
-    p {
-      color: color-mix(
-        in srgb,
-        var(--font-color-secondary) 90%,
-        var(--font-color-muted)
-      );
-      font-size: var(--font-size-paragraph-sm);
-      font-weight: var(--font-weight-medium);
-      line-height: var(--font-leading-normal);
-      margin: 0;
-    }
-  }
-
   &__source {
     --source-accent: var(--custom-color-teal);
     display: flex;
