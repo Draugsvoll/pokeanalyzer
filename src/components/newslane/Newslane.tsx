@@ -17,7 +17,7 @@ type NewsCategoryConfig = {
 };
 
 const CATEGORIES = [
-  { color: "purple", id: "general", label: "Latest News" },
+  { color: "blue", id: "general", label: "Latest News" },
   { color: "teal", id: "movers", label: "Biggest Movers" },
 ] as const satisfies readonly NewsCategoryConfig[];
 

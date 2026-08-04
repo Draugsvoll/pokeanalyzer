@@ -21,7 +21,7 @@ export const INFO_CARDS: InfoCard[] = [
     title: "Kortgradering",
     description: "AI-vurdering av tilstand",
     icon: ScanSearch,
-    color: "purple",
+    color: "blue",
   },
   {
     id: "prices",

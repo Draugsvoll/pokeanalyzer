@@ -146,7 +146,9 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
         )}
 
         <div className="login-modal__close">
-          <Button size="large" fullWidth onClick={onClose}>Lukk</Button>
+          <Button fill="ghost" size="large" fullWidth onClick={onClose}>
+            Lukk
+          </Button>
         </div>
       </section>
     </div>,

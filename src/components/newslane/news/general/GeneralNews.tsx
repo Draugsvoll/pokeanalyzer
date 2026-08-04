@@ -21,12 +21,12 @@ const LABEL_COLORS: Record<string, CustomColors> = {
 };
 
 const LABEL_COLOR_FALLBACKS = [
-  "purple",
+  "blue",
   "teal",
   "yellow",
   "orange",
   "pink",
-  "blue",
+  "purple",
 ] as const satisfies readonly CustomColors[];
 
 function normalizeLabel(label: string) {
@@ -58,10 +58,6 @@ type GeneralNewsProps = {
 export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
   return (
     <section className="general-news ui-render-fade">
-      <header className="general-news__header">
-        <h1 className="general-news__title">General News</h1>
-      </header>
-
       {!!payload.items.length && (
         <div className="general-news__trends">
           {payload.items.map((item, index) => {

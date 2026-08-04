@@ -421,7 +421,7 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-Do a grading analysis of my pokemon card
+Do a grading analysis of my pokemon card, so i know if it's worth grading or not.
 
 Requirements:
 Research only English versions of the card.

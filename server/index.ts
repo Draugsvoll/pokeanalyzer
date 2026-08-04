@@ -339,7 +339,7 @@ app.get("/api/cards/search", async (req, res) => {
     SELECT raw_json
     FROM cards
     WHERE ${conditions.join(" AND ")}
-    LIMIT 20
+    LIMIT 50
   `;
 
   try {

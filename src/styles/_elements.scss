@@ -234,13 +234,13 @@ input[type="radio"] {
   width: 0.8rem;
 
   &:checked {
-    background: var(--custom-color-purple);
-    border-color: var(--custom-color-purple);
+    background: var(--custom-color-blue);
+    border-color: var(--custom-color-blue);
     box-shadow: inset 0 0 0 0.18rem var(--bg5);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--custom-color-purple);
+    outline: 2px solid var(--custom-color-blue);
     outline-offset: 2px;
   }
 }
@@ -266,7 +266,7 @@ input[type="radio"] {
 
 /*
  * Shared initials avatar — header + profile.
- * Soft purple wash (promo badge) + concentric outer glow rings.
+ * Soft wash (promo badge) + concentric outer glow rings.
  */
 .avatar-initials {
   align-items: center;
@@ -322,8 +322,8 @@ input[type="radio"] {
   }
 
   &--promo {
-    background: rgba(166, 108, 255, 0.12);
-    border-color: rgba(166, 108, 255, 0.28);
-    color: #c4b5fd;
+    background: rgba(78, 168, 255, 0.12);
+    border-color: rgba(78, 168, 255, 0.28);
+    color: #b9dcff;
   }
 }

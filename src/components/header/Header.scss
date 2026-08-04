@@ -27,15 +27,15 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   margin: 0;
   min-height: var(--header-height);
-  padding: 0 var(--page-pad-x);
+  padding: 1rem var(--page-pad-x);
   width: 100%;
 
   @media (min-width: 1024px) {
-    padding: 0 var(--page-pad-x-lg);
+    padding: 1rem var(--page-pad-x-lg);
   }
 
   @media (min-width: 1440px) {
-    padding: 0 var(--page-pad-x-xl);
+    padding: 1rem var(--page-pad-x-xl);
   }
 }
 
@@ -69,7 +69,7 @@
 
   &:focus-visible {
     border-radius: var(--radius-sm);
-    outline: 2px solid color-mix(in srgb, var(--custom-color-purple) 45%, white);
+    outline: 2px solid color-mix(in srgb, var(--custom-color-blue) 45%, white);
     outline-offset: 4px;
   }
 }
@@ -227,9 +227,9 @@
 }
 
 .header__credits-dot {
-  background: var(--ai);
+  background: var(--custom-color-blue);
   border-radius: var(--radius-round);
-  box-shadow: 0 0 0 3px rgba(166, 108, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(78, 168, 255, 0.18);
   flex-shrink: 0;
   height: 6px;
   width: 6px;
@@ -243,12 +243,12 @@
   text-decoration: none;
 
   &:hover .avatar-initials {
-    background: rgba(166, 108, 255, 0.16);
-    border-color: rgba(166, 108, 255, 0.34);
+    background: rgba(78, 168, 255, 0.16);
+    border-color: rgba(78, 168, 255, 0.34);
     box-shadow:
-      0 0 0 3px rgba(166, 108, 255, 0.12),
-      0 0 0 6px rgba(166, 108, 255, 0.05);
-    color: #d4c8fe;
+      0 0 0 3px rgba(78, 168, 255, 0.12),
+      0 0 0 6px rgba(78, 168, 255, 0.05);
+    color: #d4eaff;
   }
 }
 

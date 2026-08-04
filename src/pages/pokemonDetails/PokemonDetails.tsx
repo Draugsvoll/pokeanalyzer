@@ -263,9 +263,6 @@ function PokemonDetailsForCard() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const cardViewRef = useRef<HTMLDivElement>(null);
-  const featureButtonsRef = useRef<HTMLDivElement>(null);
-  const changeCardButtonRef = useRef<HTMLButtonElement>(null);
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] =
@@ -326,18 +323,6 @@ function PokemonDetailsForCard() {
   useEffect(() => {
     setCardImageFailed(false);
   }, [cardImageSrc]);
-
-  function scrollToFeatureButtons() {
-    requestAnimationFrame(() => {
-      const changeCardButton = changeCardButtonRef.current;
-      if (!changeCardButton) return;
-
-      window.scrollTo({
-        top: window.scrollY + changeCardButton.getBoundingClientRect().top - 16,
-        behavior: "smooth",
-      });
-    });
-  }
 
   async function handlePortfolioToggle() {
     if (
@@ -463,7 +448,6 @@ function PokemonDetailsForCard() {
   async function handleFeatureClick(aiFeature: AI_feature) {
     abortActiveRequest();
     setActiveView(aiFeature.view);
-    scrollToFeatureButtons();
 
     if (aiFeature.view === "prices") {
       setGrokResponse("");
@@ -563,7 +547,6 @@ function PokemonDetailsForCard() {
     setFeatureCooldown(true);
     abortActiveRequest();
     setActiveView("prices");
-    scrollToFeatureButtons();
     await handlePriceAnalysis(startRequest());
   }
 
@@ -627,25 +610,14 @@ function PokemonDetailsForCard() {
       return;
     }
 
-    const animationFrame = window.requestAnimationFrame(() => {
-      const cardView = cardViewRef.current;
-      if (!cardView) return;
-
-      window.scrollTo({
-        behavior: "smooth",
-        top: window.scrollY + cardView.getBoundingClientRect().top - 50,
-      });
-      navigate(location.pathname, {
-        preventScrollReset: true,
-        replace: true,
-        state: {
-          ...navigationState,
-          scrollToCardView: false,
-        },
-      });
+    navigate(location.pathname, {
+      preventScrollReset: true,
+      replace: true,
+      state: {
+        ...navigationState,
+        scrollToCardView: false,
+      },
     });
-
-    return () => window.cancelAnimationFrame(animationFrame);
   }, [card, id, location.pathname, location.state, navigate]);
 
   useEffect(() => {
@@ -681,14 +653,14 @@ function PokemonDetailsForCard() {
 
     const cooldownTimer = window.setTimeout(() => {
       setFeatureCooldown(false);
-    }, 2000);
+    }, 1000);
 
     return () => window.clearTimeout(cooldownTimer);
   }, [featureCooldown]);
 
   if (loading) {
     return (
-      <div className="card-view card-view--status">
+      <div className="card-view card-view--status ui-render-fade">
         <LoadingState>Loading Pokémon...</LoadingState>
       </div>
     );
@@ -696,7 +668,7 @@ function PokemonDetailsForCard() {
 
   if (!card) {
     return (
-      <div className="card-view card-view--status">
+      <div className="card-view card-view--status ui-render-fade">
         <p>Couldn't find Pokémon</p>
       </div>
     );
@@ -720,6 +692,7 @@ function PokemonDetailsForCard() {
         { label: "Type", value: getFactValue("Type") },
         { label: "HP", value: getFactValue("HP") },
         { label: "Weakness", value: getFactValue("Weakness") },
+        { label: "Retreat", value: getFactValue("Retreat") },
         { label: "Resistance", value: getFactValue("Resistance") },
       ],
     },
@@ -729,7 +702,6 @@ function PokemonDetailsForCard() {
         { label: "Stage", value: displaySubtype },
         { label: "Pokédex", value: getFactValue("Pokédex") },
         { label: "Evolves from", value: getFactValue("Evolves from") },
-        { label: "Retreat", value: getFactValue("Retreat") },
         { label: "Legality", value: getFactValue("Legality") },
       ],
     },
@@ -757,7 +729,7 @@ function PokemonDetailsForCard() {
 
   // RENDERING
   return (
-    <div ref={cardViewRef} className="card-view">
+    <div className="card-view ui-render-fade">
       <div className="card-view__panel-wrap">
         <div className="card-view__shell">
           <div className="card-view__details">
@@ -779,7 +751,6 @@ function PokemonDetailsForCard() {
               <div className="card-view__image-actions">
                 <div className="card-view__change-card">
                   <Button
-                    ref={changeCardButtonRef}
                     fill="ghost"
                     fullWidth
                     style={getCustomColors("blue")}
@@ -1049,10 +1020,7 @@ function PokemonDetailsForCard() {
       </div>
 
       <section className="card-view__analysis-panel">
-        <div
-          ref={featureButtonsRef}
-          className="card-view__actions feature-buttons__row"
-        >
+        <div className="card-view__actions feature-buttons__row">
           {AI_Features.map((aiFeature) => {
             const Icon = aiFeature.icon;
             const isFeatureLoading =
@@ -1072,15 +1040,14 @@ function PokemonDetailsForCard() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleFeatureClick(aiFeature)}
                 disabled={
-                  aiFeature.view === "prices"
-                    ? loadingSubscription || updatingCredits
-                    : loadingSubscription ||
-                      updatingCredits ||
-                      grokLoading ||
-                      justTcgLoading ||
-                      ebayLoading ||
-                      featureCooldown ||
-                      creditsRemaining < 1
+                  loadingSubscription ||
+                  updatingCredits ||
+                  grokLoading ||
+                  justTcgLoading ||
+                  ebayLoading ||
+                  marketSalesLoading ||
+                  featureCooldown ||
+                  creditsRemaining < 1
                 }
                 aria-pressed={activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}

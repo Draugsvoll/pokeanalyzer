@@ -300,7 +300,7 @@ export function StoredPrices({
 
   return (
     <div
-      className={`stored-prices${
+      className={`stored-prices ui-render-fade${
         hideStoredPricePrompt ? " stored-prices--hide-prompt" : ""
       }`}
     >

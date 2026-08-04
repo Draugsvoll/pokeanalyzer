@@ -253,9 +253,9 @@
 
     &:focus {
       background: color-mix(in srgb, var(--bg2) 92%, white);
-      border-color: var(--custom-color-purple);
+      border-color: var(--custom-color-blue);
       box-shadow: 0 0 0 3px
-        color-mix(in srgb, var(--custom-color-purple) 18%, transparent);
+        color-mix(in srgb, var(--custom-color-blue) 18%, transparent);
       outline: none;
     }
 
@@ -295,7 +295,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--custom-color-purple);
+      outline: 2px solid var(--custom-color-blue);
       outline-offset: 2px;
     }
   }
@@ -359,7 +359,7 @@
     }
 
     &:has(input:focus-visible) {
-      outline: 2px solid var(--custom-color-purple);
+      outline: 2px solid var(--custom-color-blue);
       outline-offset: 1px;
     }
   }

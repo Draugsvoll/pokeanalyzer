@@ -101,6 +101,11 @@
   --border-radius-round: var(--radius-round);
 
   --delay-short: 0.18s;
+  --animation-duration-fast: 0.18s;
+  --animation-duration-enter: 0.4s;
+  --animation-duration-emphasis: 0.75s;
+  --animation-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animation-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --hover-lift: -2px;
   --hover-shadow: var(--shadow);
 
@@ -131,12 +136,12 @@
   /* Shared initials avatar (header + profile) */
   --avatar-size: var(--header-control-height);
   --avatar-radius: var(--radius-round);
-  /* Promo-badge wash (original transparency) + soft outer glow rings */
-  --avatar-initials-bg: rgba(166, 108, 255, 0.12);
-  --avatar-initials-border: rgba(166, 108, 255, 0.28);
-  --avatar-initials-text: #c4b5fd;
+  /* Avatar wash + soft outer focus rings */
+  --avatar-initials-bg: rgba(78, 168, 255, 0.12);
+  --avatar-initials-border: rgba(78, 168, 255, 0.28);
+  --avatar-initials-text: #b9dcff;
   --avatar-initials-ring:
-    0 0 0 3px rgba(166, 108, 255, 0.1), 0 0 0 6px rgba(166, 108, 255, 0.04);
+    0 0 0 3px rgba(78, 168, 255, 0.1), 0 0 0 6px rgba(78, 168, 255, 0.04);
   --page-pad-x: 24px;
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
@@ -152,9 +157,9 @@
   --font-size-card-title: 14px;
   --font-size-card-meta: 12px;
 
-  --hover-purple-bg: color-mix(in srgb, var(--ai) 16%, transparent);
-  --hover-purple-border: color-mix(in srgb, var(--ai) 35%, transparent);
-  --hover-purple-text: color-mix(in srgb, var(--ai) 45%, white);
+  --hover-accent-bg: color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
+  --hover-accent-border: color-mix(in srgb, var(--custom-color-blue) 35%, transparent);
+  --hover-accent-text: color-mix(in srgb, var(--custom-color-blue) 45%, white);
 
   --dropdown-trigger-bg: var(--bg-input);
   --dropdown-menu-bg: var(--bg5);
@@ -166,10 +171,10 @@
   --dropdown-trigger-radius: var(--radius-control);
   --dropdown-trigger-height: var(--btn-height);
   --dropdown-option-radius: var(--radius-sm);
-  --dropdown-option-hover-bg: var(--hover-purple-bg);
-  --dropdown-option-selected-bg: color-mix(in srgb, var(--ai) 22%, transparent);
+  --dropdown-option-hover-bg: var(--hover-accent-bg);
+  --dropdown-option-selected-bg: color-mix(in srgb, var(--custom-color-blue) 22%, transparent);
   --dropdown-focus-ring: 0 0 0 3px
-    color-mix(in srgb, var(--ai) 16%, transparent);
+    color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
   --dropdown-z-index: 120;
   --radio-option-state-bg: color-mix(in srgb, var(--text) 5%, transparent);
   --padding-row: 0.85rem 0.65rem;

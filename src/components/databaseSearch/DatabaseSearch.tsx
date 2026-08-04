@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LayoutGrid, List, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import type { PokemonCard } from "../../types/pokemon";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { getTcgPlayerMarketPrice } from "../../utils/pokemonPricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
+import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -23,6 +24,19 @@ type DatabaseSearchProps = {
   /** When set, results render into this element (e.g. below the card shell) */
   resultsPortalEl?: HTMLElement | null;
 };
+
+type SearchSortDirection =
+  | "price-high-low"
+  | "price-low-high"
+  | "release-newest"
+  | "release-oldest";
+
+const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
+  { value: "price-high-low", label: "Price: high to low" },
+  { value: "price-low-high", label: "Price: low to high" },
+  { value: "release-newest", label: "Newest releases" },
+  { value: "release-oldest", label: "Oldest releases" },
+];
 
 function rarityBadgeClass(rarity: string): string {
   const r = rarity.toLowerCase();
@@ -57,8 +71,51 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const [resultRenderKey, setResultRenderKey] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortDirection, setSortDirection] =
+    useState<SearchSortDirection>("price-high-low");
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
+  const sortedResults = useMemo(() => {
+    return [...results].sort((a, b) => {
+      if (
+        sortDirection === "release-newest" ||
+        sortDirection === "release-oldest"
+      ) {
+        const aTime = Date.parse(a.set?.releaseDate ?? "");
+        const bTime = Date.parse(b.set?.releaseDate ?? "");
+        const aSortTime = Number.isNaN(aTime)
+          ? sortDirection === "release-newest"
+            ? Number.NEGATIVE_INFINITY
+            : Number.POSITIVE_INFINITY
+          : aTime;
+        const bSortTime = Number.isNaN(bTime)
+          ? sortDirection === "release-newest"
+            ? Number.NEGATIVE_INFINITY
+            : Number.POSITIVE_INFINITY
+          : bTime;
+
+        return sortDirection === "release-newest"
+          ? bSortTime - aSortTime
+          : aSortTime - bSortTime;
+      }
+
+      const aPrice = getTcgPlayerMarketPrice(a.tcgplayer?.prices);
+      const bPrice = getTcgPlayerMarketPrice(b.tcgplayer?.prices);
+      const aSortPrice =
+        aPrice ??
+        (sortDirection === "price-high-low"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+      const bSortPrice =
+        bPrice ??
+        (sortDirection === "price-high-low"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+
+      return sortDirection === "price-high-low"
+        ? bSortPrice - aSortPrice
+        : aSortPrice - bSortPrice;
+    });
+  }, [results, sortDirection]);
 
   const handleClick = (card: PokemonCard) => {
     navigateToPokemonCard(navigate, card, {
@@ -137,6 +194,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       handleSearch();
     }
   };
+  const searchButtonBusy = isSearching || !canSearch;
 
   return (
     <section
@@ -219,10 +277,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
               type="button"
               className="explore-search-shell__submit"
               onClick={handleSearch}
-              disabled={!canSearch || isSearching}
-              aria-busy={isSearching || undefined}
+              disabled={searchButtonBusy}
+              aria-busy={searchButtonBusy || undefined}
             >
-              {isSearching ? (
+              {searchButtonBusy ? (
                 <span
                   className="database-search-spinner"
                   aria-label="Searching"
@@ -238,20 +296,14 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           if (results.length === 0) return null;
 
           /* Embedded (card switch) uses the same grid cards as /search */
-          const useList = !embedded && viewMode === "list";
-
           const resultsNode = (
             <div
-              className={
-                useList
-                  ? "search-results search-results--list ui-render-fade"
-                  : "search-results search-results--grid ui-render-fade"
-              }
+              className="search-results search-results--grid ui-render-fade"
               key={resultRenderKey}
             >
-              {!embedded && (
+              {!embedded && results.length > 0 && (
                 <div className="explore-results-toolbar">
-                  <div>
+                  <div className="explore-results-toolbar__copy">
                     <h3 className="explore-results-toolbar__title">
                       Search results
                     </h3>
@@ -267,45 +319,24 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                     </p>
                   </div>
                   <div className="explore-results-toolbar__actions">
-                    <div
-                      className="explore-view-toggle"
-                      role="group"
-                      aria-label="View mode"
-                    >
-                      <button
-                        type="button"
-                        className={`explore-view-toggle__btn${viewMode === "grid" ? " explore-view-toggle__btn--active" : ""}`}
-                        aria-pressed={viewMode === "grid"}
-                        onClick={() => setViewMode("grid")}
-                        aria-label="Grid view"
-                      >
-                        <LayoutGrid size={15} strokeWidth={2} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`explore-view-toggle__btn${viewMode === "list" ? " explore-view-toggle__btn--active" : ""}`}
-                        aria-pressed={viewMode === "list"}
-                        onClick={() => setViewMode("list")}
-                        aria-label="List view"
-                      >
-                        <List size={15} strokeWidth={2} />
-                      </button>
-                    </div>
-                    <button type="button" className="explore-filter-chip">
-                      Trending first
-                      <ChevronDown size={14} strokeWidth={2} aria-hidden="true" />
-                    </button>
+                    <label className="explore-sort-control">
+                      <span>Sort by</span>
+                      <SelectDropdown
+                        ariaLabel="Sort search results"
+                        className="explore-sort-control__dropdown"
+                        options={SEARCH_SORT_OPTIONS}
+                        value={sortDirection}
+                        onChange={setSortDirection}
+                      />
+                    </label>
                   </div>
                 </div>
               )}
-              <div
-                className={
-                  useList
-                    ? "explore-results explore-results--list"
-                    : "explore-results explore-results--grid card-grid"
-                }
-              >
-                {results.map((card) => {
+              {results.length > 0 && (
+                <div
+                  className="explore-results explore-results--grid card-grid"
+                >
+                {sortedResults.map((card) => {
                   const price = getTcgPlayerMarketPrice(card.tcgplayer?.prices);
                   const numberLabel = formatCardNumber(card);
                   const setLabel = [
@@ -369,7 +400,8 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                     </article>
                   );
                 })}
-              </div>
+                </div>
+              )}
             </div>
           );
 

@@ -26,27 +26,61 @@
 
   &__summary {
     align-items: center;
-    background: var(--bg2);
-    border: var(--border);
+    background:
+      radial-gradient(
+        circle at 3.5rem 50%,
+        color-mix(in srgb, var(--collector-accent) 5%, transparent),
+        transparent 8rem
+      ),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--collector-accent) 3%, var(--bg2)),
+        var(--bg2) 46%
+      );
+    border: 1px solid
+      color-mix(in srgb, var(--collector-accent) 18%, rgba(255, 255, 255, 0.1));
     border-radius: var(--border-radius);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 0.55rem 1.3rem rgba(0, 0, 0, 0.1);
     display: flex;
-    gap: 1.5rem;
+    gap: 1.35rem;
     overflow: hidden;
-    padding: 1.25rem;
+    padding: 1.25rem 1.45rem;
     position: relative;
+
+    &::before {
+      background: linear-gradient(
+        180deg,
+        var(--collector-accent),
+        color-mix(in srgb, var(--collector-accent-secondary) 62%, transparent)
+      );
+      border-radius: var(--border-radius-pill);
+      content: "";
+      inset: 1rem auto 1rem 0;
+      opacity: 0.85;
+      position: absolute;
+      width: 0.22rem;
+    }
   }
 
   &__score {
+    --score-progress: var(--score);
+
+    animation: collector-score-ring-fill var(--animation-duration-emphasis)
+      var(--animation-ease-standard) forwards;
     background: conic-gradient(
       from -90deg,
-      var(--collector-accent) 0,
-      var(--collector-accent-secondary) calc(var(--score) * 1%),
-      var(--collector-score-background) 0
+      color-mix(in srgb, var(--collector-accent) 78%, white) 0,
+      var(--collector-accent) calc(var(--score-progress) * 0.72%),
+      color-mix(in srgb, var(--collector-accent) 88%, #1b2030)
+        calc(var(--score-progress) * 1%),
+      rgba(255, 255, 255, 0.055) 0
     );
     border-radius: var(--border-radius-round);
-    box-shadow: 0 0 1.5rem
-      color-mix(in srgb, var(--collector-accent) 22%, transparent);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+      0 0.45rem 0.9rem rgba(0, 0, 0, 0.16);
     display: grid;
     flex: 0 0 7rem;
     height: 7rem;
@@ -55,10 +89,19 @@
 
     > div {
       align-items: center;
-      background: var(--collector-score-background);
+      background:
+        radial-gradient(
+          circle at 50% 24%,
+          rgba(255, 255, 255, 0.055),
+          transparent 44%
+        ),
+        var(--collector-score-background);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.055);
       border-radius: var(--border-radius-round);
+      box-shadow:
+        inset 0 0.08rem 0.1rem rgba(255, 255, 255, 0.035),
+        inset 0 -0.65rem 1.1rem rgba(0, 0, 0, 0.14);
       display: flex;
       flex-direction: column;
       height: 5.4rem;
@@ -114,6 +157,47 @@
     }
   }
 
+  &__overview h4 {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-relaxed);
+    margin: 0.4rem 0 0;
+    max-width: 64rem;
+  }
+
+  &__meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+
+    span {
+      color: var(--collector-accent);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--font-tracking-wider);
+      text-transform: uppercase;
+    }
+
+    strong {
+      background: color-mix(in srgb, var(--collector-accent) 12%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--collector-accent) 28%, transparent);
+      border-radius: var(--border-radius-pill);
+      color: color-mix(in srgb, var(--collector-accent) 78%, white);
+      font-size: var(--font-size-badge);
+      font-weight: var(--font-weight-bold);
+      line-height: 1;
+      padding: 0.32rem 0.55rem;
+    }
+  }
+
+  &__overview .collector-ranking__verdict {
+    font-size: clamp(var(--font-size-h4), 1.45vw, 1.3rem);
+    max-width: 64rem;
+  }
+
   &__categories {
     display: grid;
     gap: 0.8rem;
@@ -158,7 +242,6 @@
 
     h4 {
       align-items: center;
-      color: var(--font-color-secondary);
       display: flex;
       font-weight: var(--font-weight-medium);
       gap: 0.6rem;
@@ -192,49 +275,76 @@
   }
 
   &__bar {
-    background: rgba(255, 255, 255, 0.06);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 52%),
+      rgba(255, 255, 255, 0.045);
     border-radius: var(--border-radius-pill);
-    height: 0.37rem;
-    margin-top: 0.75rem;
+    box-shadow: inset 0 0.08rem 0.16rem rgba(0, 0, 0, 0.22);
+    height: 0.46rem;
+    margin-top: 0.8rem;
     overflow: hidden;
 
     span {
-      background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--collector-accent) 75%, #92400e),
-        var(--collector-accent) 58%,
-        var(--collector-accent-secondary)
-      );
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.28),
+          rgba(255, 255, 255, 0) 48%
+        ),
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--collector-accent) 54%, #10131d),
+          var(--collector-accent) 50%,
+          color-mix(in srgb, var(--collector-accent-secondary) 78%, white)
+        );
       border-radius: var(--border-radius-pill);
-      box-shadow: 0 0 0.85rem
-        color-mix(in srgb, var(--collector-accent) 35%, transparent);
+      box-shadow:
+        0 0 0.28rem color-mix(in srgb, var(--collector-accent) 18%, transparent),
+        inset 0 -0.08rem 0.12rem rgba(0, 0, 0, 0.18);
       display: block;
       height: 100%;
+      transform: scaleX(0);
+      transform-origin: left center;
+      animation: collector-score-bar-fill var(--animation-duration-emphasis)
+        var(--animation-ease-standard) forwards;
     }
   }
 
   &__conclusion {
-    background: var(--bg2);
-    border: var(--border);
-    border-radius: var(--border-radius);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
     display: grid;
-    padding: 1.15rem 1.25rem;
+  }
+}
 
-    h4 {
-      border-bottom: 1px solid var(--border-divider);
-      color: var(--collector-accent);
-      font-weight: var(--font-weight-bold);
-      letter-spacing: var(--font-tracking-normal);
-      margin: 0;
-      padding-bottom: 0.55rem;
-    }
+@property --score-progress {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
 
-    p {
-      margin: 0;
-      max-width: 100%;
-      padding-left: 0;
-    }
+@keyframes collector-score-ring-fill {
+  from {
+    --score-progress: 0;
+  }
+
+  to {
+    --score-progress: var(--score);
+  }
+}
+
+@keyframes collector-score-bar-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collector-ranking__score {
+    animation: none;
+  }
+
+  .collector-ranking__bar span {
+    animation: none;
+    transform: none;
   }
 }
 

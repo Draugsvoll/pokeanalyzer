@@ -219,7 +219,7 @@ export function PriceAnalysis({
   reportDisabled = false,
 }: PriceAnalysisProps) {
   return (
-    <div className="price-analysis-view">
+    <div className="price-analysis-view ui-render-fade">
       <StoredPrices
         card={card}
         onGenerateReport={onGenerateReport}

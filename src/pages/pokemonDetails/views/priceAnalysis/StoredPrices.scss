@@ -16,6 +16,8 @@
     background: var(--bg2);
     border: var(--border);
     border-radius: var(--border-radius);
+    animation: stored-prices-card-enter var(--animation-duration-enter)
+      var(--animation-ease-standard) both;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -110,7 +112,8 @@
     text-decoration-color: transparent;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
-    transition: text-decoration-color var(--delay-short) ease;
+    transition: text-decoration-color var(--animation-duration-fast)
+      var(--animation-ease-standard);
 
     &:hover {
       text-decoration-color: currentColor;
@@ -150,7 +153,8 @@
     line-height: 1;
     margin: 0;
     padding: 0.2rem 0;
-    transition: color var(--delay-short) ease;
+    transition: color var(--animation-duration-fast)
+      var(--animation-ease-standard);
 
     &:hover {
       color: var(--font-color-primary);
@@ -163,7 +167,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--custom-color-purple);
+      outline: 2px solid var(--custom-color-blue);
       outline-offset: 2px;
     }
 
@@ -185,7 +189,10 @@
   }
 
   &__details {
+    animation: stored-prices-details-enter var(--animation-duration-enter)
+      var(--animation-ease-out) both;
     border-top: 1px solid var(--border-divider);
+    transform-origin: top center;
   }
 
   &__warning {
@@ -281,6 +288,8 @@
 
   &__price {
     align-items: center;
+    animation: stored-prices-row-enter var(--animation-duration-enter)
+      var(--animation-ease-out) both;
     display: flex;
     gap: 1rem;
     justify-content: space-between;
@@ -363,6 +372,50 @@
       color: var(--font-color-secondary);
       font-weight: var(--font-weight-semibold);
     }
+  }
+}
+
+@keyframes stored-prices-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stored-prices-details-enter {
+  from {
+    opacity: 0;
+    transform: scaleY(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes stored-prices-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.2rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stored-prices__source-block,
+  .stored-prices__details,
+  .stored-prices__price {
+    animation: none;
   }
 }
 

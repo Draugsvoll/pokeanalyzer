@@ -1,5 +1,6 @@
 import {
   Clock3,
+  FileText,
   Gem,
   Landmark,
   Palette,
@@ -32,6 +33,16 @@ type CollectorAnalysisProps = {
 };
 
 const categoryIcons: LucideIcon[] = [Gem, Users, Landmark, Palette, Clock3];
+
+function getScoreTone(score: number) {
+  if (score >= 90) return "Elite collectible";
+  if (score >= 75) return "Highly collectible";
+  if (score >= 60) return "Desirable";
+  if (score >= 45) return "Moderate appeal";
+  if (score >= 30) return "Limited appeal";
+  if (score >= 15) return "Low appeal";
+  return "Minimal appeal";
+}
 
 function parseCollectorAnalysis(
   response: string,
@@ -84,6 +95,7 @@ export default function CollectorAnalysis({
     100,
     Math.max(0, Number(analysis.totalScore) || 0),
   );
+  const scoreTone = getScoreTone(totalScore);
 
   return (
     <div className="collector-ranking ui-render-fade">
@@ -100,7 +112,10 @@ export default function CollectorAnalysis({
           </div>
         </div>
         <div className="collector-ranking__overview">
-          <span>Overall score</span>
+          <div className="collector-ranking__meta">
+            <span>Overall score</span>
+            <strong>{scoreTone}</strong>
+          </div>
           {analysis.verdict && (
             <strong className="collector-ranking__verdict">
               {analysis.verdict}
@@ -144,8 +159,13 @@ export default function CollectorAnalysis({
       </div>
 
       {analysis.finalNote && (
-        <section className="collector-ranking__conclusion">
-          <h4>Conclusion</h4>
+        <section className="collector-ranking__conclusion collector-ranking__category">
+          <div className="collector-ranking__category-title">
+            <h4>
+              <FileText size={19} aria-hidden="true" />
+              Conclusion
+            </h4>
+          </div>
           <p>{analysis.finalNote}</p>
         </section>
       )}

@@ -301,6 +301,11 @@
     cursor: not-allowed;
     opacity: 0.55;
   }
+
+  &[aria-busy="true"] {
+    cursor: progress;
+    opacity: 1;
+  }
 }
 
 /*
@@ -347,9 +352,11 @@
 
 .database-search-spinner {
   animation: database-search-spin 0.75s linear infinite;
-  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-color: color-mix(in srgb, currentColor 24%, transparent);
   border-radius: var(--radius-round);
   border-top-color: currentColor;
+  border-width: 2px;
+  border-style: solid;
   box-sizing: border-box;
   display: block;
   height: 16px;
@@ -362,35 +369,25 @@
   }
 }
 
-/* Toolbar filter chip (e.g. Trending first) */
-.explore-filter-chip {
+.explore-sort-control {
   align-items: center;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-control);
-  color: var(--secondary);
-  cursor: pointer;
-  display: inline-flex;
-  font-family: inherit;
-  font-size: var(--font-size-nav);
-  font-weight: 500;
-  gap: 4px;
-  height: 32px;
-  padding: 0 14px;
-  transition:
-    background-color var(--delay-short) ease,
-    border-color var(--delay-short) ease,
-    color var(--delay-short) ease;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-left: auto;
+  text-align: right;
 
-  svg {
+  > span {
     color: var(--muted);
-    flex-shrink: 0;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--font-leading-snug);
+    white-space: nowrap;
   }
 
-  &:hover {
-    background: var(--bg-input-strong);
-    border-color: var(--border-color-strong);
-    color: var(--text);
+  .explore-sort-control__dropdown {
+    min-width: 0;
   }
 }
 
@@ -400,21 +397,23 @@
   margin: var(--space-9) auto 0;
   max-width: 100%;
   width: 100%;
-
-  &--list {
-    max-width: 100%;
-  }
 }
 
 .explore-results-toolbar {
   align-items: flex-end;
-  display: flex;
-  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-divider);
+  display: grid;
   gap: var(--space-4);
-  justify-content: space-between;
-  margin: 0 0 var(--space-4);
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 0 var(--space-5);
+  padding-bottom: var(--space-3);
   text-align: left;
   width: 100%;
+}
+
+.explore-results-toolbar__copy {
+  flex: 1 1 18rem;
+  min-width: 0;
 }
 
 .explore-results-toolbar__title {
@@ -443,49 +442,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.explore-view-toggle {
-  align-items: center;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  display: inline-flex;
-  padding: 2px;
-}
-
-.explore-view-toggle__btn {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: calc(var(--radius-md) - 2px);
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  height: 30px;
-  justify-content: center;
-  width: 30px;
-
-  &:hover {
-    color: var(--text);
-  }
-
-  &--active {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text);
-  }
+  justify-content: flex-end;
+  justify-self: end;
+  min-width: 0;
 }
 
 .explore-results {
   width: 100%;
-
-  /* Grid layout: shared .card-grid (styles/_elements.scss) */
-
-  &--list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
 }
 
 /* ----- Cards ----- */
@@ -515,20 +478,8 @@
   }
 
   &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--ai) 55%, white);
+    outline: 2px solid color-mix(in srgb, var(--custom-color-blue) 55%, white);
     outline-offset: 2px;
-  }
-}
-
-.search-results--list .database-card {
-  flex-direction: row;
-  gap: var(--space-3);
-
-  .database-card__image,
-  .explore-card__image {
-    flex: 0 0 80px;
-    margin-bottom: 0;
-    width: 80px;
   }
 }
 
@@ -682,6 +633,12 @@
 
   .explore-results-toolbar {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .explore-results-toolbar__actions {
+    align-self: stretch;
+    justify-self: end;
+    width: 100%;
   }
 }

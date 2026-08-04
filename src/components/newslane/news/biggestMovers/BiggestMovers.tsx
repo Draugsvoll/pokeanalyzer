@@ -1,3 +1,4 @@
+import type React from "react";
 import type { BiggestMoversPayload } from "../../../../types/news";
 import "./BiggestMovers.scss";
 
@@ -5,16 +6,42 @@ type BiggestMoversProps = {
   payload: BiggestMoversPayload;
 };
 
+const PRICE_PATTERN =
+  /(?:[$€£]\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:-|to|and)\s?[$€£]?\s?\d[\d,]*(?:\.\d{1,2})?)?|\b\d[\d,]*(?:\.\d{1,2})?\s?(?:USD|EUR|GBP)\b)/gi;
+
+function renderHighlightedPrices(text: string) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(PRICE_PATTERN)) {
+    const value = match[0];
+    const index = match.index ?? 0;
+
+    if (index > lastIndex) {
+      parts.push(text.slice(lastIndex, index));
+    }
+
+    parts.push(
+      <strong className="biggest-gainers__price" key={`${value}-${index}`}>
+        {value}
+      </strong>,
+    );
+    lastIndex = index + value.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length ? parts : text;
+}
+
 export function BiggestMovers({ payload }: BiggestMoversProps) {
   const cards = payload.cards;
   const reportLink = payload.report_link;
 
   return (
     <section className="biggest-gainers ui-render-fade">
-      <header className="biggest-gainers__header">
-        <h1 className="biggest-gainers__title">Weekly movers from TCG</h1>
-      </header>
-
       {!!cards.length && (
         <div className="biggest-gainers__list">
           {cards.map((item, index) => {
@@ -43,7 +70,9 @@ export function BiggestMovers({ payload }: BiggestMoversProps) {
                     </div>
 
                     {item.summary && (
-                      <p className="biggest-gainers__summary">{item.summary}</p>
+                      <p className="biggest-gainers__summary">
+                        {renderHighlightedPrices(item.summary)}
+                      </p>
                     )}
                     {!hasContent && (
                       <p className="biggest-gainers__summary">—</p>

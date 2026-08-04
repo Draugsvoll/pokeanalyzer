@@ -16,7 +16,8 @@
     color: white;
     text-decoration: underline;
     font-weight: var(--font-weight-semibold);
-    transition: opacity var(--delay-short) ease;
+    transition: opacity var(--animation-duration-fast)
+      var(--animation-ease-standard);
 
     &:hover {
       opacity: 0.8;
@@ -24,7 +25,7 @@
   }
 
   .profile__card {
-    background: var(--bg-card);
+    background: var(--bg2);
     color: var(--font-color-primary);
     overflow: hidden;
     border-radius: var(--border-radius-card);
@@ -48,7 +49,7 @@
 
   /* Photo avatars keep a neutral soft ring */
   .profile__avatar:not(.avatar-initials) {
-    border: 1px solid rgba(166, 108, 255, 0.32);
+    border: 1px solid rgba(78, 168, 255, 0.32);
     border-radius: var(--radius-round);
     box-shadow: var(--avatar-initials-ring);
   }
@@ -176,9 +177,13 @@
 
   .profile__plan-card {
     background:
-      linear-gradient(135deg, rgba(79, 70, 229, 0.15), transparent 60%),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--custom-color-blue) 12%, transparent),
+        transparent 60%
+      ),
       rgba(255, 255, 255, 0.035);
-    border-color: rgba(129, 140, 248, 0.28);
+    border-color: color-mix(in srgb, var(--custom-color-blue) 28%, transparent);
     display: flex;
     flex-direction: column;
   }
@@ -191,7 +196,7 @@
 
   .profile__summary-loading {
     align-items: center;
-    color: #a5b4fc;
+    color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
     display: flex;
     inset: 3.5rem 0 0;
     justify-content: center;
@@ -232,8 +237,8 @@
   .profile__plan-title {
     align-items: center;
     display: flex;
-    gap: 0.9rem;
-    margin-top: 1.55rem;
+    gap: 1rem;
+    margin-top: 1.75rem;
 
     h3 {
       color: var(--font-color-primary);
@@ -252,17 +257,21 @@
   .profile__plan-icon,
   .profile__credits-icon {
     align-items: center;
-    background: rgba(129, 140, 248, 0.13);
-    border: 1px solid rgba(129, 140, 248, 0.2);
+    background: color-mix(in srgb, var(--custom-color-blue) 13%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
     border-radius: var(--border-radius);
-    color: #a5b4fc;
+    color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
     display: inline-flex;
     justify-content: center;
   }
 
   .profile__plan-icon {
-    height: 2.75rem;
-    width: 2.75rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 0.65rem 1.2rem rgba(0, 0, 0, 0.12);
+    height: 2.85rem;
+    width: 2.85rem;
 
     svg { height: 1.3rem; width: 1.3rem; }
   }
@@ -312,18 +321,26 @@
   }
 
   .profile__credits-progress {
-    background: var(--bg2);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 55%),
+      rgba(255, 255, 255, 0.06);
     border-radius: var(--border-radius-pill);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.026);
     height: 0.35rem;
     margin: 0.85rem 0;
     overflow: hidden;
 
     span {
-      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      background: linear-gradient(
+        90deg,
+        var(--custom-color-blue),
+        var(--custom-color-blue-bright)
+      );
       border-radius: var(--border-radius-pill);
       display: block;
       height: 100%;
-      transition: width var(--delay-short) ease;
+      transition: width var(--animation-duration-fast)
+        var(--animation-ease-standard);
     }
   }
 
@@ -418,7 +435,11 @@
   .profile__purchase-card {
     align-items: flex-start;
     background:
-      linear-gradient(145deg, rgba(99, 102, 241, 0.09), transparent 65%),
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--custom-color-blue) 9%, transparent),
+        transparent 65%
+      ),
       rgba(11, 11, 18, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: var(--border-radius);
@@ -427,15 +448,17 @@
     flex-direction: column;
     min-height: 14.5rem;
     padding: 1.25rem;
+    position: relative;
     text-align: left;
     transition:
-      box-shadow var(--delay-short) ease,
-      transform var(--delay-short) ease;
+      box-shadow var(--animation-duration-fast) var(--animation-ease-standard),
+      transform var(--animation-duration-fast) var(--animation-ease-standard);
 
-    &:hover {
+    &:hover:not(.is-current) {
       box-shadow:
         0 0.9rem 2rem rgba(0, 0, 0, 0.16),
-        0 0 1.5rem rgba(129, 140, 248, 0.08);
+        0 0 1.5rem color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
+      transform: translateY(var(--hover-lift));
     }
 
     &--free {
@@ -454,6 +477,10 @@
         color: var(--custom-color-teal);
       }
 
+      .profile__current-plan-badge {
+        color: var(--custom-color-teal);
+      }
+
       .profile__purchase-cta {
         background: color-mix(in srgb, var(--custom-color-teal) 12%, transparent);
         color: var(--custom-color-teal);
@@ -464,21 +491,22 @@
         }
       }
 
-      &:hover {
+      &:hover:not(.is-current) {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
           0 0 1.5rem color-mix(in srgb, var(--custom-color-teal) 8%, transparent);
       }
 
       &.is-current {
-        border-color: color-mix(in srgb, var(--custom-color-teal) 25%, transparent);
-        opacity: 0.75;
-        cursor: default;
-        pointer-events: none;
+        background:
+          linear-gradient(145deg, color-mix(in srgb, var(--custom-color-teal) 12%, transparent), transparent 65%),
+          rgba(11, 11, 18, 0.5);
+        border-color: color-mix(in srgb, var(--custom-color-teal) 46%, transparent);
+        cursor: not-allowed;
 
         .profile__purchase-cta {
           opacity: 0.6;
-          cursor: default;
+          cursor: not-allowed;
           pointer-events: none;
         }
       }
@@ -510,6 +538,10 @@
         color: var(--custom-color-blue);
       }
 
+      .profile__current-plan-badge {
+        color: var(--custom-color-blue);
+      }
+
       .profile__purchase-cta {
         background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
         color: var(--custom-color-blue);
@@ -520,21 +552,22 @@
         }
       }
 
-      &:hover {
+      &:hover:not(.is-current) {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
           0 0 1.5rem color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
       }
 
       &.is-current {
-        border-color: color-mix(in srgb, var(--custom-color-blue) 25%, transparent);
-        opacity: 0.75;
-        cursor: default;
-        pointer-events: none;
+        background:
+          linear-gradient(145deg, color-mix(in srgb, var(--custom-color-blue) 12%, transparent), transparent 65%),
+          rgba(11, 11, 18, 0.5);
+        border-color: color-mix(in srgb, var(--custom-color-blue) 46%, transparent);
+        cursor: not-allowed;
 
         .profile__purchase-cta {
           opacity: 0.6;
-          cursor: default;
+          cursor: not-allowed;
           pointer-events: none;
         }
       }
@@ -566,6 +599,10 @@
         color: var(--custom-color-purple);
       }
 
+      .profile__current-plan-badge {
+        color: var(--custom-color-purple);
+      }
+
       .profile__purchase-cta {
         background: color-mix(in srgb, var(--custom-color-purple) 12%, transparent);
         color: var(--custom-color-purple);
@@ -576,21 +613,22 @@
         }
       }
 
-      &:hover {
+      &:hover:not(.is-current) {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
           0 0 1.5rem color-mix(in srgb, var(--custom-color-purple) 8%, transparent);
       }
 
       &.is-current {
-        border-color: color-mix(in srgb, var(--custom-color-purple) 25%, transparent);
-        opacity: 0.75;
-        cursor: default;
-        pointer-events: none;
+        background:
+          linear-gradient(145deg, color-mix(in srgb, var(--custom-color-purple) 13%, transparent), transparent 65%),
+          rgba(11, 11, 18, 0.5);
+        border-color: color-mix(in srgb, var(--custom-color-purple) 46%, transparent);
+        cursor: not-allowed;
 
         .profile__purchase-cta {
           opacity: 0.6;
-          cursor: default;
+          cursor: not-allowed;
           pointer-events: none;
         }
       }
@@ -633,7 +671,7 @@
         }
       }
 
-      &:hover {
+      &:hover:not(.is-current) {
         box-shadow:
           0 0.9rem 2rem rgba(0, 0, 0, 0.16),
           0 0 1.5rem color-mix(in srgb, var(--custom-color-orange) 8%, transparent);
@@ -666,7 +704,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     .profile__purchase-card {
-      transition: box-shadow var(--delay-short) ease;
+      transition: box-shadow var(--animation-duration-fast)
+        var(--animation-ease-standard);
 
       &:hover { transform: none; }
     }
@@ -698,10 +737,11 @@
 
   .profile__purchase-icon {
     align-items: center;
-    background: rgba(129, 140, 248, 0.12);
-    border: 1px solid rgba(129, 140, 248, 0.2);
+    background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
     border-radius: var(--border-radius);
-    color: #a5b4fc;
+    color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
     display: inline-flex;
     height: 2.75rem;
     justify-content: center;
@@ -731,12 +771,28 @@
     margin-top: 0.3rem;
   }
 
+  .profile__current-plan-badge {
+    align-items: center;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+    border-radius: var(--border-radius-pill);
+    color: currentColor;
+    display: inline-flex;
+    font-size: var(--font-size-badge);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    padding: 0.32rem 0.55rem;
+    position: absolute;
+    right: 1.25rem;
+    top: 1.25rem;
+  }
+
   .profile__purchase-cta {
     align-items: center;
-    background: rgba(129, 140, 248, 0.12);
+    background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
     border: 0;
     border-radius: var(--border-radius);
-    color: #c7d2fe;
+    color: color-mix(in srgb, var(--custom-color-blue) 62%, white);
     cursor: pointer;
     display: inline-flex;
     font-size: var(--font-size-button);
@@ -748,18 +804,18 @@
     padding: 0.6rem 0.98rem;
     text-align: center;
     transition:
-      background-color var(--delay-short) ease,
-      color var(--delay-short) ease,
-      transform var(--delay-short) ease;
+      background-color var(--animation-duration-fast) var(--animation-ease-standard),
+      color var(--animation-duration-fast) var(--animation-ease-standard),
+      transform var(--animation-duration-fast) var(--animation-ease-standard);
     width: 100%;
 
     &:hover:not(:disabled) {
-      background: rgba(129, 140, 248, 0.18);
+      background: color-mix(in srgb, var(--custom-color-blue) 18%, transparent);
       color: var(--font-color-primary);
     }
 
     &:focus-visible {
-      outline: 2px solid #818cf8;
+      outline: 2px solid var(--custom-color-blue);
       outline-offset: 2px;
     }
 
@@ -802,10 +858,11 @@
     margin-top: 0.85rem;
 
     small {
-      background: rgba(99, 102, 241, 0.08);
-      border: 1px solid rgba(129, 140, 248, 0.2);
+      background: color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
       border-radius: var(--border-radius-pill);
-      color: #c7d2fe;
+      color: color-mix(in srgb, var(--custom-color-blue) 62%, white);
       font-size: var(--font-size-caption);
       padding: 0.4rem 0.75rem;
     }

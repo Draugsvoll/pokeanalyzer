@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import Button from "../button/Button";
+import { getCustomColors } from "../../utils/customStylings";
 import "./ConfirmPopover.scss";
 
 export type ConfirmPopoverProps = {
@@ -78,6 +79,16 @@ export function ConfirmPopover({
       )}
       <Button
         variant="default"
+        fill="ghost"
+        size="xsmall"
+        disabled={confirming}
+        style={getCustomColors("blue")}
+        onClick={onCancel}
+      >
+        {cancelLabel}
+      </Button>
+      <Button
+        variant="default"
         size="xsmall"
         disabled={confirming || confirmDisabled}
         aria-label={confirming ? `${confirmLabel} in progress` : undefined}
@@ -88,14 +99,6 @@ export function ConfirmPopover({
         ) : (
           confirmLabel
         )}
-      </Button>
-      <Button
-        variant="default"
-        size="xsmall"
-        disabled={confirming}
-        onClick={onCancel}
-      >
-        {cancelLabel}
       </Button>
     </div>
   );

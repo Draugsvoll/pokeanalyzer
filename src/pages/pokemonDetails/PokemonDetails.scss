@@ -128,7 +128,7 @@
     width: 17.5rem;
 
     svg {
-      color: var(--custom-color-purple);
+      color: var(--custom-color-blue);
       height: 1.35rem;
       opacity: 0.75;
       stroke-width: 2;
@@ -663,11 +663,11 @@
       .card-view__credit-copy .app-btn {
         border-color: color-mix(
           in srgb,
-          var(--custom-color-purple) 52%,
+          var(--custom-color-blue) 52%,
           transparent
         );
         border-radius: var(--border-radius-pill);
-        color: color-mix(in srgb, var(--custom-color-purple) 42%, white);
+        color: color-mix(in srgb, var(--custom-color-blue) 42%, white);
         font-size: var(--font-size-caption);
         min-height: 1.65rem;
         min-width: 4rem;
@@ -676,12 +676,12 @@
         &:hover:not(:disabled) {
           background: color-mix(
             in srgb,
-            var(--custom-color-purple) 12%,
+            var(--custom-color-blue) 12%,
             transparent
           );
           border-color: color-mix(
             in srgb,
-            var(--custom-color-purple) 52%,
+            var(--custom-color-blue) 52%,
             transparent
           );
           color: var(--font-color-primary);
@@ -696,14 +696,14 @@
       .card-view__credit-link {
         text-decoration-color: color-mix(
           in srgb,
-          var(--custom-color-purple) 45%,
+          var(--custom-color-blue) 45%,
           transparent
         );
 
         &:focus-visible {
           outline-color: color-mix(
             in srgb,
-            var(--custom-color-purple) 55%,
+            var(--custom-color-blue) 55%,
             transparent
           );
         }
@@ -750,9 +750,9 @@
   &__credit-spinner {
     animation: card-view-credit-spin 0.75s linear infinite;
     border: 2px solid
-      color-mix(in srgb, var(--custom-color-purple) 24%, transparent);
+      color-mix(in srgb, var(--custom-color-blue) 24%, transparent);
     border-radius: var(--border-radius-round);
-    border-top-color: color-mix(in srgb, var(--custom-color-purple) 72%, white);
+    border-top-color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
     box-sizing: border-box;
     display: inline-block;
     height: 0.9rem;
@@ -792,11 +792,11 @@
       background: transparent;
       border-color: color-mix(
         in srgb,
-        var(--custom-color-purple) 38%,
+        var(--custom-color-blue) 38%,
         transparent
       );
       border-radius: var(--border-radius-control);
-      color: color-mix(in srgb, var(--custom-color-purple) 36%, white);
+      color: color-mix(in srgb, var(--custom-color-blue) 36%, white);
       font-size: var(--font-size-caption);
       font-weight: var(--font-weight-semibold);
       min-height: 1.65rem;
@@ -806,12 +806,12 @@
       &:hover:not(:disabled) {
         background: color-mix(
           in srgb,
-          var(--custom-color-purple) 12%,
+          var(--custom-color-blue) 12%,
           transparent
         );
         border-color: color-mix(
           in srgb,
-          var(--custom-color-purple) 48%,
+          var(--custom-color-blue) 48%,
           transparent
         );
         color: var(--font-color-primary);
@@ -865,7 +865,7 @@
     text-decoration: underline;
     text-decoration-color: color-mix(
       in srgb,
-      var(--custom-color-purple) 45%,
+      var(--custom-color-blue) 45%,
       transparent
     );
     text-decoration-thickness: 1px;
@@ -875,10 +875,10 @@
       text-decoration-color var(--delay-short) ease;
 
     &:hover {
-      color: color-mix(in srgb, var(--custom-color-purple) 55%, white);
+      color: color-mix(in srgb, var(--custom-color-blue) 55%, white);
       text-decoration-color: color-mix(
         in srgb,
-        var(--custom-color-purple) 70%,
+        var(--custom-color-blue) 70%,
         transparent
       );
     }
@@ -886,7 +886,7 @@
     &:focus-visible {
       border-radius: 0.2rem;
       outline: 2px solid
-        color-mix(in srgb, var(--custom-color-purple) 55%, transparent);
+        color-mix(in srgb, var(--custom-color-blue) 55%, transparent);
       outline-offset: 2px;
     }
   }
@@ -1112,7 +1112,8 @@
     }
 
     > .loading-state {
-      min-height: clamp(12rem, 24vh, 18rem);
+      min-height: 8rem;
+      padding-block: 1.25rem;
     }
   }
 

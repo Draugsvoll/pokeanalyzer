@@ -52,7 +52,7 @@
 
 .ui-render-fade {
   opacity: 1;
-  transition: opacity 0.4s ease;
+  transition: opacity var(--animation-duration-enter) var(--animation-ease-standard);
 }
 
 @starting-style {
@@ -110,7 +110,7 @@ body {
   z-index: 0;
 }
 
-.app > :not(.app-background) {
+.main-content {
   position: relative;
   z-index: 1;
 }

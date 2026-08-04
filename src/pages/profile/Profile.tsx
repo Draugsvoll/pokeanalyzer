@@ -352,6 +352,11 @@ export default function Profile() {
                     key={plan.id}
                     className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : plan.id === "collector" ? " profile__purchase-card--collector" : plan.id === "pro" ? " profile__purchase-card--pro" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
                   >
+                    {planIsCurrent && (
+                      <span className="profile__current-plan-badge">
+                        Active
+                      </span>
+                    )}
                     <span className="profile__purchase-icon" aria-hidden="true">
                       <PlanIcon />
                     </span>

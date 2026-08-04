@@ -425,7 +425,7 @@ export function JustTcgPriceHistory({
 
   if (!selectedGroup || !selectedVariant) {
     return (
-      <section className="just-tcg-history just-tcg-history--empty">
+      <section className="just-tcg-history just-tcg-history--empty ui-render-fade">
         <header>
           <JustTcgHistoryIntro />
         </header>
@@ -435,7 +435,7 @@ export function JustTcgPriceHistory({
   }
 
   return (
-    <section className="just-tcg-history">
+    <section className="just-tcg-history ui-render-fade">
       <header>
         <JustTcgHistoryIntro />
         <div className="just-tcg-history__controls">

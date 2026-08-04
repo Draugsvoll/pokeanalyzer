@@ -88,7 +88,7 @@ export function SelectDropdown<T extends string>({
           <span>{selectedOption?.label ?? ""}</span>
           {selectedOption?.secondaryLabel && (
             <span className="ui-select-dropdown__secondary">
-              <i aria-hidden="true">•</i>
+              <i aria-hidden="true">-</i>
               {selectedOption.secondaryLabel}
             </span>
           )}
@@ -123,7 +123,7 @@ export function SelectDropdown<T extends string>({
               <span>{option.label}</span>
               {option.secondaryLabel && (
                 <span className="ui-select-dropdown__secondary">
-                  <i aria-hidden="true">•</i>
+                  <i aria-hidden="true">-</i>
                   {option.secondaryLabel}
                 </span>
               )}
