@@ -464,7 +464,7 @@ For each service include:
 - Maximum Declared Value
 - Estimated Turnaround
 These values are required for the "Current PSA Grading Fees" section.
-If a service is not visible on the main PSA pricing page, perform an additional search for that specific service before leaving it blank.
+If a service is not visible on the main PSA pricing page, perform additional searches for that specific service before leaving it blank.
 
 Calculate:
 Profit after grading = Estimated graded value − Raw value − Grading fee
