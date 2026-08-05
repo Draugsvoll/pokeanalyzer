@@ -1,9 +1,13 @@
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./WorthGradingView.scss";
 
-type WorthGradingViewProps = { grokRequest: GrokRequestState };
+type WorthGradingViewProps = {
+  cardName: string;
+  grokRequest: GrokRequestState;
+};
 
 type WorthGradingResponse = {
   html?: string;
@@ -40,6 +44,7 @@ const ALLOWED_CLASSES = new Set([
   "card",
   "cost-grid",
   "featured",
+  "feature-section-heading",
   "grade",
   "loss",
   "marginal",
@@ -92,9 +97,9 @@ function readSignedAmount(value: string) {
   return Number.isFinite(amount) ? amount : null;
 }
 
-function legacyJsonToHtml(data: WorthGradingResponse) {
+function legacyJsonToHtml(data: WorthGradingResponse, cardName: string) {
   if (typeof data.html === "string") {
-    return sanitizeWorthGradingHtml(data.html);
+    return sanitizeWorthGradingHtml(data.html, cardName);
   }
 
   const paragraphs = [data.summary, data.action]
@@ -107,7 +112,7 @@ function legacyJsonToHtml(data: WorthGradingResponse) {
   )}</h2>${paragraphs}</section>`;
 }
 
-function sanitizeWorthGradingHtml(response: string) {
+function sanitizeWorthGradingHtml(response: string, cardName: string) {
   const parser = new DOMParser();
   const document = parser.parseFromString(stripCodeFence(response), "text/html");
   const source = document.body;
@@ -174,6 +179,37 @@ function sanitizeWorthGradingHtml(response: string) {
     if (!text || /:\s*$/.test(text)) {
       element.remove();
     }
+  });
+
+  container.querySelectorAll("section h3").forEach((heading) => {
+    if (heading.textContent?.trim().toLowerCase() === "notes") {
+      heading.remove();
+    }
+  });
+
+  container.querySelectorAll(".summary-grid .card > h3").forEach((heading) => {
+    heading.textContent = formatCardVariantTitle(
+      heading.textContent ?? "",
+      cardName,
+    );
+  });
+
+  container.querySelectorAll("section > h2").forEach((heading) => {
+    const section = heading.closest("section");
+
+    if (section?.querySelector(".cost-grid")) {
+      heading.textContent = "PSA Grading Fees";
+      return;
+    }
+
+    if (!section?.querySelector(".table-wrap table")) return;
+
+    const title = heading.textContent?.trim() ?? "";
+    heading.textContent = formatCardVariantTitle(title, cardName);
+  });
+
+  container.querySelectorAll("h2").forEach((heading) => {
+    heading.classList.add("feature-section-heading");
   });
 
   container.querySelectorAll(".cost-grid .card").forEach((element) => {
@@ -254,7 +290,10 @@ function sanitizeWorthGradingHtml(response: string) {
   return container.innerHTML;
 }
 
-export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
+export function WorthGradingView({
+  cardName,
+  grokRequest,
+}: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching grading value...</LoadingState>;
@@ -264,7 +303,9 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   if (!response) return null;
 
   const data = parseJsonResponse(response);
-  const html = data ? legacyJsonToHtml(data) : sanitizeWorthGradingHtml(response);
+  const html = data
+    ? legacyJsonToHtml(data, cardName)
+    : sanitizeWorthGradingHtml(response, cardName);
 
   if (!html.trim()) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;

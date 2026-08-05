@@ -163,7 +163,7 @@
     align-items: center;
     background: color-mix(in srgb, var(--source-color) 75%, transparent);
     border-radius: var(--border-radius-pill);
-    color: var(--font-color-primary);
+    color: var(--button-font-color);
     display: flex;
     font-size: var(--font-size-paragraph-sm);
     font-weight: var(--font-weight-bold);
@@ -172,6 +172,9 @@
     margin-top: 1.25rem;
     padding: 0.7rem 1rem;
     text-decoration: none;
+  }
+  &__market > a:hover {
+    color: var(--button-font-color);
   }
   &__market > a svg {
     height: 0.8rem;

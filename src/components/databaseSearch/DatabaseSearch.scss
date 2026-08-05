@@ -262,7 +262,7 @@
   border: 1px solid var(--feature-accent);
   border-radius: calc(var(--search-radius) - 2px);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--feature-accent) 18%, transparent);
-  color: #0a0c12;
+  color: var(--button-font-color);
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
@@ -287,7 +287,7 @@
     border-color: color-mix(in srgb, var(--feature-accent) 92%, white);
     box-shadow: 0 0 0 2px
       color-mix(in srgb, var(--feature-accent) 24%, transparent);
-    color: #0a0c12;
+    color: var(--button-font-color);
     filter: brightness(1.02);
   }
 

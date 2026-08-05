@@ -172,6 +172,39 @@ input[type="radio"] {
   border-radius: var(--feature-card-radius);
 }
 
+.feature-section-heading {
+  --feature-section-heading-accent: var(--feature-accent, var(--custom-color-blue));
+
+  align-items: center;
+  color: var(--font-color-primary);
+  display: flex;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-tight);
+  line-height: var(--font-leading-snug);
+  min-width: 0;
+}
+
+.feature-section-heading::before {
+  background: color-mix(
+    in srgb,
+    var(--feature-section-heading-accent) 16%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--feature-section-heading-accent) 28%,
+      transparent
+    );
+  border-radius: var(--border-radius-sm);
+  content: "";
+  flex: 0 0 auto;
+  height: 0.8rem;
+  margin-right: 0.65rem;
+  width: 0.8rem;
+}
+
 /* Small outline badge (variants, counts, etc.) */
 .badge-small {
   align-items: center;

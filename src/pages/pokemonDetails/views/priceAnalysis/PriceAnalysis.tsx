@@ -231,7 +231,7 @@ export function PriceAnalysis({
         reportDisabled={reportDisabled}
       />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
-      <SalesDataView grokRequest={salesDataRequest} />
+      <SalesDataView cardName={card.name} grokRequest={salesDataRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </div>
   );

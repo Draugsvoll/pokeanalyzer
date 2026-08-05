@@ -57,9 +57,10 @@ function filterHistoryByPeriod(
 export function JustTcgHistoryIntro() {
   return (
     <div className="just-tcg-history__intro">
-      <h3>Price history</h3>
+      <h3 className="feature-section-heading">Price history</h3>
       <p>
-        Sales aggregated by <strong>JustTCG</strong>.
+        Aggregated sales • Online marketplaces & physical stores •{" "}
+        <strong>JustTCG</strong>.
       </p>
     </div>
   );

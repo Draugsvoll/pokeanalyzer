@@ -43,7 +43,7 @@
 
 .app-btn--primary {
   background: var(--primary-color);
-  color: var(--font-color-primary);
+  color: var(--button-font-color);
   border: none;
 }
 
@@ -107,14 +107,14 @@
   border: 1px solid var(--feature-accent);
   box-shadow: 0 0 0 2px
     color-mix(in srgb, var(--feature-accent) 18%, transparent);
-  color: #0a0c12;
+  color: var(--button-font-color);
 
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--feature-accent) 92%, white);
     border-color: color-mix(in srgb, var(--feature-accent) 92%, white);
     box-shadow: 0 0 0 2px
       color-mix(in srgb, var(--feature-accent) 24%, transparent);
-    color: #0a0c12;
+    color: var(--button-font-color);
   }
 
   &:focus-visible {
@@ -190,12 +190,12 @@
     color-mix(in srgb, var(--custom-color-blue) 80%, #0c4a6e)
   );
   border: 1px solid rgba(147, 197, 253, 0.24);
-  color: #0a0c12;
+  color: var(--button-font-color);
 
   &:hover:not(:disabled) {
     border-color: rgba(147, 197, 253, 0.3);
     box-shadow: 0 0.45rem 1rem rgba(59, 130, 246, 0.1);
-    color: #0a0c12;
+    color: var(--button-font-color);
     filter: brightness(1.025);
   }
 }
@@ -229,10 +229,10 @@
   border: 0;
   border-radius: var(--border-radius-control);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset;
-  color: #0a0c12;
+  color: var(--button-font-color);
 
   &:hover:not(:disabled) {
-    color: #0a0c12;
+    color: var(--button-font-color);
     filter: brightness(1.06);
   }
 
@@ -243,46 +243,20 @@
 }
 
 .app-btn--portfolio {
-  background: rgba(255, 255, 255, 0.045);
-  border: 0;
-  border-radius: var(--border-radius-control);
-  color: var(--font-color-primary);
-  font-size: var(--font-size-badge);
-  line-height: 1;
-  min-height: 0;
-  min-width: 8rem;
-  overflow: hidden;
-  padding: 0.6rem 1.25rem;
-  white-space: nowrap;
+  --feature-accent: var(--custom-color-blue);
 
   svg {
     fill: transparent;
-    height: 1rem;
-    width: 1rem;
-  }
-
-  &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.07);
-    color: var(--font-color-primary);
-    filter: none;
   }
 
   &[aria-pressed="true"] {
-    background: rgba(255, 255, 255, 0.045);
-    color: var(--custom-color-blue);
-
     svg {
       fill: currentColor;
     }
   }
 
-  &[aria-pressed="true"]:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.065);
-  }
-
   &[aria-busy="true"] {
-    color: var(--font-color-secondary);
-    opacity: 0.82;
+    opacity: 0.72;
   }
 }
 

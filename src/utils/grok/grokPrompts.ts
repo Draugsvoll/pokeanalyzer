@@ -107,49 +107,54 @@ Can you fetch sold data based on grading for this card at PriceCharting website?
 Response must be only a valid JSON format. No extra text before or after the JSON format.
 Response must be put into the exact structure as the example response below.
 If data not available just leave the field empty.
+If there are multiple English variants available, include each one in the variants array.
 
-Notes field is optional. If theres a need to clarify which variant is used, then do it. You can add
-other important information that is not alreay obvious.
+Notes field is optional for each variant. If theres valuable information related to that specific variant
+that collectors would want to know, then add it.
 
 
 {
   "title": "Blaine's Charizard #2",
   "subtitle": "Gym Challenge • Unlimited • Rare Holo • PriceCharting Data",
-  "market_prices": [
+  "variants": [
     {
-      "grade": "Ungraded",
-      "price": "$272.83",
-      "volume": "~1 sale / week"
-    },
-    {
-      "grade": "Grade 7",
-      "price": "$568.23",
-      "volume": "~2 sales / week"
-    },
-    {
-      "grade": "Grade 8",
-      "price": "$830.00",
-      "volume": "~3 sales / week"
-    },
-    {
-      "grade": "Grade 9",
-      "price": "$1,173.92",
-      "volume": "~3 sales / week"
-    },
-    {
-      "grade": "Grade 9.5",
-      "price": "$1,290.02",
-      "volume": "~6 sales / year"
-    },
-    {
-      "grade": "PSA 10",
-      "price": "$6,000.25",
-      "volume": "~1 sale / month"
+      "variant": "Unlimited Holo",
+      "market_prices": [
+        {
+          "grade": "Ungraded",
+          "price": "$272.83",
+          "volume": "~1 sale / week"
+        },
+        {
+          "grade": "Grade 7",
+          "price": "$568.23",
+          "volume": "~2 sales / week"
+        },
+        {
+          "grade": "Grade 8",
+          "price": "$830.00",
+          "volume": "~3 sales / week"
+        },
+        {
+          "grade": "Grade 9",
+          "price": "$1,173.92",
+          "volume": "~3 sales / week"
+        },
+        {
+          "grade": "Grade 9.5",
+          "price": "$1,290.02",
+          "volume": "~6 sales / year"
+        },
+        {
+          "grade": "PSA 10",
+          "price": "$6,000.25",
+          "volume": "~1 sale / month"
+        }
+      ],
+      "notes": [
+        ""
+      ]
     }
-  ],
-  "notes": [
-    "This is the Unlimited version (no 1st Edition stamp). 1st Edition is significantly more expensive.",
-    "Prices fluctuate with condition, centering, and whether the card has a strong holo swirl."
   ]
 }
 
@@ -158,65 +163,114 @@ other important information that is not alreay obvious.
 
 const sellMyCard: string = `
   How much should I sell this card for? Give a summarized response as valid JSON.
-  No extra text before or after the JSON. The root must be an object with a "steps" array.
+  Use reliable sources (PriceCharting, PokeScope, and eBay are good examples)
+  No extra text before or after the JSON.
+  Include multiple English variants when they exist.
+  The root must be an object with a "variants" array and a "marketplace_availability" array.
+  Each variant must contain a "variant" and a "steps" array.
   Each step must contain a "title" and a "substeps" array.
+  The marketplace_availability category exists outside the array of variants.
+  Everything else should be the very same format inside each variant.
 
-  The first category must be price recommendations,
-  include different conditions/grading.
+  For each variant:
+  The first category must be price recommendations, include different conditions/grading.
 
   Don't make a step about inspecting condition.
 
-  The second category lets me know the general sales volume of this card and what sources everything is based on.
+  The second category: How fast can I realistically expect to sell this card? Consider different markets and conditions.
+
+  Third category lets me know the general sales volume of this card and what sources everything is based on.
   Use reliable sources and make sure we know roughly how often it sells. For example per week, month, or year.
   Use one substep per grading category.
 
-  Third category: How fast can I realistically expect to sell this card? Consider different markets and conditions.
-
-  Fourth category: I need to know different marketplaces available and what each one is best for.
+  Marketplace available category: I need to know different marketplaces available and what each one is best for.
+  This category must exist outside the array of variants.
 
   Other category (optional): Include any other valuable, applicable information.
+  Each variant can include an optional "notes" array.
+  Notes should only include valuable information related to that specific card or variant that collectors would want to know.
 
   Don't blend different categories together. Name each step based on its content.
 
   Example response:
 
   {
-    "steps": [
+    "variants": [
       {
-        "title": "Price Recommendations",
-        "substeps": [
+        "variant": "Unlimited Holo",
+        "notes": [
+          "Collectors may pay more for strong holo swirl placement or unusually clean centering."
+        ],
+        "steps": [
           {
-            "label": "PSA 9",
-            "price": "$100-$150"
+            "title": "Price Recommendations",
+            "substeps": [
+              {
+                "label": "PSA 9",
+                "price": "$100-$150"
+              },
+              {
+                "label": "PSA 8",
+                "price": "$200-$250"
+              }
+            ]
           },
           {
-            "label": "PSA 8",
-            "price": "$200-$250"
+            "title": "Expected Sales Time",
+            "substeps": [
+              "",
+              ""
+            ]
+          },
+          {
+            "title": "Sales Volume and Sources",
+            "substeps": [
+              "",
+              "",
+              "",
+              ""
+            ]
           }
         ]
       },
       {
-        "title": "Sales Volume and Sources",
-        "substeps": [
-          "",
-          "",
-          ""
+        "variant": "Reverse Holo",
+        "notes": [
+          "Reverse holo demand can be more condition-sensitive than standard raw copies."
+        ],
+        "steps": [
+          {
+            "title": "Price Recommendations",
+            "substeps": [
+              {
+                "label": "Near Mint",
+                "price": "$40-$55"
+              }
+            ]
+          },
+          {
+            "title": "Expected Sales Time",
+            "substeps": [
+              ""
+            ]
+          },
+          {
+            "title": "Sales Volume and Sources",
+            "substeps": [
+              ""
+            ]
+          }
         ]
+      }
+    ],
+    "marketplace_availability": [
+      {
+        "label": "eBay",
+        "recommendation": "Best for..."
       },
       {
-        "title": "Expected Sales Time",
-        "substeps": [
-          "",
-          ""
-          ""
-        ]
-      },
-      {
-        "title": "",
-        "substeps": [
-          "",
-          ""
-        ]
+        "label": "TCGPlayer",
+        "recommendation": ""
       }
     ]
   }
@@ -476,7 +530,7 @@ For each service include:
 - Price
 - Maximum Declared Value
 - Estimated Turnaround
-These values are required for the "Current PSA Grading Fees" section.
+These values are required for the "PSA Grading Fees" section.
 
 Calculate:
 Profit after grading = Estimated graded value − Raw value − Grading fee
@@ -488,6 +542,7 @@ For the Conclusion section:
 - If a specific PSA grade matters, mention it only in SHORT_REASON.
 - Base the recommendation on the full context you found: profits, grading fees, demand, liquidity, sales volume, collector appeal, and confidence in the market data.
 - The short reason is a summary of the reasoning behind the recommendation.
+- Variant titles must include the Pokemon/card name before the variant name, for example "Charizard (Unlimited)", "Charizard (Shadowless)", or "Charizard (1st Edition)" instead of only "Unlimited", "Shadowless", or "1st Edition".
 Don't invent prices or variants.
 
 Output:
@@ -526,7 +581,7 @@ Use this structure.
 
 <article class="card">
 
-<h3>{{VARIANT_NAME}}</h3>
+<h3>{{CARD_AND_VARIANT_NAME}}</h3>
 
 <div class="recommendation">
 {{GENERAL_RECOMMENDATION}}
@@ -547,7 +602,7 @@ Use this structure.
 
 <section>
 
-<h2>{{VARIANT_NAME}}</h2>
+<h2>{{CARD_AND_VARIANT_NAME}}</h2>
 
 <div class="table-wrap">
 
@@ -634,7 +689,7 @@ Use this structure.
 
 <section>
 
-<h2>Current PSA Grading Fees</h2>
+<h2>PSA Grading Fees</h2>
 
 <div class="cost-grid">
 

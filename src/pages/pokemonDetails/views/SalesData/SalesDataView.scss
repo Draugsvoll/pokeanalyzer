@@ -46,36 +46,32 @@
   }
 }
 
-.sales-data-view__market-heading > div {
-  align-items: end;
+.sales-data-view__variants {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  width: 100%;
-
-  p {
-    text-align: right;
-  }
+  padding: 1.4rem 1.65rem 1.6rem;
 }
 
-.sales-data-view__market-heading > span {
-  background: color-mix(in srgb, var(--sales-data-accent) 14%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--sales-data-accent) 28%, transparent);
-  border-radius: var(--border-radius-pill);
-  color: var(--sales-data-accent);
-  flex: 0 0 auto;
-  font-size: var(--font-size-badge);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-  padding: 0.45rem 0.7rem;
+.sales-data-view__variant {
+  display: grid;
+  gap: 1rem;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border-divider);
+    padding-bottom: 1.35rem;
+  }
+
+  h4 {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-h4);
+    margin: 0;
+  }
 }
 
 .sales-data-view__market-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 1.4rem 1.65rem 1.6rem;
 
   article {
     background: var(--feature-card-inner-bg);
@@ -151,52 +147,32 @@
 }
 
 @media (max-width: 36rem) {
-  .sales-data-view__market-heading > div {
-    align-items: start;
-    grid-template-columns: 1fr;
-
-    p {
-      text-align: left;
-    }
+  .sales-data-view__variants {
+    padding-inline: 1.1rem;
   }
 
   .sales-data-view__market-grid {
     grid-template-columns: 1fr;
-    padding-inline: 1.1rem;
   }
 }
 
 .sales-data-view__notes {
-  border-top: 1px solid var(--border-divider);
-  padding: 1rem 1.25rem;
+  padding: 0;
 
   ul {
     display: grid;
     gap: 0.65rem;
     list-style: none;
     margin: 0;
-    padding: 0 0 0 1.35rem;
+    padding: 0;
   }
 
   li {
+    background: var(--feature-card-inner-bg);
+    border-radius: var(--feature-card-radius);
     color: var(--font-color-secondary);
     line-height: var(--font-leading-relaxed);
-    position: relative;
-
-    &::before {
-      background: var(--sales-data-accent);
-      border-radius: var(--border-radius-round);
-      content: "";
-      height: 0.45rem;
-      left: -1.25rem;
-      position: absolute;
-      top: 0.55rem;
-      width: 0.45rem;
-    }
-  }
-
-  &--standalone {
-    border-top: var(--border);
+    padding: 0.9rem 1rem;
   }
 }
 

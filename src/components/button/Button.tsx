@@ -45,9 +45,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   const cls = [
     "app-btn",
     variant === "default" ? "app-btn-pill" : `app-btn--${variant}`,
+    variant === "portfolio" && "app-btn-pill",
     variant === "secondary" && "app-btn-pill",
     /* fill modes only apply to default accent pill */
     variant === "default" && `app-btn-pill--${fill}`,
+    variant === "portfolio" && "app-btn-pill--solid",
     `app-btn--${size}`,
     fullWidth && "app-btn--full-width",
     fitContent && "app-btn--fit-content",

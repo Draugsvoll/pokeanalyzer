@@ -1104,10 +1104,13 @@ function PokemonDetailsForCard() {
                   />
                 )}
                 {activeView === "worth_grading" && (
-                  <WorthGradingView grokRequest={grokRequest} />
+                  <WorthGradingView
+                    cardName={card.name}
+                    grokRequest={grokRequest}
+                  />
                 )}
                 {activeView === "sell_price" && (
-                  <SellPriceView grokRequest={grokRequest} />
+                  <SellPriceView cardName={card.name} grokRequest={grokRequest} />
                 )}
                 {activeView === "collector_analysis" && (
                   <CollectorAnalysis grokRequest={grokRequest} />

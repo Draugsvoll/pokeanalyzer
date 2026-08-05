@@ -9,15 +9,23 @@
   width: 100%;
 }
 
-.sell-price-view__step {
+.sell-price-view__variant {
   background: var(--feature-card-bg);
   border: var(--feature-card-border);
   border-radius: var(--feature-card-radius);
   box-shadow: var(--feature-card-shadow);
   overflow: hidden;
+
+  > header {
+    padding: 1.25rem 1.35rem 0;
+
+    h3 {
+      margin: 0;
+    }
+  }
 }
 
-.sell-price-view__steps {
+.sell-price-view__variants {
   display: grid;
   gap: var(--card-view-section-gap);
   list-style: none;
@@ -25,25 +33,33 @@
   padding: 0;
 }
 
-.sell-price-view__step--pricing {
-  > header {
-    border-bottom: 1px solid var(--border-divider);
-    padding: 1.4rem 1.65rem;
+.sell-price-view__variant-steps {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1rem 1.35rem 1.35rem;
+}
 
-    h3 {
+.sell-price-view__step {
+  display: grid;
+  gap: 1rem;
+
+  > header {
+    h4 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-h3);
+      font-size: var(--font-size-h4);
       margin: 0;
     }
   }
+}
 
+.sell-price-view__step--pricing {
   > ul {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     list-style: none;
     margin: 0;
-    padding: 1.4rem 1.65rem 1.6rem;
+    padding: 0;
 
     li {
       background: var(--feature-card-inner-bg);
@@ -78,26 +94,14 @@
   }
 }
 
-.sell-price-view__step--guidance {
-  > header {
-    align-items: center;
-    border-bottom: 1px solid var(--border-divider);
-    display: flex;
-    padding: 1.4rem 1.65rem;
-
-    h3 {
-      color: var(--font-color-primary);
-      font-size: var(--font-size-h3);
-      margin: 0;
-    }
-  }
-
+.sell-price-view__step--guidance,
+.sell-price-view__step--notes {
   > ul {
     display: grid;
-    gap: 1rem;
+    gap: 0.75rem;
     list-style: none;
     margin: 0;
-    padding: 1.4rem 1.65rem 1.6rem 3.4rem;
+    padding: 0 0 0 1.8rem;
 
     li {
       color: var(--font-color-secondary);
@@ -118,25 +122,42 @@
   }
 }
 
+.sell-price-view__step--notes {
+  > ul {
+    padding-inline-start: 0;
+
+    li {
+      background: var(--feature-card-inner-bg);
+      border-radius: var(--feature-card-radius);
+      padding: 0.9rem 1rem;
+
+      &::before {
+        display: none;
+      }
+    }
+  }
+}
+
 @media (max-width: 36rem) {
-  .sell-price-view__step--pricing {
-    > header,
-    > ul {
+  .sell-price-view__variant {
+    > header {
       padding-inline: 1.1rem;
     }
+  }
 
+  .sell-price-view__variant-steps {
+    padding-inline: 1.1rem;
+  }
+
+  .sell-price-view__step--pricing {
     > ul {
       grid-template-columns: 1fr;
     }
   }
 
   .sell-price-view__step--guidance {
-    > header {
-      padding-inline: 1.1rem;
-    }
-
     > ul {
-      padding-inline: 2.8rem 1.1rem;
+      padding-inline-start: 1.6rem;
     }
   }
 }

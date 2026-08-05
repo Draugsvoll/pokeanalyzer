@@ -25,7 +25,7 @@
       margin-bottom: 1.25rem;
     }
 
-    > header h3 {
+    > header h3:not(.feature-section-heading) {
       color: var(--font-color-primary);
       font-size: var(--font-size-h2);
       margin: 0;
@@ -38,14 +38,6 @@
       grid-template-columns: minmax(0, auto) minmax(0, 1fr);
       min-width: 0;
       width: 100%;
-    }
-
-    &__intro h3 {
-      color: var(--font-color-primary);
-      font-size: var(--font-size-h2);
-      font-weight: var(--font-weight-bold);
-      line-height: var(--font-leading-tight);
-      margin: 0;
     }
 
     &__intro p {
@@ -341,7 +333,7 @@
     }
 
     &__summary > div {
-      background: color-mix(in srgb, var(--font-color-primary) 3%, transparent);
+      background: var(--feature-card-inner-bg);
       border-radius: var(--border-radius);
       display: grid;
       gap: 0.3rem;

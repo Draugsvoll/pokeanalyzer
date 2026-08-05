@@ -20,7 +20,6 @@
   display: grid;
   gap: 1.1rem;
   overflow: hidden;
-  padding: 1.15rem;
 
   .section,
   section,
@@ -55,29 +54,7 @@
   }
 
   h2 {
-    align-items: center;
-    border-bottom: 1px solid
-      color-mix(in srgb, var(--worth-grading-accent) 18%, var(--border-divider));
-    color: var(--font-color-primary);
-    display: flex;
-    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--font-tracking-tight);
-    line-height: var(--font-leading-snug);
-    min-width: 0;
-    padding-bottom: 0.9rem;
-
-    &::before {
-      background: color-mix(in srgb, var(--worth-grading-accent) 16%, transparent);
-      border: 1px solid
-        color-mix(in srgb, var(--worth-grading-accent) 28%, transparent);
-      border-radius: var(--border-radius-sm);
-      content: "";
-      flex: 0 0 auto;
-      height: 0.8rem;
-      margin-right: 0.65rem;
-      width: 0.8rem;
-    }
+    --feature-section-heading-accent: var(--worth-grading-accent);
   }
 
   h3 {

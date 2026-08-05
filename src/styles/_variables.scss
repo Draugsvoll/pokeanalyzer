@@ -210,16 +210,13 @@
   --font-color-error: var(--red);
   --font-color-success: var(--green);
   --font-color-warning: var(--yellow);
+  --button-font-color: #0a0c12;
   --price-value-positive: color-mix(
     in srgb,
     var(--font-color-success) 72%,
     var(--font-color-secondary)
   );
-  --price-value-negative: color-mix(
-    in srgb,
-    var(--font-color-error) 72%,
-    var(--font-color-secondary)
-  );
+  --price-value-negative: var(--font-color-error);
   --price-value-neutral: var(--font-color-muted);
 
   --font-size-display: 48px;

@@ -1,10 +1,12 @@
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./SalesDataView.scss";
 
 type SalesDataViewProps = {
+  cardName: string;
   grokRequest: GrokRequestState;
 };
 
@@ -14,6 +16,12 @@ type MarketPrice = {
   volume: string;
 };
 
+type SalesVariant = {
+  marketPrices: MarketPrice[];
+  notes: string[];
+  title: string;
+};
+
 type RecentSale = {
   label: string;
   range: string;
@@ -21,10 +29,8 @@ type RecentSale = {
 
 type SalesData = {
   footer: string;
-  marketPrices: MarketPrice[];
-  notes: string[];
   recentSold: RecentSale[];
-  subtitle: string;
+  variants: SalesVariant[];
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -37,12 +43,9 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseSalesData(response: string): SalesData | null {
-  const parsed = parseJsonText(response);
-  if (!isRecord(parsed)) return null;
-
-  const marketPrices = Array.isArray(parsed.market_prices)
-    ? parsed.market_prices
+function parseMarketPrices(value: unknown): MarketPrice[] {
+  return Array.isArray(value)
+    ? value
         .filter(isRecord)
         .map((item) => ({
           grade: text(item.grade),
@@ -51,6 +54,38 @@ function parseSalesData(response: string): SalesData | null {
         }))
         .filter((item) => item.grade || item.price || item.volume)
     : [];
+}
+
+function parseNotes(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(text).filter(Boolean) : [];
+}
+
+function parseSalesData(response: string, cardName: string): SalesData | null {
+  const parsed = parseJsonText(response);
+  if (!isRecord(parsed)) return null;
+
+  const variants = Array.isArray(parsed.variants)
+    ? parsed.variants
+        .filter(isRecord)
+        .map((variant, index) => {
+          const variantTitle =
+            text(variant.variant) || text(variant.name) || `Variant ${index + 1}`;
+
+          return {
+            marketPrices: parseMarketPrices(variant.market_prices),
+            notes: parseNotes(variant.notes),
+            title: formatCardVariantTitle(variantTitle, cardName),
+          };
+        })
+        .filter((variant) => variant.marketPrices.length > 0 || variant.notes.length > 0)
+    : [];
+  const fallbackMarketPrices = parseMarketPrices(parsed.market_prices);
+  const displayVariants =
+    variants.length > 0
+      ? variants
+      : fallbackMarketPrices.length > 0
+        ? [{ marketPrices: fallbackMarketPrices, notes: [], title: "" }]
+        : [];
   const recentSold = Array.isArray(parsed.recent_sold)
     ? parsed.recent_sold
         .filter(isRecord)
@@ -60,38 +95,23 @@ function parseSalesData(response: string): SalesData | null {
         }))
         .filter((item) => item.label || item.range)
     : [];
-  const notes = Array.isArray(parsed.notes)
-    ? parsed.notes.map(text).filter(Boolean)
-    : [];
-
   const data = {
     footer: text(parsed.footer),
-    marketPrices,
-    notes,
     recentSold,
-    subtitle: "PriceCharting",
+    variants: displayVariants,
   };
 
   const hasDisplayableContent =
     Boolean(data.footer) ||
-    data.marketPrices.length > 0 ||
-    data.recentSold.length > 0 ||
-    data.notes.length > 0;
+    data.variants.length > 0 ||
+    data.recentSold.length > 0;
 
   return hasDisplayableContent ? data : null;
 }
 
-function Notes({
-  notes,
-  standalone = false,
-}: {
-  notes: string[];
-  standalone?: boolean;
-}) {
+function Notes({ notes }: { notes: string[] }) {
   return (
-    <section
-      className={`sales-data-view__notes${standalone ? " sales-data-view__notes--standalone sales-data-view__panel feature-card-surface" : ""}`}
-    >
+    <section className="sales-data-view__notes">
       <ul>
         {notes.map((note, index) => (
           <li key={`${note}-${index}`}>{note}</li>
@@ -101,7 +121,7 @@ function Notes({
   );
 }
 
-export function SalesDataView({ grokRequest }: SalesDataViewProps) {
+export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching sales data...</LoadingState>;
@@ -109,7 +129,7 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
-  const data = parseSalesData(response);
+  const data = parseSalesData(response, cardName);
   if (!data) {
     return (
       <p className="card-view__page-error" role="alert">
@@ -120,29 +140,41 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
 
   return (
     <section className="sales-data-view ui-render-fade">
-      {data.marketPrices.length > 0 && (
+      {data.variants.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market feature-card-surface">
           <header className="sales-data-view__market-heading">
-            <div>
-              <h3>Sales Volume</h3>
-              <p>{data.subtitle}</p>
-            </div>
+            <h3 className="feature-section-heading">Sales Volume</h3>
+            <p>
+              Mostly eBay sales • <strong>PriceCharting</strong>
+            </p>
           </header>
-          <div className="sales-data-view__market-grid">
-            {data.marketPrices.map((market, index) => (
-              <article
-                className="feature-card-inner-surface"
-                key={`${market.grade}-${index}`}
+          <div className="sales-data-view__variants">
+            {data.variants.map((variant, variantIndex) => (
+              <section
+                className="sales-data-view__variant"
+                key={`${variant.title}-${variantIndex}`}
               >
-                <span>{market.grade || "Grade unavailable"}</span>
-                <strong>{market.price || "~"}</strong>
-                <small className="sales-data-view__volume-badge">
-                  {market.volume || "~"}
-                </small>
-              </article>
+                {variant.title && <h4>{variant.title}</h4>}
+                {variant.marketPrices.length > 0 && (
+                  <div className="sales-data-view__market-grid">
+                    {variant.marketPrices.map((market, index) => (
+                      <article
+                        className="feature-card-inner-surface"
+                        key={`${market.grade}-${index}`}
+                      >
+                        <span>{market.grade || "Grade unavailable"}</span>
+                        <strong>{market.price || "~"}</strong>
+                        <small className="sales-data-view__volume-badge">
+                          {market.volume || "~"}
+                        </small>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                {variant.notes.length > 0 && <Notes notes={variant.notes} />}
+              </section>
             ))}
           </div>
-          {data.notes.length > 0 && <Notes notes={data.notes} />}
         </section>
       )}
 
@@ -163,10 +195,6 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
             ))}
           </div>
         </section>
-      )}
-
-      {data.notes.length > 0 && data.marketPrices.length === 0 && (
-        <Notes notes={data.notes} standalone />
       )}
 
       {data.footer && <footer>{data.footer}</footer>}
