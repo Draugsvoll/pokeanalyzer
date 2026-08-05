@@ -141,7 +141,7 @@ function SourceCard({
   ) : null;
 
   return (
-    <div className="stored-prices__source-block">
+    <div className="stored-prices__source-block feature-card-surface">
       <article
         className={`stored-prices__source stored-prices__source--${accent}`}
       >

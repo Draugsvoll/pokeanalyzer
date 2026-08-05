@@ -435,18 +435,31 @@ PSA 9
 PSA 10
 Find the current estimated market value for each grade.
 
-Determine the correct PSA grading service based on the estimated value for each PSA grade.
+After finding each cards estimated value for each grade, we then need to find the grading fees for each PSA service. We have to find all of them (- Regular
+  - Express
+  - Super Express
+  - Walk-Through
+  - Premium 1
+  - Premium 2
+  - Premium 3
+  - Premium 5
+  - Premium 10
+)
+
+Use the open_page tool to see all of the grading services (including premiums) on https://www.psacard.com/services/tradingcardgrading
+Determine the correct PSA grading service needed, based on the estimated value for each PSA grade. Do not invent prices or grading services. Only use the actual prices and services from the PSA website.
+A card's estimated value must align with the appropriate grading service and its fee, when filling in the grading fee in data-table.
 Select the lowest PSA service whose maximum declared value covers the estimated market value.
 Use that service's grading fee when calculating the Profit after grading. Find out all the
-PSA grading fees for every service (- Regular
-- Express
-- Super Express
-- Walk-Through
-- Premium 1
-- Premium 2
-- Premium 3
-- Premium 5
-- Premium 10).
+  PSA grading fees for every service (- Regular
+  - Express
+  - Super Express
+  - Walk-Through
+  - Premium 1
+  - Premium 2
+  - Premium 3
+  - Premium 5
+  - Premium 10).
 
 Populate all of the following services:
 - Regular
@@ -464,16 +477,20 @@ For each service include:
 - Maximum Declared Value
 - Estimated Turnaround
 These values are required for the "Current PSA Grading Fees" section.
-If a service is not visible on the main PSA pricing page, perform additional searches for that specific service before leaving it blank.
 
 Calculate:
 Profit after grading = Estimated graded value − Raw value − Grading fee
 
-The Conclusion at the top should recommend the minimum PSA grade where grading is likely worth it, taking grading fees and normal selling costs into account.
-If information cannot be found, simply leave that field empty.
+For the Conclusion section:
+- Give a general recommendation for each variant
+- The GENERAL_RECOMMENDATION field must be exactly one of these labels: "Worth grading", "Only if high-grade", "Marginal", or "Not recommended".
+- Do not put a PSA grade, grade range, price, or sentence in the GENERAL_RECOMMENDATION field.
+- If a specific PSA grade matters, mention it only in SHORT_REASON.
+- Base the recommendation on the full context you found: profits, grading fees, demand, liquidity, sales volume, collector appeal, and confidence in the market data.
+- The short reason is a summary of the reasoning behind the recommendation.
 Don't invent prices or variants.
-Output
 
+Output:
 In the optional notes field, dont add source or variant name.
 Only valuable extra information that is specific to this instance. For example if the sales volume of the card is very low.
 
@@ -507,12 +524,12 @@ Use this structure.
 
 <!-- Repeat once for every variant -->
 
-<article class="card featured">
+<article class="card">
 
 <h3>{{VARIANT_NAME}}</h3>
 
-<div class="threshold">
-{{MINIMUM_RECOMMENDED_GRADE}}
+<div class="recommendation">
+{{GENERAL_RECOMMENDATION}}
 </div>
 
 <p class="muted">

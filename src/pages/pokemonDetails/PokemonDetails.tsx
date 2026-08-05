@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   ArrowUp,
   BadgeDollarSign,
@@ -63,7 +63,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
-import { getRarityBadgeClassName } from "../../components/pokemonCardView/PokemonCardView";
+import { getRarityBadgeClassName } from "../../utils/pokemonRarity";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -262,7 +262,6 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
 
 function PokemonDetailsForCard() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] =
@@ -288,7 +287,9 @@ function PokemonDetailsForCard() {
   const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
     cachedCard?.images?.large ?? cachedCard?.images?.small,
   );
-  const [cardImageFailed, setCardImageFailed] = useState(false);
+  const [failedCardImageSrc, setFailedCardImageSrc] = useState<string | null>(
+    null,
+  );
   const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [showCardSearch, setShowCardSearch] = useState(false);
   const [grokResponse, setGrokResponse] = useState("");
@@ -319,10 +320,6 @@ function PokemonDetailsForCard() {
   useLayoutEffect(() => {
     routeCardIdRef.current = id;
   }, [id]);
-
-  useEffect(() => {
-    setCardImageFailed(false);
-  }, [cardImageSrc]);
 
   async function handlePortfolioToggle() {
     if (
@@ -714,13 +711,13 @@ function PokemonDetailsForCard() {
         <div className="card-view__shell">
           <div className="card-view__details">
             <div className="card-view__image-side">
-              {cardImageSrc && !cardImageFailed ? (
+              {cardImageSrc && failedCardImageSrc !== cardImageSrc ? (
                 <img
                   key={card.id}
                   className="card-view__image ui-render-fade"
                   src={cardImageSrc}
                   alt={card.name}
-                  onError={() => setCardImageFailed(true)}
+                  onError={() => setFailedCardImageSrc(cardImageSrc)}
                 />
               ) : (
                 <div className="card-view__image-placeholder" role="img">

@@ -262,15 +262,15 @@
   white-space: nowrap;
 
   &--up {
-    color: var(--font-color-success);
+    color: var(--price-value-positive);
   }
 
   &--down {
-    color: var(--font-color-error);
+    color: var(--price-value-negative);
   }
 
   &--flat {
-    color: var(--font-color-muted);
+    color: var(--price-value-neutral);
   }
 
   &--unavailable {

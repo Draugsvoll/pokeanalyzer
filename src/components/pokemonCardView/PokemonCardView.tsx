@@ -11,6 +11,7 @@ import type {
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
 import { formatDateStamp } from "../../utils/formatDateStamp";
+import { getRarityBadgeClassName } from "../../utils/pokemonRarity";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
   getCardPriceSourceLabel,
@@ -50,43 +51,6 @@ export type PokemonCardViewProps = {
 function formatPriceChange(value: number) {
   if (value === 0) return "0.0%";
   return `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(1)}%`;
-}
-
-export function getRarityBadgeClassName(rarity?: string | null) {
-  const value = rarity?.toLowerCase() ?? "";
-  let family = "rare";
-
-  if (!value.trim()) {
-    family = "unknown";
-  } else if (value.includes("common") && !value.includes("uncommon")) {
-    family = "common";
-  } else if (value.includes("uncommon")) {
-    family = "uncommon";
-  } else if (value.includes("promo")) {
-    family = "promo";
-  } else if (
-    value.includes("secret") ||
-    value.includes("hyper") ||
-    value.includes("shiny")
-  ) {
-    family = "secret";
-  } else if (
-    value.includes("ultra") ||
-    value.includes("double") ||
-    value.includes("illustration")
-  ) {
-    family = "ultra";
-  } else if (
-    value.includes("amazing") ||
-    value.includes("prism") ||
-    value.includes("radiant") ||
-    value.includes("ace spec") ||
-    value.includes("legend")
-  ) {
-    family = "special";
-  }
-
-  return `card-rarity-badge card-rarity-badge--${family}`;
 }
 
 export function PokemonCardView({
@@ -188,7 +152,6 @@ export function PokemonCardView({
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
   const variantLabel = activeOption?.label;
-  const canPickSource = showPriceSourcePicker && visiblePriceOptions.length > 0;
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -523,7 +486,6 @@ export function PokemonCardPortfolioView({
     usePokemonPortfolio();
   const activePriceSource = cardViewProps.priceSource ?? "tcgplayer";
   const savedPriceKey = card.priceSources?.[activePriceSource] ?? null;
-  const [displayedQuantity, setDisplayedQuantity] = useState(quantity);
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState(false);
@@ -532,18 +494,16 @@ export function PokemonCardPortfolioView({
     string | null
   >(null);
   const [updatingPriceOption, setUpdatingPriceOption] = useState(false);
-
-  useEffect(() => {
-    setDisplayedQuantity(quantity);
-    setPendingQuantity(null);
-    setPendingRemoval(false);
-    setPendingPriceOptionId(null);
-  }, [activePriceSource, card.id, quantity]);
+  const activePendingPriceOptionId = pendingPriceOptionId?.startsWith(
+    `${activePriceSource}:`,
+  )
+    ? pendingPriceOptionId
+    : null;
 
   const requestQuantityChange = (amount: number) => {
     if (updatingQuantity) return;
 
-    const currentQuantity = pendingQuantity ?? displayedQuantity;
+    const currentQuantity = pendingQuantity ?? quantity;
     const nextQuantity = currentQuantity + amount;
     if (nextQuantity < 1) return;
 
@@ -558,7 +518,6 @@ export function PokemonCardPortfolioView({
       const updated = await updatePokemonQuantity(card.id, pendingQuantity);
       if (!updated) return;
 
-      setDisplayedQuantity(pendingQuantity);
       onQuantityUpdated?.(card.id, pendingQuantity);
       setPendingQuantity(null);
     } finally {
@@ -580,9 +539,9 @@ export function PokemonCardPortfolioView({
   };
 
   const confirmPriceOptionChange = async () => {
-    if (!pendingPriceOptionId) return;
+    if (!activePendingPriceOptionId) return;
 
-    const [source, priceKey] = pendingPriceOptionId.split(":");
+    const [source, priceKey] = activePendingPriceOptionId.split(":");
     if (source !== activePriceSource || !priceKey) {
       setPendingPriceOptionId(null);
       return;
@@ -612,12 +571,12 @@ export function PokemonCardPortfolioView({
           : ""
       }`}
     >
-      {displayedQuantity > 1 && (
+      {quantity > 1 && (
         <span
           className="pokemon-card-portfolio-view__quantity-badge badge-small"
-          aria-label={`${displayedQuantity} copies in collection`}
+          aria-label={`${quantity} copies in collection`}
         >
-          x{displayedQuantity}
+          x{quantity}
         </span>
       )}
 
@@ -628,7 +587,7 @@ export function PokemonCardPortfolioView({
         selectedPriceOptionId={
           savedPriceKey ? `${activePriceSource}:${savedPriceKey}` : null
         }
-        pendingPriceOptionId={pendingPriceOptionId}
+        pendingPriceOptionId={activePendingPriceOptionId}
         onPriceOptionChange={setPendingPriceOptionId}
         onConfirmPriceOption={confirmPriceOptionChange}
         onCancelPriceOption={() => setPendingPriceOptionId(null)}
@@ -661,7 +620,7 @@ export function PokemonCardPortfolioView({
             type="number"
             min="1"
             readOnly
-            value={pendingQuantity ?? displayedQuantity}
+            value={pendingQuantity ?? quantity}
           />
           {pendingQuantity != null && (
             <ConfirmPopover
@@ -669,7 +628,7 @@ export function PokemonCardPortfolioView({
               label="Update?"
               confirmLabel="OK"
               aria-label="Confirm quantity change"
-              confirmDisabled={pendingQuantity === displayedQuantity}
+              confirmDisabled={pendingQuantity === quantity}
               confirming={updatingQuantity}
               onConfirm={() => {
                 void confirmQuantityChange();
@@ -684,7 +643,7 @@ export function PokemonCardPortfolioView({
           className="pokemon-card-portfolio-view__quantity-button"
           aria-label={`Decrease ${card.name} quantity`}
           disabled={
-            (pendingQuantity ?? displayedQuantity) <= 1 || updatingQuantity
+            (pendingQuantity ?? quantity) <= 1 || updatingQuantity
           }
           onClick={() => requestQuantityChange(-1)}
         >

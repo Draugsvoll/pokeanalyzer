@@ -134,7 +134,10 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
                   : Search;
 
             return (
-              <article className={`grok-price-analysis__market grok-price-analysis__market--${tone}`} key={`${source ?? "source"}-${index}`}>
+              <article
+                className={`grok-price-analysis__market grok-price-analysis__market--${tone} feature-card-surface`}
+                key={`${source ?? "source"}-${index}`}
+              >
                 {(source || region) && (
                   <div className="grok-price-analysis__source">
                     <span><SourceIcon aria-hidden="true" /></span>

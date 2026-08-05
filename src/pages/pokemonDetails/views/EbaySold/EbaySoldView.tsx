@@ -610,7 +610,7 @@ export default function EbaySoldView({
   }
 
   return (
-    <div className="ebay-sold-view ui-render-fade">
+    <div className="ebay-sold-view feature-card-surface ui-render-fade">
       <div className="ebay-sold-view__surface">
         <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__filter-groups">

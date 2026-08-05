@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-  type PointerEvent,
-} from "react";
+import { useId, useMemo, useState, type PointerEvent } from "react";
 import { Layers3 } from "lucide-react";
 import type {
   JustTcgPricePoint,
@@ -185,8 +179,13 @@ function PriceHistoryChart({
   periodKey: string;
 }) {
   const gradientId = useId().replaceAll(":", "");
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredPointState, setHoveredPointState] = useState<{
+    index: number;
+    periodKey: string;
+  } | null>(null);
   const geometry = useMemo(() => getChartGeometry(points), [points]);
+  const hoveredIndex =
+    hoveredPointState?.periodKey === periodKey ? hoveredPointState.index : null;
   const hoveredPoint =
     hoveredIndex === null ? null : geometry.positioned[hoveredIndex];
   const dateTicks = getEvenlySpacedPoints(points, 5);
@@ -196,10 +195,6 @@ function PriceHistoryChart({
   // Change over the selected window (window start → latest in series)
   const change = latest.price - first.price;
   const changePercent = first.price > 0 ? (change / first.price) * 100 : null;
-
-  useEffect(() => {
-    setHoveredIndex(null);
-  }, [periodKey]);
 
   function updateHoveredPoint(event: PointerEvent<SVGRectElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -215,7 +210,7 @@ function PriceHistoryChart({
         closestIndex = index;
       }
     });
-    setHoveredIndex(closestIndex);
+    setHoveredPointState({ index: closestIndex, periodKey });
   }
 
   return (
@@ -277,7 +272,7 @@ function PriceHistoryChart({
           viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
           role="img"
           aria-label={`${variant.printing} ${variant.condition} price history from ${formatDate(first.timestamp, true)} to ${formatDate(latest.timestamp, true)}`}
-          onPointerLeave={() => setHoveredIndex(null)}
+          onPointerLeave={() => setHoveredPointState(null)}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -425,7 +420,7 @@ export function JustTcgPriceHistory({
 
   if (!selectedGroup || !selectedVariant) {
     return (
-      <section className="just-tcg-history just-tcg-history--empty ui-render-fade">
+      <section className="just-tcg-history just-tcg-history--empty feature-card-surface ui-render-fade">
         <header>
           <JustTcgHistoryIntro />
         </header>
@@ -435,7 +430,7 @@ export function JustTcgPriceHistory({
   }
 
   return (
-    <section className="just-tcg-history ui-render-fade">
+    <section className="just-tcg-history feature-card-surface ui-render-fade">
       <header>
         <JustTcgHistoryIntro />
         <div className="just-tcg-history__controls">

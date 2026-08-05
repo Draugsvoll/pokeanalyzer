@@ -199,7 +199,7 @@ function SourceHistoryTable({
 
   return (
     <article
-      className={`price-history__source price-history__source--${accent}`}
+      className={`price-history__source price-history__source--${accent} feature-card-surface`}
     >
       <header className="price-history__source-header">
         <div>

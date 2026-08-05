@@ -172,7 +172,7 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
             if (index === 0) {
               return (
                 <li
-                  className="sell-price-view__step sell-price-view__step--pricing"
+                  className="sell-price-view__step sell-price-view__step--pricing feature-card-surface"
                   key={`${step.title}-${index}`}
                 >
                   <header>
@@ -183,7 +183,10 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                       {step.details.map((detail, detailIndex) => {
                         const recommendation = getRecommendation(detail);
                         return (
-                          <li key={`${recommendation.label}-${detailIndex}`}>
+                          <li
+                            className="feature-card-inner-surface"
+                            key={`${recommendation.label}-${detailIndex}`}
+                          >
                             {recommendation.label && <span>{recommendation.label}</span>}
                             <strong>{recommendation.value}</strong>
                           </li>
@@ -197,7 +200,7 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
 
             return (
               <li
-                className="sell-price-view__step sell-price-view__step--guidance"
+                className="sell-price-view__step sell-price-view__step--guidance feature-card-surface"
                 key={`${step.title}-${index}`}
               >
                 <header>

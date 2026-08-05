@@ -49,11 +49,15 @@ const ALLOWED_CLASSES = new Set([
   "positive",
   "price",
   "profit",
+  "recommendation",
+  "recommendation--caution",
+  "recommendation--marginal",
+  "recommendation--negative",
+  "recommendation--positive",
   "section",
   "source",
   "summary-grid",
   "table-wrap",
-  "threshold",
   "muted",
   "warning",
 ]);
@@ -77,6 +81,15 @@ function escapeHtml(value: string) {
   const element = document.createElement("div");
   element.textContent = value;
   return element.innerHTML;
+}
+
+function readSignedAmount(value: string) {
+  const normalized = value.replace(/[\s,$€£]/g, "").replace(/[−–—]/g, "-");
+  const match = normalized.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+
+  const amount = Number(match[0]);
+  return Number.isFinite(amount) ? amount : null;
 }
 
 function legacyJsonToHtml(data: WorthGradingResponse) {
@@ -178,6 +191,64 @@ function sanitizeWorthGradingHtml(response: string) {
     if (!element.querySelector(".card")) {
       element.closest("section")?.remove();
     }
+  });
+
+  container.querySelectorAll("td").forEach((cell) => {
+    if (!cell.textContent?.trim()) {
+      cell.textContent = "—";
+    }
+  });
+
+  container.querySelectorAll(".recommendation").forEach((element) => {
+    const text = element.textContent?.trim().toLowerCase() ?? "";
+    element.classList.remove(
+      "recommendation--positive",
+      "recommendation--caution",
+      "recommendation--marginal",
+      "recommendation--negative",
+    );
+
+    if (text === "worth grading") {
+      element.classList.add("recommendation--positive");
+    } else if (text === "only if high-grade") {
+      element.classList.add("recommendation--caution");
+    } else if (text === "marginal") {
+      element.classList.add("recommendation--marginal");
+    } else if (text === "not recommended") {
+      element.classList.add("recommendation--negative");
+    }
+  });
+
+  container.querySelectorAll(".profit").forEach((element) => {
+    const amount = readSignedAmount(element.textContent ?? "");
+    element.classList.remove("positive", "negative", "loss", "neutral", "profit");
+    if (amount == null) return;
+
+    if (amount > 0) element.classList.add("positive");
+    else if (amount < 0) element.classList.add("negative");
+    else element.classList.add("neutral");
+  });
+
+  container.querySelectorAll("table").forEach((table) => {
+    const headers = Array.from(table.querySelectorAll("thead th"));
+    const profitColumnIndex = headers.findIndex((header) =>
+      /profit/i.test(header.textContent ?? ""),
+    );
+    if (profitColumnIndex < 0) return;
+
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      const cell = row.children.item(profitColumnIndex);
+      if (!cell) return;
+
+      const amount = readSignedAmount(cell.textContent ?? "");
+      row.classList.remove("positive", "negative", "loss", "neutral", "profit");
+      cell.classList.remove("positive", "negative", "loss", "neutral", "profit");
+      if (amount == null) return;
+
+      if (amount > 0) cell.classList.add("positive");
+      else if (amount < 0) cell.classList.add("negative");
+      else cell.classList.add("neutral");
+    });
   });
 
   return container.innerHTML;

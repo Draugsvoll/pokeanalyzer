@@ -133,7 +133,7 @@ export default function CollectorAnalysis({
           return (
             <article
               key={`${category.name}-${index}`}
-              className="collector-ranking__category"
+              className="collector-ranking__category feature-card-surface"
             >
               <div className="collector-ranking__category-title">
                 <h4>
@@ -159,7 +159,7 @@ export default function CollectorAnalysis({
       </div>
 
       {analysis.finalNote && (
-        <section className="collector-ranking__conclusion collector-ranking__category">
+        <section className="collector-ranking__conclusion collector-ranking__category feature-card-surface">
           <div className="collector-ranking__category-title">
             <h4>
               <FileText size={19} aria-hidden="true" />

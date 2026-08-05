@@ -8,9 +8,10 @@
   width: 100%;
 
   .just-tcg-history {
-    background: var(--bg2);
-    border: var(--border);
-    border-radius: var(--border-radius);
+    background: var(--feature-card-bg);
+    border: var(--feature-card-border);
+    border-radius: var(--feature-card-radius);
+    box-shadow: var(--feature-card-shadow);
     color: var(--custom-color-orange);
     min-width: 0;
     padding: 1.5rem;

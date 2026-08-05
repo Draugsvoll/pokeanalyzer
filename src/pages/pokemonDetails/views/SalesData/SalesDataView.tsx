@@ -90,7 +90,7 @@ function Notes({
 }) {
   return (
     <section
-      className={`sales-data-view__notes${standalone ? " sales-data-view__notes--standalone sales-data-view__panel" : ""}`}
+      className={`sales-data-view__notes${standalone ? " sales-data-view__notes--standalone sales-data-view__panel feature-card-surface" : ""}`}
     >
       <ul>
         {notes.map((note, index) => (
@@ -121,7 +121,7 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
   return (
     <section className="sales-data-view ui-render-fade">
       {data.marketPrices.length > 0 && (
-        <section className="sales-data-view__panel sales-data-view__market">
+        <section className="sales-data-view__panel sales-data-view__market feature-card-surface">
           <header className="sales-data-view__market-heading">
             <div>
               <h3>Sales Volume</h3>
@@ -130,7 +130,10 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
           </header>
           <div className="sales-data-view__market-grid">
             {data.marketPrices.map((market, index) => (
-              <article key={`${market.grade}-${index}`}>
+              <article
+                className="feature-card-inner-surface"
+                key={`${market.grade}-${index}`}
+              >
                 <span>{market.grade || "Grade unavailable"}</span>
                 <strong>{market.price || "~"}</strong>
                 <small className="sales-data-view__volume-badge">
@@ -144,13 +147,16 @@ export function SalesDataView({ grokRequest }: SalesDataViewProps) {
       )}
 
       {data.recentSold.length > 0 && (
-        <section className="sales-data-view__panel sales-data-view__recent">
+        <section className="sales-data-view__panel sales-data-view__recent feature-card-surface">
           <header>
             <h3>Recent Sold Examples</h3>
           </header>
           <div className="sales-data-view__sold-list">
             {data.recentSold.map((sale, index) => (
-              <article key={`${sale.label}-${index}`}>
+              <article
+                className="feature-card-inner-surface"
+                key={`${sale.label}-${index}`}
+              >
                 <span>{sale.label || "Sale range"}</span>
                 <strong>{sale.range}</strong>
               </article>
