@@ -26,11 +26,19 @@ export const PORTFOLIO_COMPARISON_SNAPSHOTS_SQL = `
     SELECT
       latest.card_id,
       latest.recorded_at AS latest_date,
-      MAX(
-        CASE
-          WHEN candidate.recorded_at < latest.recorded_at
-          THEN candidate.recorded_at
-        END
+      COALESCE(
+        MAX(
+          CASE
+            WHEN date(candidate.recorded_at) = date(latest.recorded_at, '-1 day')
+            THEN candidate.recorded_at
+          END
+        ),
+        MAX(
+          CASE
+            WHEN date(candidate.recorded_at) = date(latest.recorded_at, '-2 days')
+            THEN candidate.recorded_at
+          END
+        )
       ) AS previous_date,
       COALESCE(
         MAX(

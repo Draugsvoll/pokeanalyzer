@@ -20,13 +20,13 @@ import { assessDefaultCardPrices } from "../../services/defaultPriceReliability.
 const router = Router();
 const MAX_QUANTITY = 1_000_000;
 const CARD_ID_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
-const PRICE_SOURCE_PATTERN = /^(tcgplayer|cardmarket):[A-Za-z0-9._-]{1,80}$/;
+const PRICE_KEY_PATTERN = /^[A-Za-z0-9._-]{1,80}$/;
 const CARD_QUERY_CHUNK_SIZE = 400;
 
 type PortfolioEntry = {
   cardId: string;
   quantity: number;
-  priceSource?: string;
+  priceSources?: Partial<Record<PortfolioPriceSource, string>>;
 };
 
 type PortfolioPriceSource = "tcgplayer" | "cardmarket";
@@ -96,15 +96,15 @@ function getQuantity(value: unknown) {
   return quantity;
 }
 
-function getPriceSource(value: unknown) {
-  const priceSource = typeof value === "string" ? value.trim() : "";
-  if (!PRICE_SOURCE_PATTERN.test(priceSource)) {
+function getPriceKey(value: unknown) {
+  const priceKey = typeof value === "string" ? value.trim() : "";
+  if (!PRICE_KEY_PATTERN.test(priceKey)) {
     throw new PortfolioHttpError(
-      "priceSource must look like tcgplayer:variant or cardmarket:field",
+      "priceKey must be a valid TCGPlayer variant or Cardmarket field",
       400,
     );
   }
-  return priceSource;
+  return priceKey;
 }
 
 function getPortfolioPriceSource(value: unknown): PortfolioPriceSource {
@@ -139,7 +139,7 @@ function parseStoredPortfolioEntry(
 
   const fields = data as Record<string, unknown>;
   const unexpectedFields = Object.keys(fields).filter(
-    (field) => field !== "quantity" && field !== "priceSource",
+    (field) => field !== "quantity" && field !== "priceSources",
   );
   if (unexpectedFields.length > 0) {
     throw new Error(`Portfolio entry ${cardId} contains unsupported fields`);
@@ -154,21 +154,40 @@ function parseStoredPortfolioEntry(
     throw new Error(`Portfolio entry ${cardId} has an invalid quantity`);
   }
 
-  let priceSource: string | undefined;
-  if (fields.priceSource !== undefined) {
+  const priceSources: Partial<Record<PortfolioPriceSource, string>> = {};
+  if (fields.priceSources !== undefined) {
     if (
-      typeof fields.priceSource !== "string" ||
-      !PRICE_SOURCE_PATTERN.test(fields.priceSource.trim())
+      !fields.priceSources ||
+      typeof fields.priceSources !== "object" ||
+      Array.isArray(fields.priceSources)
     ) {
-      throw new Error(`Portfolio entry ${cardId} has an invalid price source`);
+      throw new Error(`Portfolio entry ${cardId} has invalid price sources`);
     }
-    priceSource = fields.priceSource.trim();
+
+    const storedPriceSources = fields.priceSources as Record<string, unknown>;
+    const unexpectedPriceSources = Object.keys(storedPriceSources).filter(
+      (field) => field !== "tcgplayer" && field !== "cardmarket",
+    );
+    if (unexpectedPriceSources.length > 0) {
+      throw new Error(`Portfolio entry ${cardId} has unsupported price sources`);
+    }
+
+    for (const source of ["tcgplayer", "cardmarket"] as const) {
+      const value = storedPriceSources[source];
+      if (value === undefined) continue;
+      if (typeof value !== "string" || !PRICE_KEY_PATTERN.test(value.trim())) {
+        throw new Error(
+          `Portfolio entry ${cardId} has an invalid ${source} price key`,
+        );
+      }
+      priceSources[source] = value.trim();
+    }
   }
 
   return {
     cardId,
     quantity,
-    ...(priceSource && { priceSource }),
+    ...(Object.keys(priceSources).length > 0 && { priceSources }),
   };
 }
 
@@ -239,6 +258,7 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
     const card = parsePublicStoredCard(String(row.raw_json));
     delete card.quantity;
     delete card.priceSource;
+    delete card.priceSources;
     delete card.latestPriceSnapshot;
     delete card.previousPriceSnapshot;
     delete card.priceSnapshots;
@@ -265,7 +285,7 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
       ...card,
       id: entry.cardId,
       quantity: entry.quantity,
-      ...(entry.priceSource && { priceSource: entry.priceSource }),
+      ...(entry.priceSources && { priceSources: entry.priceSources }),
       priceReliability,
       ...(priceSnapshots && { priceSnapshots }),
     });
@@ -457,7 +477,8 @@ router.patch(
     try {
       const uid = getAuthenticatedUid(res);
       const cardId = getCardId(req.params.cardId);
-      const priceSource = getPriceSource(req.body?.priceSource);
+      const priceSource = getPortfolioPriceSource(req.body?.priceSource);
+      const priceKey = getPriceKey(req.body?.priceKey);
       const cardRef = portfolioCardRef(uid, cardId);
 
       const entry = await adminDb.runTransaction(async (transaction) => {
@@ -467,8 +488,14 @@ router.patch(
         }
 
         const existing = parseStoredPortfolioEntry(cardId, cardSnap.data());
-        const updatedEntry = { ...existing, priceSource };
-        transaction.update(cardRef, { priceSource });
+        const priceSources = {
+          ...(existing.priceSources ?? {}),
+          [priceSource]: priceKey,
+        };
+        const updatedEntry = { ...existing, priceSources };
+        transaction.update(cardRef, {
+          [`priceSources.${priceSource}`]: priceKey,
+        });
         return updatedEntry;
       });
 

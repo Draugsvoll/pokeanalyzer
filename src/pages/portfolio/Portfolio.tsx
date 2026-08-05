@@ -18,7 +18,7 @@ import type {
 } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
-  getDefaultCardPriceOptionForSource,
+  getCardPriceOptionForSourceKey,
   getHistoricalPriceForOption,
 } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
@@ -48,8 +48,8 @@ const PORTFOLIO_SORT_OPTIONS: {
   { value: "", label: "—" },
   { value: "price-high", label: "Price: high-low" },
   { value: "price-low", label: "Price: low-high" },
-  { value: "change-high", label: "%Change: high-low" },
-  { value: "change-low", label: "%Change: low-high" },
+  { value: "change-high", label: "Change: high-low" },
+  { value: "change-low", label: "Change: low-high" },
 ];
 
 const CHANGE_PERIOD_OPTIONS: {
@@ -65,7 +65,13 @@ function getPortfolioCardPrice(
   card: PortfolioCard,
   priceSource: PortfolioPriceSource,
 ) {
-  return getDefaultCardPriceOptionForSource(card, priceSource)?.price ?? null;
+  return (
+    getCardPriceOptionForSourceKey(
+      card,
+      priceSource,
+      card.priceSources?.[priceSource],
+    )?.price ?? null
+  );
 }
 
 function getPortfolioCardPriceChange(
@@ -73,16 +79,18 @@ function getPortfolioCardPriceChange(
   period: PortfolioChangePeriod,
   priceSource: PortfolioPriceSource,
 ) {
-  const option = getDefaultCardPriceOptionForSource(card, priceSource);
-  const latestSnapshot = card.priceSnapshots?.latest;
+  const option = getCardPriceOptionForSourceKey(
+    card,
+    priceSource,
+    card.priceSources?.[priceSource],
+  );
   const comparisonSnapshot = card.priceSnapshots?.[period];
-  if (!option || !latestSnapshot || !comparisonSnapshot) {
+  if (!option || !comparisonSnapshot) {
     return null;
   }
 
-  const latestPrice = getHistoricalPriceForOption(option, latestSnapshot);
   const previousPrice = getHistoricalPriceForOption(option, comparisonSnapshot);
-  if (latestPrice == null || previousPrice == null) return null;
+  if (previousPrice == null) return null;
 
   return ((option.price - previousPrice) / previousPrice) * 100;
 }
@@ -176,7 +184,11 @@ function PortfolioForCurrentUser() {
 
     for (const card of portfolio) {
       const quantity = cardQuantity(card);
-      const option = getDefaultCardPriceOptionForSource(card, priceSource);
+      const option = getCardPriceOptionForSourceKey(
+        card,
+        priceSource,
+        card.priceSources?.[priceSource],
+      );
       if (!option) continue;
 
       totalValue += option.price * quantity;
@@ -226,7 +238,9 @@ function PortfolioForCurrentUser() {
         index,
         value: isPriceSort
           ? getPortfolioCardPrice(card, priceSource)
-          : getPortfolioCardPriceChange(card, changePeriod, priceSource),
+          : priceSource === "tcgplayer"
+            ? getPortfolioCardPriceChange(card, changePeriod, priceSource)
+            : null,
       }))
       .sort((a, b) => {
         if (a.value == null && b.value == null) return a.index - b.index;
@@ -251,6 +265,26 @@ function PortfolioForCurrentUser() {
 
   const handleCardRemoved = (cardId: string) => {
     setPortfolio((current) => current.filter((card) => card.id !== cardId));
+  };
+
+  const handleCardPriceSourceUpdated = (
+    cardId: string,
+    source: PortfolioPriceSource,
+    priceKey: string,
+  ) => {
+    setPortfolio((current) =>
+      current.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              priceSources: {
+                ...(card.priceSources ?? {}),
+                [source]: priceKey,
+              },
+            }
+          : card,
+      ),
+    );
   };
 
   const savePriceSource = async () => {
@@ -513,9 +547,10 @@ function PortfolioForCurrentUser() {
               key={card.id}
               card={card}
               quantity={cardQuantity(card)}
-              latestPriceSnapshot={card.priceSnapshots?.latest ?? null}
               comparisonPriceSnapshot={
-                card.priceSnapshots?.[changePeriod] ?? null
+                priceSource === "tcgplayer"
+                  ? (card.priceSnapshots?.[changePeriod] ?? null)
+                  : undefined
               }
               priceSource={priceSource}
               lockPriceSource
@@ -525,6 +560,7 @@ function PortfolioForCurrentUser() {
               }
               onQuantityUpdated={handleCardQuantityUpdated}
               onRemoved={handleCardRemoved}
+              onPriceSourceUpdated={handleCardPriceSourceUpdated}
             />
           ))}
         </GridView>

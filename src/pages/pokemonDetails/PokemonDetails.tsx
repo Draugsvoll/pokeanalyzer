@@ -63,6 +63,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
+import { getRarityBadgeClassName } from "../../components/pokemonCardView/PokemonCardView";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -841,7 +842,9 @@ function PokemonDetailsForCard() {
                       {(card.rarity || displaySubtype) && (
                         <div className="card-view__title-badges">
                           {card.rarity && (
-                            <span className="card-view__title-badge--rarity">
+                            <span
+                              className={`card-view__title-badge--rarity ${getRarityBadgeClassName(card.rarity)}`}
+                            >
                               {card.rarity}
                             </span>
                           )}

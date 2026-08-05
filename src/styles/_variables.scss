@@ -89,6 +89,10 @@
   --radius-control: 12px; /* primary control radius — mock “square” */
   --radius-pill: 999px; /* badges / chips — full pill */
   --radius-round: 50%; /* avatars / dots only */
+  --glow-dot-size: 0.3rem;
+  --glow-dot-opacity: 0.85;
+  --glow-dot-shadow-size: 0.5rem;
+  --glow-dot-shadow-strength: 55%;
 
   /* App-wide aliases — components should use these */
   --border-radius: var(--radius-md);

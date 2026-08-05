@@ -3,14 +3,14 @@ import type { CardMarket, PokemonCard, TCGPlayer } from "./pokemon";
 export type PortfolioReference = {
   cardId: string;
   quantity: number;
-  priceSource?: string;
+  priceSources?: Partial<Record<PortfolioPriceSource, string>>;
 };
 
 export type PortfolioPriceSource = "tcgplayer" | "cardmarket";
 
 export type PortfolioCard = PokemonCard & {
   quantity: number;
-  priceSource?: string;
+  priceSources?: Partial<Record<PortfolioPriceSource, string>>;
   priceSnapshots?: Partial<
     Record<PortfolioComparisonPeriod, PortfolioPriceSnapshot>
   >;

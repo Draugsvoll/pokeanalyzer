@@ -15,6 +15,7 @@
   text-align: left;
   transition: var(--delay-short) ease;
   width: 100%;
+  height: 100%;
   z-index: 0;
 
   &:hover {
@@ -325,13 +326,12 @@
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family-base);
-  font-size: var(--font-size-overline);
-  gap: 0.2rem;
+  font-size: var(--font-size-label);
+  gap: 0.25rem;
   line-height: 1.2;
   margin: 0;
-  padding: 0.15rem 0;
+  padding: 0.35rem 0.5rem;
   transition: color var(--delay-short) ease;
-
   &:hover,
   &.is-open {
     color: var(--font-color-secondary);
@@ -367,9 +367,15 @@
   color: var(--font-color-muted);
   display: inline-block;
   flex: 0 0 auto;
-  font-size: 0.55rem;
+  height: 0.75rem;
   opacity: 0.85;
-  transform: translateY(-0.02rem);
+  transform: translateY(0.02rem);
+  transition: transform var(--delay-short) ease;
+  width: 0.75rem;
+}
+
+.pokemon-card__source-toggle.is-open .pokemon-card__source-chevron {
+  transform: translateY(0.02rem) rotate(180deg);
 }
 
 .pokemon-card__source-toggle:hover .pokemon-card__source-chevron,
@@ -448,7 +454,6 @@
 
 .pokemon-card__source-option-pretext {
   font-size: var(--font-size-overline);
-  font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-wide);
 
   &--tcgplayer {
@@ -570,6 +575,7 @@
 .pokemon-card-portfolio-view {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 
 .pokemon-card-portfolio-view__quantity-badge.badge-small {

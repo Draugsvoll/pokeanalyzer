@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import type { PokemonCard } from "../../types/pokemon";
+import type { PortfolioPriceSource } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
   addPortfolioCard,
@@ -72,14 +73,16 @@ export function usePokemonPortfolio() {
 
   const updatePokemonPriceSource = async (
     cardId: string,
-    priceSource: string,
+    priceSource: PortfolioPriceSource,
+    priceKey: string,
   ) => {
-    if (!authUser || !priceSource.trim()) return false;
+    if (!authUser || !priceKey.trim()) return false;
 
     try {
       const entry = await updatePortfolioCardPriceSource(
         cardId,
         priceSource,
+        priceKey,
         authUser.uid,
       );
       upsertPortfolioReference(entry);

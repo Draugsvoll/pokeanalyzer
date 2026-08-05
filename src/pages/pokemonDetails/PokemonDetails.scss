@@ -293,17 +293,9 @@
   }
 
   &__title-badge--rarity {
-    background: color-mix(
-      in srgb,
-      var(--custom-color-yellow) 10%,
-      transparent
-    ) !important;
-    border-color: color-mix(
-      in srgb,
-      var(--custom-color-yellow) 25%,
-      transparent
-    ) !important;
-    color: color-mix(in srgb, var(--custom-color-yellow) 82%, white) !important;
+    background: color-mix(in srgb, var(--rarity-accent) 10%, transparent);
+    border-color: color-mix(in srgb, var(--rarity-accent) 26%, transparent);
+    color: color-mix(in srgb, var(--rarity-accent) 78%, white);
   }
 
   &__title-set {

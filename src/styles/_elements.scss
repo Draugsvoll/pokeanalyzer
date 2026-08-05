@@ -287,12 +287,13 @@ input[type="radio"] {
 
 /* Shared rarity treatment; individual views may adjust only sizing/casing. */
 .card-rarity-badge {
+  --rarity-accent: var(--custom-color-yellow);
   align-items: center;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: color-mix(in srgb, var(--rarity-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rarity-accent) 26%, transparent);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
-  color: var(--yellow);
+  color: color-mix(in srgb, var(--rarity-accent) 78%, white);
   display: inline-flex;
   font-size: var(--font-size-badge);
   font-weight: 650;
@@ -304,26 +305,34 @@ input[type="radio"] {
   width: fit-content;
 
   &--common {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--muted);
+    --rarity-accent: var(--font-color-muted);
   }
 
   &--uncommon {
-    background: rgba(166, 175, 189, 0.1);
-    border-color: rgba(166, 175, 189, 0.22);
-    color: var(--secondary);
+    --rarity-accent: var(--custom-color-green);
   }
 
   &--rare {
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.28);
-    color: var(--yellow);
+    --rarity-accent: var(--custom-color-blue);
+  }
+
+  &--ultra {
+    --rarity-accent: var(--custom-color-orange);
+  }
+
+  &--secret {
+    --rarity-accent: var(--custom-color-pink);
   }
 
   &--promo {
-    background: rgba(78, 168, 255, 0.12);
-    border-color: rgba(78, 168, 255, 0.28);
-    color: #b9dcff;
+    --rarity-accent: var(--custom-color-teal);
+  }
+
+  &--special {
+    --rarity-accent: var(--custom-color-yellow);
+  }
+
+  &--unknown {
+    --rarity-accent: var(--font-color-muted);
   }
 }

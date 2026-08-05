@@ -12,8 +12,11 @@
     color: var(--font-color-secondary);
     cursor: pointer;
     display: flex;
-    font: inherit;
+    font-family: var(--font-family-base);
     font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: 1;
     gap: 0.7rem;
     height: var(--dropdown-trigger-height);
     justify-content: space-between;
@@ -114,8 +117,11 @@
     border-radius: calc(var(--dropdown-option-radius) - 0.1rem);
     color: var(--font-color-secondary);
     cursor: pointer;
-    font: inherit;
+    font-family: var(--font-family-base);
     font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-normal);
+    line-height: 1.2;
     padding: 0.52rem 0.6rem;
     text-align: left;
     transition:
@@ -131,7 +137,7 @@
     }
 
     &.is-selected {
-      background: transparent;
+      background: var(--bg-input-strong);
       color: var(--font-color-primary);
       font-weight: var(--font-weight-semibold);
     }

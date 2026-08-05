@@ -142,16 +142,36 @@ test("portfolio history selects comparison snapshots for each timeframe", async 
             JSON.stringify({ holofoil: { market: 10 } }),
           ],
         },
+        {
+          sql: `INSERT INTO price_snapshots
+            (card_id, recorded_at, tcgplayer_prices)
+            VALUES (?, ?, json(?))`,
+          args: [
+            "card-d",
+            "2026-07-26",
+            JSON.stringify({ holofoil: { market: 18 } }),
+          ],
+        },
+        {
+          sql: `INSERT INTO price_snapshots
+            (card_id, recorded_at, tcgplayer_prices)
+            VALUES (?, ?, json(?))`,
+          args: [
+            "card-d",
+            "2026-07-28",
+            JSON.stringify({ holofoil: { market: 20 } }),
+          ],
+        },
       ],
       "write",
     );
 
     const result = await client.execute({
       sql: PORTFOLIO_COMPARISON_SNAPSHOTS_SQL,
-      args: [JSON.stringify(["card-a", "card-b", "card-c"])],
+      args: [JSON.stringify(["card-a", "card-b", "card-c", "card-d"])],
     });
 
-    assert.equal(result.rows.length, 7);
+    assert.equal(result.rows.length, 8);
     const cardALatest = result.rows.find(
       (row) => row.card_id === "card-a" && row.comparison_period === "latest",
     );
@@ -167,11 +187,15 @@ test("portfolio history selects comparison snapshots for each timeframe", async 
     const cardBLatest = result.rows.find(
       (row) => row.card_id === "card-b" && row.comparison_period === "latest",
     );
+    const cardDPrevious = result.rows.find(
+      (row) => row.card_id === "card-d" && row.comparison_period === "24h",
+    );
     assert.equal(cardALatest?.recorded_at, "2026-07-28");
     assert.equal(cardAPrevious?.recorded_at, "2026-07-27");
     assert.equal(cardASevenDays?.recorded_at, "2026-07-20");
     assert.equal(cardAThirtyDays?.recorded_at, "2026-06-27");
     assert.equal(cardBLatest?.recorded_at, "2026-07-28");
+    assert.equal(cardDPrevious?.recorded_at, "2026-07-26");
     assert.equal(
       result.rows.some(
         (row) => row.card_id === "card-b" && row.comparison_period !== "latest",
@@ -184,8 +208,8 @@ test("portfolio history selects comparison snapshots for each timeframe", async 
         .filter((row) => row.card_id === "card-c")
         .map((row) => row.comparison_period)
         .sort(),
-      ["24h", "latest"],
-      "5/9-day and 28/32-day snapshots must not qualify for 7d/30d",
+      ["latest"],
+      "5/9-day and 28/32-day snapshots must not qualify for 24h/7d/30d",
     );
 
     const snapshot = parsePortfolioPriceSnapshot(

@@ -14,7 +14,6 @@ import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
   getCardPriceSourceLabel,
-  getDefaultCardPriceOptionForSource,
   getHistoricalPriceForOption,
   listCardPriceOptions,
   pickDefaultCardPriceOption,
@@ -41,8 +40,8 @@ export type PokemonCardViewProps = {
   onCancelPriceOption?: () => void;
   confirmingPriceOption?: boolean;
   lockPriceSource?: boolean;
+  showPriceSourcePicker?: boolean;
   showRarityBadge?: boolean;
-  latestPriceSnapshot?: PortfolioPriceSnapshot | null;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
   showPriceWarning?: boolean;
   onPortfolioChanged?: (saved: boolean) => void;
@@ -51,6 +50,43 @@ export type PokemonCardViewProps = {
 function formatPriceChange(value: number) {
   if (value === 0) return "0.0%";
   return `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(1)}%`;
+}
+
+export function getRarityBadgeClassName(rarity?: string | null) {
+  const value = rarity?.toLowerCase() ?? "";
+  let family = "rare";
+
+  if (!value.trim()) {
+    family = "unknown";
+  } else if (value.includes("common") && !value.includes("uncommon")) {
+    family = "common";
+  } else if (value.includes("uncommon")) {
+    family = "uncommon";
+  } else if (value.includes("promo")) {
+    family = "promo";
+  } else if (
+    value.includes("secret") ||
+    value.includes("hyper") ||
+    value.includes("shiny")
+  ) {
+    family = "secret";
+  } else if (
+    value.includes("ultra") ||
+    value.includes("double") ||
+    value.includes("illustration")
+  ) {
+    family = "ultra";
+  } else if (
+    value.includes("amazing") ||
+    value.includes("prism") ||
+    value.includes("radiant") ||
+    value.includes("ace spec") ||
+    value.includes("legend")
+  ) {
+    family = "special";
+  }
+
+  return `card-rarity-badge card-rarity-badge--${family}`;
 }
 
 export function PokemonCardView({
@@ -62,9 +98,9 @@ export function PokemonCardView({
   onConfirmPriceOption,
   onCancelPriceOption,
   confirmingPriceOption = false,
-  lockPriceSource = true,
+  lockPriceSource = false,
+  showPriceSourcePicker = false,
   showRarityBadge = true,
-  latestPriceSnapshot,
   comparisonPriceSnapshot,
   showPriceWarning = false,
   onPortfolioChanged,
@@ -84,12 +120,17 @@ export function PokemonCardView({
   const isControlled = selectedPriceOptionId !== undefined;
   const requiresConfirm = Boolean(onConfirmPriceOption);
   const priceOptions = useMemo(() => listCardPriceOptions(card), [card]);
+  const visiblePriceOptions = useMemo(() => {
+    if (!lockPriceSource) return priceOptions;
+
+    return priceOptions.filter((option) => option.source === priceSource);
+  }, [lockPriceSource, priceOptions, priceSource]);
   const defaultPriceOption = lockPriceSource
-    ? getDefaultCardPriceOptionForSource(card, priceSource)
+    ? visiblePriceOptions[0]
     : pickDefaultCardPriceOption(priceOptions, priceSource);
   const validInternalOptionId =
     internalOptionId &&
-    priceOptions.some((option) => option.id === internalOptionId)
+    visiblePriceOptions.some((option) => option.id === internalOptionId)
       ? internalOptionId
       : (defaultPriceOption?.id ?? null);
   const selectedOptionId = isControlled
@@ -116,21 +157,15 @@ export function PokemonCardView({
   }, [sourceOpen, onCancelPriceOption]);
 
   const activeOption: CardPriceOption | undefined =
-    priceOptions.find((option) => option.id === selectedOptionId) ??
+    visiblePriceOptions.find((option) => option.id === selectedOptionId) ??
     defaultPriceOption;
   const displayedPrice = activeOption?.price;
-  const latestSnapshotPrice =
-    activeOption && latestPriceSnapshot
-      ? getHistoricalPriceForOption(activeOption, latestPriceSnapshot)
-      : undefined;
   const comparisonPrice =
     activeOption && comparisonPriceSnapshot
       ? getHistoricalPriceForOption(activeOption, comparisonPriceSnapshot)
       : undefined;
   const priceChangePercent =
-    displayedPrice != null &&
-    latestSnapshotPrice != null &&
-    comparisonPrice != null
+    displayedPrice != null && comparisonPrice != null
       ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
       : null;
   const displayedPriceChangePercent =
@@ -149,15 +184,11 @@ export function PokemonCardView({
         : displayedPriceChangePercent < 0
           ? "down"
           : "flat";
-  const showPriceChange =
-    latestPriceSnapshot !== undefined || comparisonPriceSnapshot !== undefined;
+  const showPriceChange = comparisonPriceSnapshot !== undefined;
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
-  const sourceLabel = activeOption
-    ? getCardPriceSourceLabel(activeOption.source)
-    : getCardPriceSourceLabel(priceSource);
   const variantLabel = activeOption?.label;
-  const canPickSource = !lockPriceSource && priceOptions.length > 0;
+  const canPickSource = showPriceSourcePicker && visiblePriceOptions.length > 0;
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -286,14 +317,14 @@ export function PokemonCardView({
             )}
           </div>
 
-          {(showRarityBadge && card.rarity) || variantLabel?.trim() ? (
+          {showRarityBadge || variantLabel?.trim() ? (
             <div className="pokemon-card__metadata-row">
-              {showRarityBadge && card.rarity && (
+              {showRarityBadge && (
                 <span
-                  className="pokemon-card__rarity card-rarity-badge badge-small"
-                  title={card.rarity}
+                  className={`pokemon-card__rarity ${getRarityBadgeClassName(card.rarity)} badge-small`}
+                  title={card.rarity ?? "Rarity unavailable"}
                 >
-                  {card.rarity}
+                  {card.rarity ?? "N/A"}
                 </span>
               )}
               {variantLabel?.trim() && (
@@ -355,118 +386,107 @@ export function PokemonCardView({
               </div>
             </div>
 
-            {!lockPriceSource && (
+            {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
               <div className="pokemon-card__variant-row">
-                <span
-                  className={`badge-small badge-small--${
-                    activeOption?.source ?? priceSource
-                  }`}
-                >
-                  {sourceLabel}
-                </span>
+                <div className="pokemon-card__source">
+                  <button
+                    type="button"
+                    className={`pokemon-card__source-toggle${
+                      sourceOpen ? " is-open" : ""
+                    }`}
+                    aria-expanded={sourceOpen}
+                    aria-controls={sourcePanelId}
+                    onClick={() => {
+                      if (sourceOpen) closeSource();
+                      else setSourceOpen(true);
+                    }}
+                  >
+                    <span className="pokemon-card__source-label">Source</span>
+                    <ChevronDown
+                      className="pokemon-card__source-chevron"
+                      aria-hidden="true"
+                    />
+                  </button>
 
-                {canPickSource && (
-                  <div className="pokemon-card__source">
-                    <button
-                      type="button"
-                      className={`pokemon-card__source-toggle${
-                        sourceOpen ? " is-open" : ""
-                      }`}
-                      aria-expanded={sourceOpen}
-                      aria-controls={sourcePanelId}
-                      onClick={() => {
-                        if (sourceOpen) closeSource();
-                        else setSourceOpen(true);
-                      }}
-                    >
-                      <span className="pokemon-card__source-label">Source</span>
-                      <span
-                        className="pokemon-card__source-chevron"
-                        aria-hidden="true"
+                  {sourceOpen && (
+                    <div className="pokemon-card__source-flyout ui-render-fade">
+                      <div
+                        id={sourcePanelId}
+                        className="pokemon-card__source-panel ui-popover-surface"
+                        role="radiogroup"
+                        aria-label="Price source"
                       >
-                        {sourceOpen ? "▴" : "▾"}
-                      </span>
-                    </button>
+                        {visiblePriceOptions.map((option) => {
+                          const inputId = `${sourcePanelId}-${option.id}`;
+                          const checked = option.id === activeOption?.id;
+                          const isPending =
+                            option.id === pendingPriceOptionId;
+                          const pretext = getCardPriceSourceLabel(
+                            option.source,
+                          );
 
-                    {sourceOpen && (
-                      <div className="pokemon-card__source-flyout ui-render-fade">
-                        <div
-                          id={sourcePanelId}
-                          className="pokemon-card__source-panel ui-popover-surface"
-                          role="radiogroup"
-                          aria-label="Price source"
-                        >
-                          {priceOptions.map((option) => {
-                            const inputId = `${sourcePanelId}-${option.id}`;
-                            const checked = option.id === activeOption?.id;
-                            const isPending =
-                              option.id === pendingPriceOptionId;
-                            const pretext = getCardPriceSourceLabel(
-                              option.source,
-                            );
-
-                            return (
-                              <label
-                                key={option.id}
-                                htmlFor={inputId}
-                                className={[
-                                  "pokemon-card__source-option",
-                                  checked ? "is-selected" : "",
-                                  isPending ? "is-pending" : "",
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ")}
-                              >
-                                <input
-                                  className="app-radio"
-                                  id={inputId}
-                                  type="radio"
-                                  name={`${sourcePanelId}-price`}
-                                  value={option.id}
-                                  checked={checked}
-                                  onChange={() => selectOption(option.id)}
-                                />
-                                <span className="pokemon-card__source-option-label">
-                                  <span
-                                    className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
-                                  >
-                                    {pretext}
-                                  </span>
-                                  <span className="pokemon-card__source-option-name">
-                                    {option.label}
-                                  </span>
+                          return (
+                            <label
+                              key={option.id}
+                              htmlFor={inputId}
+                              className={[
+                                "pokemon-card__source-option",
+                                checked ? "is-selected" : "",
+                                isPending ? "is-pending" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            >
+                              <input
+                                className="app-radio"
+                                id={inputId}
+                                type="radio"
+                                name={`${sourcePanelId}-price`}
+                                value={option.id}
+                                checked={checked}
+                                onChange={() => selectOption(option.id)}
+                              />
+                              <span className="pokemon-card__source-option-label">
+                                <span
+                                  className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
+                                >
+                                  {pretext}
                                 </span>
-                                <span className="pokemon-card__source-option-price">
-                                  {option.currencySymbol}
-                                  {money.format(option.price)}
+                                <span className="pokemon-card__source-option-name">
+                                  {option.label}
                                 </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-
-                        {pendingPriceOptionId && (
-                          <ConfirmPopover
-                            className="pokemon-card__source-confirm"
-                            label="Update?"
-                            confirmLabel="OK"
-                            aria-label="Confirm price source change"
-                            confirming={confirmingPriceOption}
-                            onConfirm={() => {
-                              void (async () => {
-                                await onConfirmPriceOption?.();
-                                setSourceOpen(false);
-                              })();
-                            }}
-                            onCancel={closeSource}
-                          />
-                        )}
+                              </span>
+                              <span className="pokemon-card__source-option-price">
+                                {option.currencySymbol}
+                                {money.format(option.price)}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
-                )}
+
+                      {pendingPriceOptionId && (
+                        <ConfirmPopover
+                          className="pokemon-card__source-confirm"
+                          label="Update?"
+                          confirmLabel="OK"
+                          aria-label="Confirm price source change"
+                          confirming={confirmingPriceOption}
+                          onConfirm={() => {
+                            void (async () => {
+                              await onConfirmPriceOption?.();
+                              setSourceOpen(false);
+                            })();
+                          }}
+                          onCancel={closeSource}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
@@ -479,6 +499,11 @@ type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
   quantity?: number;
   onQuantityUpdated?: (cardId: string, quantity: number) => void;
   onRemoved?: (cardId: string) => void;
+  onPriceSourceUpdated?: (
+    cardId: string,
+    priceSource: CardPriceSource,
+    priceKey: string,
+  ) => void;
 };
 
 export function PokemonCardPortfolioView({
@@ -486,22 +511,34 @@ export function PokemonCardPortfolioView({
   quantity = card.quantity ?? 1,
   onQuantityUpdated,
   onRemoved,
+  onPriceSourceUpdated,
   onPortfolioChanged,
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
-  const { removePokemonFromPortfolio, updatePokemonQuantity } =
+  const {
+    removePokemonFromPortfolio,
+    updatePokemonPriceSource,
+    updatePokemonQuantity,
+  } =
     usePokemonPortfolio();
+  const activePriceSource = cardViewProps.priceSource ?? "tcgplayer";
+  const savedPriceKey = card.priceSources?.[activePriceSource] ?? null;
   const [displayedQuantity, setDisplayedQuantity] = useState(quantity);
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState(false);
   const [updatingRemoval, setUpdatingRemoval] = useState(false);
+  const [pendingPriceOptionId, setPendingPriceOptionId] = useState<
+    string | null
+  >(null);
+  const [updatingPriceOption, setUpdatingPriceOption] = useState(false);
 
   useEffect(() => {
     setDisplayedQuantity(quantity);
     setPendingQuantity(null);
     setPendingRemoval(false);
-  }, [card.id, quantity]);
+    setPendingPriceOptionId(null);
+  }, [activePriceSource, card.id, quantity]);
 
   const requestQuantityChange = (amount: number) => {
     if (updatingQuantity) return;
@@ -542,6 +579,31 @@ export function PokemonCardPortfolioView({
     }
   };
 
+  const confirmPriceOptionChange = async () => {
+    if (!pendingPriceOptionId) return;
+
+    const [source, priceKey] = pendingPriceOptionId.split(":");
+    if (source !== activePriceSource || !priceKey) {
+      setPendingPriceOptionId(null);
+      return;
+    }
+
+    setUpdatingPriceOption(true);
+    try {
+      const updated = await updatePokemonPriceSource(
+        card.id,
+        activePriceSource,
+        priceKey,
+      );
+      if (!updated) return;
+
+      onPriceSourceUpdated?.(card.id, activePriceSource, priceKey);
+      setPendingPriceOptionId(null);
+    } finally {
+      setUpdatingPriceOption(false);
+    }
+  };
+
   return (
     <div
       className={`pokemon-card-portfolio-view${
@@ -562,6 +624,15 @@ export function PokemonCardPortfolioView({
       <PokemonCardView
         card={card}
         {...cardViewProps}
+        showPriceSourcePicker
+        selectedPriceOptionId={
+          savedPriceKey ? `${activePriceSource}:${savedPriceKey}` : null
+        }
+        pendingPriceOptionId={pendingPriceOptionId}
+        onPriceOptionChange={setPendingPriceOptionId}
+        onConfirmPriceOption={confirmPriceOptionChange}
+        onCancelPriceOption={() => setPendingPriceOptionId(null)}
+        confirmingPriceOption={updatingPriceOption}
         onPortfolioChanged={(saved) => {
           onPortfolioChanged?.(saved);
           if (!saved) onRemoved?.(card.id);

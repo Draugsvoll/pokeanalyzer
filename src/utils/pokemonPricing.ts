@@ -255,6 +255,20 @@ export function getDefaultCardPriceOptionForSource(
   return listCardPriceOptions(card).find((option) => option.source === source);
 }
 
+export function getCardPriceOptionForSourceKey(
+  card: {
+    tcgplayer?: TCGPlayer | null;
+    cardmarket?: CardMarket | null;
+  },
+  source: CardPriceSource,
+  key?: string | null,
+): CardPriceOption | undefined {
+  const options = listCardPriceOptions(card).filter(
+    (option) => option.source === source,
+  );
+  return options.find((option) => option.key === key) ?? options[0];
+}
+
 /** Selected option id → price option, else default for the card. */
 export function resolveCardPriceOption(
   card: {

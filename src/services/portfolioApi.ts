@@ -86,7 +86,8 @@ export function updatePortfolioCardQuantity(
 
 export function updatePortfolioCardPriceSource(
   cardId: string,
-  priceSource: string,
+  priceSource: PortfolioPriceSource,
+  priceKey: string,
   expectedUid: string,
 ) {
   return portfolioRequest<PortfolioReference>(
@@ -94,7 +95,7 @@ export function updatePortfolioCardPriceSource(
     expectedUid,
     {
       method: "PATCH",
-      body: JSON.stringify({ priceSource }),
+      body: JSON.stringify({ priceSource, priceKey }),
     },
   );
 }

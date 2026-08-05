@@ -100,11 +100,11 @@
 .general-news__trend-heading span::before {
   background: currentColor;
   border-radius: var(--border-radius-round);
-  box-shadow: 0 0 0.5rem currentColor;
+  box-shadow: 0 0 var(--glow-dot-shadow-size) currentColor;
   content: "";
-  height: 0.3rem;
-  opacity: 0.85;
-  width: 0.3rem;
+  height: var(--glow-dot-size);
+  opacity: var(--glow-dot-opacity);
+  width: var(--glow-dot-size);
 }
 
 .general-news__trend-content > p {
@@ -139,11 +139,11 @@
 .general-news__trend-content li::before {
   background: var(--trend-accent);
   border-radius: var(--border-radius-round);
-  box-shadow: 0 0 0.45rem
-    color-mix(in srgb, var(--trend-accent) 55%, transparent);
+  box-shadow: 0 0 var(--glow-dot-shadow-size)
+    color-mix(in srgb, var(--trend-accent) var(--glow-dot-shadow-strength), transparent);
   content: "";
-  flex: 0 0 0.32rem;
-  height: 0.32rem;
+  flex: 0 0 var(--glow-dot-size);
+  height: var(--glow-dot-size);
   margin-top: 0.47rem;
 }
 

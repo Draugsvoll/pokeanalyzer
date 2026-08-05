@@ -229,10 +229,12 @@
 .header__credits-dot {
   background: var(--custom-color-blue);
   border-radius: var(--radius-round);
-  box-shadow: 0 0 0 3px rgba(78, 168, 255, 0.18);
+  box-shadow: 0 0 var(--glow-dot-shadow-size)
+    color-mix(in srgb, var(--custom-color-blue) var(--glow-dot-shadow-strength), transparent);
   flex-shrink: 0;
-  height: 6px;
-  width: 6px;
+  height: var(--glow-dot-size);
+  opacity: var(--glow-dot-opacity);
+  width: var(--glow-dot-size);
 }
 
 .header__avatar-link {

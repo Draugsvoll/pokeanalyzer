@@ -201,6 +201,14 @@
     min-width: 0;
   }
 
+  &__sort-group {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
   &__control-label {
     color: var(--font-color-muted);
     font-size: var(--font-size-caption);
@@ -301,16 +309,7 @@
   }
 
   &__sort {
-    width: 10rem;
-
-    .ui-select-dropdown__toggle {
-      width: 100%;
-
-      > span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
+    min-width: 0;
   }
 
   &__timeframe {
