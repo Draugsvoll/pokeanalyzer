@@ -48,3 +48,21 @@ export type CardMarket = {
     reverseHoloAvg30?: number;
   };
 };
+
+export type JustTcgPriceData = {
+  absoluteChange24h?: number;
+  absoluteChange7d?: number;
+  absoluteChange30d?: number;
+  condition: string;
+  market: number;
+  percentChange24h?: number;
+  percentChange7d?: number;
+  percentChange30d?: number;
+  printing: string;
+};
+
+export type JustTcg = {
+  url?: string;
+  updatedAt?: string;
+  prices: Record<string, JustTcgPriceData>;
+};

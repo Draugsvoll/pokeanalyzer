@@ -59,7 +59,7 @@ export function JustTcgHistoryIntro() {
     <div className="just-tcg-history__intro">
       <h3 className="feature-section-heading">Price history</h3>
       <p>
-        Aggregated sales • Online marketplaces & physical stores •{" "}
+        Aggregated sales •{" "}
         <strong>JustTCG</strong>.
       </p>
     </div>

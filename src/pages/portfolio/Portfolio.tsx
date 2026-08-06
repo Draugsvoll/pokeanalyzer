@@ -133,10 +133,7 @@ function PortfolioForCurrentUser() {
         const response = await getHydratedPortfolio(user.uid, signal);
         if (signal?.aborted || requestId !== activePortfolioRequestRef.current)
           return;
-        const storedPriceSource =
-          response.portfolioPriceSource === "cardmarket"
-            ? "cardmarket"
-            : "tcgplayer";
+        const storedPriceSource = response.portfolioPriceSource;
         setPortfolio(response.cards);
         setMissingCardIds(response.missingCardIds);
         setSavedPriceSource(storedPriceSource);
@@ -254,6 +251,7 @@ function PortfolioForCurrentUser() {
   }, [changePeriod, filteredPortfolio, portfolioSort, priceSource]);
 
   const priceSourceChanged = priceSource !== savedPriceSource;
+  const totalCurrencySymbol = priceSource === "cardmarket" ? "€" : "$";
 
   const handleCardQuantityUpdated = (cardId: string, quantity: number) => {
     setPortfolio((current) =>
@@ -430,7 +428,7 @@ function PortfolioForCurrentUser() {
                 </div>
                 <strong className="portfolio__total-market-value">
                   {totalValue > 0
-                    ? `${priceSource === "tcgplayer" ? "$" : "€"}${money.format(totalValue)}`
+                    ? `${totalCurrencySymbol}${money.format(totalValue)}`
                     : "—"}
                 </strong>
                 <div

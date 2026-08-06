@@ -109,6 +109,12 @@
       border-left: 1px solid var(--border-divider);
     }
 
+    &__radio-group.just-tcg-history__radio-group--variant {
+      display: flex;
+      justify-content: flex-start;
+      min-width: 0;
+    }
+
     /* Shared segmented control (condition + period) */
     &__radio-group.just-tcg-history__radio-group--segment {
       display: flex;
@@ -570,6 +576,11 @@
       }
 
       &__radio-group {
+        width: 100%;
+      }
+
+      &__radio-group.just-tcg-history__radio-group--variant {
+        justify-content: flex-start;
         width: 100%;
       }
 

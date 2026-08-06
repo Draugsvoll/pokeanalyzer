@@ -1,7 +1,7 @@
 import type { Attack } from "./attacks";
 import type { CardSet } from "./set";
 import type { CardImages } from "./images";
-import type { CardMarket, TCGPlayer } from "./pricing";
+import type { CardMarket, JustTcg, TCGPlayer } from "./pricing";
 import type { Legalities, TypeEffect } from "./shared";
 
 export type PokemonCard = {
@@ -28,6 +28,7 @@ export type PokemonCard = {
   images: CardImages;
   tcgplayer?: TCGPlayer;
   cardmarket?: CardMarket;
+  justtcg?: JustTcg;
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };
     price_analysis?: Record<string, unknown> & { timestamp: string };
@@ -37,10 +38,12 @@ export type PokemonCard = {
   quantity?: number;
   /** Selected price option id, e.g. "tcgplayer:holofoil" | "cardmarket:trendPrice" */
   priceSource?: string;
-  priceReliability?: Record<
-    "tcgplayer" | "cardmarket",
-    {
-      isFlagged: boolean;
-    }
+  priceReliability?: Partial<
+    Record<
+      "tcgplayer" | "cardmarket",
+      {
+        isFlagged: boolean;
+      }
+    >
   >;
 };

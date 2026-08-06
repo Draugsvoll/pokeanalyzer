@@ -325,7 +325,9 @@ export function StoredPrices({
             onToggleDetails={() =>
               setShowTcgplayerDetails((current) => !current)
             }
-            isPriceFlagged={card.priceReliability?.tcgplayer.isFlagged ?? false}
+            isPriceFlagged={
+              card.priceReliability?.tcgplayer?.isFlagged ?? false
+            }
             legend={
               [
                 // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
@@ -355,7 +357,7 @@ export function StoredPrices({
               setShowCardmarketDetails((current) => !current)
             }
             isPriceFlagged={
-              card.priceReliability?.cardmarket.isFlagged ?? false
+              card.priceReliability?.cardmarket?.isFlagged ?? false
             }
             legend={
               [

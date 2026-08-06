@@ -8,6 +8,7 @@ import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import type {
   PortfolioCard,
+  PortfolioPriceSource,
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
 import { formatDateStamp } from "../../utils/formatDateStamp";
@@ -44,6 +45,8 @@ export type PokemonCardViewProps = {
   showPriceSourcePicker?: boolean;
   showRarityBadge?: boolean;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
+  priceChangePercent?: number | null;
+  priceChangeLabel?: string;
   showPriceWarning?: boolean;
   onPortfolioChanged?: (saved: boolean) => void;
 };
@@ -66,6 +69,8 @@ export function PokemonCardView({
   showPriceSourcePicker = false,
   showRarityBadge = true,
   comparisonPriceSnapshot,
+  priceChangePercent,
+  priceChangeLabel,
   showPriceWarning = false,
   onPortfolioChanged,
 }: PokemonCardViewProps) {
@@ -128,14 +133,19 @@ export function PokemonCardView({
     activeOption && comparisonPriceSnapshot
       ? getHistoricalPriceForOption(activeOption, comparisonPriceSnapshot)
       : undefined;
-  const priceChangePercent =
+  const calculatedPriceChangePercent =
     displayedPrice != null && comparisonPrice != null
       ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
       : null;
+  const normalizedPriceChangePercent =
+    priceChangePercent !== undefined
+      ? priceChangePercent
+      : calculatedPriceChangePercent;
   const displayedPriceChangePercent =
-    priceChangePercent != null && Math.abs(priceChangePercent) < 0.05
+    normalizedPriceChangePercent != null &&
+    Math.abs(normalizedPriceChangePercent) < 0.05
       ? 0
-      : priceChangePercent;
+      : normalizedPriceChangePercent;
   const formattedPriceChange =
     displayedPriceChangePercent == null
       ? null
@@ -148,7 +158,13 @@ export function PokemonCardView({
         : displayedPriceChangePercent < 0
           ? "down"
           : "flat";
-  const showPriceChange = comparisonPriceSnapshot !== undefined;
+  const showPriceChange =
+    priceChangePercent !== undefined || comparisonPriceSnapshot != null;
+  const priceChangeTitle =
+    priceChangeLabel ??
+    (comparisonPriceSnapshot
+      ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
+      : "Price change");
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
   const variantLabel = activeOption?.label;
@@ -327,13 +343,11 @@ export function PokemonCardView({
                   </span>
                 )}
                 {showPriceChange &&
-                  (formattedPriceChange &&
-                  priceChangeTone &&
-                  comparisonPriceSnapshot ? (
+                  (formattedPriceChange && priceChangeTone ? (
                     <span
                       className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
-                      title={`Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`}
-                      aria-label={`${formattedPriceChange} since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`}
+                      title={priceChangeTitle}
+                      aria-label={`${formattedPriceChange} ${priceChangeTitle.toLowerCase()}`}
                     >
                       {formattedPriceChange}
                     </span>
@@ -464,7 +478,7 @@ type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
   onRemoved?: (cardId: string) => void;
   onPriceSourceUpdated?: (
     cardId: string,
-    priceSource: CardPriceSource,
+    priceSource: PortfolioPriceSource,
     priceKey: string,
   ) => void;
 };
@@ -484,7 +498,8 @@ export function PokemonCardPortfolioView({
     updatePokemonQuantity,
   } =
     usePokemonPortfolio();
-  const activePriceSource = cardViewProps.priceSource ?? "tcgplayer";
+  const activePriceSource: PortfolioPriceSource =
+    cardViewProps.priceSource === "cardmarket" ? "cardmarket" : "tcgplayer";
   const savedPriceKey = card.priceSources?.[activePriceSource] ?? null;
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
@@ -583,6 +598,7 @@ export function PokemonCardPortfolioView({
       <PokemonCardView
         card={card}
         {...cardViewProps}
+        priceSource={activePriceSource}
         showPriceSourcePicker
         selectedPriceOptionId={
           savedPriceKey ? `${activePriceSource}:${savedPriceKey}` : null

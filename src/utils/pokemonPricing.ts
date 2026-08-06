@@ -1,4 +1,4 @@
-import type { CardMarket, TCGPlayer } from "../types/pokemon/pricing";
+import type { CardMarket, JustTcg, TCGPlayer } from "../types/pokemon/pricing";
 import {
   getOrderedTcgPlayerVariantKeys,
   TCG_PLAYER_VARIANT_ORDER,
@@ -9,7 +9,7 @@ export { TCG_PLAYER_VARIANT_ORDER };
 
 export type TCGPlayerVariantKey = TcgPlayerVariantKey;
 
-export type CardPriceSource = "tcgplayer" | "cardmarket";
+export type CardPriceSource = "tcgplayer" | "cardmarket" | "justtcg";
 
 export type CardPriceOption = {
   id: string;
@@ -200,10 +200,32 @@ export function listCardmarketTrendEntries(
   return entries;
 }
 
+function formatJustTcgVariantLabel(printing: string, condition: string) {
+  return [printing, condition].filter(Boolean).join(" · ");
+}
+
+export function listJustTcgMarketEntries(
+  prices?: JustTcg["prices"] | null,
+): { key: string; price: number; label: string }[] {
+  if (!prices || typeof prices !== "object") return [];
+
+  return Object.entries(prices)
+    .map(([key, value]) => ({
+      key,
+      label: formatJustTcgVariantLabel(value.printing, value.condition),
+      price: readPositiveNumber(value.market),
+    }))
+    .filter(
+      (entry): entry is { key: string; price: number; label: string } =>
+        entry.price !== undefined,
+    );
+}
+
 /** Combined TCG market + Cardmarket trend options for the Source picker. */
 export function listCardPriceOptions(card: {
   tcgplayer?: TCGPlayer | null;
   cardmarket?: CardMarket | null;
+  justtcg?: JustTcg | null;
 }): CardPriceOption[] {
   const options: CardPriceOption[] = [];
 
@@ -229,11 +251,24 @@ export function listCardPriceOptions(card: {
     });
   }
 
+  for (const entry of listJustTcgMarketEntries(card.justtcg?.prices)) {
+    options.push({
+      id: `justtcg:${entry.key}`,
+      source: "justtcg",
+      key: entry.key,
+      label: entry.label,
+      price: entry.price,
+      currencySymbol: "$",
+    });
+  }
+
   return options;
 }
 
 export function getCardPriceSourceLabel(source: CardPriceSource): string {
-  return source === "tcgplayer" ? "TCG" : "Cardmarket";
+  if (source === "tcgplayer") return "TCG";
+  if (source === "cardmarket") return "Cardmarket";
+  return "JustTCG";
 }
 
 export function pickDefaultCardPriceOption(
@@ -249,6 +284,7 @@ export function getDefaultCardPriceOptionForSource(
   card: {
     tcgplayer?: TCGPlayer | null;
     cardmarket?: CardMarket | null;
+    justtcg?: JustTcg | null;
   },
   source: CardPriceSource,
 ): CardPriceOption | undefined {
@@ -259,6 +295,7 @@ export function getCardPriceOptionForSourceKey(
   card: {
     tcgplayer?: TCGPlayer | null;
     cardmarket?: CardMarket | null;
+    justtcg?: JustTcg | null;
   },
   source: CardPriceSource,
   key?: string | null,
@@ -274,6 +311,7 @@ export function resolveCardPriceOption(
   card: {
     tcgplayer?: TCGPlayer | null;
     cardmarket?: CardMarket | null;
+    justtcg?: JustTcg | null;
   },
   selectedOptionId?: string | null,
   preferredSource: CardPriceSource = "tcgplayer",
@@ -299,7 +337,11 @@ export function getHistoricalPriceForOption(
     return readPositiveMarket(prices?.[option.key]);
   }
 
-  const prices = snapshot.cardmarketPrices as
-    Record<string, unknown> | null | undefined;
-  return readPositiveNumber(prices?.[option.key]);
+  if (option.source === "cardmarket") {
+    const prices = snapshot.cardmarketPrices as
+      Record<string, unknown> | null | undefined;
+    return readPositiveNumber(prices?.[option.key]);
+  }
+
+  return undefined;
 }

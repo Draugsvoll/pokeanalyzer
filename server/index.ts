@@ -9,7 +9,13 @@ import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
-import { fetchJustTcgCard, JustTcgApiError } from "./services/justTcgApi.js";
+import {
+  fetchJustTcgBiggestGainers,
+  fetchJustTcgCard,
+  type JustTcgMovementPeriod,
+  type JustTcgPriceMovement,
+  JustTcgApiError,
+} from "./services/justTcgApi.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
@@ -263,6 +269,133 @@ app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, re
     res.status(statusCode).json({ message: "JustTCG API request failed" });
   }
 });
+
+function formatJustTcgPriceKey(priceMovement: JustTcgPriceMovement) {
+  return [priceMovement.printing, priceMovement.condition]
+    .join(":")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function formatJustTcgPriceData(priceMovement: JustTcgPriceMovement) {
+  const percentChangeKey =
+    `percentChange${priceMovement.period}` as const;
+  const absoluteChangeKey =
+    `absoluteChange${priceMovement.period}` as const;
+
+  return {
+    [absoluteChangeKey]: priceMovement.absoluteChange,
+    condition: priceMovement.condition,
+    market: priceMovement.currentPrice,
+    [percentChangeKey]: priceMovement.changePercent,
+    printing: priceMovement.printing,
+  };
+}
+
+function formatJustTcgCardData(
+  card: Record<string, unknown>,
+  priceMovement: JustTcgPriceMovement,
+) {
+  const key = formatJustTcgPriceKey(priceMovement) || "justtcg";
+
+  return {
+    ...card,
+    justtcg: {
+      prices: {
+        [key]: formatJustTcgPriceData(priceMovement),
+      },
+    },
+  };
+}
+
+function normalizeCardNumber(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  const numberBeforeSlash = String(value).trim().split("/")[0];
+  return numberBeforeSlash.replace(/^0+(?=\d)/, "").toLowerCase();
+}
+
+function findJustTcgMoverCard(
+  rows: { number: string | null; raw_json: string }[],
+  priceMovement: JustTcgPriceMovement,
+) {
+  if (!priceMovement.cardNumber) return rows[0] ?? null;
+
+  const targetNumber = normalizeCardNumber(priceMovement.cardNumber);
+  return rows.find((row) => normalizeCardNumber(row.number) === targetNumber) ?? null;
+}
+
+app.get(
+  "/api/justtcg/biggest-gainers",
+  async (req, res) => {
+    const signal = getRequestAbortSignal(res);
+    const periodQuery =
+      typeof req.query.period === "string" ? req.query.period : "7d";
+
+    if (!["24h", "7d", "30d"].includes(periodQuery)) {
+      res.status(400).json({ message: "Invalid JustTCG movement period" });
+      return;
+    }
+
+    try {
+      const priceMovements = await fetchJustTcgBiggestGainers(
+        signal,
+        periodQuery as JustTcgMovementPeriod,
+      );
+      const cards = await Promise.all(
+        priceMovements.map(async (priceMovement) => {
+          const rows = await dbAll<{ number: string | null; raw_json: string }>(
+            `
+              SELECT number, raw_json
+              FROM cards
+              WHERE name = ?
+                AND (? IS NULL OR set_name = ?)
+              LIMIT 20
+            `,
+            [
+              priceMovement.cardName,
+              priceMovement.setName ?? null,
+              priceMovement.setName ?? null,
+            ],
+          );
+          const matchedRow = findJustTcgMoverCard(rows, priceMovement);
+          const card = matchedRow
+            ? parsePublicStoredCard(String(matchedRow.raw_json))
+            : null;
+
+          return card
+            ? {
+                card: formatJustTcgCardData(card, priceMovement),
+                mover: priceMovement,
+              }
+            : null;
+        }),
+      );
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        cards: cards.filter((item): item is NonNullable<typeof item> =>
+          Boolean(item),
+        ),
+      });
+    } catch (error) {
+      if (isRequestAbort(error, signal)) return;
+      logError("JustTCG biggest movers request failed", error);
+      const statusCode =
+        error instanceof JustTcgApiError
+          ? error.statusCode
+          : 502;
+      res
+        .status(statusCode)
+        .json({
+          message:
+            error instanceof JustTcgApiError
+              ? error.message
+              : "JustTCG biggest movers request failed",
+        });
+    }
+  },
+);
 
 // SEARCH FUNCTION
 app.get("/api/cards/search", async (req, res) => {
