@@ -129,7 +129,7 @@ body {
   background: transparent;
 
   @media (min-width: 1024px) {
-    padding: var(--space-7) var(--page-pad-x-lg) var(--space-12);
+    padding: var(--space-8) var(--page-pad-x-lg) var(--space-12);
   }
 }
 
@@ -140,8 +140,8 @@ body {
   width: 100%;
 }
 
-/* Explore handles its own vertical rhythm; still sits inside the shell */
-.main-content:has(.explore-page) {
+/* The standalone Explore page handles its own vertical rhythm. */
+.main-content:has(> .explore-page) {
   padding-top: 0;
   padding-bottom: 0;
 }

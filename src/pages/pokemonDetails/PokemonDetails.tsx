@@ -58,6 +58,7 @@ import {
   useAbortableRequest,
 } from "../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
+import { CardFeatureHeader } from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
@@ -106,8 +107,6 @@ type AI_feature = {
   icon: LucideIcon;
   color: CustomColors;
   creditFeature: CreditUsageFeature;
-  /** Large analysis heading under the feature eyebrow */
-  analysisTitle: string;
 };
 
 const AI_Features: AI_feature[] = [
@@ -118,7 +117,6 @@ const AI_Features: AI_feature[] = [
     icon: LineChart,
     color: "orange",
     creditFeature: "price_analysis",
-    analysisTitle: "Extended price data",
   },
   {
     view: "collector_analysis",
@@ -127,7 +125,6 @@ const AI_Features: AI_feature[] = [
     icon: Gem,
     color: "blue",
     creditFeature: "collector_analysis",
-    analysisTitle: "Collectibility breakdown",
   },
   {
     view: "ebay_sold",
@@ -136,7 +133,6 @@ const AI_Features: AI_feature[] = [
     icon: BadgeDollarSign,
     color: "teal",
     creditFeature: "ebay_sold",
-    analysisTitle: "Recent sold listings",
   },
   {
     view: "worth_grading",
@@ -145,7 +141,6 @@ const AI_Features: AI_feature[] = [
     icon: BadgeDollarSign,
     color: "pink",
     creditFeature: "worth_grading",
-    analysisTitle: "Grading economics",
   },
   {
     view: "sell_price",
@@ -154,7 +149,6 @@ const AI_Features: AI_feature[] = [
     icon: BadgeDollarSign,
     color: "yellow",
     creditFeature: "sell_price",
-    analysisTitle: "Selling recommendation",
   },
 ];
 
@@ -1064,6 +1058,21 @@ function PokemonDetailsForCard() {
               className="card-view__active-feature ui-render-fade"
               style={getCustomColors(activeFeature.color)}
             >
+              <CardFeatureHeader
+                card={card}
+                cardNumber={
+                  activeView === "prices" ? displayedCardNumber : undefined
+                }
+                color={activeFeature.color}
+                icon={activeFeature.icon}
+                label={activeFeature.title}
+                loading={
+                  grokLoading ||
+                  (activeView === "prices" &&
+                    (justTcgLoading || marketSalesLoading)) ||
+                  (activeView === "ebay_sold" && ebayLoading)
+                }
+              />
               <div className="card-view__active-body">
                 {activeView === "ebay_sold" && (
                   <EbaySoldView

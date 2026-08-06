@@ -16,10 +16,27 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type DatabaseSearchProps = {
   autoFocusName?: boolean;
-  /** Compact fields-only layout for inside the card shell */
+  /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
+  showHero?: boolean;
   /** When set, results render into this element (e.g. below the card shell) */
   resultsPortalEl?: HTMLElement | null;
+};
+
+type DatabaseSearchBarProps = {
+  autoFocusName: boolean;
+  canSearch: boolean;
+  cardNumber: string;
+  isSearching: boolean;
+  onCardNumberChange: (value: string) => void;
+  onPokemonNameChange: (value: string) => void;
+  onSearch: () => void;
+  onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onSetNameChange: (value: string) => void;
+  onSetSeriesChange: (value: string) => void;
+  pokemonName: string;
+  setName: string;
+  setSeries: string;
 };
 
 type SearchSortDirection =
@@ -35,9 +52,105 @@ const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
   { value: "release-oldest", label: "Oldest releases" },
 ];
 
+export function DatabaseSearchBar({
+  autoFocusName,
+  canSearch,
+  cardNumber,
+  isSearching,
+  onCardNumberChange,
+  onPokemonNameChange,
+  onSearch,
+  onSearchKeyDown,
+  onSetNameChange,
+  onSetSeriesChange,
+  pokemonName,
+  setName,
+  setSeries,
+}: DatabaseSearchBarProps) {
+  const searchButtonBusy = isSearching || !canSearch;
+
+  return (
+    <div className="database-search-bar">
+      <div
+        className="database-search-fields"
+        role="group"
+        aria-label="Search fields"
+      >
+        <label className="explore-search-field">
+          <Search
+            className="explore-search-field__icon"
+            size={18}
+            strokeWidth={1.5}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
+          <input
+            className="database-search"
+            autoFocus={autoFocusName}
+            value={pokemonName}
+            onChange={(event) => onPokemonNameChange(event.target.value)}
+            onKeyDown={onSearchKeyDown}
+            placeholder="Name"
+            aria-label="Pokemon name"
+          />
+        </label>
+        <span className="explore-search-shell__divider" aria-hidden="true" />
+        <label className="explore-search-field">
+          <input
+            className="database-search database-search--number"
+            value={cardNumber}
+            onChange={(event) => onCardNumberChange(event.target.value)}
+            onKeyDown={onSearchKeyDown}
+            placeholder="No."
+            aria-label="Card number"
+          />
+        </label>
+        <span className="explore-search-shell__divider" aria-hidden="true" />
+        <label className="explore-search-field">
+          <input
+            className="database-search"
+            value={setName}
+            onChange={(event) => onSetNameChange(event.target.value)}
+            onKeyDown={onSearchKeyDown}
+            placeholder="Set"
+            aria-label="Set name"
+          />
+        </label>
+        <span className="explore-search-shell__divider" aria-hidden="true" />
+        <label className="explore-search-field">
+          <input
+            className="database-search"
+            value={setSeries}
+            onChange={(event) => onSetSeriesChange(event.target.value)}
+            onKeyDown={onSearchKeyDown}
+            placeholder="Series"
+            aria-label="Series"
+          />
+        </label>
+      </div>
+      <div className="database-search-actions">
+        <button
+          type="button"
+          className="explore-search-shell__submit"
+          onClick={onSearch}
+          disabled={searchButtonBusy}
+          aria-busy={searchButtonBusy || undefined}
+        >
+          {searchButtonBusy ? (
+            <span className="database-search-spinner" aria-label="Searching" />
+          ) : (
+            "Search"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
+  showHero = true,
   resultsPortalEl = null,
 }) => {
   const [pokemonName, setPokemonName] = useState("");
@@ -171,15 +284,13 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       handleSearch();
     }
   };
-  const searchButtonBusy = isSearching || !canSearch;
-
   return (
     <section
       className={`database-preview explore-page${embedded ? " database-preview--embedded" : ""}`}
       id="database-search"
     >
       <div className={embedded ? undefined : "explore-page__inner"}>
-        {!embedded && (
+        {!embedded && showHero && (
           <header className="explore-hero">
             <p className="explore-hero__eyebrow">
               20,000+ cards · Global market data
@@ -191,84 +302,21 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           </header>
         )}
 
-        <div className="database-search-container explore-search-shell">
-          <div
-            className="database-search-fields explore-search-shell__fields"
-            role="group"
-            aria-label="Search fields"
-          >
-            <label className="explore-search-field">
-              <Search
-                className="explore-search-field__icon"
-                size={18}
-                strokeWidth={1.5}
-                absoluteStrokeWidth
-                aria-hidden="true"
-              />
-              <input
-                className="database-search"
-                autoFocus={autoFocusName}
-                value={pokemonName}
-                onChange={(e) => setPokemonName(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Name"
-                aria-label="Pokémon name"
-              />
-            </label>
-            <span className="explore-search-shell__divider" aria-hidden="true" />
-            <label className="explore-search-field">
-              <input
-                className="database-search database-search--number"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="No."
-                aria-label="Card number"
-              />
-            </label>
-            <span className="explore-search-shell__divider" aria-hidden="true" />
-            <label className="explore-search-field">
-              <input
-                className="database-search"
-                value={setName}
-                onChange={(e) => setSetName(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Set"
-                aria-label="Set name"
-              />
-            </label>
-            <span className="explore-search-shell__divider" aria-hidden="true" />
-            <label className="explore-search-field">
-              <input
-                className="database-search"
-                value={setSeries}
-                onChange={(e) => setSetSeries(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Series"
-                aria-label="Series"
-              />
-            </label>
-          </div>
-          <div className="database-search-actions">
-            <button
-              type="button"
-              className="explore-search-shell__submit"
-              onClick={handleSearch}
-              disabled={searchButtonBusy}
-              aria-busy={searchButtonBusy || undefined}
-            >
-              {searchButtonBusy ? (
-                <span
-                  className="database-search-spinner"
-                  aria-label="Searching"
-                />
-              ) : (
-                "Search"
-              )}
-            </button>
-          </div>
-        </div>
-
+        <DatabaseSearchBar
+          autoFocusName={autoFocusName}
+          canSearch={canSearch}
+          cardNumber={cardNumber}
+          isSearching={isSearching}
+          onCardNumberChange={setCardNumber}
+          onPokemonNameChange={setPokemonName}
+          onSearch={handleSearch}
+          onSearchKeyDown={handleSearchKeyDown}
+          onSetNameChange={setSetName}
+          onSetSeriesChange={setSetSeries}
+          pokemonName={pokemonName}
+          setName={setName}
+          setSeries={setSeries}
+        />
         {(() => {
           if (results.length === 0) return null;
 

@@ -4,11 +4,11 @@
   background: transparent;
   min-height: calc(100vh - var(--header-height));
   /* Horizontal pad comes from .main-content shell — only vertical here */
-  padding: var(--space-10) 0 var(--space-11);
+  padding: 0 var(--space-11);
   width: 100%;
 
   @media (min-width: 1024px) {
-    padding: var(--space-11) 0 var(--space-12);
+    padding: 0 0 var(--space-12);
   }
 }
 
@@ -88,40 +88,13 @@
     min-height: 0;
     padding: 0;
     text-align: left;
-
-
-    .explore-search-shell,
-    .database-search-container {
-      background: var(--surface2);
-      border-color: var(--search-border-focus);
-      box-shadow:
-        var(--search-ring),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-      margin: 0;
-      max-width: none;
-      width: min(49rem, 100%);
-      margin-left: 1rem;
-
-      &:focus-within {
-        border-color: var(--search-border-focus);
-        box-shadow:
-          var(--search-ring-focus),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      }
-    }
-
-    /* Tight pair: Search + Clear (not full outer-gap) */
-    .database-search-actions {
-      gap: var(--space-2);
-    }
   }
 }
 
 /*
  * Multi-input search — chrome matched to mock left (keep multi-fields)
  */
-.database-search-container,
-.explore-search-shell {
+.database-search-bar {
   align-items: center;
   background: var(--search-surface);
   border: 1px solid var(--search-border);
@@ -149,8 +122,7 @@
   }
 }
 
-.database-search-fields,
-.explore-search-shell__fields {
+.database-search-fields {
   align-items: stretch;
   display: flex;
   flex: 1 1 auto;
@@ -495,8 +467,7 @@
     font-size: 32px;
   }
 
-  .database-search-container,
-  .explore-search-shell {
+  .database-search-bar {
     border-radius: 16px;
     flex-direction: column;
     height: auto;

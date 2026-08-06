@@ -56,7 +56,6 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
         data: [
           {
             name: "Reliable Pikachu",
-            number: "25",
             set_name: "Test Set",
             variants: [
               {
@@ -100,7 +99,6 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
     assert.equal(result.length, 1);
     assert.equal(result[0].cardName, "Reliable Pikachu");
     assert.equal(result[0].currentPrice, 25);
-    assert.equal(result[0].cardNumber, "25");
     assert.equal(result[0].period, "7d");
     assert.equal(result[0].printing, "Holofoil");
   } finally {
@@ -124,7 +122,7 @@ test("JustTCG biggest gainers can use a selected movement period", async () => {
   process.env.JUSTTCG_API_KEY = "test-key";
 
   let requestedUrl = "";
-  global.fetch = ((url: string | URL | Request) => {
+  global.fetch = (async (url: string | URL | Request) => {
     requestedUrl = String(url);
     return new Response(JSON.stringify({ data: [] }), {
       headers: { "content-type": "application/json" },

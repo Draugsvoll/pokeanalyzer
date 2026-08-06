@@ -1,22 +1,20 @@
 import React from "react";
 import "./WelcomeView.scss";
-import { useNavigate } from "react-router-dom";
-import Button from "../button/Button";
 import { INFO_CARDS } from "../../data/infoCards";
 import { getCustomColors } from "../../utils/customStylings";
+import { DatabaseSearch } from "../databaseSearch/DatabaseSearch";
 
 export const WelcomeView: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="welcome-view">
       <section className="hero">
-        <h1>Analyser og samle Pokémon-kort</h1>
-        <p>Søk i kortdatabasen, sjekk markedspriser og bygg din portefølje.</p>
-        <div className="hero__cta-wrap">
-          <Button variant="hero" size="large" onClick={() => navigate("/search")}>
-            Find a card
-          </Button>
+        <p className="hero__eyebrow">Intelligent pokemon data</p>
+        <h1>Know every card. No more guesswork</h1>
+        <p className="hero__lead">
+          Helping you make intelligent decisions, going beyond just price data.
+        </p>
+        <div className="hero__search">
+          <DatabaseSearch showHero={false} />
         </div>
       </section>
 

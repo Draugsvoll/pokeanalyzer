@@ -309,20 +309,8 @@ function formatJustTcgCardData(
   };
 }
 
-function normalizeCardNumber(value: unknown) {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  const numberBeforeSlash = String(value).trim().split("/")[0];
-  return numberBeforeSlash.replace(/^0+(?=\d)/, "").toLowerCase();
-}
-
-function findJustTcgMoverCard(
-  rows: { number: string | null; raw_json: string }[],
-  priceMovement: JustTcgPriceMovement,
-) {
-  if (!priceMovement.cardNumber) return rows[0] ?? null;
-
-  const targetNumber = normalizeCardNumber(priceMovement.cardNumber);
-  return rows.find((row) => normalizeCardNumber(row.number) === targetNumber) ?? null;
+function findUniqueJustTcgMoverCard(rows: { raw_json: string }[]) {
+  return rows.length === 1 ? rows[0] : null;
 }
 
 app.get(
@@ -344,13 +332,13 @@ app.get(
       );
       const cards = await Promise.all(
         priceMovements.map(async (priceMovement) => {
-          const rows = await dbAll<{ number: string | null; raw_json: string }>(
+          const rows = await dbAll<{ raw_json: string }>(
             `
-              SELECT number, raw_json
+              SELECT raw_json
               FROM cards
               WHERE name = ?
                 AND (? IS NULL OR set_name = ?)
-              LIMIT 20
+              LIMIT 2
             `,
             [
               priceMovement.cardName,
@@ -358,7 +346,7 @@ app.get(
               priceMovement.setName ?? null,
             ],
           );
-          const matchedRow = findJustTcgMoverCard(rows, priceMovement);
+          const matchedRow = findUniqueJustTcgMoverCard(rows);
           const card = matchedRow
             ? parsePublicStoredCard(String(matchedRow.raw_json))
             : null;

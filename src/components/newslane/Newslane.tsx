@@ -17,8 +17,8 @@ type NewsCategoryConfig = {
 };
 
 const CATEGORIES = [
-  { color: "blue", id: "general", label: "Latest News" },
-  { color: "teal", id: "movers", label: "Biggest Movers" },
+  { color: "blue", id: "general", label: "General" },
+  { color: "teal", id: "movers", label: "TCG Movers" },
 ] as const satisfies readonly NewsCategoryConfig[];
 
 export function NewsLane() {

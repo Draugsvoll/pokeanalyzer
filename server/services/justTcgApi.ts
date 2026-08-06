@@ -17,7 +17,6 @@ type JustTcgFetchConfig = {
 export type JustTcgPriceMovement = {
   absoluteChange?: number;
   cardName: string;
-  cardNumber?: string;
   changePercent?: number;
   condition: string;
   currentPrice: number;
@@ -117,12 +116,6 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function optionalText(value: unknown): string | undefined {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return undefined;
-}
-
 function getNestedNumber(record: JsonRecord, paths: string[][]): number | undefined {
   for (const path of paths) {
     let current: unknown = record;
@@ -192,7 +185,6 @@ function parsePriceMovementResponse(
     if (!cardName || isLikelySealedProduct(cardName)) continue;
 
     const setName = optionalString(card.set_name);
-    const cardNumber = optionalText(card.number);
     for (const variant of card.variants) {
       if (!isRecord(variant)) continue;
 
@@ -208,7 +200,6 @@ function parsePriceMovementResponse(
       priceMovements.push({
         absoluteChange: getAbsoluteChange(variant, config.orderBy),
         cardName,
-        cardNumber,
         changePercent,
         condition,
         currentPrice,

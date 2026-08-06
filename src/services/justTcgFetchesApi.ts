@@ -7,7 +7,6 @@ export type JustTcgMovementPeriod = "24h" | "7d" | "30d";
 export type JustTcgGainer = {
   absoluteChange?: number;
   cardName: string;
-  cardNumber?: string;
   changePercent?: number;
   condition: string;
   currentPrice: number;
