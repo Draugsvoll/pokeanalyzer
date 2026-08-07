@@ -101,6 +101,23 @@ and shall only be filled if you have reliable data.
 }
 `
 
+const variantPrintNameInstructions = `
+The variant field must contain only the variant/print name, not the Pokemon-name or set-name.
+
+Examples:
+"Unlimited Holo"
+"Shadowless Holo"
+"1st Edition Holo"
+"Reverse Holo"
+
+Do not include the Pokemon/card name in the variant field.
+If 2 variant names end up identical for some reason (which shouldn't happen), then also include the set name so we can tell them apart. For example, "Unlimited Holo (Base Set)" or "Unlimited Holo (Jungle)".
+We only do that if the variant names are identical and we need to differentiate them.
+Use precise official/common print terms such as "Holo", "Reverse Holo", "Non-Holo", "1st Edition", "Unlimited", or "Shadowless".
+Do not call a variant "Non-Holo" if the actual print is Reverse Holo.
+If you are unsure whether a print is Reverse Holo or Non-Holo, verify from reliable sources before naming the variant.
+`.trim();
+
 const salesData: string = `
 Can you fetch sold data based on grading for this card at PriceCharting website?
 
@@ -109,6 +126,8 @@ Response must be put into the exact structure as the example response below.
 If data not available just leave the field empty.
 If there are multiple English variants available, include each one in the variants array.
 Remember to include variant name for each entry.
+
+${variantPrintNameInstructions}
 
 Notes field is optional for each variant. If there's valuable information related to that specific variant
 that collectors would want to know, then add it.
@@ -172,6 +191,11 @@ const sellMyCard: string = `
   Each step must contain a "title" and a "substeps" array.
   The marketplace_availability category exists outside the array of variants.
   Everything else should be the very same format inside each variant.
+
+  ${variantPrintNameInstructions}
+  Do not confuse the "variant" field with the "variants" array. They are different:
+  - "variant" is the name of one specific print/variant of the card.
+  - "variants" is the array containing all variant entries for the card.
 
   For each variant:
   The first category must be price recommendations, include different conditions/grading.
@@ -439,7 +463,11 @@ Give it a score from 1-100 where 100 would be the most desired card among collec
 You must research deeply (using reliable sources) before estimating the card,
 to avoid giving different scores to the same card when asked again later.
 
-If you find multiple English variants of the card, you must include analysis for each variant in your analysis.
+If a card has multiple english variants, we want an analysis for each one you can find reliable data on. Don't include any Japanese variants.
+
+Do not include sibling cards, counterpart cards, same-artwork cards,
+or related card numbers as variants to analyze. Only analyze variants of the exact card provided.
+You may mention these related cards in finalNote if they are relevant for collectors.
 
 You must justify exactly WHY it was given its score. a collector should walk away
 understanding exactly why it deserved that score and feel more educated about the card.
@@ -466,7 +494,7 @@ but it should only shortly explain the card's role as a collectible.
 Don't explain the score or Pokemon stats in this field. Avoid stating exact price numbers for the card.
 The finalNote field should be a summarized version of the reasoning behind the totalScore. The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
 
-The variant field is the variant name of the (Pokemon name + variant).
+${variantPrintNameInstructions}
 
 variant
 totalScore
@@ -490,6 +518,9 @@ Requirements:
 Research only English versions of the card.
 Include every variant you can find reliable market data for (always check PriceCharting as its reliable).
 Remember variant name for each variant you find.
+Variant titles in the HTML must contain only the variant/print name, not the Pokemon name or set name.
+Use the following variant naming rules:
+${variantPrintNameInstructions}
 
 For each variant include:
 Raw / Ungraded
@@ -497,7 +528,7 @@ PSA 7
 PSA 8
 PSA 9
 PSA 10
-Find the current estimated market value for each grade.
+Use reliable sources to check current market values. (always check PriceCharting as its reliable).
 
 After finding each cards estimated value for each grade, we then need to find the grading fees for each PSA service. We have to find all of them (- Regular
   - Express
@@ -550,12 +581,16 @@ For the Conclusion section:
 - Give a general recommendation for each variant
 - The GENERAL_RECOMMENDATION field must be exactly one of these labels: "Worth grading", "Only on high-grades", "Marginal", or "Not recommended".
 The chosen label must fit the overall recommendation.
-  The recommendation should not assume what grade we will get, but rather if the card is worth grading not knowing what grade it will get.
 - Do not put a PSA grade, grade range, price, or sentence in the GENERAL_RECOMMENDATION field.
-- If a specific PSA grade matters, mention it only in SHORT_REASON.
-- The short reason is a summary of the reasoning behind the recommendation. Mention the different contexts that mattered for this
-recommendation.
-- Variant titles must include the Pokemon/card name before the variant name, for example "Charizard (Unlimited)", "Charizard (Shadowless)", or "Charizard (1st Edition)" instead of only "Unlimited", "Shadowless", or "1st Edition".
+
+
+- The short reason is a summary of the reasoning behind the recommendation.
+Briefly mention grading risk, liquidity, sales volume and demand if they are relevant
+to the recommendation. If a PSA grade has high price value but being dragged down by other factors, mention that.
+If PSA 7, PSA 8, or PSA 9 looks profitable in the numbers but the recommendation is still cautious,
+explain the caution as risk-adjusted: low liquidity, uncertain raw condition, low sales volume, or unreliable data
+
+- Variant titles must contain only the variant/print name, for example "Unlimited", "Shadowless", "1st Edition", "Unlimited Holo", or "Reverse Holo".
 Don't invent prices or variants.
 
 Output:
@@ -594,7 +629,7 @@ Use this structure.
 
 <article class="card">
 
-<h3>{{CARD_AND_VARIANT_NAME}}</h3>
+<h3>{{VARIANT_NAME}}</h3>
 
 <div class="recommendation">
 {{GENERAL_RECOMMENDATION}}
@@ -615,7 +650,7 @@ Use this structure.
 
 <section>
 
-<h2>{{CARD_AND_VARIANT_NAME}}</h2>
+<h2>{{VARIANT_NAME}}</h2>
 
 <div class="table-wrap">
 

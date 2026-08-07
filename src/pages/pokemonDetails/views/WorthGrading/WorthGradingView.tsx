@@ -1,7 +1,6 @@
 import { Layers3 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
-import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./WorthGradingView.scss";
@@ -114,9 +113,9 @@ function readSignedAmount(value: string) {
   return Number.isFinite(amount) ? amount : null;
 }
 
-function legacyJsonToHtml(data: WorthGradingResponse, cardName: string) {
+function legacyJsonToHtml(data: WorthGradingResponse) {
   if (typeof data.html === "string") {
-    return sanitizeWorthGradingHtml(data.html, cardName);
+    return sanitizeWorthGradingHtml(data.html);
   }
 
   const paragraphs = [data.summary, data.action]
@@ -129,7 +128,7 @@ function legacyJsonToHtml(data: WorthGradingResponse, cardName: string) {
   )}</h2>${paragraphs}</section>`;
 }
 
-function sanitizeWorthGradingHtml(response: string, cardName: string) {
+function sanitizeWorthGradingHtml(response: string) {
   const parser = new DOMParser();
   const document = parser.parseFromString(stripCodeFence(response), "text/html");
   const source = document.body;
@@ -204,13 +203,6 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
     }
   });
 
-  container.querySelectorAll(".summary-grid .card > h3").forEach((heading) => {
-    heading.textContent = formatCardVariantTitle(
-      heading.textContent ?? "",
-      cardName,
-    );
-  });
-
   container.querySelectorAll("section > h2").forEach((heading) => {
     const section = heading.closest("section");
     const headingText = heading.textContent?.trim().toLowerCase() ?? "";
@@ -226,9 +218,6 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
     }
 
     if (!section?.querySelector(".table-wrap table")) return;
-
-    const title = heading.textContent?.trim() ?? "";
-    heading.textContent = formatCardVariantTitle(title, cardName);
   });
 
   container.querySelectorAll("h2").forEach((heading) => {
@@ -313,10 +302,7 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
   return container.innerHTML;
 }
 
-function createWorthGradingRenderItems(
-  html: string,
-  cardName: string,
-): WorthGradingRenderItem[] {
+function createWorthGradingRenderItems(html: string): WorthGradingRenderItem[] {
   const parser = new DOMParser();
   const document = parser.parseFromString(html, "text/html");
   const source =
@@ -351,7 +337,7 @@ function createWorthGradingRenderItems(
       const heading = Array.from(clone.children).find(
         (child) => child.tagName.toLowerCase() === "h2",
       );
-      const title = heading?.textContent?.trim() || cardName;
+      const title = heading?.textContent?.trim() || `Variant ${variants.length + 1}`;
       heading?.remove();
       variants.push({ html: clone.innerHTML, title });
       return;
@@ -388,12 +374,12 @@ export function WorthGradingView({
 
     const data = parseJsonResponse(response);
     return data
-      ? legacyJsonToHtml(data, cardName)
-      : sanitizeWorthGradingHtml(response, cardName);
-  }, [cardName, response]);
+      ? legacyJsonToHtml(data)
+      : sanitizeWorthGradingHtml(response);
+  }, [response]);
   const renderItems = useMemo(
-    () => (html.trim() ? createWorthGradingRenderItems(html, cardName) : []),
-    [cardName, html],
+    () => (html.trim() ? createWorthGradingRenderItems(html) : []),
+    [html],
   );
 
   if (loading) return <LoadingState>Researching grading value...</LoadingState>;

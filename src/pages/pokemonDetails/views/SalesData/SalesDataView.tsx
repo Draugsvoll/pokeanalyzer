@@ -1,7 +1,6 @@
 import { Layers3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
-import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -62,7 +61,7 @@ function parseNotes(value: unknown): string[] {
   return Array.isArray(value) ? value.map(text).filter(Boolean) : [];
 }
 
-function parseSalesData(response: string, cardName: string): SalesData | null {
+function parseSalesData(response: string): SalesData | null {
   const parsed = parseJsonText(response);
   if (!isRecord(parsed)) return null;
 
@@ -76,7 +75,7 @@ function parseSalesData(response: string, cardName: string): SalesData | null {
           return {
             marketPrices: parseMarketPrices(variant.market_prices),
             notes: parseNotes(variant.notes),
-            title: formatCardVariantTitle(variantTitle, cardName),
+            title: variantTitle,
           };
         })
         .filter((variant) => variant.marketPrices.length > 0 || variant.notes.length > 0)
@@ -138,7 +137,7 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
-  const data = parseSalesData(response, cardName);
+  const data = parseSalesData(response);
   if (!data) {
     return (
       <p className="card-view__page-error" role="alert">

@@ -1119,7 +1119,7 @@ function PokemonDetailsForCard() {
                   />
                 )}
                 {activeView === "sell_price" && (
-                  <SellPriceView cardName={card.name} grokRequest={grokRequest} />
+                  <SellPriceView grokRequest={grokRequest} />
                 )}
                 {activeView === "collector_analysis" && (
                   <CollectorAnalysis grokRequest={grokRequest} />

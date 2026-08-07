@@ -1,14 +1,12 @@
 import { Layers3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
-import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./SellPriceView.scss";
 
 type SellPriceViewProps = {
-  cardName: string;
   grokRequest: GrokRequestState;
 };
 
@@ -178,10 +176,7 @@ function parseStep(rawStep: unknown, index: number): SellPriceStep {
   };
 }
 
-function parseSellPriceContent(
-  parsed: unknown,
-  cardName: string,
-): SellPriceContent | null {
+function parseSellPriceContent(parsed: unknown): SellPriceContent | null {
   if (isRecord(parsed) && Array.isArray(parsed.variants)) {
     const variants = parsed.variants
       .map((variant, variantIndex): SellPriceVariant | null => {
@@ -210,7 +205,7 @@ function parseSellPriceContent(
         return {
           notes,
           steps,
-          title: formatCardVariantTitle(variantName, cardName),
+          title: variantName,
         };
       })
       .filter((variant): variant is SellPriceVariant => Boolean(variant));
@@ -260,7 +255,7 @@ function getStepOrder(step: SellPriceStep, index: number) {
   return 3;
 }
 
-export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
+export function SellPriceView({ grokRequest }: SellPriceViewProps) {
   const { loading, error, response } = grokRequest;
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
 
@@ -273,7 +268,7 @@ export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
   if (!response) return null;
 
   const parsedResponse = parseJsonText(response);
-  const content = parseSellPriceContent(parsedResponse, cardName);
+  const content = parseSellPriceContent(parsedResponse);
   if (!content || (content.variants.length === 0 && !content.marketplaceStep)) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
