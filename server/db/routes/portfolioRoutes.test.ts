@@ -65,7 +65,7 @@ test("PATCH price-source rejects unsupported values before writing", async () =>
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
-    message: "priceSource must be tcgplayer or cardmarket",
+    message: "priceSource must be tcgplayer, cardmarket, or justtcg",
   });
   assert.equal(saveCount, 0);
 });

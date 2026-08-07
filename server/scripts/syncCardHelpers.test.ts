@@ -113,14 +113,8 @@ test("metadata comparison ignores prices, provider dates, and Grok", () => {
     },
   });
 
-  assert.equal(
-    metadataSignature(first),
-    metadataSignature(priceChange),
-  );
-  assert.notEqual(
-    metadataSignature(first),
-    metadataSignature(metadataChange),
-  );
+  assert.equal(metadataSignature(first), metadataSignature(priceChange));
+  assert.notEqual(metadataSignature(first), metadataSignature(metadataChange));
 });
 
 test("safe full cards use upstream data but protect missing current prices", () => {
@@ -186,6 +180,7 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
   try {
     const existing = completeCard({
       grok: { analysis: { keep: true } },
+      justtcgLookup: { ids: ["pokemon-base-set-alakazam-holo-rare"] },
       name: "Old name",
       tcgplayer: {
         prices: { holofoil: { market: 10 } },
@@ -215,16 +210,11 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
         updatedAt: "2026/07/27",
       },
     });
-    const states = getProviderPriceStates(
-      incoming as Record<string, unknown>,
-    );
+    const states = getProviderPriceStates(incoming as Record<string, unknown>);
     await client.execute(
       buildStageCardStatement(
         "run-one",
-        buildSafeFullCard(
-          incoming,
-          existing as Record<string, unknown>,
-        ),
+        buildSafeFullCard(incoming, existing as Record<string, unknown>),
         states,
         {
           cardmarketChanged: false,
@@ -252,17 +242,22 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
     await client.batch(apply, "write");
     await client.batch(apply, "write");
 
-    const cardRow = (await client.execute(
-      "SELECT name, raw_json FROM cards WHERE id = 'base1-1'",
-    )).rows[0];
+    const cardRow = (
+      await client.execute(
+        "SELECT name, raw_json FROM cards WHERE id = 'base1-1'",
+      )
+    ).rows[0];
     const raw: unknown = JSON.parse(String(cardRow.raw_json));
     assert.ok(isJsonObject(raw));
     assert.equal(cardRow.name, "Corrected name");
     assert.deepEqual(raw.grok, existing.grok);
+    assert.deepEqual(raw.justtcgLookup, existing.justtcgLookup);
     assert.equal(
       (
-        (raw.tcgplayer as Record<string, unknown>)
-          .prices as Record<string, Record<string, number>>
+        (raw.tcgplayer as Record<string, unknown>).prices as Record<
+          string,
+          Record<string, number>
+        >
       ).holofoil.market,
       12,
     );
@@ -288,13 +283,8 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
     await client.execute(
       buildStageCardStatement(
         "run-two",
-        buildSafeFullCard(
-          missingPriceRerun,
-          raw,
-        ),
-        getProviderPriceStates(
-          missingPriceRerun as Record<string, unknown>,
-        ),
+        buildSafeFullCard(missingPriceRerun, raw),
+        getProviderPriceStates(missingPriceRerun as Record<string, unknown>),
         {
           cardmarketChanged: false,
           isNew: false,
@@ -313,8 +303,7 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
     );
     assert.equal(sameDay.rows.length, 1);
     assert.equal(
-      JSON.parse(String(sameDay.rows[0].tcgplayer_prices))
-        .holofoil.market,
+      JSON.parse(String(sameDay.rows[0].tcgplayer_prices)).holofoil.market,
       12,
     );
   } finally {
@@ -344,10 +333,7 @@ test("a failed final batch rolls back every live change", async () => {
     await client.execute(
       buildStageCardStatement(
         "failed-run",
-        buildSafeFullCard(
-          incoming,
-          existing as Record<string, unknown>,
-        ),
+        buildSafeFullCard(incoming, existing as Record<string, unknown>),
         getProviderPriceStates(incoming as Record<string, unknown>),
         {
           cardmarketChanged: false,
@@ -370,9 +356,9 @@ test("a failed final batch rolls back every live change", async () => {
         "write",
       ),
     );
-    const row = (await client.execute(
-      "SELECT raw_json FROM cards WHERE id = 'base1-1'",
-    )).rows[0];
+    const row = (
+      await client.execute("SELECT raw_json FROM cards WHERE id = 'base1-1'")
+    ).rows[0];
     const raw = JSON.parse(String(row.raw_json));
     assert.equal(raw.tcgplayer.prices.holofoil.market, 10);
   } finally {
@@ -405,10 +391,7 @@ test("a price-only update can create a missing provider and removes a stale prov
     await client.execute(
       buildStageCardStatement(
         "price-only",
-        buildSafeFullCard(
-          incoming,
-          existing as Record<string, unknown>,
-        ),
+        buildSafeFullCard(incoming, existing as Record<string, unknown>),
         getProviderPriceStates(incoming as Record<string, unknown>),
         {
           cardmarketChanged: true,
@@ -440,9 +423,9 @@ test("a price-only update can create a missing provider and removes a stale prov
       "write",
     );
 
-    const row = (await client.execute(
-      "SELECT raw_json FROM cards WHERE id = 'base1-1'",
-    )).rows[0];
+    const row = (
+      await client.execute("SELECT raw_json FROM cards WHERE id = 'base1-1'")
+    ).rows[0];
     const raw = JSON.parse(String(row.raw_json));
     assert.equal(raw.tcgplayer.prices.normal.market, 4);
     assert.equal(raw.tcgplayer.updatedAt, "2026/07/27");

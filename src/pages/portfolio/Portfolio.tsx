@@ -8,6 +8,7 @@ import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import {
+  getPortfolioJustTcgPrices,
   getHydratedPortfolio,
   updatePortfolioPriceSource,
 } from "../../services/portfolioApi";
@@ -19,6 +20,7 @@ import type {
 import { logClientError } from "../../utils/logClientError";
 import {
   getCardPriceOptionForSourceKey,
+  getDirectPriceChangeForOption,
   getHistoricalPriceForOption,
 } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
@@ -85,6 +87,10 @@ function getPortfolioCardPriceChange(
     card.priceSources?.[priceSource],
   );
   const comparisonSnapshot = card.priceSnapshots?.[period];
+  const directChange = getDirectPriceChangeForOption(card, option, period);
+  if (directChange !== undefined) return directChange;
+  if (priceSource !== "tcgplayer") return null;
+
   if (!option || !comparisonSnapshot) {
     return null;
   }
@@ -113,6 +119,10 @@ function PortfolioForCurrentUser() {
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("");
   const [changePeriod, setChangePeriod] =
     useState<PortfolioChangePeriod>("24h");
+  const [loadingJustTcgPrices, setLoadingJustTcgPrices] = useState(false);
+  const [missingJustTcgPriceIds, setMissingJustTcgPriceIds] = useState<
+    string[]
+  >([]);
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -174,6 +184,55 @@ function PortfolioForCurrentUser() {
     };
   }, [loadPortfolio]);
 
+  const portfolioCardIdKey = useMemo(
+    () => portfolio.map((card) => card.id).join("|"),
+    [portfolio],
+  );
+
+  useEffect(() => {
+    if (!user || priceSource !== "justtcg" || !portfolioCardIdKey) return;
+
+    const controller = new AbortController();
+    const uid = user.uid;
+
+    async function loadJustTcgPrices() {
+      setLoadingJustTcgPrices(true);
+      try {
+        const response = await getPortfolioJustTcgPrices(
+          uid,
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+
+        const justTcgByCardId = new Map(
+          response.cards.map((card) => [card.cardId, card.justtcg]),
+        );
+
+        setPortfolio((current) =>
+          current.map((card) => {
+            if (!justTcgByCardId.has(card.id)) return card;
+            const justtcg = justTcgByCardId.get(card.id);
+            return justtcg
+              ? { ...card, justtcg }
+              : { ...card, justtcg: undefined };
+          }),
+        );
+        setMissingJustTcgPriceIds(response.missingCardIds);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        logClientError("Failed to load portfolio JustTCG prices", error);
+        setMissingJustTcgPriceIds(portfolioCardIdKey.split("|"));
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingJustTcgPrices(false);
+        }
+      }
+    }
+
+    void loadJustTcgPrices();
+    return () => controller.abort();
+  }, [portfolioCardIdKey, priceSource, user]);
+
   // Sum each card's selected price × quantity (USD / EUR kept separate)
   const { totalValue, valuedCardCount } = useMemo(() => {
     let totalValue = 0;
@@ -197,11 +256,13 @@ function PortfolioForCurrentUser() {
 
   const unstablePriceCardCount = useMemo(
     () =>
-      portfolio.reduce(
-        (count, card) =>
-          count + (card.priceReliability?.[priceSource]?.isFlagged ? 1 : 0),
-        0,
-      ),
+      priceSource === "justtcg"
+        ? 0
+        : portfolio.reduce(
+            (count, card) =>
+              count + (card.priceReliability?.[priceSource]?.isFlagged ? 1 : 0),
+            0,
+          ),
     [portfolio, priceSource],
   );
 
@@ -233,13 +294,19 @@ function PortfolioForCurrentUser() {
       .map((card, index) => ({
         card,
         index,
+        missingJustTcgPrice:
+          priceSource === "justtcg" &&
+          getPortfolioCardPrice(card, priceSource) == null,
         value: isPriceSort
           ? getPortfolioCardPrice(card, priceSource)
-          : priceSource === "tcgplayer"
+          : priceSource === "tcgplayer" || priceSource === "justtcg"
             ? getPortfolioCardPriceChange(card, changePeriod, priceSource)
             : null,
       }))
       .sort((a, b) => {
+        if (a.missingJustTcgPrice !== b.missingJustTcgPrice) {
+          return a.missingJustTcgPrice ? -1 : 1;
+        }
         if (a.value == null && b.value == null) return a.index - b.index;
         if (a.value == null) return isPriceSort ? 1 : -1;
         if (b.value == null) return isPriceSort ? -1 : 1;
@@ -252,6 +319,10 @@ function PortfolioForCurrentUser() {
 
   const priceSourceChanged = priceSource !== savedPriceSource;
   const totalCurrencySymbol = priceSource === "cardmarket" ? "€" : "$";
+  const missingJustTcgPriceCardCount =
+    priceSource === "justtcg" && !loadingJustTcgPrices
+      ? missingJustTcgPriceIds.length
+      : 0;
 
   const handleCardQuantityUpdated = (cardId: string, quantity: number) => {
     setPortfolio((current) =>
@@ -462,6 +533,18 @@ function PortfolioForCurrentUser() {
                       />
                       <span>Cardmarket</span>
                     </label>
+                    <label>
+                      <input
+                        className="app-radio"
+                        type="radio"
+                        name="portfolio-value-source"
+                        value="justtcg"
+                        checked={priceSource === "justtcg"}
+                        disabled={savingPriceSource}
+                        onChange={() => setPriceSource("justtcg")}
+                      />
+                      <span>JustTCG</span>
+                    </label>
                   </div>
                   {priceSourceChanged && (
                     <Button
@@ -510,6 +593,20 @@ function PortfolioForCurrentUser() {
             </span>
           </div>
         )}
+        {missingJustTcgPriceCardCount > 0 && (
+          <div
+            className="portfolio__price-warning"
+            role="status"
+            aria-live="polite"
+          >
+            <TriangleAlert aria-hidden="true" />
+            <span>
+              {missingJustTcgPriceCardCount}{" "}
+              {missingJustTcgPriceCardCount === 1 ? "card is" : "cards are"}{" "}
+              missing JustTCG price data.
+            </span>
+          </div>
+        )}
       </div>
 
       {missingCardIds.length > 0 && (
@@ -550,11 +647,20 @@ function PortfolioForCurrentUser() {
                   ? (card.priceSnapshots?.[changePeriod] ?? null)
                   : undefined
               }
+              priceChangePercent={
+                priceSource === "justtcg"
+                  ? getPortfolioCardPriceChange(card, changePeriod, priceSource)
+                  : undefined
+              }
+              priceChangeLabel={
+                priceSource === "justtcg" ? `${changePeriod} change` : undefined
+              }
               priceSource={priceSource}
               lockPriceSource
               showRarityBadge
               showPriceWarning={
-                card.priceReliability?.[priceSource]?.isFlagged ?? false
+                priceSource !== "justtcg" &&
+                (card.priceReliability?.[priceSource]?.isFlagged ?? false)
               }
               onQuantityUpdated={handleCardQuantityUpdated}
               onRemoved={handleCardRemoved}

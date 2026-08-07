@@ -19,5 +19,6 @@ export function parseStoredCard(rawJson: string): JsonObject {
 export function parsePublicStoredCard(rawJson: string): JsonObject {
   const card = { ...parseStoredCard(rawJson) };
   delete card.grok;
+  delete card.justtcgLookup;
   return card;
 }

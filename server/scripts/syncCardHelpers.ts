@@ -58,14 +58,29 @@ export const APPLY_METADATA_UPDATES_SQL = `
     image_small = stage.image_small,
     image_large = stage.image_large,
     raw_json = CASE
+      WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL
+        AND json_type(cards.raw_json, '$.justtcgLookup') IS NOT NULL THEN
+        json_set(
+          json(stage.raw_json),
+          '$.grok',
+          json_extract(cards.raw_json, '$.grok'),
+          '$.justtcgLookup',
+          json_extract(cards.raw_json, '$.justtcgLookup')
+        )
       WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL THEN
         json_set(
           json(stage.raw_json),
           '$.grok',
           json_extract(cards.raw_json, '$.grok')
         )
+      WHEN json_type(cards.raw_json, '$.justtcgLookup') IS NOT NULL THEN
+        json_set(
+          json(stage.raw_json),
+          '$.justtcgLookup',
+          json_extract(cards.raw_json, '$.justtcgLookup')
+        )
       ELSE
-        json_remove(json(stage.raw_json), '$.grok')
+        json_remove(json_remove(json(stage.raw_json), '$.grok'), '$.justtcgLookup')
     END,
     updated_at = CURRENT_TIMESTAMP
   FROM card_sync_stage AS stage
@@ -432,10 +447,9 @@ export function sanitizeIncomingCard(
 
   const sanitized = cloneJsonObject(card);
   delete sanitized.grok;
+  delete sanitized.justtcgLookup;
   const set = isJsonObject(sanitized.set) ? sanitized.set : null;
-  const images = isJsonObject(sanitized.images)
-    ? sanitized.images
-    : null;
+  const images = isJsonObject(sanitized.images) ? sanitized.images : null;
 
   if (
     !hasText(sanitized.id) ||
@@ -448,18 +462,13 @@ export function sanitizeIncomingCard(
     !hasText(images?.large)
   ) {
     const cardId = hasText(sanitized.id) ? sanitized.id : "unknown";
-    throw new Error(
-      `The card API returned incomplete metadata for ${cardId}`,
-    );
+    throw new Error(`The card API returned incomplete metadata for ${cardId}`);
   }
 
   return sanitized as PokemonTcgApiCard;
 }
 
-export function parseStoredCard(
-  rawJson: unknown,
-  cardId: string,
-): JsonObject {
+export function parseStoredCard(rawJson: unknown, cardId: string): JsonObject {
   if (typeof rawJson !== "string") {
     throw new Error(`Card ${cardId} contains non-text raw_json`);
   }
@@ -503,9 +512,7 @@ export function getProviderPriceState(
   return { prices, pricesProvided, updatedAt };
 }
 
-export function getProviderPriceStates(
-  card: JsonObject,
-): ProviderPriceStates {
+export function getProviderPriceStates(card: JsonObject): ProviderPriceStates {
   return {
     cardmarket: getProviderPriceState(card, "cardmarket"),
     tcgplayer: getProviderPriceState(card, "tcgplayer"),
@@ -523,15 +530,13 @@ export function buildSafeFullCard(
 ): PokemonTcgApiCard {
   const safeCard = cloneJsonObject(incomingCard);
   delete safeCard.grok;
+  delete safeCard.justtcgLookup;
 
   for (const providerName of [
     "tcgplayer",
     "cardmarket",
   ] satisfies PriceProvider[]) {
-    const incomingState = getProviderPriceState(
-      safeCard,
-      providerName,
-    );
+    const incomingState = getProviderPriceState(safeCard, providerName);
     const existingState = existingCard
       ? getProviderPriceState(existingCard, providerName)
       : null;
@@ -578,6 +583,7 @@ export function buildSafeFullCard(
 function metadataOnlyCard(card: JsonObject): JsonObject {
   const metadata = cloneJsonObject(card);
   delete metadata.grok;
+  delete metadata.justtcgLookup;
 
   for (const providerName of [
     "tcgplayer",
@@ -685,9 +691,7 @@ export function buildStageCardStatement(
       columns.imageSmall,
       columns.imageLarge,
       JSON.stringify(card),
-      states.tcgplayer.prices
-        ? JSON.stringify(states.tcgplayer.prices)
-        : null,
+      states.tcgplayer.prices ? JSON.stringify(states.tcgplayer.prices) : null,
       states.cardmarket.prices
         ? JSON.stringify(states.cardmarket.prices)
         : null,

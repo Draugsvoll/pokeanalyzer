@@ -6,7 +6,7 @@ export type PortfolioReference = {
   priceSources?: Partial<Record<PortfolioPriceSource, string>>;
 };
 
-export type PortfolioPriceSource = "tcgplayer" | "cardmarket";
+export type PortfolioPriceSource = "tcgplayer" | "cardmarket" | "justtcg";
 
 export type PortfolioCard = PokemonCard & {
   quantity: number;

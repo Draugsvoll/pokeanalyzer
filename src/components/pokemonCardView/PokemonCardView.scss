@@ -385,9 +385,8 @@
 
 /* Anchored to the Source button; size = panel only so it never shifts when confirm mounts */
 .pokemon-card__source-flyout {
-  left: 50%;
+  left: 0;
   position: absolute;
-  transform: translateX(-50%);
   top: calc(100% + 0.3rem);
   z-index: 100;
 }
@@ -397,7 +396,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  max-width: min(18rem, 70vw);
+  max-width: min(48rem, calc(100vw - 2rem));
   min-width: 15.5rem;
   padding: 0.45rem;
   position: relative;
@@ -417,16 +416,16 @@
   border-radius: calc(var(--border-radius) - 4px);
   color: var(--font-color-secondary);
   cursor: pointer;
-  display: grid;
+  display: flex;
   font-size: var(--font-size-caption);
-  gap: 0.5rem 0.65rem;
-  grid-template-columns: auto minmax(max-content, 1fr) auto;
+  gap: 0.65rem;
   line-height: 1.25;
   padding: 0.55rem 0.7rem;
   transition:
     background var(--delay-short) ease,
     color var(--delay-short) ease;
   white-space: nowrap;
+  width: 100%;
 
   &:hover {
     background: var(--radio-option-state-bg);
@@ -434,7 +433,6 @@
   }
 
   &.is-selected {
-    background: var(--radio-option-state-bg);
     color: var(--font-color-primary);
   }
 
@@ -442,13 +440,23 @@
     background: rgba(255, 255, 255, 0.05);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   }
+
+  &.has-group-separator {
+    border-top: 1px solid var(--border-divider);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: 0.35rem;
+    padding-top: 0.85rem;
+  }
 }
 
 .pokemon-card__source-option-label {
   align-items: baseline;
   display: inline-flex;
+  flex: 1 1 auto;
   gap: 0.35rem;
   min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
 }
 
@@ -474,9 +482,13 @@
 
 .pokemon-card__source-option-name {
   color: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pokemon-card__source-option-price {
+  flex: 0 0 auto;
   font-family: var(--font-family-price);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-semibold);
@@ -593,7 +605,8 @@
 
 .pokemon-card-portfolio-view:hover .pokemon-card-portfolio-view__actions,
 .pokemon-card-portfolio-view:focus-within .pokemon-card-portfolio-view__actions,
-.pokemon-card-portfolio-view.pokemon-card-portfolio-view--confirming .pokemon-card-portfolio-view__actions {
+.pokemon-card-portfolio-view.pokemon-card-portfolio-view--confirming
+  .pokemon-card-portfolio-view__actions {
   opacity: 1;
   transition-delay: 0s;
   visibility: visible;

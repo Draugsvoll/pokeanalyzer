@@ -16,6 +16,7 @@ export type CardPriceOption = {
   source: CardPriceSource;
   /** Raw key (TCG variant or Cardmarket field name) */
   key: string;
+  groupKey?: string;
   /** Short print/variant label, e.g. "Holofoil" / "Reverse Holo" */
   label: string;
   price: number;
@@ -81,9 +82,9 @@ export function formatTcgPlayerVariantLabel(
     unlimitedHolofoil: "Unlimited Holofoil",
     reverseHolofoil: "Reverse Holo",
     "1stEdition": "1st Edition",
-    "1stEditionHolofoil": "1st Ed. Holo",
-    firstEditionHolofoil: "1st Ed. Holo",
-    firstEditionNormal: "1st Ed. Normal",
+    "1stEditionHolofoil": "1st Edition Holofoil",
+    firstEditionHolofoil: "1st Edition Holofoil",
+    firstEditionNormal: "1st Edition Normal",
   };
 
   if (variant in labels) {
@@ -200,25 +201,69 @@ export function listCardmarketTrendEntries(
   return entries;
 }
 
-function formatJustTcgVariantLabel(printing: string, condition: string) {
-  return [printing, condition].filter(Boolean).join(" · ");
+function formatJustTcgVariantLabel({
+  condition,
+  printing,
+  setName,
+}: {
+  condition: string;
+  printing: string;
+  setName?: string;
+}) {
+  const identity = [setName].filter(Boolean).join(" · ");
+  return [printing, condition, identity].filter(Boolean).join(" · ");
 }
 
 export function listJustTcgMarketEntries(
   prices?: JustTcg["prices"] | null,
-): { key: string; price: number; label: string }[] {
+): { groupKey: string; key: string; price: number; label: string }[] {
   if (!prices || typeof prices !== "object") return [];
+
+  const isSupportedCondition = (condition: string) =>
+    /^near mint$|^nm$|^lightly played$|^lp$/i.test(condition);
+  const conditionOrder = (condition: string) => {
+    if (/^near mint$|^nm$/i.test(condition)) return 0;
+    if (/^lightly played$|^lp$/i.test(condition)) return 1;
+    return 2;
+  };
 
   return Object.entries(prices)
     .map(([key, value]) => ({
+      condition: value.condition,
+      groupKey: [value.printing, value.setName ?? ""].join("|"),
       key,
-      label: formatJustTcgVariantLabel(value.printing, value.condition),
+      label: formatJustTcgVariantLabel(value),
       price: readPositiveNumber(value.market),
+      printing: value.printing,
+      setName: value.setName ?? "",
     }))
     .filter(
-      (entry): entry is { key: string; price: number; label: string } =>
-        entry.price !== undefined,
-    );
+      (
+        entry,
+      ): entry is {
+        condition: string;
+        groupKey: string;
+        key: string;
+        price: number;
+        label: string;
+        printing: string;
+        setName: string;
+      } => entry.price !== undefined,
+    )
+    .filter((entry) => isSupportedCondition(entry.condition))
+    .sort((first, second) => {
+      const printingDifference = first.printing.localeCompare(second.printing);
+      if (printingDifference !== 0) return printingDifference;
+
+      const setDifference = first.setName.localeCompare(second.setName);
+      if (setDifference !== 0) return setDifference;
+
+      const conditionDifference =
+        conditionOrder(first.condition) - conditionOrder(second.condition);
+      if (conditionDifference !== 0) return conditionDifference;
+
+      return first.condition.localeCompare(second.condition);
+    });
 }
 
 /** Combined TCG market + Cardmarket trend options for the Source picker. */
@@ -256,6 +301,7 @@ export function listCardPriceOptions(card: {
       id: `justtcg:${entry.key}`,
       source: "justtcg",
       key: entry.key,
+      groupKey: entry.groupKey,
       label: entry.label,
       price: entry.price,
       currencySymbol: "$",
@@ -322,6 +368,23 @@ export function resolveCardPriceOption(
     if (selected) return selected;
   }
   return pickDefaultCardPriceOption(options, preferredSource);
+}
+
+export function getDirectPriceChangeForOption(
+  card: {
+    justtcg?: JustTcg | null;
+  },
+  option: Pick<CardPriceOption, "key" | "source"> | undefined,
+  period: "24h" | "7d" | "30d",
+): number | undefined {
+  if (!option || option.source !== "justtcg") return undefined;
+
+  const priceData = card.justtcg?.prices?.[option.key];
+  if (!priceData) return undefined;
+
+  if (period === "24h") return priceData.percentChange24h;
+  if (period === "7d") return priceData.percentChange7d;
+  return priceData.percentChange30d;
 }
 
 export function getHistoricalPriceForOption(

@@ -25,17 +25,41 @@ export type JustTcgPriceMovement = {
   setName?: string;
 };
 
+export type JustTcgCardIdentityCandidate = {
+  id: string;
+  name: string;
+  number?: string;
+  setName?: string;
+};
+
+export type JustTcgPortfolioPrice = {
+  absoluteChange24h?: number;
+  absoluteChange7d?: number;
+  absoluteChange30d?: number;
+  cardId: string;
+  cardName: string;
+  condition: string;
+  market: number;
+  number?: string;
+  percentChange24h?: number;
+  percentChange7d?: number;
+  percentChange30d?: number;
+  printing: string;
+  setName?: string;
+};
+
 const JUST_TCG_FETCH_CONFIGS: Record<JustTcgFetchMethod, JustTcgFetchConfig> = {
   biggestGainers: {
-    condition: "NM",
+    condition: "NM,LP",
     includePriceHistory: false,
     includeStatistics: "7d",
-    limit: 50,
+    limit: 20,
     minPrice: 15,
     order: "desc",
     orderBy: "7d",
   },
 };
+const JUST_TCG_PORTFOLIO_BATCH_ROW_LIMIT = 20;
 
 export class JustTcgApiError extends Error {
   readonly statusCode: number;
@@ -80,6 +104,29 @@ async function fetchJustTcgCards(
   return data;
 }
 
+async function fetchJustTcgCardsBatch(
+  params: URLSearchParams,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  const response = await fetch(`${JUST_TCG_API_URL}?${params}`, {
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": getApiKey(),
+    },
+    method: "POST",
+    signal: getAbortSignal(signal),
+  });
+  const data: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new JustTcgApiError("JustTCG batch request failed", response.status);
+  }
+
+  return data;
+}
+
 export async function fetchJustTcgCard(
   name: string,
   number: string,
@@ -96,6 +143,29 @@ export async function fetchJustTcgCard(
   });
 
   return fetchJustTcgCards(params, signal);
+}
+
+export async function fetchJustTcgCardIdentityCandidates(
+  name: string,
+  number: string,
+  signal?: AbortSignal,
+): Promise<JustTcgCardIdentityCandidate[]> {
+  const params = new URLSearchParams({
+    game: "pokemon",
+    include_price_history: "false",
+    limit: "20",
+    number,
+    q: name,
+  });
+
+  const response = await fetchJustTcgCards(params, signal);
+  if (!isRecord(response) || !Array.isArray(response.data)) return [];
+
+  return response.data
+    .map(parseCardIdentityCandidate)
+    .filter((candidate): candidate is JustTcgCardIdentityCandidate =>
+      Boolean(candidate),
+    );
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -116,7 +186,10 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function getNestedNumber(record: JsonRecord, paths: string[][]): number | undefined {
+function getNestedNumber(
+  record: JsonRecord,
+  paths: string[][],
+): number | undefined {
   for (const path of paths) {
     let current: unknown = record;
     for (const key of path) {
@@ -134,7 +207,12 @@ function getNestedNumber(record: JsonRecord, paths: string[][]): number | undefi
   return undefined;
 }
 
-function getChangePercent(variant: JsonRecord, timeframe: JustTcgFetchConfig["orderBy"]) {
+function getChangePercent(
+  variant: JsonRecord,
+  timeframe: JustTcgFetchConfig["orderBy"],
+) {
+  const legacy24hKey = timeframe === "24h" ? "24hr" : timeframe;
+
   return getNestedNumber(variant, [
     ["statistics", timeframe, "priceChangePercentage"],
     ["statistics", timeframe, "changePercentage"],
@@ -145,13 +223,18 @@ function getChangePercent(variant: JsonRecord, timeframe: JustTcgFetchConfig["or
     ["stats", timeframe, "percentChange"],
     ["stats", timeframe, "change"],
     [`priceChangePercentage${timeframe}`],
+    [`priceChange${timeframe}`],
+    [`priceChange${legacy24hKey}`],
     [`changePercentage${timeframe}`],
     [`percentChange${timeframe}`],
     [`change${timeframe}`],
   ]);
 }
 
-function getAbsoluteChange(variant: JsonRecord, timeframe: JustTcgFetchConfig["orderBy"]) {
+function getAbsoluteChange(
+  variant: JsonRecord,
+  timeframe: JustTcgFetchConfig["orderBy"],
+) {
   return getNestedNumber(variant, [
     ["statistics", timeframe, "priceChange"],
     ["statistics", timeframe, "absoluteChange"],
@@ -163,6 +246,112 @@ function getAbsoluteChange(variant: JsonRecord, timeframe: JustTcgFetchConfig["o
     [`absoluteChange${timeframe}`],
     [`changeAmount${timeframe}`],
   ]);
+}
+
+function parseCardIdentityCandidate(
+  card: unknown,
+): JustTcgCardIdentityCandidate | null {
+  if (!isRecord(card)) return null;
+
+  const id = optionalString(card.id) ?? optionalString(card.uuid);
+  const name = optionalString(card.name);
+  if (!id || !name) return null;
+
+  return {
+    id,
+    name,
+    number: optionalString(card.number),
+    setName: optionalString(card.set_name),
+  };
+}
+
+function formatJustTcgVariantKey(printing: string, condition: string) {
+  return [printing, condition]
+    .join(":")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function parsePortfolioPriceResponse(
+  response: unknown,
+): Record<string, JustTcgPortfolioPrice> {
+  const prices: Record<string, JustTcgPortfolioPrice> = {};
+  if (!isRecord(response) || !Array.isArray(response.data)) return prices;
+
+  for (const card of response.data) {
+    if (!isRecord(card) || !Array.isArray(card.variants)) continue;
+
+    const cardId = optionalString(card.id) ?? optionalString(card.uuid);
+    const cardName = optionalString(card.name);
+    if (!cardId || !cardName) continue;
+
+    const setName = optionalString(card.set_name);
+    const number = optionalString(card.number);
+
+    for (const variant of card.variants) {
+      if (!isRecord(variant)) continue;
+
+      const market = optionalNumber(variant.price);
+      if (market === undefined) continue;
+
+      const condition = optionalString(variant.condition) ?? "Near Mint";
+      const printing = optionalString(variant.printing) ?? "JustTCG";
+      const variantKey =
+        formatJustTcgVariantKey(printing, condition) || "justtcg";
+      const key = `${cardId}:${variantKey}`;
+
+      prices[key] = {
+        absoluteChange24h: getAbsoluteChange(variant, "24h"),
+        absoluteChange7d: getAbsoluteChange(variant, "7d"),
+        absoluteChange30d: getAbsoluteChange(variant, "30d"),
+        cardId,
+        cardName,
+        condition,
+        market,
+        number,
+        percentChange24h: getChangePercent(variant, "24h"),
+        percentChange7d: getChangePercent(variant, "7d"),
+        percentChange30d: getChangePercent(variant, "30d"),
+        printing,
+        setName,
+      };
+    }
+  }
+
+  return prices;
+}
+
+export async function fetchJustTcgPortfolioPricesByCardIds(
+  cardIds: string[],
+  signal?: AbortSignal,
+): Promise<Record<string, JustTcgPortfolioPrice>> {
+  const uniqueCardIds = Array.from(
+    new Set(cardIds.map((cardId) => cardId.trim()).filter(Boolean)),
+  );
+  if (uniqueCardIds.length === 0) return {};
+
+  const params = new URLSearchParams({
+    include_price_history: "false",
+    include_statistics: "24h,7d,30d",
+  });
+  const requestRows = uniqueCardIds.map((cardId) => ({ cardId }));
+  const prices: Record<string, JustTcgPortfolioPrice> = {};
+
+  for (
+    let offset = 0;
+    offset < requestRows.length;
+    offset += JUST_TCG_PORTFOLIO_BATCH_ROW_LIMIT
+  ) {
+    const response = await fetchJustTcgCardsBatch(
+      params,
+      requestRows.slice(offset, offset + JUST_TCG_PORTFOLIO_BATCH_ROW_LIMIT),
+      signal,
+    );
+    Object.assign(prices, parsePortfolioPriceResponse(response));
+  }
+
+  return prices;
 }
 
 function isLikelySealedProduct(cardName: string) {
@@ -189,10 +378,11 @@ function parsePriceMovementResponse(
       if (!isRecord(variant)) continue;
 
       const currentPrice = optionalNumber(variant.price);
-      if (currentPrice === undefined || currentPrice < config.minPrice) continue;
+      if (currentPrice === undefined || currentPrice < config.minPrice)
+        continue;
 
       const condition = optionalString(variant.condition) ?? config.condition;
-      if (!/^near mint$|^nm$/i.test(condition)) continue;
+      if (!/^near mint$|^nm$|^lightly played$|^lp$/i.test(condition)) continue;
 
       const changePercent = getChangePercent(variant, config.orderBy);
       if (changePercent !== undefined && changePercent <= 0) continue;

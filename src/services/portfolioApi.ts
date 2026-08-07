@@ -61,6 +61,30 @@ export function addPortfolioCard(cardId: string, expectedUid: string) {
   });
 }
 
+export function ensurePortfolioJustTcgLookup(
+  cardId: string,
+  expectedUid: string,
+) {
+  return portfolioRequest<unknown>(
+    `/cards/${encodeURIComponent(cardId)}/justtcg-lookup`,
+    expectedUid,
+    { method: "POST" },
+  );
+}
+
+export function getPortfolioJustTcgPrices(
+  expectedUid: string,
+  signal?: AbortSignal,
+) {
+  return portfolioRequest<{
+    cards: Array<{
+      cardId: string;
+      justtcg: HydratedPortfolioResponse["cards"][number]["justtcg"] | null;
+    }>;
+    missingCardIds: string[];
+  }>("/cards/justtcg-prices", expectedUid, { signal });
+}
+
 export function removePortfolioCard(cardId: string, expectedUid: string) {
   return portfolioRequest<void>(
     `/cards/${encodeURIComponent(cardId)}`,

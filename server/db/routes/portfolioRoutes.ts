@@ -1,7 +1,10 @@
 import { Router, type RequestHandler, type Response } from "express";
 import rateLimit from "express-rate-limit";
-import { dbAll, dbGet } from "../db.js";
-import { parsePublicStoredCard } from "../cardSerialization.js";
+import { dbAll, dbGet, dbRun } from "../db.js";
+import {
+  parsePublicStoredCard,
+  parseStoredCard,
+} from "../cardSerialization.js";
 import {
   getAuthenticatedUid,
   requireVerifiedUser,
@@ -16,12 +19,24 @@ import {
   type PortfolioPriceSnapshotRow,
 } from "../portfolioPriceSnapshots.js";
 import { assessDefaultCardPrices } from "../../services/defaultPriceReliability.js";
+import {
+  fetchJustTcgCardIdentityCandidates,
+  fetchJustTcgPortfolioPricesByCardIds,
+  JustTcgApiError,
+} from "../../services/justTcgApi.js";
+import {
+  getRequestAbortSignal,
+  isRequestAbort,
+} from "../../security/requestAbort.js";
+import { isVerifiedJustTcgCard } from "../../../shared/justTcgCardVerification.js";
 
 const router = Router();
 const MAX_QUANTITY = 1_000_000;
 const CARD_ID_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
 const PRICE_KEY_PATTERN = /^[A-Za-z0-9._-]{1,80}$/;
+const JUST_TCG_PRICE_KEY_PATTERN = /^[A-Za-z0-9._:-]{1,240}$/;
 const CARD_QUERY_CHUNK_SIZE = 400;
+const JUST_TCG_LOOKUP_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 type PortfolioEntry = {
   cardId: string;
@@ -29,7 +44,7 @@ type PortfolioEntry = {
   priceSources?: Partial<Record<PortfolioPriceSource, string>>;
 };
 
-type PortfolioPriceSource = "tcgplayer" | "cardmarket";
+type PortfolioPriceSource = "tcgplayer" | "cardmarket" | "justtcg";
 
 type MergeableUserDocument = {
   set: (
@@ -70,6 +85,17 @@ const portfolioWriteLimiter = rateLimit({
   },
 });
 
+const portfolioJustTcgLookupLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyGenerator: (_req, res) => String(res.locals.authUid),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many JustTCG lookups. Please wait and try again.",
+  },
+});
+
 function getCardId(value: unknown) {
   const cardId = typeof value === "string" ? value.trim() : "";
   if (!CARD_ID_PATTERN.test(cardId)) {
@@ -96,11 +122,17 @@ function getQuantity(value: unknown) {
   return quantity;
 }
 
-function getPriceKey(value: unknown) {
+function isPortfolioPriceSource(value: unknown): value is PortfolioPriceSource {
+  return value === "tcgplayer" || value === "cardmarket" || value === "justtcg";
+}
+
+function getPriceKey(value: unknown, priceSource: PortfolioPriceSource) {
   const priceKey = typeof value === "string" ? value.trim() : "";
-  if (!PRICE_KEY_PATTERN.test(priceKey)) {
+  const pattern =
+    priceSource === "justtcg" ? JUST_TCG_PRICE_KEY_PATTERN : PRICE_KEY_PATTERN;
+  if (!pattern.test(priceKey)) {
     throw new PortfolioHttpError(
-      "priceKey must be a valid TCGPlayer variant or Cardmarket field",
+      "priceKey must be a valid price source key",
       400,
     );
   }
@@ -108,15 +140,15 @@ function getPriceKey(value: unknown) {
 }
 
 function getPortfolioPriceSource(value: unknown): PortfolioPriceSource {
-  if (value === "tcgplayer" || value === "cardmarket") return value;
+  if (isPortfolioPriceSource(value)) return value;
   throw new PortfolioHttpError(
-    "priceSource must be tcgplayer or cardmarket",
+    "priceSource must be tcgplayer, cardmarket, or justtcg",
     400,
   );
 }
 
 function parseStoredPortfolioPriceSource(value: unknown): PortfolioPriceSource {
-  return value === "cardmarket" ? "cardmarket" : "tcgplayer";
+  return isPortfolioPriceSource(value) ? value : "tcgplayer";
 }
 
 export async function savePortfolioPriceSourcePreference(
@@ -166,16 +198,20 @@ function parseStoredPortfolioEntry(
 
     const storedPriceSources = fields.priceSources as Record<string, unknown>;
     const unexpectedPriceSources = Object.keys(storedPriceSources).filter(
-      (field) => field !== "tcgplayer" && field !== "cardmarket",
+      (field) => !isPortfolioPriceSource(field),
     );
     if (unexpectedPriceSources.length > 0) {
-      throw new Error(`Portfolio entry ${cardId} has unsupported price sources`);
+      throw new Error(
+        `Portfolio entry ${cardId} has unsupported price sources`,
+      );
     }
 
-    for (const source of ["tcgplayer", "cardmarket"] as const) {
+    for (const source of ["tcgplayer", "cardmarket", "justtcg"] as const) {
       const value = storedPriceSources[source];
       if (value === undefined) continue;
-      if (typeof value !== "string" || !PRICE_KEY_PATTERN.test(value.trim())) {
+      const pattern =
+        source === "justtcg" ? JUST_TCG_PRICE_KEY_PATTERN : PRICE_KEY_PATTERN;
+      if (typeof value !== "string" || !pattern.test(value.trim())) {
         throw new Error(
           `Portfolio entry ${cardId} has an invalid ${source} price key`,
         );
@@ -198,6 +234,80 @@ async function requireCardInDatabase(cardId: string) {
   if (!row) {
     throw new PortfolioHttpError("Card not found", 404);
   }
+}
+
+type StoredJustTcgLookup = {
+  failedAt?: string;
+  ids: string[];
+};
+
+function parseStoredJustTcgLookup(value: unknown): StoredJustTcgLookup {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ids: [] };
+  }
+
+  const fields = value as Record<string, unknown>;
+  return {
+    failedAt:
+      typeof fields.failedAt === "string" && fields.failedAt.trim()
+        ? fields.failedAt.trim()
+        : undefined,
+    ids: Array.isArray(fields.ids)
+      ? fields.ids
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && id.trim().length > 0,
+          )
+          .map((id) => id.trim())
+      : [],
+  };
+}
+
+function shouldRetryJustTcgLookup(failedAt?: string) {
+  if (!failedAt) return true;
+  const failedTime = Date.parse(failedAt);
+  return (
+    !Number.isFinite(failedTime) ||
+    Date.now() - failedTime >= JUST_TCG_LOOKUP_RETRY_MS
+  );
+}
+
+async function getStoredCardForJustTcgLookup(cardId: string) {
+  return dbGet<{
+    name: string;
+    number: string | null;
+    raw_json: string;
+    set_name: string | null;
+  }>(
+    `
+      SELECT name, number, set_name, raw_json
+      FROM cards
+      WHERE id = ?
+    `,
+    [cardId],
+  );
+}
+
+async function saveJustTcgLookup(cardId: string, lookup: StoredJustTcgLookup) {
+  await dbRun(
+    `
+      UPDATE cards
+      SET raw_json = json_set(raw_json, '$.justtcgLookup', json(?)),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `,
+    [JSON.stringify(lookup), cardId],
+  );
+}
+
+function getStoredJustTcgLookup(rawJson: string) {
+  return parseStoredJustTcgLookup(parseStoredCard(rawJson).justtcgLookup);
+}
+
+function buildJustTcgPayload(
+  prices: Record<string, unknown>,
+): { prices: Record<string, unknown> } | null {
+  return Object.keys(prices).length > 0 ? { prices } : null;
 }
 
 function portfolioCollection(uid: string) {
@@ -408,6 +518,89 @@ router.get(
   createHydratedPortfolioHandler(),
 );
 
+router.get("/cards/justtcg-prices", portfolioReadLimiter, async (_req, res) => {
+  const signal = getRequestAbortSignal(res);
+  res.setHeader("Cache-Control", "private, no-store");
+
+  try {
+    const uid = getAuthenticatedUid(res);
+    const entries = await getPortfolioEntries(uid);
+    const localCardIds = entries.map((entry) => entry.cardId);
+
+    if (localCardIds.length === 0) {
+      res.json({ cards: [], missingCardIds: [] });
+      return;
+    }
+
+    const rows: Array<{ id: string; raw_json: string }> = [];
+    for (
+      let offset = 0;
+      offset < localCardIds.length;
+      offset += CARD_QUERY_CHUNK_SIZE
+    ) {
+      const cardIds = localCardIds.slice(
+        offset,
+        offset + CARD_QUERY_CHUNK_SIZE,
+      );
+      rows.push(
+        ...(await dbAll<{ id: string; raw_json: string }>(
+          `
+            SELECT id, raw_json
+            FROM cards
+            WHERE id IN (${cardIds.map(() => "?").join(", ")})
+          `,
+          cardIds,
+        )),
+      );
+    }
+    const lookupIdsByCardId = new Map<string, string[]>();
+    const requestedJustTcgIds = new Set<string>();
+
+    for (const row of rows) {
+      const lookup = getStoredJustTcgLookup(String(row.raw_json));
+      if (lookup.ids.length === 0) continue;
+
+      lookupIdsByCardId.set(String(row.id), lookup.ids);
+      for (const id of lookup.ids) requestedJustTcgIds.add(id);
+    }
+
+    const justTcgIds = Array.from(requestedJustTcgIds);
+    const pricesByJustTcgKey =
+      await fetchJustTcgPortfolioPricesByCardIds(justTcgIds, signal);
+
+    const hydratedCards = localCardIds.map((cardId) => {
+      const prices: Record<string, unknown> = {};
+      const lookupIds = lookupIdsByCardId.get(cardId) ?? [];
+
+      for (const justTcgId of lookupIds) {
+        for (const [key, value] of Object.entries(pricesByJustTcgKey)) {
+          if (key.startsWith(`${justTcgId}:`)) {
+            prices[key] = value;
+          }
+        }
+      }
+
+      return {
+        cardId,
+        justtcg: buildJustTcgPayload(prices),
+      };
+    });
+
+    res.json({
+      cards: hydratedCards,
+      missingCardIds: hydratedCards
+        .filter((card) => card.justtcg === null)
+        .map((card) => card.cardId),
+    });
+  } catch (error) {
+    if (isRequestAbort(error, signal)) return;
+    logError("Failed to load portfolio JustTCG prices", error);
+    const statusCode =
+      error instanceof JustTcgApiError && error.statusCode === 429 ? 429 : 502;
+    res.status(statusCode).json({ message: "Failed to load JustTCG prices" });
+  }
+});
+
 router.patch(
   "/price-source",
   portfolioWriteLimiter,
@@ -440,6 +633,90 @@ router.post("/cards", portfolioWriteLimiter, async (req, res) => {
     sendPortfolioError(res, error, "Failed to add portfolio card");
   }
 });
+
+router.post(
+  "/cards/:cardId/justtcg-lookup",
+  portfolioJustTcgLookupLimiter,
+  async (req, res) => {
+    const signal = getRequestAbortSignal(res);
+
+    try {
+      const uid = getAuthenticatedUid(res);
+      const cardId = getCardId(req.params.cardId);
+      const [portfolioCard, storedCard] = await Promise.all([
+        portfolioCardRef(uid, cardId).get(),
+        getStoredCardForJustTcgLookup(cardId),
+      ]);
+
+      if (!portfolioCard.exists) {
+        throw new PortfolioHttpError("Portfolio card not found", 404);
+      }
+      if (!storedCard) {
+        throw new PortfolioHttpError("Card not found", 404);
+      }
+
+      const existingLookup = getStoredJustTcgLookup(
+        String(storedCard.raw_json),
+      );
+      if (existingLookup.ids.length > 0) {
+        res.json({ status: "ready", ids: existingLookup.ids });
+        return;
+      }
+      if (!shouldRetryJustTcgLookup(existingLookup.failedAt)) {
+        res.json({
+          status: "recently_failed",
+          failedAt: existingLookup.failedAt,
+          ids: [],
+        });
+        return;
+      }
+
+      const setName = storedCard.set_name?.trim();
+      const number = storedCard.number?.trim();
+      if (!setName || !number) {
+        const lookup = { failedAt: new Date().toISOString(), ids: [] };
+        await saveJustTcgLookup(cardId, lookup);
+        res.json({ status: "failed", ...lookup });
+        return;
+      }
+
+      const candidates = await fetchJustTcgCardIdentityCandidates(
+        storedCard.name,
+        number,
+        signal,
+      );
+      const ids = Array.from(
+        new Set(
+          candidates
+            .filter((candidate) =>
+              isVerifiedJustTcgCard(candidate, setName, number),
+            )
+            .map((candidate) => candidate.id),
+        ),
+      );
+
+      if (ids.length > 0) {
+        const lookup = { ids };
+        await saveJustTcgLookup(cardId, lookup);
+        res.json({ status: "ready", ids });
+        return;
+      }
+
+      const lookup = { failedAt: new Date().toISOString(), ids: [] };
+      await saveJustTcgLookup(cardId, lookup);
+      res.json({ status: "failed", ...lookup });
+    } catch (error) {
+      if (isRequestAbort(error, signal)) return;
+      if (error instanceof JustTcgApiError) {
+        const statusCode = error.statusCode === 429 ? 429 : 502;
+        res.status(statusCode).json({ message: "JustTCG lookup failed" });
+        return;
+      }
+
+      sendPortfolioError(res, error, "Failed to look up JustTCG card IDs");
+    }
+  },
+);
 
 router.patch(
   "/cards/:cardId/quantity",
@@ -478,7 +755,7 @@ router.patch(
       const uid = getAuthenticatedUid(res);
       const cardId = getCardId(req.params.cardId);
       const priceSource = getPortfolioPriceSource(req.body?.priceSource);
-      const priceKey = getPriceKey(req.body?.priceKey);
+      const priceKey = getPriceKey(req.body?.priceKey, priceSource);
       const cardRef = portfolioCardRef(uid, cardId);
 
       const entry = await adminDb.runTransaction(async (transaction) => {

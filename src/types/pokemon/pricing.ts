@@ -53,12 +53,16 @@ export type JustTcgPriceData = {
   absoluteChange24h?: number;
   absoluteChange7d?: number;
   absoluteChange30d?: number;
+  cardId?: string;
+  cardName?: string;
   condition: string;
   market: number;
+  number?: string;
   percentChange24h?: number;
   percentChange7d?: number;
   percentChange30d?: number;
   printing: string;
+  setName?: string;
 };
 
 export type JustTcg = {

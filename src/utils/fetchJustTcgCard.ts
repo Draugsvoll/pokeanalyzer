@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "./authenticatedFetch";
+import { isVerifiedJustTcgCard } from "../../shared/justTcgCardVerification";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -12,12 +13,17 @@ export async function fetchJustTcgCard(
     number: String(number),
   });
 
-  const response = await authenticatedFetch(`${API_URL}/api/justtcg-card?${params}`, {
-    signal,
-  });
+  const response = await authenticatedFetch(
+    `${API_URL}/api/justtcg-card?${params}`,
+    {
+      signal,
+    },
+  );
 
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({}))) as { message?: string };
+    const error = (await response.json().catch(() => ({}))) as {
+      message?: string;
+    };
     throw new Error(error.message || `Request failed: ${response.status}`);
   }
 
@@ -29,35 +35,21 @@ export function verifyJustTcgCard(
   setName: string,
   number: string | number,
 ): unknown {
-  if (!result || typeof result !== "object" || !("data" in result) || !Array.isArray(result.data)) {
+  if (
+    !result ||
+    typeof result !== "object" ||
+    !("data" in result) ||
+    !Array.isArray(result.data)
+  ) {
     return result;
   }
 
   const matchingCards = result.data.filter((card) => {
-    if (
-      card === null ||
-      typeof card !== "object" ||
-      !("set_name" in card) ||
-      typeof card.set_name !== "string" ||
-      !("number" in card) ||
-      (typeof card.number !== "string" && typeof card.number !== "number")
-    ) {
+    if (card === null || typeof card !== "object" || !("number" in card)) {
       return false;
     }
 
-    const originalSetName = setName.trim().toLowerCase();
-    const fetchedSetName = card.set_name.trim().toLowerCase();
-    const setNamesMatch =
-      originalSetName.includes(fetchedSetName) ||
-      fetchedSetName.includes(originalSetName);
-    const normalizeCardNumber = (value: string | number) => {
-      const numberBeforeSlash = String(value).trim().split("/")[0];
-      return numberBeforeSlash.replace(/^0+(?=\d)/, "");
-    };
-    const cardNumbersMatch =
-      normalizeCardNumber(card.number) === normalizeCardNumber(number);
-
-    return setNamesMatch && cardNumbersMatch;
+    return isVerifiedJustTcgCard(card, setName, number);
   });
 
   return { ...result, data: matchingCards };

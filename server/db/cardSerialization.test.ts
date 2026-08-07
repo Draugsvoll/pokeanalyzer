@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  parsePublicStoredCard,
-  parseStoredCard,
-} from "./cardSerialization.js";
+import { parsePublicStoredCard, parseStoredCard } from "./cardSerialization.js";
 
-test("parsePublicStoredCard removes application-owned Grok data", () => {
+test("parsePublicStoredCard removes application-owned card data", () => {
   const rawJson = JSON.stringify({
     id: "base1-1",
     name: "Alakazam",
@@ -15,6 +12,9 @@ test("parsePublicStoredCard removes application-owned Grok data", () => {
         summary: "stored analysis",
       },
     },
+    justtcgLookup: {
+      ids: ["pokemon-base-set-alakazam-holo-rare"],
+    },
   });
 
   assert.deepEqual(parsePublicStoredCard(rawJson), {
@@ -22,6 +22,7 @@ test("parsePublicStoredCard removes application-owned Grok data", () => {
     name: "Alakazam",
   });
   assert.equal("grok" in parseStoredCard(rawJson), true);
+  assert.equal("justtcgLookup" in parseStoredCard(rawJson), true);
 });
 
 test("stored card JSON must contain an object", () => {

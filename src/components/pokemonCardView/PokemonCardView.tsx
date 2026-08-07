@@ -94,6 +94,15 @@ export function PokemonCardView({
 
     return priceOptions.filter((option) => option.source === priceSource);
   }, [lockPriceSource, priceOptions, priceSource]);
+  const sourceOptionGroupCount = useMemo(
+    () =>
+      new Set(
+        visiblePriceOptions.map(
+          (option) => option.groupKey ?? `${option.source}:${option.key}`,
+        ),
+      ).size,
+    [visiblePriceOptions],
+  );
   const defaultPriceOption = lockPriceSource
     ? visiblePriceOptions[0]
     : pickDefaultCardPriceOption(priceOptions, priceSource);
@@ -175,7 +184,11 @@ export function PokemonCardView({
     Boolean(authUser) && Boolean(portfolioReferencesError);
 
   async function handlePortfolioToggle() {
-    if (updatingPortfolio || loadingPortfolioReferences || portfolioUnavailable) {
+    if (
+      updatingPortfolio ||
+      loadingPortfolioReferences ||
+      portfolioUnavailable
+    ) {
       return;
     }
 
@@ -393,14 +406,25 @@ export function PokemonCardView({
                         role="radiogroup"
                         aria-label="Price source"
                       >
-                        {visiblePriceOptions.map((option) => {
+                        {visiblePriceOptions.map((option, index) => {
                           const inputId = `${sourcePanelId}-${option.id}`;
                           const checked = option.id === activeOption?.id;
-                          const isPending =
-                            option.id === pendingPriceOptionId;
+                          const isPending = option.id === pendingPriceOptionId;
                           const pretext = getCardPriceSourceLabel(
                             option.source,
                           );
+                          const groupKey =
+                            option.groupKey ?? `${option.source}:${option.key}`;
+                          const previousOption = visiblePriceOptions[index - 1];
+                          const previousGroupKey = previousOption
+                            ? (previousOption.groupKey ??
+                              `${previousOption.source}:${previousOption.key}`)
+                            : null;
+                          const hasGroupSeparator =
+                            index > 0 &&
+                            option.source === "justtcg" &&
+                            sourceOptionGroupCount > 1 &&
+                            groupKey !== previousGroupKey;
 
                           return (
                             <label
@@ -410,6 +434,7 @@ export function PokemonCardView({
                                 "pokemon-card__source-option",
                                 checked ? "is-selected" : "",
                                 isPending ? "is-pending" : "",
+                                hasGroupSeparator ? "has-group-separator" : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
@@ -463,7 +488,6 @@ export function PokemonCardView({
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -496,10 +520,12 @@ export function PokemonCardPortfolioView({
     removePokemonFromPortfolio,
     updatePokemonPriceSource,
     updatePokemonQuantity,
-  } =
-    usePokemonPortfolio();
+  } = usePokemonPortfolio();
   const activePriceSource: PortfolioPriceSource =
-    cardViewProps.priceSource === "cardmarket" ? "cardmarket" : "tcgplayer";
+    cardViewProps.priceSource === "cardmarket" ||
+    cardViewProps.priceSource === "justtcg"
+      ? cardViewProps.priceSource
+      : "tcgplayer";
   const savedPriceKey = card.priceSources?.[activePriceSource] ?? null;
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
@@ -556,7 +582,15 @@ export function PokemonCardPortfolioView({
   const confirmPriceOptionChange = async () => {
     if (!activePendingPriceOptionId) return;
 
-    const [source, priceKey] = activePendingPriceOptionId.split(":");
+    const separatorIndex = activePendingPriceOptionId.indexOf(":");
+    const source =
+      separatorIndex >= 0
+        ? activePendingPriceOptionId.slice(0, separatorIndex)
+        : "";
+    const priceKey =
+      separatorIndex >= 0
+        ? activePendingPriceOptionId.slice(separatorIndex + 1)
+        : "";
     if (source !== activePriceSource || !priceKey) {
       setPendingPriceOptionId(null);
       return;
@@ -658,9 +692,7 @@ export function PokemonCardPortfolioView({
           type="button"
           className="pokemon-card-portfolio-view__quantity-button"
           aria-label={`Decrease ${card.name} quantity`}
-          disabled={
-            (pendingQuantity ?? quantity) <= 1 || updatingQuantity
-          }
+          disabled={(pendingQuantity ?? quantity) <= 1 || updatingQuantity}
           onClick={() => requestQuantityChange(-1)}
         >
           <ChevronDown aria-hidden="true" />
