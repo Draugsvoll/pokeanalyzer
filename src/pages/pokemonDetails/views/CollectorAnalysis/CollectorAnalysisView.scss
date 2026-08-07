@@ -9,7 +9,7 @@
     var(--collector-accent) 72%,
     white
   );
-  --collector-score-background: #20212c;
+  --collector-score-background: var(--feature-card-inner-bg);
 
   box-sizing: border-box;
   display: grid;
@@ -22,6 +22,10 @@
     color: var(--font-color-muted);
     padding: 1rem;
     text-align: center;
+  }
+
+  &__variant-selector {
+    justify-self: start;
   }
 
   &__summary {
@@ -71,53 +75,40 @@
       var(--animation-ease-standard) forwards;
     background: conic-gradient(
       from -90deg,
-      color-mix(in srgb, var(--collector-accent) 78%, white) 0,
-      var(--collector-accent) calc(var(--score-progress) * 0.72%),
-      color-mix(in srgb, var(--collector-accent) 88%, #1b2030)
+      color-mix(in srgb, var(--collector-accent) 82%, var(--font-color-secondary)) 0,
+      var(--collector-accent) calc(var(--score-progress) * 0.56%),
+      color-mix(in srgb, var(--collector-accent) 82%, var(--font-color-secondary))
         calc(var(--score-progress) * 1%),
-      rgba(255, 255, 255, 0.055) 0
+      color-mix(in srgb, var(--font-color-primary) 7%, transparent) 0
     );
     border-radius: var(--border-radius-round);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-      0 0.45rem 0.9rem rgba(0, 0, 0, 0.16);
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--font-color-primary) 5%, transparent);
     display: grid;
-    flex: 0 0 7rem;
-    height: 7rem;
+    flex: 0 0 6rem;
+    height: 6rem;
     place-items: center;
-    width: 7rem;
+    width: 6rem;
 
     > div {
       align-items: center;
-      background:
-        radial-gradient(
-          circle at 50% 24%,
-          rgba(255, 255, 255, 0.055),
-          transparent 44%
-        ),
-        var(--collector-score-background);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.055);
+      background: var(--bg2);
+      border: 1px solid
+        color-mix(in srgb, var(--font-color-primary) 6%, transparent);
       border-radius: var(--border-radius-round);
-      box-shadow:
-        inset 0 0.08rem 0.1rem rgba(255, 255, 255, 0.035),
-        inset 0 -0.65rem 1.1rem rgba(0, 0, 0, 0.14);
       display: flex;
       flex-direction: column;
-      height: 5.4rem;
+      height: 4.85rem;
       justify-content: center;
-      width: 5.4rem;
-      -webkit-backdrop-filter: blur(10px);
+      width: 4.85rem;
     }
 
     /* Big score number — not a normal strong */
     strong {
       color: var(--font-color-primary);
-      font-family: var(--font-family-price);
-      font-size: var(--font-size-price-xl);
+      font-size: clamp(2rem, 3vw, 2.45rem);
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-bold);
-      letter-spacing: var(--font-tracking-tight);
       line-height: 0.95;
     }
 
@@ -266,9 +257,9 @@
     /* Category score — price-style number */
     strong {
       color: var(--collector-accent);
-      font-family: var(--font-family-price);
-      font-size: var(--font-size-price-md);
+      font-size: var(--font-size-h3);
       font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-bold);
       letter-spacing: var(--font-tracking-tight);
       line-height: 1;
     }
@@ -276,11 +267,13 @@
 
   &__bar {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 52%),
-      rgba(255, 255, 255, 0.045);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--font-color-primary) 5%, transparent),
+        color-mix(in srgb, var(--font-color-primary) 3%, transparent)
+      );
     border-radius: var(--border-radius-pill);
-    box-shadow: inset 0 0.08rem 0.16rem rgba(0, 0, 0, 0.22);
-    height: 0.46rem;
+    height: 0.42rem;
     margin-top: 0.8rem;
     overflow: hidden;
 
@@ -288,19 +281,16 @@
       background:
         linear-gradient(
           180deg,
-          rgba(255, 255, 255, 0.28),
-          rgba(255, 255, 255, 0) 48%
+          color-mix(in srgb, white 8%, transparent),
+          transparent 62%
         ),
         linear-gradient(
           90deg,
-          color-mix(in srgb, var(--collector-accent) 54%, #10131d),
-          var(--collector-accent) 50%,
-          color-mix(in srgb, var(--collector-accent-secondary) 78%, white)
+          color-mix(in srgb, var(--collector-accent) 46%, var(--bg2)),
+          color-mix(in srgb, var(--collector-accent) 72%, var(--font-color-secondary))
         );
       border-radius: var(--border-radius-pill);
-      box-shadow:
-        0 0 0.28rem color-mix(in srgb, var(--collector-accent) 18%, transparent),
-        inset 0 -0.08rem 0.12rem rgba(0, 0, 0, 0.18);
+      box-shadow: none;
       display: block;
       height: 100%;
       transform: scaleX(0);

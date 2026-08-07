@@ -1,3 +1,5 @@
+import { Layers3 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -114,7 +116,9 @@ function Notes({ notes }: { notes: string[] }) {
     <section className="sales-data-view__notes">
       <ul>
         {notes.map((note, index) => (
-          <li key={`${note}-${index}`}>{note}</li>
+          <li className="feature-note-surface" key={`${note}-${index}`}>
+            {note}
+          </li>
         ))}
       </ul>
     </section>
@@ -123,6 +127,11 @@ function Notes({ notes }: { notes: string[] }) {
 
 export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
   const { loading, error, response } = grokRequest;
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedVariantIndex(0);
+  }, [response]);
 
   if (loading) return <LoadingState>Researching sales data...</LoadingState>;
   if (error)
@@ -137,27 +146,54 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
       </p>
     );
   }
+  const activeVariantIndex = data.variants[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
+  const activeVariant = data.variants[activeVariantIndex];
 
   return (
     <section className="sales-data-view ui-render-fade">
       {data.variants.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market feature-card-surface">
-          <header className="sales-data-view__market-heading">
-            <h3 className="feature-section-heading">Sales Volume</h3>
+          <header className="sales-data-view__market-heading feature-panel-header">
+            <h3 className="feature-section-heading">Graded Sales</h3>
             <p>
               Mostly eBay sales • <strong>PriceCharting</strong>
             </p>
           </header>
-          <div className="sales-data-view__variants">
-            {data.variants.map((variant, variantIndex) => (
+          <div className="sales-data-view__variants feature-panel-body">
+            <fieldset
+              aria-label="Graded sales variant"
+              className="sales-data-view__variant-selector feature-variant-radio-group"
+            >
+              <div>
+                {data.variants.map((variant, variantIndex) => (
+                  <label key={`${variant.title}-${variantIndex}`}>
+                    <input
+                      checked={activeVariantIndex === variantIndex}
+                      name="sales-volume-variant"
+                      type="radio"
+                      value={variantIndex}
+                      onChange={() => setSelectedVariantIndex(variantIndex)}
+                    />
+                    <span>
+                      <Layers3 aria-hidden="true" />
+                      <strong>
+                        {variant.title || cardName}
+                      </strong>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {activeVariant && (
               <section
                 className="sales-data-view__variant"
-                key={`${variant.title}-${variantIndex}`}
+                key={`${activeVariant.title}-${activeVariantIndex}`}
               >
-                {variant.title && <h4>{variant.title}</h4>}
-                {variant.marketPrices.length > 0 && (
+                {activeVariant.marketPrices.length > 0 && (
                   <div className="sales-data-view__market-grid">
-                    {variant.marketPrices.map((market, index) => (
+                    {activeVariant.marketPrices.map((market, index) => (
                       <article
                         className="feature-card-inner-surface"
                         key={`${market.grade}-${index}`}
@@ -171,9 +207,11 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                     ))}
                   </div>
                 )}
-                {variant.notes.length > 0 && <Notes notes={variant.notes} />}
+                {activeVariant.notes.length > 0 && (
+                  <Notes notes={activeVariant.notes} />
+                )}
               </section>
-            ))}
+            )}
           </div>
         </section>
       )}

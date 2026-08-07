@@ -172,6 +172,44 @@ input[type="radio"] {
   border-radius: var(--feature-card-radius);
 }
 
+.feature-panel-header {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+}
+
+.feature-panel-header > :is(h2, h3, h4, p) {
+  margin: 0;
+}
+
+.feature-panel-header p {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-paragraph-sm);
+  line-height: var(--font-leading-normal);
+}
+
+.feature-panel-header strong {
+  color: var(--font-color-secondary);
+}
+
+.feature-panel-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.4rem 1.65rem 1.6rem;
+}
+
+.feature-note-surface {
+  background: var(--feature-card-inner-bg);
+  border-radius: var(--feature-card-radius);
+  color: var(--font-color-secondary);
+  line-height: var(--font-leading-relaxed);
+  max-width: min(100%, 72rem);
+  padding: 0.9rem 1rem;
+  width: fit-content;
+}
+
 .feature-section-heading {
   --feature-section-heading-accent: var(--feature-accent, var(--custom-color-blue));
 
@@ -203,6 +241,122 @@ input[type="radio"] {
   height: 0.8rem;
   margin-right: 0.65rem;
   width: 0.8rem;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group {
+  --radio-accent: var(--feature-accent, var(--custom-color-orange));
+
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group > div {
+  align-items: center;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  max-width: 100%;
+  overflow: visible;
+  width: fit-content;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group label {
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group label + label {
+  border-left: 0;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group input {
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group label > span {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--radio-accent) 24%, transparent);
+  border-radius: var(--border-radius-pill);
+  color: var(--font-color-muted);
+  display: inline-flex;
+  font-size: var(--font-size-paragraph-sm);
+  font-weight: var(--font-weight-medium);
+  gap: 0.4rem;
+  line-height: 1;
+  min-height: 2.45rem;
+  padding: 0.55rem 0.9rem;
+  transition:
+    background var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    color var(--delay-short) ease;
+  white-space: nowrap;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group label:hover > span {
+  border-color: color-mix(in srgb, var(--radio-accent) 35%, transparent);
+  color: var(--font-color-primary);
+}
+
+.feature-variant-radio-group.feature-variant-radio-group input:checked + span {
+  background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--radio-accent) 28%, transparent);
+  color: var(--radio-accent);
+}
+
+.feature-variant-radio-group.feature-variant-radio-group
+  input:focus-visible
+  + span {
+  outline: 2px solid var(--radio-accent);
+  outline-offset: 3px;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group svg {
+  color: var(--radio-accent);
+  flex: 0 0 auto;
+  height: 1rem;
+  width: 1rem;
+}
+
+.feature-variant-radio-group.feature-variant-radio-group strong {
+  color: var(--font-color-secondary);
+  font-weight: var(--font-weight-bold);
+}
+
+.feature-variant-radio-group.feature-variant-radio-group
+  input:checked
+  + span
+  strong {
+  color: var(--radio-accent);
+}
+
+.feature-variant-radio-group.feature-variant-radio-group small {
+  color: var(--font-color-muted);
+  font-size: 0.9em;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-snug);
+}
+
+.feature-variant-radio-group.feature-variant-radio-group i {
+  color: var(--font-color-faint);
+  font-size: 0.8em;
+  font-style: normal;
+}
+
+@media (max-width: 36rem) {
+  .feature-panel-body {
+    padding-inline: 1.1rem;
+  }
 }
 
 /* Small outline badge (variants, counts, etc.) */

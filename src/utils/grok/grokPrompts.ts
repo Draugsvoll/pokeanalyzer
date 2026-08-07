@@ -2,7 +2,7 @@ import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes"
 
 export const priceAnalysis: string =
 `
-If the data is available, please show todays market prices for the pokemon card i provided.
+If the data is available, please show today's market prices for the Pokemon card I provided.
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
 Make sure to include the source "PriceCharting" if it has available data.
@@ -10,7 +10,7 @@ When using PriceCharting, make sure to include the most recent sales data for th
 If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
 
 In market_data field, you can add different types of market price data, as long as its
-relevant and valueable to the reader. Make sure the market_price field actually reflects the
+relevant and valuable to the reader. Make sure the market_price field actually reflects the
 current realistic price of today.
 
 notes field should be concise and user-friendly to read. Its a summary.
@@ -108,8 +108,9 @@ Response must be only a valid JSON format. No extra text before or after the JSO
 Response must be put into the exact structure as the example response below.
 If data not available just leave the field empty.
 If there are multiple English variants available, include each one in the variants array.
+Remember to include variant name for each entry.
 
-Notes field is optional for each variant. If theres valuable information related to that specific variant
+Notes field is optional for each variant. If there's valuable information related to that specific variant
 that collectors would want to know, then add it.
 
 
@@ -186,9 +187,8 @@ const sellMyCard: string = `
   Marketplace available category: I need to know different marketplaces available and what each one is best for.
   This category must exist outside the array of variants.
 
-  Other category (optional): Include any other valuable, applicable information.
+  Other category (optional): Include any other valuable information that doesn't apply generically to most or all cards.
   Each variant can include an optional "notes" array.
-  Notes should only include valuable information related to that specific card or variant that collectors would want to know.
 
   Don't blend different categories together. Name each step based on its content.
 
@@ -279,10 +279,10 @@ const sellMyCard: string = `
 
 const identifyCard: string =
 `
-Identify the exact pokemon card provided in the image. Return a valid JSON containing
+Identify the exact Pokemon card provided in the image. Return a valid JSON containing
 these fields:
 
-- pokemon name
+- Pokemon name
 - set name
 - card number
 - set series
@@ -290,12 +290,12 @@ these fields:
 
 const authenticityCheck: string =
 `
-You are a professional pokemon-card inspector. Verify if my pokemon card is real from image(s) provided. do a thorough analysis, take your time.
-Your response must be in a valid json format as shown below.
-dont subtract from the score because you cant do physical tests on it,
-just make note a note of it in limitations. if user dont supply the back of the card,
+You are a professional Pokemon-card inspector. Verify if my Pokemon card is real from image(s) provided. Do a thorough analysis, take your time.
+Your response must be in a valid JSON format as shown below.
+Don't subtract from the score because you can't do physical tests on it,
+just make note of it in limitations. If user doesn't supply the back of the card,
 explain how much that is shaving off the final score (inside the limitation field).
-If the image is hard to read, dont just make assumptions. Note what was hard to scan and
+If the image is hard to read, don't just make assumptions. Note what was hard to scan and
 what assumption you made, and mention it in the response.
 
 Use the format as shown in example response below. Your entire response shall only be the valid JSON object.
@@ -373,15 +373,15 @@ No extra text before or after.
 `
 
 const psaGrading: string = `
-Do a PSA grading of this pokemon card. Be as strict and thorough as a professional grader.
+Do a PSA grading of this Pokemon card. Be as strict and thorough as a professional grader.
 Be objective about the card. If the image has limitations where its hard to determine condition
 on a detail, assume its closer to an average condition. Also mention everything about the image
-that limits your grading process. Scan the image as detailed as possible so no details gets lost
+that limits your grading process. Scan the image as detailed as possible so no details get lost
 in the process. Don't invent anything about the condition.
 
 Give a roughly estimated score for each category: Centering, Corners, Edges, Surface.
 
-Give a summarized report (Don't mention you did something because that's what i told you).
+Give a summarized report (Don't mention you did something because that's what I told you).
 It should be a user friendly report to read.
 
 Your response should be ONLY a valid JSON format — no markdown fences, no commentary
@@ -432,16 +432,18 @@ Use exactly this structure example (field names and nesting must match):
 
 const collectorsAnalysis: string =
 `
-You are a professional pokemon collector, and you are hired to rank cards for serious
-collectors. you need to rank a card professionally. Take your time,
-get as much data as possible, from as many trustworthy sources as possible.
-give it a score from 1-100 where 100 would be the most desired card among collectors.
-You must reasearch as deeply as possible (using reliable sources) before estimating the card,
+You are a professional Pokemon collector, and you are hired to rank cards for serious
+collectors. You need to rank a card professionally. Take your time,
+get as much data as possible from many trustworthy/reliable sources.
+Give it a score from 1-100 where 100 would be the most desired card among collectors.
+You must research deeply (using reliable sources) before estimating the card,
 to avoid giving different scores to the same card when asked again later.
 
+If you find multiple English variants of the card, you must include analysis for each variant in your analysis.
+
 You must justify exactly WHY it was given its score. a collector should walk away
-understanding exactly why it deserved that score and feeling more educated about the card.
-The score should reflect your reasoning. The categories are as following.
+understanding exactly why it deserved that score and feel more educated about the card.
+The score should reflect your reasoning. The categories are as follows.
 
 Rarity & scarcity
 Collectors Demand
@@ -449,21 +451,28 @@ Significance
 Artwork & Aesthetics
 Long-Term Collectibility
 
-The output should now be in a summarized and fairly conscise format.
+The output should now be in a summarized and fairly concise format.
 
-make the category long-term collectability less weighted than the others,
-but don't mention that. give each category a score as well. all the scores are whole
+Make the category long-term collectibility less weighted than the others,
+but don't mention that. Give each category a score as well. All the scores are whole
 numbers as a string. for example 43/100 is "43" the response should be your output into
-a valid json, as formatted below. the overview field must be as concise and relevant to the
-collector as possible, but it should only shortly explain the cards role as a collectable,
-dont explain the score or pokemon-stats in this field. Avoid stating exact price numbers for the card.
-The finalNote field should be a summarized conclusion of what made its final score, and how
-collectors should approach it. The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
+a valid json, as formatted below. The response must only be a valid JSON format, no text added before or after.
 
+The root value must be an array. Each item in the array represents one English variant you found.
+
+
+The overview field must be as concise and relevant to the collector as possible,
+but it should only shortly explain the card's role as a collectible.
+Don't explain the score or Pokemon stats in this field. Avoid stating exact price numbers for the card.
+The finalNote field should be a summarized version of the reasoning behind the totalScore. The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
+
+The variant field is the variant name of the (Pokemon name + variant).
+
+variant
 totalScore
 verdict
 overview
-categories - each categori has fields: score, name, text
+categories - each category has fields: score, name, text
 finalNote
 
 
@@ -475,11 +484,12 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-Do a grading analysis of my pokemon card, so i know if it's worth grading or not.
+Do a grading analysis of my Pokemon card, so I know if it's worth grading or not, all things considered.
 
 Requirements:
 Research only English versions of the card.
 Include every variant you can find reliable market data for (always check PriceCharting as its reliable).
+Remember variant name for each variant you find.
 
 For each variant include:
 Raw / Ungraded
@@ -500,8 +510,9 @@ After finding each cards estimated value for each grade, we then need to find th
   - Premium 10
 )
 
-Use the open_page tool to see all of the grading services (including premiums) on https://www.psacard.com/services/tradingcardgrading
+Use the open_page tool to see all of the grading services (including premiums) on https://www.psacard.com/services/tradingcardgrading or https://www.psacard.com/
 Determine the correct PSA grading service needed, based on the estimated value for each PSA grade. Do not invent prices or grading services. Only use the actual prices and services from the PSA website.
+It should be easy to find, but if you can't find the exact service/fees, try searching again before giving up. If you still didn't find it, leave the field empty. Do not invent service/fees.
 A card's estimated value must align with the appropriate grading service and its fee, when filling in the grading fee in data-table.
 Select the lowest PSA service whose maximum declared value covers the estimated market value.
 Use that service's grading fee when calculating the Profit after grading. Find out all the
@@ -537,16 +548,18 @@ Profit after grading = Estimated graded value − Raw value − Grading fee
 
 For the Conclusion section:
 - Give a general recommendation for each variant
-- The GENERAL_RECOMMENDATION field must be exactly one of these labels: "Worth grading", "Only if high-grade", "Marginal", or "Not recommended".
+- The GENERAL_RECOMMENDATION field must be exactly one of these labels: "Worth grading", "Only on high-grades", "Marginal", or "Not recommended".
+The chosen label must fit the overall recommendation.
+  The recommendation should not assume what grade we will get, but rather if the card is worth grading not knowing what grade it will get.
 - Do not put a PSA grade, grade range, price, or sentence in the GENERAL_RECOMMENDATION field.
 - If a specific PSA grade matters, mention it only in SHORT_REASON.
-- Base the recommendation on the full context you found: profits, grading fees, demand, liquidity, sales volume, collector appeal, and confidence in the market data.
-- The short reason is a summary of the reasoning behind the recommendation.
+- The short reason is a summary of the reasoning behind the recommendation. Mention the different contexts that mattered for this
+recommendation.
 - Variant titles must include the Pokemon/card name before the variant name, for example "Charizard (Unlimited)", "Charizard (Shadowless)", or "Charizard (1st Edition)" instead of only "Unlimited", "Shadowless", or "1st Edition".
 Don't invent prices or variants.
 
 Output:
-In the optional notes field, dont add source or variant name.
+In the optional notes field, don't add source or variant name.
 Only valuable extra information that is specific to this instance. For example if the sales volume of the card is very low.
 
 Return only valid HTML.
@@ -775,7 +788,7 @@ export const getBiggestMovers: string =
 Please summarize each card in "The Biggest Price Spikes in Pokémon this Week" article from
 TCG. Use the most recent you can find. Always remember to include all the
 price values mentioned in the article. For every card you must mention the price values from the article.
-Keep things conscise and to the point. The summary should be about 3-5 sentences for each card.
+Keep things concise and to the point. The summary should be about 3-5 sentences for each card.
 
 - report_link is url to the report you used.
 - spike_summar summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.
@@ -820,8 +833,8 @@ Respond strictly in this JSON format (no extra text outside the JSON):
  (why important + how to act); leave empty array [] if redundant or minor.
 
  Include "url" only if it's a direct link to a specific article.
- Never use a link thats just a generel site or news section, only if its a specified article.
- Dont put links to youtube videos. The url link must be the actual http link so user can see
+Never use a link that's just a general site or news section, only if it's a specified article.
+Don't put links to YouTube videos. The url link must be the actual http link so user can see
 the source. Prioritize high-impact news for serious collectors/investors.
 Use today's date for reference.
 

@@ -1,5 +1,6 @@
 .sales-data-view {
   --sales-data-accent: var(--feature-accent, var(--custom-color-blue));
+  --feature-accent: var(--custom-color-orange);
 
   box-sizing: border-box;
   display: grid;
@@ -17,13 +18,6 @@
   overflow: hidden;
 
   > header {
-    align-items: center;
-    border-bottom: 1px solid var(--border-divider);
-    display: flex;
-    gap: 0.65rem;
-    justify-content: space-between;
-    padding: 1rem 1.25rem;
-
     svg {
       color: var(--sales-data-accent);
       height: 1.1rem;
@@ -42,6 +36,10 @@
       margin: 0;
       padding-top: 0.2rem;
       padding-left: 0;
+    }
+
+    strong {
+      color: var(--font-color-secondary);
     }
   }
 }
@@ -168,11 +166,7 @@
   }
 
   li {
-    background: var(--feature-card-inner-bg);
-    border-radius: var(--feature-card-radius);
-    color: var(--font-color-secondary);
-    line-height: var(--font-leading-relaxed);
-    padding: 0.9rem 1rem;
+    margin: 0;
   }
 }
 

@@ -3,11 +3,13 @@ import {
   FileText,
   Gem,
   Landmark,
+  Layers3,
   Palette,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -21,6 +23,7 @@ type CollectorCategory = {
 };
 
 type CollectorAnalysisData = {
+  variant: string;
   totalScore: string;
   verdict: string;
   overview: string;
@@ -44,14 +47,10 @@ function getScoreTone(score: number) {
   return "Minimal appeal";
 }
 
-function parseCollectorAnalysis(
-  response: string,
+function parseCollectorAnalysisEntry(
+  data: Record<string, unknown>,
+  index: number,
 ): CollectorAnalysisData | null {
-  const value = parseJsonText(response);
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-
-  const data = value as Record<string, unknown>;
   if (!Array.isArray(data.categories)) return null;
 
   const categories = data.categories
@@ -68,6 +67,7 @@ function parseCollectorAnalysis(
     }));
 
   return {
+    variant: String(data.variant ?? data.name ?? data.title ?? `Variant ${index + 1}`),
     totalScore: String(data.totalScore ?? "0"),
     verdict: String(data.verdict ?? ""),
     overview: String(data.overview ?? ""),
@@ -76,21 +76,57 @@ function parseCollectorAnalysis(
   };
 }
 
+function parseCollectorAnalysis(response: string): CollectorAnalysisData[] | null {
+  const value = parseJsonText(response);
+
+  if (!value || typeof value !== "object") return null;
+
+  const root = value as Record<string, unknown>;
+  const rawAnalyses: unknown[] = Array.isArray(value)
+    ? value
+    : Array.isArray(root.analyses)
+      ? root.analyses
+      : Array.isArray(root.analysis)
+        ? root.analysis
+        : Array.isArray(root.variants)
+          ? root.variants
+          : [value];
+
+  const analyses = rawAnalyses
+    .filter(
+      (item): item is Record<string, unknown> =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    )
+    .map(parseCollectorAnalysisEntry)
+    .filter((analysis): analysis is CollectorAnalysisData => Boolean(analysis));
+
+  return analyses.length > 0 ? analyses : null;
+}
+
 export default function CollectorAnalysis({
   grokRequest,
 }: CollectorAnalysisProps) {
   const { loading, error, response } = grokRequest;
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedVariantIndex(0);
+  }, [response]);
 
   if (loading) return <LoadingState>Building collector report...</LoadingState>;
   if (error)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
-  const analysis = parseCollectorAnalysis(response);
-  if (!analysis) {
+  const analyses = parseCollectorAnalysis(response);
+  if (!analyses) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
+  const activeVariantIndex = analyses[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
+  const analysis = analyses[activeVariantIndex];
   const totalScore = Math.min(
     100,
     Math.max(0, Number(analysis.totalScore) || 0),
@@ -99,6 +135,27 @@ export default function CollectorAnalysis({
 
   return (
     <div className="collector-ranking ui-render-fade">
+      <fieldset
+        aria-label="Collector analysis variant"
+        className="collector-ranking__variant-selector feature-variant-radio-group"
+      >
+        <div>
+          {analyses.map((variantAnalysis, variantIndex) => (
+            <label key={`${variantAnalysis.variant}-${variantIndex}`}>
+              <input
+                checked={activeVariantIndex === variantIndex}
+                name="collector-analysis-variant"
+                onChange={() => setSelectedVariantIndex(variantIndex)}
+                type="radio"
+              />
+              <span>
+                <Layers3 aria-hidden="true" />
+                <strong>{variantAnalysis.variant}</strong>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="collector-ranking__summary">
         <div
           className="collector-ranking__score"

@@ -1,3 +1,5 @@
+import { Layers3 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
@@ -15,6 +17,21 @@ type WorthGradingResponse = {
   summary?: string;
   action?: string;
 };
+
+type WorthGradingVariantSection = {
+  html: string;
+  title: string;
+};
+
+type WorthGradingRenderItem =
+  | {
+      html: string;
+      type: "html";
+    }
+  | {
+      type: "variants";
+      variants: WorthGradingVariantSection[];
+    };
 
 const ALLOWED_TAGS = new Set([
   "A",
@@ -196,6 +213,12 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
 
   container.querySelectorAll("section > h2").forEach((heading) => {
     const section = heading.closest("section");
+    const headingText = heading.textContent?.trim().toLowerCase() ?? "";
+
+    if (headingText === "conclusion") {
+      heading.textContent = "Recommendation";
+      return;
+    }
 
     if (section?.querySelector(".cost-grid")) {
       heading.textContent = "PSA Grading Fees";
@@ -246,7 +269,7 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
 
     if (text === "worth grading") {
       element.classList.add("recommendation--positive");
-    } else if (text === "only if high-grade") {
+    } else if (text === "only if high-grade" || text === "only on high-grades") {
       element.classList.add("recommendation--caution");
     } else if (text === "marginal") {
       element.classList.add("recommendation--marginal");
@@ -290,11 +313,88 @@ function sanitizeWorthGradingHtml(response: string, cardName: string) {
   return container.innerHTML;
 }
 
+function createWorthGradingRenderItems(
+  html: string,
+  cardName: string,
+): WorthGradingRenderItem[] {
+  const parser = new DOMParser();
+  const document = parser.parseFromString(html, "text/html");
+  const source =
+    document.body.children.length === 1 &&
+    document.body.firstElementChild?.tagName.toLowerCase() === "main"
+      ? document.body.firstElementChild
+      : document.body;
+  const beforeVariantSections: WorthGradingRenderItem[] = [];
+  const afterVariantSections: WorthGradingRenderItem[] = [];
+  const variants: WorthGradingVariantSection[] = [];
+  let foundVariantSection = false;
+
+  Array.from(source.childNodes).forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) return;
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      const htmlContent = node.textContent ?? "";
+      if (htmlContent.trim()) {
+        (foundVariantSection ? afterVariantSections : beforeVariantSections).push(
+          { html: htmlContent, type: "html" },
+        );
+      }
+      return;
+    }
+
+    const element = node as HTMLElement;
+    const isVariantSection = Boolean(element.querySelector(".table-wrap table"));
+
+    if (isVariantSection) {
+      foundVariantSection = true;
+      const clone = element.cloneNode(true) as HTMLElement;
+      const heading = Array.from(clone.children).find(
+        (child) => child.tagName.toLowerCase() === "h2",
+      );
+      const title = heading?.textContent?.trim() || cardName;
+      heading?.remove();
+      variants.push({ html: clone.innerHTML, title });
+      return;
+    }
+
+    (foundVariantSection ? afterVariantSections : beforeVariantSections).push({
+      html: element.outerHTML,
+      type: "html",
+    });
+  });
+
+  return variants.length > 0
+    ? [
+        ...beforeVariantSections,
+        { type: "variants", variants },
+        ...afterVariantSections,
+      ]
+    : [...beforeVariantSections, ...afterVariantSections];
+}
+
 export function WorthGradingView({
   cardName,
   grokRequest,
 }: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedVariantIndex(0);
+  }, [response]);
+
+  const html = useMemo(() => {
+    if (!response) return "";
+
+    const data = parseJsonResponse(response);
+    return data
+      ? legacyJsonToHtml(data, cardName)
+      : sanitizeWorthGradingHtml(response, cardName);
+  }, [cardName, response]);
+  const renderItems = useMemo(
+    () => (html.trim() ? createWorthGradingRenderItems(html, cardName) : []),
+    [cardName, html],
+  );
 
   if (loading) return <LoadingState>Researching grading value...</LoadingState>;
   if (error) {
@@ -302,21 +402,67 @@ export function WorthGradingView({
   }
   if (!response) return null;
 
-  const data = parseJsonResponse(response);
-  const html = data
-    ? legacyJsonToHtml(data, cardName)
-    : sanitizeWorthGradingHtml(response, cardName);
-
   if (!html.trim()) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
   return (
     <section className="worth-grading-view ui-render-fade">
-      <article
-        className="worth-grading-view__card worth-grading-view__html"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <article className="worth-grading-view__card worth-grading-view__html">
+        {renderItems.map((item, itemIndex) => {
+          if (item.type === "html") {
+            return (
+              <div
+                className="worth-grading-view__html-fragment"
+                dangerouslySetInnerHTML={{ __html: item.html }}
+                key={`html-${itemIndex}`}
+              />
+            );
+          }
+
+          const activeVariantIndex = item.variants[selectedVariantIndex]
+            ? selectedVariantIndex
+            : 0;
+          const activeVariant = item.variants[activeVariantIndex];
+
+          return (
+            <section
+              className="worth-grading-view__variant-panel"
+              key={`variants-${itemIndex}`}
+            >
+              <h2 className="feature-section-heading">Grading Details</h2>
+              <fieldset
+                aria-label="Worth grading variant"
+                className="worth-grading-view__variant-selector feature-variant-radio-group"
+              >
+                <div>
+                  {item.variants.map((variant, variantIndex) => (
+                    <label key={`${variant.title}-${variantIndex}`}>
+                      <input
+                        checked={activeVariantIndex === variantIndex}
+                        name={`worth-grading-variant-${itemIndex}`}
+                        type="radio"
+                        value={variantIndex}
+                        onChange={() => setSelectedVariantIndex(variantIndex)}
+                      />
+                      <span>
+                        <Layers3 aria-hidden="true" />
+                        <strong>{variant.title}</strong>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {activeVariant && (
+                <div
+                  className="worth-grading-view__variant-detail"
+                  dangerouslySetInnerHTML={{ __html: activeVariant.html }}
+                />
+              )}
+            </section>
+          );
+        })}
+      </article>
     </section>
   );
 }

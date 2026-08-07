@@ -21,6 +21,17 @@
   gap: 1.1rem;
   overflow: hidden;
 
+  .worth-grading-view__html-fragment {
+    display: contents;
+  }
+
+  .worth-grading-view__variant-panel,
+  .worth-grading-view__variant-detail {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+  }
+
   .section,
   section,
   main,
@@ -35,6 +46,23 @@
     overflow: hidden;
     padding: 1.25rem 1.35rem 1.35rem;
     position: relative;
+  }
+
+  section.notes {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  section.notes > p,
+  section.notes > div,
+  section.notes > ul {
+    background: var(--feature-card-inner-bg);
+    border-radius: var(--feature-card-radius);
+    max-width: min(100%, 72rem);
+    padding: 0.9rem 1rem;
+    width: fit-content;
   }
 
   main {

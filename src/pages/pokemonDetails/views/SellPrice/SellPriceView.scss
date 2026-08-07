@@ -17,8 +17,6 @@
   overflow: hidden;
 
   > header {
-    padding: 1.25rem 1.35rem 0;
-
     h3 {
       margin: 0;
     }
@@ -36,7 +34,6 @@
 .sell-price-view__variant-steps {
   display: grid;
   gap: 1.2rem;
-  padding: 1rem 1.35rem 1.35rem;
 }
 
 .sell-price-view__step {
@@ -127,10 +124,6 @@
     padding-inline-start: 0;
 
     li {
-      background: var(--feature-card-inner-bg);
-      border-radius: var(--feature-card-radius);
-      padding: 0.9rem 1rem;
-
       &::before {
         display: none;
       }
@@ -143,10 +136,6 @@
     > header {
       padding-inline: 1.1rem;
     }
-  }
-
-  .sell-price-view__variant-steps {
-    padding-inline: 1.1rem;
   }
 
   .sell-price-view__step--pricing {

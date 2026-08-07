@@ -8,11 +8,15 @@ function isJsonObject(value: unknown): value is JsonObject {
 }
 
 function parseJsonObject(value: string): JsonObject | null {
+  const parsed = parseJsonValue(value);
+  return isJsonObject(parsed) ? parsed : null;
+}
+
+function parseJsonValue(value: string): unknown {
   try {
-    const parsed: unknown = JSON.parse(
+    return JSON.parse(
       value.replace(/^```(?:json)?\s*|\s*```$/gi, ""),
     );
-    return isJsonObject(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -88,14 +92,20 @@ export async function saveCardGrokResponse(
   storageKey: string,
   response: unknown,
 ) {
+  const parsedStringResponse =
+    typeof response === "string" ? parseJsonValue(response) : null;
   const parsedResponse =
     storageKey === "worth_grading" && typeof response === "string"
       ? { html: response }
       : typeof response === "string"
-        ? parseJsonObject(response)
+        ? isJsonObject(parsedStringResponse)
+          ? parsedStringResponse
+          : Array.isArray(parsedStringResponse)
+            ? { analyses: parsedStringResponse }
+            : null
         : isJsonObject(response)
           ? response
-          : Array.isArray(response)
+        : Array.isArray(response)
             ? { results: response }
             : null;
   if (!parsedResponse) return null;

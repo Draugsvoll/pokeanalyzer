@@ -1,3 +1,5 @@
+import { Layers3 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { formatCardVariantTitle } from "../../../../utils/cardVariantTitle";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -260,6 +262,11 @@ function getStepOrder(step: SellPriceStep, index: number) {
 
 export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
   const { loading, error, response } = grokRequest;
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedVariantIndex(0);
+  }, [response]);
 
   if (loading) return <LoadingState>Calculating selling price...</LoadingState>;
   if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
@@ -271,33 +278,55 @@ export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
+  const activeVariantIndex = content.variants[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
+  const activeVariant = content.variants[activeVariantIndex];
+  const orderedSteps = activeVariant?.steps
+    .map((step, index) => ({ index, step }))
+    .sort(
+      (a, b) =>
+        getStepOrder(a.step, a.index) - getStepOrder(b.step, b.index) ||
+        a.index - b.index,
+    );
+
   return (
     <section className="sell-price-view ui-render-fade">
       <ol className="sell-price-view__variants">
-        {content.variants.map((variant, variantIndex) => {
-          const orderedSteps = variant.steps
-            .map((step, index) => ({ index, step }))
-            .sort(
-              (a, b) =>
-                getStepOrder(a.step, a.index) - getStepOrder(b.step, b.index) ||
-                a.index - b.index,
-            );
-
-          return (
-            <li
-              className="sell-price-view__variant feature-card-surface"
-              key={`${variant.title}-${variantIndex}`}
-            >
-              <header>
-                <h3 className="feature-section-heading">{variant.title}</h3>
-              </header>
+        {activeVariant && (
+          <li className="sell-price-view__variant feature-card-surface">
+            <header className="feature-panel-header">
+              <h3 className="feature-section-heading">Selling</h3>
+            </header>
+            <div className="sell-price-view__body feature-panel-body">
+              <fieldset
+                aria-label="Sell guide variant"
+                className="sell-price-view__variant-selector feature-variant-radio-group"
+              >
+                <div>
+                  {content.variants.map((variant, variantIndex) => (
+                    <label key={`${variant.title}-${variantIndex}`}>
+                      <input
+                        checked={activeVariantIndex === variantIndex}
+                        name="sell-price-variant"
+                        onChange={() => setSelectedVariantIndex(variantIndex)}
+                        type="radio"
+                      />
+                      <span>
+                        <Layers3 size={16} strokeWidth={2.1} />
+                        <strong>{variant.title}</strong>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <div className="sell-price-view__variant-steps">
                 {orderedSteps.map(({ index: originalIndex, step }, stepIndex) => {
                   if (isPriceRecommendations(step, originalIndex)) {
                     return (
                       <section
                         className="sell-price-view__step sell-price-view__step--pricing"
-                        key={`${variant.title}-${step.title}-${stepIndex}`}
+                        key={`${activeVariant.title}-${step.title}-${stepIndex}`}
                       >
                         <header>
                           <h4>{step.title}</h4>
@@ -325,7 +354,7 @@ export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
                   return (
                     <section
                       className="sell-price-view__step sell-price-view__step--guidance"
-                      key={`${variant.title}-${step.title}-${stepIndex}`}
+                      key={`${activeVariant.title}-${step.title}-${stepIndex}`}
                     >
                       <header>
                         <h4>{step.title}</h4>
@@ -342,28 +371,30 @@ export function SellPriceView({ cardName, grokRequest }: SellPriceViewProps) {
                     </section>
                   );
                 })}
-                {variant.notes.length > 0 && (
+                {activeVariant.notes.length > 0 && (
                   <section className="sell-price-view__step sell-price-view__step--notes">
                     <ul>
-                      {variant.notes.map((note, noteIndex) => (
-                        <li key={`${note}-${noteIndex}`}>{note}</li>
+                      {activeVariant.notes.map((note, noteIndex) => (
+                        <li className="feature-note-surface" key={`${note}-${noteIndex}`}>
+                          {note}
+                        </li>
                       ))}
                     </ul>
                   </section>
                 )}
               </div>
-            </li>
-          );
-        })}
+            </div>
+          </li>
+        )}
 
         {content.marketplaceStep && (
           <li className="sell-price-view__variant feature-card-surface">
-            <header>
+            <header className="feature-panel-header">
               <h3 className="feature-section-heading">
                 {content.marketplaceStep.title}
               </h3>
             </header>
-            <div className="sell-price-view__variant-steps">
+            <div className="sell-price-view__variant-steps feature-panel-body">
               <section className="sell-price-view__step sell-price-view__step--guidance">
                 {content.marketplaceStep.details.length > 0 && (
                   <ul>

@@ -57,7 +57,7 @@ function filterHistoryByPeriod(
 export function JustTcgHistoryIntro() {
   return (
     <div className="just-tcg-history__intro">
-      <h3 className="feature-section-heading">Price history</h3>
+      <h3 className="feature-section-heading">Ungraded Sales</h3>
       <p>
         Aggregated sales •{" "}
         <strong>JustTCG</strong>.
@@ -437,7 +437,7 @@ export function JustTcgPriceHistory({
         <div className="just-tcg-history__controls">
           <fieldset
             aria-label="Variant"
-            className="just-tcg-history__radio-group just-tcg-history__radio-group--variant"
+            className="just-tcg-history__radio-group just-tcg-history__radio-group--variant feature-variant-radio-group"
           >
             <div>
               {groups.map((group) => (

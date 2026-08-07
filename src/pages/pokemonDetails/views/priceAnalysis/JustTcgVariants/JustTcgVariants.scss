@@ -228,49 +228,7 @@
       padding-inline: 0.45rem;
     }
 
-    &__radio-group--variant > div {
-      border: 0;
-      border-radius: 0;
-      flex-wrap: wrap;
-      gap: 0.7rem;
-      overflow: visible;
-    }
-
-    &__radio-group--variant label + label {
-      border-left: 0;
-    }
-
-    &__radio-group.just-tcg-history__radio-group--variant label > span {
-      background: transparent;
-      border: 1px solid color-mix(in srgb, var(--radio-accent) 24%, transparent);
-      border-radius: var(--border-radius-pill);
-      font-size: var(--font-size-paragraph-sm);
-      min-height: 2.45rem;
-      padding: 0.55rem 0.9rem;
-      white-space: nowrap;
-    }
-
-    &__radio-group.just-tcg-history__radio-group--variant label:hover > span {
-      border-color: color-mix(in srgb, var(--radio-accent) 35%, transparent);
-    }
-
-    &__radio-group.just-tcg-history__radio-group--variant label > span svg {
-      color: var(--radio-accent);
-    }
-
-    &__radio-group.just-tcg-history__radio-group--variant input:checked + span {
-      background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
-      border-color: color-mix(in srgb, var(--radio-accent) 28%, transparent);
-    }
-
-    &__radio-group.just-tcg-history__radio-group--variant
-      input:checked
-      + span
-      svg {
-      color: var(--radio-accent);
-    }
-
-    &__radio-group label > span {
+    &__radio-group:not(.feature-variant-radio-group) label > span {
       align-items: center;
       border: 0;
       color: var(--font-color-muted);
@@ -286,31 +244,34 @@
         color var(--delay-short) ease;
     }
 
-    &__radio-group label:hover > span {
+    &__radio-group:not(.feature-variant-radio-group) label:hover > span {
       background: color-mix(in srgb, var(--radio-accent) 6%, transparent);
       color: var(--font-color-primary);
     }
 
-    &__radio-group input:checked + span {
+    &__radio-group:not(.feature-variant-radio-group) input:checked + span {
       background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
       color: var(--radio-accent);
     }
 
-    &__radio-group input:focus-visible + span {
+    &__radio-group:not(.feature-variant-radio-group) input:focus-visible + span {
       outline: 2px solid var(--radio-accent);
       outline-offset: -2px;
     }
 
-    &__radio-group strong {
+    &__radio-group:not(.feature-variant-radio-group) strong {
       color: var(--font-color-secondary);
       font-weight: var(--font-weight-bold);
     }
 
-    &__radio-group input:checked + span strong {
+    &__radio-group:not(.feature-variant-radio-group)
+      input:checked
+      + span
+      strong {
       color: var(--radio-accent);
     }
 
-    &__radio-group small {
+    &__radio-group:not(.feature-variant-radio-group) small {
       color: var(--font-color-muted);
       font-size: 0.9em;
       font-weight: var(--font-weight-regular);
@@ -318,13 +279,13 @@
       line-height: var(--font-leading-snug);
     }
 
-    &__radio-group i {
+    &__radio-group:not(.feature-variant-radio-group) i {
       color: var(--font-color-faint);
       font-size: 0.8em;
       font-style: normal;
     }
 
-    &__radio-group svg {
+    &__radio-group:not(.feature-variant-radio-group) svg {
       color: currentColor;
       height: 0.85rem;
       width: 0.85rem;
