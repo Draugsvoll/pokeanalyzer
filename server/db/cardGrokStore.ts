@@ -95,9 +95,7 @@ export async function saveCardGrokResponse(
   const parsedStringResponse =
     typeof response === "string" ? parseJsonValue(response) : null;
   const parsedResponse =
-    storageKey === "worth_grading" && typeof response === "string"
-      ? { html: response }
-      : typeof response === "string"
+    typeof response === "string"
         ? isJsonObject(parsedStringResponse)
           ? parsedStringResponse
           : Array.isArray(parsedStringResponse)

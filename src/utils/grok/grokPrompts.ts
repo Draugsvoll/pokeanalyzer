@@ -512,309 +512,55 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-Do a grading analysis of my Pokemon card, so I know if it's worth grading or not, all things considered.
 
-Requirements:
-Research only English versions of the card.
-Include every variant you can find reliable market data for (always check PriceCharting as its reliable).
-Remember variant name for each variant you find.
-Variant titles in the HTML must contain only the variant/print name, not the Pokemon name or set name.
-Use the following variant naming rules:
-${variantPrintNameInstructions}
 
-For each variant include:
-Raw / Ungraded
-PSA 7
-PSA 8
-PSA 9
-PSA 10
-Use reliable sources to check current market values. (always check PriceCharting as its reliable).
-
-After finding each cards estimated value for each grade, we then need to find the grading fees for each PSA service. We have to find all of them (- Regular
-  - Express
-  - Super Express
-  - Walk-Through
-  - Premium 1
-  - Premium 2
-  - Premium 3
-  - Premium 5
-  - Premium 10
-)
-
-Use the open_page tool to see all of the grading services (including premiums) on https://www.psacard.com/services/tradingcardgrading or https://www.psacard.com/
-Determine the correct PSA grading service needed, based on the estimated value for each PSA grade. Do not invent prices or grading services. Only use the actual prices and services from the PSA website.
-It should be easy to find, but if you can't find the exact service/fees, try searching again before giving up. If you still didn't find it, leave the field empty. Do not invent service/fees.
-A card's estimated value must align with the appropriate grading service and its fee, when filling in the grading fee in data-table.
-Select the lowest PSA service whose maximum declared value covers the estimated market value.
-Use that service's grading fee when calculating the Profit after grading. Find out all the
-  PSA grading fees for every service (- Regular
-  - Express
-  - Super Express
-  - Walk-Through
-  - Premium 1
-  - Premium 2
-  - Premium 3
-  - Premium 5
-  - Premium 10).
-
-Populate all of the following services:
-- Regular
-- Express
-- Super Express
-- Walk-Through
-- Premium 1
-- Premium 2
-- Premium 3
-- Premium 5
-- Premium 10
-
-For each service include:
-- Price
-- Maximum Declared Value
-- Estimated Turnaround
-These values are required for the "PSA Grading Fees" section.
-
-Calculate:
-Profit after grading = Estimated graded value − Raw value − Grading fee
-
-For the Conclusion section:
-- Give a general recommendation for each variant
-- The GENERAL_RECOMMENDATION field must be exactly one of these labels: "Worth grading", "Only on high-grades", "Marginal", or "Not recommended".
-The chosen label must fit the overall recommendation.
-- Do not put a PSA grade, grade range, price, or sentence in the GENERAL_RECOMMENDATION field.
-
-
-- The short reason is a summary of the reasoning behind the recommendation.
-Briefly mention grading risk, liquidity, sales volume and demand if they are relevant
-to the recommendation. If a PSA grade has high price value but being dragged down by other factors, mention that.
-If PSA 7, PSA 8, or PSA 9 looks profitable in the numbers but the recommendation is still cautious,
-explain the caution as risk-adjusted: low liquidity, uncertain raw condition, low sales volume, or unreliable data
-
-- Variant titles must contain only the variant/print name, for example "Unlimited", "Shadowless", "1st Edition", "Unlimited Holo", or "Reverse Holo".
-Don't invent prices or variants.
-
-Output:
-In the optional notes field, don't add source or variant name.
-Only valuable extra information that is specific to this instance. For example if the sales volume of the card is very low.
-
-Return only valid HTML.
-
-Do not include:
-
-Markdown
-CSS
-Explanations outside the HTML
-
-Use this structure.
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{CARD_NAME}} Grading Analysis</title>
-</head>
-
-<body>
-
-<main>
-
-<section>
-
-<h2>Conclusion</h2>
-
-<div class="summary-grid">
-
-<!-- Repeat once for every variant -->
-
-<article class="card">
-
-<h3>{{VARIANT_NAME}}</h3>
-
-<div class="recommendation">
-{{GENERAL_RECOMMENDATION}}
-</div>
-
-<p class="muted">
-{{SHORT_REASON}}
-</p>
-
-</article>
-
-</div>
-
-</section>
-
-
-<!-- Repeat once for every variant -->
-
-<section>
-
-<h2>{{VARIANT_NAME}}</h2>
-
-<div class="table-wrap">
-
-<table>
-
-<thead>
-
-<tr>
-<th>Grade</th>
-<th>Estimated value</th>
-<th>Grading fee</th>
-<th>Profit after grading</th>
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-<td class="grade">Raw</td>
-<td>{{RAW_VALUE}}</td>
-<td>—</td>
-<td>Baseline</td>
-</tr>
-
-<tr class="{{PSA7_ROW_CLASS}}">
-<td class="grade">PSA 7</td>
-<td>{{PSA7_VALUE}}</td>
-<td>{{PSA7_FEE}}</td>
-<td class="{{PSA7_VALUE_CLASS}}">
-{{PSA7_VALUE_INCREASE}}
-</td>
-</tr>
-
-<tr class="{{PSA8_ROW_CLASS}}">
-<td class="grade">PSA 8</td>
-<td>{{PSA8_VALUE}}</td>
-<td>{{PSA8_FEE}}</td>
-<td class="{{PSA8_VALUE_CLASS}}">
-{{PSA8_VALUE_INCREASE}}
-</td>
-</tr>
-
-<tr class="{{PSA9_ROW_CLASS}}">
-<td class="grade">PSA 9</td>
-<td>{{PSA9_VALUE}}</td>
-<td>{{PSA9_FEE}}</td>
-<td class="{{PSA9_VALUE_CLASS}}">
-{{PSA9_VALUE_INCREASE}}
-</td>
-</tr>
-
-<tr class="{{PSA10_ROW_CLASS}}">
-<td class="grade">PSA 10</td>
-<td>{{PSA10_VALUE}}</td>
-<td>{{PSA10_FEE}}</td>
-<td class="{{PSA10_VALUE_CLASS}}">
-{{PSA10_VALUE_INCREASE}}
-</td>
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
-
-<!-- Optional -->
-
-<section>
-
-<h3>Notes</h3>
-
-<p>
-
-{{OPTIONAL_NOTES}}
-
-</p>
-
-</section>
-
-</section>
-
-
-<section>
-
-<h2>PSA Grading Fees</h2>
-
-<div class="cost-grid">
-
-<article class="card">
-<h3>Regular</h3>
-<div class="price">{{REGULAR_PRICE}}</div>
-<p class="muted">Max Declared Value: {{REGULAR_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{REGULAR_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Express</h3>
-<div class="price">{{EXPRESS_PRICE}}</div>
-<p class="muted">Max Declared Value: {{EXPRESS_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{EXPRESS_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Super Express</h3>
-<div class="price">{{SUPER_PRICE}}</div>
-<p class="muted">Max Declared Value: {{SUPER_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{SUPER_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Walk-Through</h3>
-<div class="price">{{WALK_PRICE}}</div>
-<p class="muted">Max Declared Value: {{WALK_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{WALK_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Premium 1</h3>
-<div class="price">{{PREMIUM1_PRICE}}</div>
-<p class="muted">Max Declared Value: {{PREMIUM1_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{PREMIUM1_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Premium 2</h3>
-<div class="price">{{PREMIUM2_PRICE}}</div>
-<p class="muted">Max Declared Value: {{PREMIUM2_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{PREMIUM2_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Premium 3</h3>
-<div class="price">{{PREMIUM3_PRICE}}</div>
-<p class="muted">Max Declared Value: {{PREMIUM3_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{PREMIUM3_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Premium 5</h3>
-<div class="price">{{PREMIUM5_PRICE}}</div>
-<p class="muted">Max Declared Value: {{PREMIUM5_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{PREMIUM5_TURNAROUND}}</p>
-</article>
-
-<article class="card">
-<h3>Premium 10</h3>
-<div class="price">{{PREMIUM10_PRICE}}</div>
-<p class="muted">Max Declared Value: {{PREMIUM10_MAX}}</p>
-<p class="muted">Estimated Turnaround: {{PREMIUM10_TURNAROUND}}</p>
-</article>
-
-</div>
-
-</section>
-
-</main>
-
-</body>
-
-</html>
-
-Card to analyze:
+with the purpose of selling it for overall profits?
+
+Remember to check multiple reliable sources for market data and sales history. Always include PriceCharting.
+
+Summarize your answer. Your entire response must be a valid JSON object, with the exact format shown below.
+Don't add text before or after the JSON object.
+Avoid generic information that applies to most or all cards, we care about what's relevant specifically to this card.
+
+{
+  "potential_profit": "",
+  "realistic_profit": "",
+  "conclusion": "",
+  "key_reasons": [],
+  "important_notes_and_caveats": []
+}
+
+potential_profit:
+must be exactly one of these labels "none", "low", "breakeven","modest","high","very high".
+This score is based on the maximum profit potential for a perfect card PSA10, not likelihood.
+
+realistic_profit:
+must be exactly one of these labels "none", "low", "breakeven", "modest", "high", "very high".
+This score is based on the overall recommendation for grading this card,
+and how good typical profits are from getting it graded.
+
+Conclusion is a 1 sentence summary of your recommendation. Include a reasonable recommended minimum PSA-grade that has a decent chance to make it worthwhile.
+
+key_reasons:
+Must be an array of strings.
+This field explains why you gave it this recommendation, beyond just looking at price values.
+Don't make an entire key_reason that purely states prices or fees. Avoid using too many price values in a key_reason.
+This is about the logic and reasoning behind the recommendation.
+Avoid too many price details. Make sure it's always clear WHY or HOW the key_reason is affecting the grading decision. Be specific.
+The reader should understand exactly how the grading decision is affected other than just looking at price values.
+
+If a PSA-grade has seemingly high prices when exploring the markets and price-data, but it's still not a clear recommendation to get it graded,
+it's very important to make it clear the reasons why it's not worthwhile grading. A user reading your response should never feel confused about why they
+shouldn't grade a card if it clearly has high prices, but you still don't really recommend it.
+A beginner should easily understand what every key_reason is trying to communicate.
+
+important_notes_and_caveats:
+Must be an array of strings.
+The strings in this array should never purely state prices or fees. It must inform the collector about important considerations, limitations, risks, or common pitfalls specifically for this card, that may affect the decision to submit the card for grading.
+Be specific, provide details if available. Make sure it's always clear WHY or HOW every important_notes_and_caveats is
+affecting the grading decision. A beginner should easily understand what every important_notes_and_caveats is trying to communicate.
+
+Dont try to force inputs if it's a boring card with nothing interesting to say. The goal is to make it clear what affected it's grading recommendation.
 
 `;
 
@@ -876,11 +622,7 @@ Use today's date for reference.
 `
 
 export function isWorthGradingPrompt(cardNameAndSet: string): string {
-  const instructions = isWorthGrading
-  .split("Card to analyze:")[0]
-  .trimEnd();
-
-  return `${instructions}\n\nCard to analyze:\n${cardNameAndSet}`;
+  return `Would you recommend grading "${cardNameAndSet}"?\n\n${isWorthGrading.trim()}`;
 }
 
 export function collectorsAnalysisPrompt(cardNameAndSet: string): string {
