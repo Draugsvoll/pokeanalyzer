@@ -34,13 +34,36 @@
 
 .worth-grading-view__body {
   display: grid;
-  gap: 1rem;
+  gap: 1.05rem;
+}
+
+.worth-grading-view__decision {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 76rem;
 }
 
 .worth-grading-view__badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
+}
+
+.worth-grading-view__confidence-reason {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-paragraph-sm);
+  line-height: var(--font-leading-normal);
+  margin: -0.1rem 0 0;
+  max-width: 62rem;
+}
+
+.worth-grading-view__conclusion {
+  color: var(--font-color-primary);
+  font-size: clamp(var(--font-size-h3), 1.4vw, var(--font-size-h2));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-leading-snug);
+  margin: 0;
+  max-width: 68rem;
 }
 
 .worth-grading-view__recommendation {
@@ -86,36 +109,6 @@
 
 .worth-grading-view__recommendation--negative {
   --recommendation-accent: var(--custom-color-red);
-}
-
-.worth-grading-view__summary {
-  display: grid;
-  gap: 0.8rem;
-  padding: 1rem;
-
-  h3 {
-    align-items: center;
-    color: var(--font-color-primary);
-    display: flex;
-    font-size: var(--font-size-paragraph);
-    font-weight: var(--font-weight-bold);
-    gap: 0.55rem;
-    line-height: var(--font-leading-snug);
-    margin: 0;
-
-    svg {
-      color: var(--worth-grading-accent);
-      flex: 0 0 auto;
-    }
-  }
-
-  p {
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    line-height: var(--font-leading-normal);
-    margin: 0;
-    max-width: 70rem;
-  }
 }
 
 .worth-grading-view__details {

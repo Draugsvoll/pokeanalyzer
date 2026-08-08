@@ -492,7 +492,10 @@ The root value must be an array. Each item in the array represents one English v
 The overview field must be as concise and relevant to the collector as possible,
 but it should only shortly explain the card's role as a collectible.
 Don't explain the score or Pokemon stats in this field. Avoid stating exact price numbers for the card.
-The finalNote field should be a summarized version of the reasoning behind the totalScore. The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
+The finalNote field should be a summarized version of the reasoning behind the totalScore, also let the reader know
+how this fits into an overall collection and the collection market.
+
+The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
 
 ${variantPrintNameInstructions}
 
@@ -523,26 +526,38 @@ Don't add text before or after the JSON object.
 Avoid generic information that applies to most or all cards, we care about what's relevant specifically to this card.
 
 {
+  "confidence": {
+    "score": "",
+    "reason": ""
+  },
   "potential_profit": "",
   "realistic_profit": "",
   "conclusion": "",
   "key_reasons": [],
-  "important_notes_and_caveats": []
+  "important_notes_and_caveats": [],
+  "calculate_grade": []
 }
 
+key_reasons, important_notes_and_caveats, and calculate_grade must be arrays of plain strings only.
+Do not return objects inside these arrays.
+Do not return nested arrays.
+Each item must be directly renderable text.
+
+confidence:
+this is an object containing exactly 2 string fields: "score" and "reason".
+"score" is a number from 1-100 on how confident you are in your recommendation. "reason" is a summary of why you are feeling this particular confidence level.
+
 potential_profit:
-must be exactly one of these labels "none", "low", "breakeven","modest","high","very high".
-This score is based on the maximum profit potential for a perfect card PSA10, not likelihood.
+must be exactly one of these labels "none","breakeven","low","modest","decent","high","very high".
+This score is solely based on the maximum profit potential for a perfect card PSA10.
 
 realistic_profit:
-must be exactly one of these labels "none", "low", "breakeven", "modest", "high", "very high".
-This score is based on the overall recommendation for grading this card,
-and how good typical profits are from getting it graded.
+must be exactly one of these labels "none","breakeven", "low","modest","decent","high","very high".
+This score is based on realistic and average profits from grading this card, considering the current market and sales history.
 
 Conclusion is a 1 sentence summary of your recommendation. Include a reasonable recommended minimum PSA-grade that has a decent chance to make it worthwhile.
 
 key_reasons:
-Must be an array of strings.
 This field explains why you gave it this recommendation, beyond just looking at price values.
 Don't make an entire key_reason that purely states prices or fees. Avoid using too many price values in a key_reason.
 This is about the logic and reasoning behind the recommendation.
@@ -555,10 +570,25 @@ shouldn't grade a card if it clearly has high prices, but you still don't really
 A beginner should easily understand what every key_reason is trying to communicate.
 
 important_notes_and_caveats:
-Must be an array of strings.
 The strings in this array should never purely state prices or fees. It must inform the collector about important considerations, limitations, risks, or common pitfalls specifically for this card, that may affect the decision to submit the card for grading.
 Be specific, provide details if available. Make sure it's always clear WHY or HOW every important_notes_and_caveats is
 affecting the grading decision. A beginner should easily understand what every important_notes_and_caveats is trying to communicate.
+
+calculate_grade:
+This is an example where we calculate the whole grading process for a specific PSA-grade. The PSA-grade you use as an example must be exactly 1 grade below whatever you
+mentioned in the conclusion as a recommended target or minimum, to make it worthwhile grading.
+Do not mention that it's one grade below the conclusion/recommendation, only state which grade you chose as an example. Make everything clear and concise.
+It's hard to read all that numbered text in 1 string, so break it into sections so that each part is its own string entry in the array.
+Include all the normal and expected costs/fees in the whole process, including selling fees/costs. Last part should be a
+summary of the final profit/loss after all costs are considered. Make sure to include the expected turnaround time for grading and selling,
+and how that affects the overall profit/loss.
+
+Formatting calculation strings inside calculate_grade:
+don't format numbers using tilde symbols if it's two numbers in a row.
+Example of what it SHOULD NOT look like: "~$1,024 - $450 raw - $75 grading = ~$499."
+Example of what it SHOULD look like: "$1,024-$450raw - $75grading = ~$499."
+
+Make sure you have decent data to back up calculations, including Turnaround time and expected selling time etc.
 
 Dont try to force inputs if it's a boring card with nothing interesting to say. The goal is to make it clear what affected it's grading recommendation.
 

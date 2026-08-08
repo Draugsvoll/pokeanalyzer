@@ -12,6 +12,11 @@ type WorthGradingViewProps = {
 };
 
 type WorthGradingResponse = {
+  calculate_grade?: string[] | string;
+  confidence?: {
+    reason?: string;
+    score?: string | number;
+  };
   conclusion: string;
   important_notes_and_caveats: string[] | string;
   key_reasons: string[] | string;
@@ -24,6 +29,7 @@ const PROFIT_LEVELS = [
   "low",
   "breakeven",
   "modest",
+  "decent",
   "high",
   "very high",
 ] as const;
@@ -67,8 +73,15 @@ function parseWorthGradingResponse(response: string) {
   } as WorthGradingResponse;
 }
 
-function asList(value: string[] | string) {
-  return Array.isArray(value) ? value : value ? [value] : [];
+function asList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
+    );
+  }
+
+  return typeof value === "string" && value.trim() ? [value] : [];
 }
 
 function getPotentialProfitLabel(value: WorthGradingResponse["potential_profit"]) {
@@ -81,6 +94,18 @@ function getPotentialProfitTone(value: WorthGradingResponse["potential_profit"])
     return "caution";
   }
   return "positive";
+}
+
+function getConfidence(value: WorthGradingResponse["confidence"]) {
+  if (!value || typeof value !== "object") return null;
+
+  const score = Number(String(value.score ?? "").replace("/100", "").trim());
+  if (!Number.isFinite(score)) return null;
+
+  return {
+    reason: typeof value.reason === "string" ? value.reason : "",
+    score: `${Math.max(0, Math.min(100, Math.round(score)))}/100`,
+  };
 }
 
 function TextList({
@@ -121,6 +146,7 @@ export function WorthGradingView({
 
   const data = parseWorthGradingResponse(response);
   if (!data) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  const confidence = getConfidence(data.confidence);
 
   return (
     <section className="worth-grading-view ui-render-fade">
@@ -133,41 +159,52 @@ export function WorthGradingView({
         </header>
 
         <div className="feature-panel-body worth-grading-view__body">
-          <div className="worth-grading-view__badges">
-            <div
-              className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
-                data.realistic_profit,
-            )}`}
-            >
-              Realistic: {getPotentialProfitLabel(data.realistic_profit)}
+          <section className="worth-grading-view__decision">
+            <div className="worth-grading-view__badges">
+              <div
+                className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
+                  data.realistic_profit,
+                )}`}
+              >
+                Realistic: {getPotentialProfitLabel(data.realistic_profit)}
+              </div>
+              <div
+                className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
+                  data.potential_profit,
+                )}`}
+              >
+                Potential: {getPotentialProfitLabel(data.potential_profit)}
+              </div>
+              {confidence && (
+                <div className="worth-grading-view__recommendation">
+                  Confidence: {confidence.score}
+                </div>
+              )}
             </div>
-            <div
-              className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
-                data.potential_profit,
-              )}`}
-            >
-              Potential: {getPotentialProfitLabel(data.potential_profit)}
-            </div>
-          </div>
 
-          <section className="worth-grading-view__summary feature-card-inner-surface">
-            <h3>
-              <Scale aria-hidden="true" size={18} strokeWidth={2.1} />
-              Conclusion
-            </h3>
-            <p>{data.conclusion}</p>
+            <p className="worth-grading-view__conclusion">{data.conclusion}</p>
+            {confidence?.reason && (
+              <p className="worth-grading-view__confidence-reason">
+                Confidence: {confidence.reason}
+              </p>
+            )}
           </section>
 
           <div className="worth-grading-view__details">
             <TextList
               icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
               items={asList(data.key_reasons)}
-              title="Key reasons"
+              title="Key Takeaways"
             />
             <TextList
               icon={<CircleAlert aria-hidden="true" size={18} strokeWidth={2.1} />}
               items={asList(data.important_notes_and_caveats)}
-              title="Important notes"
+              title="Considerations"
+            />
+            <TextList
+              icon={<Scale aria-hidden="true" size={18} strokeWidth={2.1} />}
+              items={asList(data.calculate_grade ?? [])}
+              title="Profit Calculation Example"
             />
           </div>
         </div>
