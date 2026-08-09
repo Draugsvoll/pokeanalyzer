@@ -645,6 +645,7 @@ Also include a concise validation of the TARGET grade's approximate net advantag
 If no target exists because even PSA 10 is unattractive, calculate PSA 10 instead.
 
 Include when relevant: condition-comparable raw sale price; raw selling costs; selected graded sale price; grading + shipping/insurance; graded selling costs; grading + resale timeframe; target-grade net advantage.
+Timeframe should mention what actually takes time (turnaround time? ebay sale? other?)
 
 Use these definitions consistently:
 Net raw = raw sale price - all applicable raw selling costs.
