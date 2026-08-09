@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fetchJustTcgBiggestGainers,
+  fetchJustTcgBiggestLosers,
   fetchJustTcgCard,
   fetchJustTcgPortfolioPricesByCardIds,
 } from "./justTcgApi.js";
@@ -159,6 +160,72 @@ test("JustTCG biggest gainers can use a selected movement period", async () => {
   const url = new URL(requestedUrl);
   assert.equal(url.searchParams.get("orderBy"), "30d");
   assert.equal(url.searchParams.get("include_statistics"), "30d");
+});
+
+test("JustTCG biggest losers request uses safe filters and negative movers", async () => {
+  const originalApiKey = process.env.JUSTTCG_API_KEY;
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+
+  process.env.JUSTTCG_API_KEY = "test-key";
+  globalThis.fetch = (async (input) => {
+    requestedUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        data: [
+          {
+            name: "Reliable Charmander",
+            variants: [
+              {
+                condition: "NM",
+                price: 30,
+                printing: "Holofoil",
+                statistics: {
+                  "7d": {
+                    priceChange: -6,
+                    priceChangePercentage: -20,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: "Positive Mover",
+            variants: [
+              {
+                condition: "NM",
+                price: 40,
+                statistics: {
+                  "7d": {
+                    priceChangePercentage: 12,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      },
+    );
+  }) as typeof fetch;
+
+  try {
+    const result = await fetchJustTcgBiggestLosers();
+    assert.equal(result.length, 1);
+    assert.equal(result[0].cardName, "Reliable Charmander");
+    assert.equal(result[0].changePercent, -20);
+  } finally {
+    restoreEnv(originalApiKey, originalFetch);
+  }
+
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get("order"), "asc");
+  assert.equal(url.searchParams.get("orderBy"), "7d");
+  assert.equal(url.searchParams.get("condition"), "NM,LP");
+  assert.equal(url.searchParams.get("min_price"), "15");
 });
 
 test("JustTCG portfolio batch requests one row per card ID", async () => {

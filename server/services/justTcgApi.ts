@@ -1,6 +1,6 @@
 const JUST_TCG_API_URL = "https://api.justtcg.com/v1/cards";
 
-type JustTcgFetchMethod = "biggestGainers";
+type JustTcgFetchMethod = "biggestGainers" | "biggestLosers";
 export type JustTcgMovementPeriod = "24h" | "7d" | "30d";
 type JsonRecord = Record<string, unknown>;
 
@@ -56,6 +56,15 @@ const JUST_TCG_FETCH_CONFIGS: Record<JustTcgFetchMethod, JustTcgFetchConfig> = {
     limit: 20,
     minPrice: 15,
     order: "desc",
+    orderBy: "7d",
+  },
+  biggestLosers: {
+    condition: "NM,LP",
+    includePriceHistory: false,
+    includeStatistics: "7d",
+    limit: 20,
+    minPrice: 15,
+    order: "asc",
     orderBy: "7d",
   },
 };
@@ -385,7 +394,9 @@ function parsePriceMovementResponse(
       if (!/^near mint$|^nm$|^lightly played$|^lp$/i.test(condition)) continue;
 
       const changePercent = getChangePercent(variant, config.orderBy);
-      if (changePercent !== undefined && changePercent <= 0) continue;
+      if (changePercent === undefined) continue;
+      if (config.order === "desc" && changePercent <= 0) continue;
+      if (config.order === "asc" && changePercent >= 0) continue;
 
       priceMovements.push({
         absoluteChange: getAbsoluteChange(variant, config.orderBy),
@@ -401,20 +412,27 @@ function parsePriceMovementResponse(
   }
 
   return priceMovements.sort((first, second) => {
-    const firstPercent = first.changePercent ?? Number.NEGATIVE_INFINITY;
-    const secondPercent = second.changePercent ?? Number.NEGATIVE_INFINITY;
-    if (secondPercent !== firstPercent) return secondPercent - firstPercent;
+    const firstPercent = first.changePercent ?? 0;
+    const secondPercent = second.changePercent ?? 0;
+    if (secondPercent !== firstPercent) {
+      return config.order === "asc"
+        ? firstPercent - secondPercent
+        : secondPercent - firstPercent;
+    }
 
-    return (second.absoluteChange ?? 0) - (first.absoluteChange ?? 0);
+    return config.order === "asc"
+      ? (first.absoluteChange ?? 0) - (second.absoluteChange ?? 0)
+      : (second.absoluteChange ?? 0) - (first.absoluteChange ?? 0);
   });
 }
 
-export async function fetchJustTcgBiggestGainers(
+async function fetchJustTcgPriceMovements(
+  method: JustTcgFetchMethod,
   signal?: AbortSignal,
-  period: JustTcgMovementPeriod = JUST_TCG_FETCH_CONFIGS.biggestGainers.orderBy,
+  period: JustTcgMovementPeriod = JUST_TCG_FETCH_CONFIGS[method].orderBy,
 ) {
   const config = {
-    ...JUST_TCG_FETCH_CONFIGS.biggestGainers,
+    ...JUST_TCG_FETCH_CONFIGS[method],
     includeStatistics: period,
     orderBy: period,
   };
@@ -431,4 +449,18 @@ export async function fetchJustTcgBiggestGainers(
 
   const data = await fetchJustTcgCards(params, signal);
   return parsePriceMovementResponse(data, config).slice(0, config.limit);
+}
+
+export async function fetchJustTcgBiggestGainers(
+  signal?: AbortSignal,
+  period: JustTcgMovementPeriod = JUST_TCG_FETCH_CONFIGS.biggestGainers.orderBy,
+) {
+  return fetchJustTcgPriceMovements("biggestGainers", signal, period);
+}
+
+export async function fetchJustTcgBiggestLosers(
+  signal?: AbortSignal,
+  period: JustTcgMovementPeriod = JUST_TCG_FETCH_CONFIGS.biggestLosers.orderBy,
+) {
+  return fetchJustTcgPriceMovements("biggestLosers", signal, period);
 }

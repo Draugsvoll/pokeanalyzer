@@ -8,6 +8,7 @@ export default function Homepage() {
     <div className="page-container">
       <WelcomeView />
       <JustTcgCardGrid layout="swimlane" type="biggestGainers" />
+      {/* <JustTcgCardGrid layout="swimlane" type="biggestLosers" /> */}
       <NewsLane />
     </div>
   );

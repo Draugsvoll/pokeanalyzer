@@ -11,6 +11,7 @@ import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
 import { fetchEbayComps } from "./services/ebayCompsApi.js";
 import {
   fetchJustTcgBiggestGainers,
+  fetchJustTcgBiggestLosers,
   fetchJustTcgCard,
   type JustTcgMovementPeriod,
   type JustTcgPriceMovement,
@@ -313,9 +314,14 @@ function findUniqueJustTcgMoverCard(rows: { raw_json: string }[]) {
   return rows.length === 1 ? rows[0] : null;
 }
 
-app.get(
-  "/api/justtcg/biggest-gainers",
-  async (req, res) => {
+function registerJustTcgMoversRoute(
+  path: string,
+  fetchMovers: (
+    signal?: AbortSignal,
+    period?: JustTcgMovementPeriod,
+  ) => Promise<JustTcgPriceMovement[]>,
+) {
+  app.get(path, async (req, res) => {
     const signal = getRequestAbortSignal(res);
     const periodQuery =
       typeof req.query.period === "string" ? req.query.period : "7d";
@@ -326,7 +332,7 @@ app.get(
     }
 
     try {
-      const priceMovements = await fetchJustTcgBiggestGainers(
+      const priceMovements = await fetchMovers(
         signal,
         periodQuery as JustTcgMovementPeriod,
       );
@@ -369,21 +375,19 @@ app.get(
     } catch (error) {
       if (isRequestAbort(error, signal)) return;
       logError("JustTCG biggest movers request failed", error);
-      const statusCode =
-        error instanceof JustTcgApiError
-          ? error.statusCode
-          : 502;
-      res
-        .status(statusCode)
-        .json({
-          message:
-            error instanceof JustTcgApiError
-              ? error.message
-              : "JustTCG biggest movers request failed",
-        });
+      const statusCode = error instanceof JustTcgApiError ? error.statusCode : 502;
+      res.status(statusCode).json({
+        message:
+          error instanceof JustTcgApiError
+            ? error.message
+            : "JustTCG biggest movers request failed",
+      });
     }
-  },
-);
+  });
+}
+
+registerJustTcgMoversRoute("/api/justtcg/biggest-gainers", fetchJustTcgBiggestGainers);
+registerJustTcgMoversRoute("/api/justtcg/biggest-losers", fetchJustTcgBiggestLosers);
 
 // SEARCH FUNCTION
 app.get("/api/cards/search", async (req, res) => {

@@ -399,6 +399,11 @@
   z-index: 100;
 }
 
+.pokemon-card__source-flyout--portal {
+  left: auto;
+  z-index: var(--dropdown-z-index);
+}
+
 /* Surface comes from shared `.ui-popover-surface` */
 .pokemon-card__source-panel {
   display: flex;

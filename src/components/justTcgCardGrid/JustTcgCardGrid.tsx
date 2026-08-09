@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   fetchJustTcgBiggestGainers,
-  type JustTcgGainerCard,
+  fetchJustTcgBiggestLosers,
+  type JustTcgMovementResult,
   type JustTcgMovementPeriod,
 } from "../../services/justTcgFetchesApi";
 import { GridView } from "../gridView/GridView";
@@ -13,7 +14,7 @@ import "./JustTcgCardGrid.scss";
 type JustTcgCardGridProps = {
   layout?: "grid" | "swimlane";
   period?: JustTcgMovementPeriod;
-  type: "biggestGainers";
+  type: "biggestGainers" | "biggestLosers";
 };
 
 const periodLabels: Record<JustTcgMovementPeriod, string> = {
@@ -24,6 +25,11 @@ const periodLabels: Record<JustTcgMovementPeriod, string> = {
 
 const DISPLAY_LIMIT = 20;
 
+const typeLabels: Record<JustTcgCardGridProps["type"], string> = {
+  biggestGainers: "Weekly Gainers",
+  biggestLosers: "Weekly Losers",
+};
+
 function CardLayout({
   children,
   layout,
@@ -32,14 +38,10 @@ function CardLayout({
   layout: "grid" | "swimlane";
 }) {
   if (layout === "swimlane") {
-    return (
-      <Swimlane className="justtcg-card-grid__cards" size="card">
-        {children}
-      </Swimlane>
-    );
+    return <Swimlane size="card">{children}</Swimlane>;
   }
 
-  return <GridView className="justtcg-card-grid__cards">{children}</GridView>;
+  return <GridView>{children}</GridView>;
 }
 
 export function JustTcgCardGrid({
@@ -47,7 +49,8 @@ export function JustTcgCardGrid({
   period = "7d",
   type,
 }: JustTcgCardGridProps) {
-  const [cards, setCards] = useState<JustTcgGainerCard[]>([]);
+  const titleId = useId();
+  const [cards, setCards] = useState<JustTcgMovementResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -61,7 +64,7 @@ export function JustTcgCardGrid({
         const results =
           type === "biggestGainers"
             ? await fetchJustTcgBiggestGainers(controller.signal, period)
-            : [];
+            : await fetchJustTcgBiggestLosers(controller.signal, period);
 
         if (!controller.signal.aborted) {
           setCards(results);
@@ -88,9 +91,9 @@ export function JustTcgCardGrid({
   if (!loading && (error || cards.length === 0)) return null;
 
   return (
-    <section className="justtcg-card-grid" aria-labelledby="justtcg-grid-title">
+    <section className="justtcg-card-grid" aria-labelledby={titleId}>
       <header className="justtcg-card-grid__header">
-        <h2 id="justtcg-grid-title">Weekly Gainers</h2>
+        <h2 id={titleId}>{typeLabels[type]}</h2>
         <p>{periodLabels[period]} · Near Mint raw singles above $15</p>
       </header>
 
