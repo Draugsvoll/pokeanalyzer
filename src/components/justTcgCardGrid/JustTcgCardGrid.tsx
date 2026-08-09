@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
   fetchJustTcgBiggestGainers,
@@ -6,9 +7,11 @@ import {
 } from "../../services/justTcgFetchesApi";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
+import { Swimlane } from "../swimlane/Swimlane";
 import "./JustTcgCardGrid.scss";
 
 type JustTcgCardGridProps = {
+  layout?: "grid" | "swimlane";
   period?: JustTcgMovementPeriod;
   type: "biggestGainers";
 };
@@ -21,7 +24,29 @@ const periodLabels: Record<JustTcgMovementPeriod, string> = {
 
 const DISPLAY_LIMIT = 20;
 
-export function JustTcgCardGrid({ period = "7d", type }: JustTcgCardGridProps) {
+function CardLayout({
+  children,
+  layout,
+}: {
+  children: ReactNode;
+  layout: "grid" | "swimlane";
+}) {
+  if (layout === "swimlane") {
+    return (
+      <Swimlane className="justtcg-card-grid__cards" size="card">
+        {children}
+      </Swimlane>
+    );
+  }
+
+  return <GridView className="justtcg-card-grid__cards">{children}</GridView>;
+}
+
+export function JustTcgCardGrid({
+  layout = "grid",
+  period = "7d",
+  type,
+}: JustTcgCardGridProps) {
   const [cards, setCards] = useState<JustTcgGainerCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,18 +95,18 @@ export function JustTcgCardGrid({ period = "7d", type }: JustTcgCardGridProps) {
       </header>
 
       {loading && (
-        <GridView className="justtcg-card-grid__cards">
+        <CardLayout layout={layout}>
           {Array.from({ length: 8 }).map((_, index) => (
             <article
               className="justtcg-card-grid__placeholder"
               key={`placeholder-${index}`}
             />
           ))}
-        </GridView>
+        </CardLayout>
       )}
 
       {!loading && !error && (
-        <GridView className="justtcg-card-grid__cards">
+        <CardLayout layout={layout}>
           {cards.slice(0, DISPLAY_LIMIT).map(({ card, mover }, index) => (
             <PokemonCardView
               key={[
@@ -98,7 +123,7 @@ export function JustTcgCardGrid({ period = "7d", type }: JustTcgCardGridProps) {
               showPriceSourcePicker={true}
             />
           ))}
-        </GridView>
+        </CardLayout>
       )}
     </section>
   );
