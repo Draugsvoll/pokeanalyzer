@@ -1,6 +1,7 @@
 .justtcg-card-grid {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
   padding: var(--space-6) 0;
   width: 100%;
 }
@@ -25,44 +26,37 @@
     line-height: var(--font-leading-snug);
   }
 
-  > p {
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    line-height: var(--font-leading-normal);
-    max-width: 28rem;
-    text-align: right;
-  }
 }
 
-.justtcg-card-grid__placeholder {
-  animation: justtcg-card-grid-loading 1.4s ease-in-out infinite;
-  background:
-    linear-gradient(
-      90deg,
-      var(--feature-card-bg),
-      color-mix(in srgb, var(--font-color-primary) 5%, var(--feature-card-bg)),
-      var(--feature-card-bg)
-    );
-  background-size: 220% 100%;
-  border: var(--feature-card-border);
-  border-radius: var(--feature-card-radius);
-  min-height: 24rem;
+.justtcg-card-grid__header-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  min-width: 0;
 }
 
-@keyframes justtcg-card-grid-loading {
-  to {
-    background-position: -220% 0;
-  }
+.justtcg-card-grid__cards {
+  min-width: 0;
+  width: 100%;
+}
+
+.justtcg-card-grid__empty {
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-paragraph);
+  margin: 0;
 }
 
 @media (max-width: 48rem) {
   .justtcg-card-grid__header {
     align-items: start;
     display: grid;
+  }
 
-    > p {
-      max-width: none;
-      text-align: left;
-    }
+  .justtcg-card-grid__header-actions {
+    align-items: stretch;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 }

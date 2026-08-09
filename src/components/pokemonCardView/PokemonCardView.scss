@@ -513,6 +513,10 @@
 }
 
 .pokemon-card__image {
+  aspect-ratio: 245 / 342;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 0;
   position: relative;
   width: 100%;
@@ -520,6 +524,9 @@
 
 .pokemon-card__image > img {
   display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .pokemon-card__metadata-row {

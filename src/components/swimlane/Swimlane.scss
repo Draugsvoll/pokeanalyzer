@@ -1,4 +1,7 @@
 .swimlane-shell {
+  box-sizing: border-box;
+  max-width: min(100%, var(--shell-max-width));
+  min-width: 0;
   position: relative;
   width: 100%;
 }
@@ -6,6 +9,7 @@
 .swimlane {
   display: flex;
   gap: var(--card-gap);
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -21,7 +25,7 @@
 }
 
 .swimlane--card > * {
-  --swimlane-item-size: clamp(12.5rem, 13vw, 13.5rem);
+  --swimlane-item-size: var(--pokemon-card-swimlane-width);
 
   flex-basis: var(--swimlane-item-size);
   width: var(--swimlane-item-size);

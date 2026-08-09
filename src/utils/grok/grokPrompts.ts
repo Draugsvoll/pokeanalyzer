@@ -519,7 +519,7 @@ Can it make financial sense to grade this card instead of keeping or selling it 
 
 Assume the user already owns the card.
 
-Research current market data using multiple reliable sources for completed sales, market values, population when relevant, grading costs, and turnaround. Always include PriceCharting when relevant. Prioritize completed sales over asking prices.
+Research current market data using multiple reliable sources for completed sales, market values, population when relevant, grading costs, and turnaround. Always include PriceCharting when available. Prioritize completed sales over asking prices.
 
 Focus on this exact card, printing, variant, era, condition profile, and market. Prioritize reliable card-specific grading characteristics and pitfalls over generic grading advice.
 
@@ -527,7 +527,7 @@ GENERAL APPROACH
 
 Adapt analysis to the card. Consider only material factors: condition/known defects, realistic grades, raw vs graded demand, population relative to demand, liquidity, price consistency, grading/selling costs, turnaround, and market risk.
 
-Keep simple/cheap cards concise. Analyze valuable, unusual, condition-sensitive, or thinly traded cards more deeply. Do not add filler.
+Keep simple/cheap cards concise. Analyze valuable, unusual, condition-sensitive, or thinly traded cards more deeply.
 
 RAW VS GRADED
 
@@ -545,13 +545,9 @@ A financially positive grade produces higher net proceeds than selling raw now.
 
 A recommended target grade is the lowest grade potential at which grading provides a worthwhile financial advantage over selling raw after normal costs.
 
-A lower grade may therefore be the correct target even when higher grades offer much greater upside.
-
 Never call a financially positive grade a loss simply because a higher grade is more profitable.
 
 TARGET VALIDATION
-
-Before recommending a target, verify its economics.
 
 The target should be the LOWEST grade at which grading provides a worthwhile financial advantage over selling a condition-comparable raw copy after normal grading, shipping, insurance, and selling costs.
 
@@ -602,9 +598,7 @@ Reduce confidence for sparse sales, weak comparable data, unresolved conflicting
 potential_profit:
 Must be exactly "none","breakeven","low","modest","decent","high", or "very high".
 
-Measures ONLY the financial upside if a perfect example receives PSA 10, compared with selling raw after relevant costs.
-
-Do NOT reduce this rating because PSA 10 is unlikely, condition is unknown, gem rate is low, population is high, grading is difficult, turnaround is long, or market risk exists. Those belong in realistic_profit, confidence, and the recommendation.
+This describes potential profit assuming the card is a perfect example that achieves PSA 10, compared with selling it raw after relevant costs.
 
 Base it on a reasonably supported current PSA 10 value, not an isolated outlier. A very large PSA 10 net premium over raw should be "very high" even when PSA 10 is extremely unlikely.
 
@@ -622,8 +616,6 @@ Keep under about 35-40 words.
 
 State whether grading appears worthwhile and, when appropriate, the lowest worthwhile target PSA grade.
 
-If a lower grade provides a worthwhile financial advantage, do not recommend a higher target merely because it is safer or more profitable.
-
 If PSA 10 is unattractive, recommend against grading.
 
 key_reasons:
@@ -638,7 +630,7 @@ Interpret population with demand and sales activity; high population does not au
 important_notes_and_caveats:
 Identify whether there are any important considerations, limitations, risks, or common pitfalls that are specific to this card and could affect the grading decision.
 
-If there are no meaningful considerations specific to this card, leave the array empty. Don't include generic considerations that applies to most our all cards, unless it's particularly relevant to this exact card. Do not mention Declared-value caps or risks of upcharges when grading.
+If there are no meaningful considerations specific to this card, leave the array empty. Don't include generic considerations that apply to most or all cards, unless it's particularly relevant to this exact card. Do not mention Declared-value caps or risks of upcharges when grading.
 
 Be clear and specific. Make sure it's always clear WHY or HOW each consideration affects the grading decision. A beginner should easily understand what each consideration is trying to communicate.
 
@@ -661,7 +653,7 @@ Incremental gain/loss from grading = net graded - net raw.
 
 Do not subtract the card's raw value as a grading cost. Do not double-count costs already included elsewhere.
 
-Show important arithmetic clearly. If net graded is negative, describe it as a net loss.
+If net graded is negative, describe it as a net loss.
 
 If the lower grade is positive, do not call it a loss. The possibility of receiving a lower grade is submission risk; do not use it to reduce the calculated economics of the grade currently being evaluated.
 
@@ -694,10 +686,7 @@ Population counts may be used when supported, but do not convert population rati
 If evidence is sparse or conflicting, show uncertainty instead of false precision.
 
 FINAL CHECK
-
-Verify arithmetic; comparable net raw/graded economics; appropriate raw comps; target is the lowest worthwhile grade rather than highest-profit grade; potential_profit uses ONLY PSA 10 upside; conclusion matches calculations; positive grades aren't understated; grade uncertainty stays separate; card-specific risks aren't invented; fees/grading rules are valid; precise claims are supported; JSON matches schema.
-
-
+Verify arithmetic; conclusion matches calculations; target economics are valid; potential_profit uses only PSA 10 upside; card-specific risks aren't invented; JSON matches schema.
 `;
 
 export const getBiggestMovers: string =
