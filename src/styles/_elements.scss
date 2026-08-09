@@ -267,7 +267,7 @@ input[type="radio"] {
 .feature-variant-radio-group.feature-variant-radio-group label {
   cursor: pointer;
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .feature-variant-radio-group.feature-variant-radio-group label + label {
@@ -359,12 +359,14 @@ input[type="radio"] {
   }
 }
 
-/* Small outline badge (variants, counts, etc.) */
-.badge-small {
+/* Shared badge/chip shell. Use `.app-badge--sm` in dense card grids. */
+.app-badge {
+  --app-badge-accent: var(--font-color-muted);
+
   align-items: center;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
@@ -372,18 +374,20 @@ input[type="radio"] {
   display: inline-flex;
   flex: 0 0 auto;
   font-family: var(--font-family-base);
-  font-size: .68rem;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-paragraph-sm);
   gap: 0.2rem;
-  height: 1.35rem;
+  height: 1.85rem;
   justify-content: center;
   line-height: 1;
   letter-spacing: 0.02rem;
   margin: 0;
-  max-height: 1.35rem;
+  max-height: 1.85rem;
   max-width: 100%;
-  min-height: 1.35rem;
+  min-width: 0;
+  min-height: 1.85rem;
   overflow: hidden;
-  padding: 0 0.6rem;
+  padding: 0.45rem 0.78rem;
   text-align: center;
   text-overflow: ellipsis;
   vertical-align: middle;
@@ -396,7 +400,13 @@ input[type="radio"] {
     font-size: inherit;
     font-weight: inherit;
     letter-spacing: inherit;
-    line-height: 1;
+    line-height: inherit;
+  }
+
+  svg {
+    flex: 0 0 auto;
+    height: 0.85rem;
+    width: 0.85rem;
   }
 
   /* Market chips: color only, no fill/border (shared) */
@@ -415,6 +425,67 @@ input[type="radio"] {
   &--cardmarket {
     color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
   }
+}
+
+.app-badge--accent-blue {
+  --app-badge-accent: var(--custom-color-blue);
+}
+
+.app-badge--accent-green {
+  --app-badge-accent: var(--custom-color-green);
+}
+
+.app-badge--accent-yellow {
+  --app-badge-accent: var(--custom-color-yellow);
+}
+
+.app-badge--accent-orange {
+  --app-badge-accent: var(--custom-color-orange);
+}
+
+.app-badge--accent-red {
+  --app-badge-accent: var(--custom-color-red);
+}
+
+.app-badge--accent-pink {
+  --app-badge-accent: var(--custom-color-pink);
+}
+
+.app-badge--accent-purple {
+  --app-badge-accent: var(--custom-color-purple);
+}
+
+.app-badge--accent-teal {
+  --app-badge-accent: var(--custom-color-teal);
+}
+
+.app-badge:not(.app-badge--accent-neutral) {
+  background: color-mix(in srgb, var(--app-badge-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--app-badge-accent) 26%, transparent);
+  color: color-mix(in srgb, var(--app-badge-accent) 78%, white);
+}
+
+.app-badge--sm {
+  font-size: 0.7rem;
+  height: 1.5rem;
+  max-height: 1.5rem;
+  min-width: 3.9rem;
+  min-height: 1.5rem;
+  padding: 0.12rem 0.65rem 0.14rem;
+}
+
+.app-badge--md {
+  height: 1.85rem;
+  max-height: 1.85rem;
+  min-height: 1.85rem;
+}
+
+.app-badge--weight-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.app-badge--weight-strong {
+  font-weight: 650;
 }
 
 /* Shared custom radio control */
@@ -485,54 +556,23 @@ input[type="radio"] {
   user-select: none;
 }
 
-/* Shared rarity treatment; individual views may adjust only sizing/casing. */
-.card-rarity-badge {
-  --rarity-accent: var(--custom-color-yellow);
+.card-number-badge {
+  -webkit-user-select: none;
   align-items: center;
-  background: color-mix(in srgb, var(--rarity-accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--rarity-accent) 26%, transparent);
+  background: color-mix(in srgb, var(--font-color-primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
-  color: color-mix(in srgb, var(--rarity-accent) 78%, white);
+  color: var(--font-color-muted);
   display: inline-flex;
-  font-size: var(--font-size-badge);
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
   line-height: 1;
-  padding: 4px 8px;
-  text-transform: none;
+  min-width: 0;
+  padding: 0.38rem 0.62rem;
+  user-select: none;
   white-space: nowrap;
   width: fit-content;
-
-  &--common {
-    --rarity-accent: var(--font-color-muted);
-  }
-
-  &--uncommon {
-    --rarity-accent: var(--custom-color-green);
-  }
-
-  &--rare {
-    --rarity-accent: var(--custom-color-blue);
-  }
-
-  &--ultra {
-    --rarity-accent: var(--custom-color-orange);
-  }
-
-  &--secret {
-    --rarity-accent: var(--custom-color-pink);
-  }
-
-  &--promo {
-    --rarity-accent: var(--custom-color-teal);
-  }
-
-  &--special {
-    --rarity-accent: var(--custom-color-yellow);
-  }
-
-  &--unknown {
-    --rarity-accent: var(--font-color-muted);
-  }
 }

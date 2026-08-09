@@ -4,6 +4,7 @@ import {
   type JustTcgGainerCard,
   type JustTcgMovementPeriod,
 } from "../../services/justTcgFetchesApi";
+import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import "./JustTcgCardGrid.scss";
 
@@ -64,41 +65,40 @@ export function JustTcgCardGrid({ period = "7d", type }: JustTcgCardGridProps) {
   return (
     <section className="justtcg-card-grid" aria-labelledby="justtcg-grid-title">
       <header className="justtcg-card-grid__header">
-        <div>
-          <p className="justtcg-card-grid__eyebrow">JustTCG database</p>
-          <h2 id="justtcg-grid-title">Biggest raw NM gainers</h2>
-        </div>
-        <p>{periodLabels[period]}, filtered above $15 and mapped to our card database.</p>
+        <h2 id="justtcg-grid-title">Weekly Gainers</h2>
+        <p>{periodLabels[period]} · Near Mint raw singles above $15</p>
       </header>
 
       {loading && (
-        <div className="justtcg-card-grid__cards" aria-label="Loading JustTCG cards">
+        <GridView className="justtcg-card-grid__cards">
           {Array.from({ length: 8 }).map((_, index) => (
             <article
               className="justtcg-card-grid__placeholder"
               key={`placeholder-${index}`}
             />
           ))}
-        </div>
+        </GridView>
       )}
 
       {!loading && !error && (
-        <div className="justtcg-card-grid__cards">
-          {cards.slice(0, DISPLAY_LIMIT).map(({ card, mover }) => (
-            <article
-              className="justtcg-card-grid__item"
-              key={`${card.id}-${mover.printing}-${mover.condition}`}
-            >
-              <PokemonCardView
-                card={card}
-                priceChangeLabel={periodLabels[mover.period]}
-                priceChangePercent={mover.changePercent}
-                priceSource="justtcg"
-                showPriceSourcePicker={true}
-              />
-            </article>
+        <GridView className="justtcg-card-grid__cards">
+          {cards.slice(0, DISPLAY_LIMIT).map(({ card, mover }, index) => (
+            <PokemonCardView
+              key={[
+                card.id,
+                mover.printing,
+                mover.condition,
+                mover.setName ?? "",
+                index,
+              ].join("-")}
+              card={card}
+              priceChangeLabel={periodLabels[mover.period]}
+              priceChangePercent={mover.changePercent}
+              priceSource="justtcg"
+              showPriceSourcePicker={true}
+            />
           ))}
-        </div>
+        </GridView>
       )}
     </section>
   );

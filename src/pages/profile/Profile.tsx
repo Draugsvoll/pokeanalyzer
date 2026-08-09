@@ -11,6 +11,7 @@ import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
 import { formatTimestampDate } from "../../utils/timestamp";
 import { BadgeCheck, Coins, Crown, Leaf, LogOut, Sparkles } from "lucide-react";
+import { Badge } from "../../components/ui/Badge";
 import {
   useCredits,
   useMembershipSubscription,
@@ -169,9 +170,9 @@ export default function Profile() {
               <div className="profile__identity-title">
                 <h2>{profileHeading}</h2>
                 {authUser.emailVerified && (
-                  <span className="profile__verified-badge">
+                  <Badge accent="green" size="sm" weight="strong">
                     <BadgeCheck aria-hidden="true" /> Verified
-                  </span>
+                  </Badge>
                 )}
               </div>
               {profileName && <p>{profile.email}</p>}
@@ -353,9 +354,11 @@ export default function Profile() {
                     className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : plan.id === "collector" ? " profile__purchase-card--collector" : plan.id === "pro" ? " profile__purchase-card--pro" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
                   >
                     {planIsCurrent && (
-                      <span className="profile__current-plan-badge">
-                        Active
-                      </span>
+                      <div className="profile__current-plan-anchor">
+                        <Badge accent="green" size="sm" weight="strong">
+                          Active
+                        </Badge>
+                      </div>
                     )}
                     <span className="profile__purchase-icon" aria-hidden="true">
                       <PlanIcon />

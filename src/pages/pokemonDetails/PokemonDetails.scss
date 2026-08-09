@@ -244,40 +244,11 @@
     display: grid;
     gap: 0.85rem;
     min-width: 0;
-
-    &[data-card-number]::before {
-      -webkit-user-select: none;
-      align-items: center;
-      background: color-mix(in srgb, var(--font-color-primary) 4%, transparent);
-      border: 1px solid
-        color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
-      border-radius: var(--border-radius-pill);
-      color: var(--font-color-muted);
-      content: attr(data-card-number);
-      display: inline-flex;
-      font-family: var(--font-family-mono);
-      font-size: var(--font-size-caption);
-      font-variant-numeric: tabular-nums;
-      font-weight: var(--font-weight-medium);
-      justify-self: start;
-      letter-spacing: var(--font-tracking-normal);
-      line-height: 1;
-      margin-bottom: -0.15rem;
-      padding: 0.38rem 0.62rem;
-      pointer-events: none;
-      user-select: none;
-      white-space: nowrap;
-    }
   }
 
-  &__title-number-accessible {
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
+  &__title-number {
+    justify-self: start;
+    margin-bottom: -0.15rem;
   }
 
   &__title-row {
@@ -292,23 +263,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
-
-    span {
-      background: transparent;
-      border: var(--border);
-      border-radius: var(--border-radius-pill);
-      color: var(--font-color-muted);
-      font-size: var(--font-size-paragraph-sm);
-      font-weight: var(--font-weight-medium);
-      line-height: 1;
-      padding: 0.45rem 0.78rem;
-    }
-  }
-
-  &__title-badge--rarity {
-    background: color-mix(in srgb, var(--rarity-accent) 10%, transparent);
-    border-color: color-mix(in srgb, var(--rarity-accent) 26%, transparent);
-    color: color-mix(in srgb, var(--rarity-accent) 78%, white);
   }
 
   &__title-set {

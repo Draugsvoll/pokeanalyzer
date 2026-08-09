@@ -66,51 +66,6 @@
   max-width: 68rem;
 }
 
-.worth-grading-view__recommendation {
-  --recommendation-accent: var(--font-color-muted);
-
-  align-items: center;
-  background: color-mix(in srgb, var(--recommendation-accent) 10%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--recommendation-accent) 26%, transparent);
-  border-radius: var(--border-radius-pill);
-  color: color-mix(in srgb, var(--recommendation-accent) 78%, white);
-  display: inline-flex;
-  font-size: var(--font-size-paragraph-sm);
-  font-weight: var(--font-weight-bold);
-  gap: 0.45rem;
-  line-height: 1;
-  padding: 0.5rem 0.75rem;
-  width: fit-content;
-
-  &::before {
-    background: currentColor;
-    border-radius: var(--border-radius-round);
-    box-shadow: 0 0 var(--glow-dot-shadow-size)
-      color-mix(
-        in srgb,
-        var(--recommendation-accent) var(--glow-dot-shadow-strength),
-        transparent
-      );
-    content: "";
-    height: var(--glow-dot-size);
-    opacity: var(--glow-dot-opacity);
-    width: var(--glow-dot-size);
-  }
-}
-
-.worth-grading-view__recommendation--positive {
-  --recommendation-accent: var(--custom-color-green);
-}
-
-.worth-grading-view__recommendation--caution {
-  --recommendation-accent: var(--custom-color-yellow);
-}
-
-.worth-grading-view__recommendation--negative {
-  --recommendation-accent: var(--custom-color-red);
-}
-
 .worth-grading-view__details {
   display: grid;
   gap: 0.85rem;

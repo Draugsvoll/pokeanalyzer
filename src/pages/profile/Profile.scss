@@ -102,21 +102,6 @@
     margin: 0.3rem 0 0.35rem;
   }
 
-  .profile__verified-badge {
-    align-items: center;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(52, 211, 153, 0.18);
-    border-radius: var(--border-radius-pill);
-    color: #6ee7b7;
-    display: inline-flex;
-    font-size: var(--font-size-badge);
-    font-weight: var(--font-weight-bold);
-    gap: 0.25rem;
-    padding: 0.25rem 0.45rem;
-
-    svg { height: 0.8rem; width: 0.8rem; }
-  }
-
   .profile__identity-meta {
     align-items: center;
     display: flex;
@@ -477,10 +462,6 @@
         color: var(--custom-color-teal);
       }
 
-      .profile__current-plan-badge {
-        color: var(--custom-color-teal);
-      }
-
       .profile__purchase-cta {
         background: color-mix(in srgb, var(--custom-color-teal) 12%, transparent);
         color: var(--custom-color-teal);
@@ -538,10 +519,6 @@
         color: var(--custom-color-blue);
       }
 
-      .profile__current-plan-badge {
-        color: var(--custom-color-blue);
-      }
-
       .profile__purchase-cta {
         background: color-mix(in srgb, var(--custom-color-blue) 12%, transparent);
         color: var(--custom-color-blue);
@@ -596,10 +573,6 @@
       }
 
       .profile__purchase-name {
-        color: var(--custom-color-purple);
-      }
-
-      .profile__current-plan-badge {
         color: var(--custom-color-purple);
       }
 
@@ -771,17 +744,7 @@
     margin-top: 0.3rem;
   }
 
-  .profile__current-plan-badge {
-    align-items: center;
-    background: color-mix(in srgb, currentColor 12%, transparent);
-    border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
-    border-radius: var(--border-radius-pill);
-    color: currentColor;
-    display: inline-flex;
-    font-size: var(--font-size-badge);
-    font-weight: var(--font-weight-bold);
-    line-height: 1;
-    padding: 0.32rem 0.55rem;
+  .profile__current-plan-anchor {
     position: absolute;
     right: 1.25rem;
     top: 1.25rem;

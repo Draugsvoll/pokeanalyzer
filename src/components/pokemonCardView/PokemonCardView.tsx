@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Star, TriangleAlert, X } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
+import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
@@ -11,8 +12,9 @@ import type {
   PortfolioPriceSource,
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
+import { formatCardNumber } from "../../utils/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
-import { getRarityBadgeClassName } from "../../utils/pokemonRarity";
+import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
   getCardPriceSourceLabel,
@@ -94,15 +96,26 @@ export function PokemonCardView({
 
     return priceOptions.filter((option) => option.source === priceSource);
   }, [lockPriceSource, priceOptions, priceSource]);
-  const sourceOptionGroupCount = useMemo(
-    () =>
-      new Set(
-        visiblePriceOptions.map(
-          (option) => option.groupKey ?? `${option.source}:${option.key}`,
-        ),
-      ).size,
-    [visiblePriceOptions],
-  );
+  const duplicateJustTcgPrintings = useMemo(() => {
+    const setsByPrinting = new Map<string, Set<string>>();
+
+    for (const option of visiblePriceOptions) {
+      if (option.source !== "justtcg" || !option.groupKey) continue;
+
+      const [printing, setName = ""] = option.groupKey.split("|");
+      if (!printing) continue;
+
+      const setNames = setsByPrinting.get(printing) ?? new Set<string>();
+      setNames.add(setName);
+      setsByPrinting.set(printing, setNames);
+    }
+
+    return new Set(
+      Array.from(setsByPrinting.entries())
+        .filter(([, setNames]) => setNames.size > 1)
+        .map(([printing]) => printing),
+    );
+  }, [visiblePriceOptions]);
   const defaultPriceOption = lockPriceSource
     ? visiblePriceOptions[0]
     : pickDefaultCardPriceOption(priceOptions, priceSource);
@@ -176,7 +189,17 @@ export function PokemonCardView({
       : "Price change");
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
-  const variantLabel = activeOption?.label;
+  const variantLabel =
+    activeOption?.source === "justtcg" && activeOption.groupKey
+      ? (activeOption.groupKey.split("|")[0] ?? activeOption.label)
+      : activeOption?.label;
+  const conditionLabel = activeOption?.conditionLabel;
+  const sourceRowConditionLabel =
+    activeOption?.source === "tcgplayer" ? "Near Mint" : conditionLabel;
+  const sourceLabel = activeOption
+    ? getCardPriceSourceLabel(activeOption.source)
+    : null;
+  const printedCardNumber = formatCardNumber(card);
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -307,25 +330,32 @@ export function PokemonCardView({
                 </span>
               </span>
             )}
+            {printedCardNumber && (
+              <span
+                className="pokemon-card__number card-number-badge"
+                title={`Card number ${printedCardNumber}`}
+              >
+                {printedCardNumber}
+              </span>
+            )}
           </div>
 
           {showRarityBadge || variantLabel?.trim() ? (
             <div className="pokemon-card__metadata-row">
               {showRarityBadge && (
-                <span
-                  className={`pokemon-card__rarity ${getRarityBadgeClassName(card.rarity)} badge-small`}
+                <Badge
+                  accent={getRarityBadgeAccent(card.rarity)}
+                  size="sm"
                   title={card.rarity ?? "Rarity unavailable"}
+                  weight="strong"
                 >
                   {card.rarity ?? "N/A"}
-                </span>
+                </Badge>
               )}
               {variantLabel?.trim() && (
-                <span
-                  className="pokemon-card__price-variant badge-small"
-                  title={variantLabel}
-                >
+                <Badge size="sm" title={variantLabel}>
                   {variantLabel}
-                </span>
+                </Badge>
               )}
             </div>
           ) : null}
@@ -378,6 +408,7 @@ export function PokemonCardView({
 
             {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
               <div className="pokemon-card__variant-row">
+                <span className="pokemon-card__source-heading">Source</span>
                 <div className="pokemon-card__source">
                   <button
                     type="button"
@@ -391,7 +422,24 @@ export function PokemonCardView({
                       else setSourceOpen(true);
                     }}
                   >
-                    <span className="pokemon-card__source-label">Source</span>
+                    {sourceRowConditionLabel && (
+                      <span className="pokemon-card__source-condition">
+                        {sourceRowConditionLabel}
+                      </span>
+                    )}
+                    {sourceRowConditionLabel && sourceLabel && (
+                      <span
+                        className="pokemon-card__source-separator"
+                        aria-hidden="true"
+                      >
+                        ·
+                      </span>
+                    )}
+                    {sourceLabel && (
+                      <span className="pokemon-card__source-name">
+                        {sourceLabel}
+                      </span>
+                    )}
                     <ChevronDown
                       className="pokemon-card__source-chevron"
                       aria-hidden="true"
@@ -413,19 +461,27 @@ export function PokemonCardView({
                           const pretext = getCardPriceSourceLabel(
                             option.source,
                           );
-                          const groupKey =
-                            option.groupKey ?? `${option.source}:${option.key}`;
-                          const previousOption = visiblePriceOptions[index - 1];
-                          const previousGroupKey = previousOption
-                            ? (previousOption.groupKey ??
-                              `${previousOption.source}:${previousOption.key}`)
-                            : null;
-                          const hasGroupSeparator =
-                            index > 0 &&
-                            option.source === "justtcg" &&
-                            sourceOptionGroupCount > 1 &&
-                            groupKey !== previousGroupKey;
-
+                          const [optionPrinting, optionSetName = ""] =
+                            option.source === "justtcg" && option.groupKey
+                              ? option.groupKey.split("|")
+                              : ["", ""];
+                          const optionLabel =
+                            option.source === "justtcg" && optionPrinting
+                              ? [
+                                  optionPrinting,
+                                  duplicateJustTcgPrintings.has(optionPrinting)
+                                    ? optionSetName
+                                    : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : option.label;
+                          const hasOptionLabel = Boolean(optionLabel.trim());
+                          const optionConditionLabel =
+                            option.conditionShortLabel ?? option.conditionLabel;
+                          const hasOptionDetail = Boolean(
+                            optionLabel.trim() || optionConditionLabel,
+                          );
                           return (
                             <label
                               key={option.id}
@@ -434,7 +490,6 @@ export function PokemonCardView({
                                 "pokemon-card__source-option",
                                 checked ? "is-selected" : "",
                                 isPending ? "is-pending" : "",
-                                hasGroupSeparator ? "has-group-separator" : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
@@ -450,13 +505,26 @@ export function PokemonCardView({
                               />
                               <span className="pokemon-card__source-option-label">
                                 <span
-                                  className={`pokemon-card__source-option-pretext pokemon-card__source-option-pretext--${option.source}`}
+                                  className={[
+                                    "pokemon-card__source-option-pretext",
+                                    `pokemon-card__source-option-pretext--${option.source}`,
+                                    hasOptionDetail ? "has-detail" : "",
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" ")}
                                 >
                                   {pretext}
                                 </span>
-                                <span className="pokemon-card__source-option-name">
-                                  {option.label}
-                                </span>
+                                {hasOptionLabel && (
+                                  <span className="pokemon-card__source-option-name">
+                                    {optionLabel}
+                                  </span>
+                                )}
+                                {optionConditionLabel && (
+                                  <span className="pokemon-card__source-option-condition">
+                                    {optionConditionLabel}
+                                  </span>
+                                )}
                               </span>
                               <span className="pokemon-card__source-option-price">
                                 {option.currencySymbol}
@@ -613,6 +681,7 @@ export function PokemonCardPortfolioView({
   };
 
   return (
+    // Portfolio-only shell: do not restyle PokemonCardView internals here.
     <div
       className={`pokemon-card-portfolio-view${
         pendingQuantity != null || pendingRemoval
@@ -621,12 +690,15 @@ export function PokemonCardPortfolioView({
       }`}
     >
       {quantity > 1 && (
-        <span
-          className="pokemon-card-portfolio-view__quantity-badge badge-small"
-          aria-label={`${quantity} copies in collection`}
-        >
-          x{quantity}
-        </span>
+        <div className="pokemon-card-portfolio-view__quantity-anchor">
+          <Badge
+            aria-label={`${quantity} copies in collection`}
+            size="sm"
+            weight="strong"
+          >
+            x{quantity}
+          </Badge>
+        </div>
       )}
 
       <PokemonCardView

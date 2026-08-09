@@ -33,6 +33,7 @@ import {
   sellMyCardPrompt,
 } from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
+import { Badge } from "../../components/ui/Badge";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
 import EbaySoldView from "./views/EbaySold/EbaySoldView";
@@ -64,7 +65,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
-import { getRarityBadgeClassName } from "../../utils/pokemonRarity";
+import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -803,13 +804,13 @@ function PokemonDetailsForCard() {
               <div className="card-view__identity">
                 <div className="card-view__identity-top">
                   <div className="card-view__title-row">
-                    <div
-                      className="card-view__title-copy"
-                      data-card-number={formattedDisplayedCardNumber}
-                    >
+                    <div className="card-view__title-copy">
                       {formattedDisplayedCardNumber && (
-                        <span className="card-view__title-number-accessible">
-                          Card number {formattedDisplayedCardNumber}
+                        <span
+                          className="card-view__title-number card-number-badge"
+                          aria-label={`Card number ${formattedDisplayedCardNumber}`}
+                        >
+                          {formattedDisplayedCardNumber}
                         </span>
                       )}
                       <h2 className="card-view__title">{card.name}</h2>
@@ -833,13 +834,14 @@ function PokemonDetailsForCard() {
                       {(card.rarity || displaySubtype) && (
                         <div className="card-view__title-badges">
                           {card.rarity && (
-                            <span
-                              className={`card-view__title-badge--rarity ${getRarityBadgeClassName(card.rarity)}`}
+                            <Badge
+                              accent={getRarityBadgeAccent(card.rarity)}
+                              weight="strong"
                             >
                               {card.rarity}
-                            </span>
+                            </Badge>
                           )}
-                          {displaySubtype && <span>{displaySubtype}</span>}
+                          {displaySubtype && <Badge>{displaySubtype}</Badge>}
                         </div>
                       )}
                     </div>

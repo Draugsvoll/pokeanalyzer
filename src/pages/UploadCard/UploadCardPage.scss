@@ -192,17 +192,6 @@
 }
 
 
-.card-grader__badge {
-  border-radius: var(--border-radius);
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 0.15rem 0.45rem;
-  text-transform: uppercase;
-}
-
-.card-grader__badge--required { background: rgba(127, 29, 29, 0.45); color: #f87171; }
-.card-grader__badge--recommended { background: rgba(120, 53, 15, 0.45); color: #fbbf24; }
-
 .card-grader__dropzone {
   background: rgba(255, 255, 255, 0.025);
   border: 2px dashed #3f4652;

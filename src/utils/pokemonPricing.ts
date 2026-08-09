@@ -17,6 +17,8 @@ export type CardPriceOption = {
   /** Raw key (TCG variant or Cardmarket field name) */
   key: string;
   groupKey?: string;
+  conditionLabel?: string;
+  conditionShortLabel?: string;
   /** Short print/variant label, e.g. "Holofoil" / "Reverse Holo" */
   label: string;
   price: number;
@@ -202,21 +204,38 @@ export function listCardmarketTrendEntries(
 }
 
 function formatJustTcgVariantLabel({
-  condition,
   printing,
   setName,
 }: {
-  condition: string;
   printing: string;
   setName?: string;
 }) {
   const identity = [setName].filter(Boolean).join(" · ");
-  return [printing, condition, identity].filter(Boolean).join(" · ");
+  return [printing, identity].filter(Boolean).join(" · ");
+}
+
+function formatJustTcgConditionLabel(condition: string) {
+  if (/^near mint$|^nm$/i.test(condition)) return "Near Mint";
+  if (/^lightly played$|^lp$/i.test(condition)) return "Lightly Played";
+  return condition;
+}
+
+function formatJustTcgConditionShortLabel(condition: string) {
+  if (/^near mint$|^nm$/i.test(condition)) return "NM";
+  if (/^lightly played$|^lp$/i.test(condition)) return "LP";
+  return condition;
 }
 
 export function listJustTcgMarketEntries(
   prices?: JustTcg["prices"] | null,
-): { groupKey: string; key: string; price: number; label: string }[] {
+): {
+  conditionLabel: string;
+  conditionShortLabel: string;
+  groupKey: string;
+  key: string;
+  price: number;
+  label: string;
+}[] {
   if (!prices || typeof prices !== "object") return [];
 
   const isSupportedCondition = (condition: string) =>
@@ -230,6 +249,8 @@ export function listJustTcgMarketEntries(
   return Object.entries(prices)
     .map(([key, value]) => ({
       condition: value.condition,
+      conditionLabel: formatJustTcgConditionLabel(value.condition),
+      conditionShortLabel: formatJustTcgConditionShortLabel(value.condition),
       groupKey: [value.printing, value.setName ?? ""].join("|"),
       key,
       label: formatJustTcgVariantLabel(value),
@@ -242,6 +263,8 @@ export function listJustTcgMarketEntries(
         entry,
       ): entry is {
         condition: string;
+        conditionLabel: string;
+        conditionShortLabel: string;
         groupKey: string;
         key: string;
         price: number;
@@ -302,6 +325,8 @@ export function listCardPriceOptions(card: {
       source: "justtcg",
       key: entry.key,
       groupKey: entry.groupKey,
+      conditionLabel: entry.conditionLabel,
+      conditionShortLabel: entry.conditionShortLabel,
       label: entry.label,
       price: entry.price,
       currencySymbol: "$",

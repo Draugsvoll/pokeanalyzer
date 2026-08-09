@@ -5,6 +5,7 @@ import AuthenticityResultView from "./views/AuthenticityResultView";
 import PsaEstimateResultView from "./views/PsaEstimateResultView";
 import "./UploadCardPage.scss";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
+import { Badge } from "../../components/ui/Badge";
 import {
   isAbortError,
   useAbortableRequest,
@@ -26,7 +27,7 @@ const uploadOptions = [
     side: "front",
     heading: "Front Side",
     badge: "Required",
-    badgeClassName: "card-grader__badge--required",
+    badgeAccent: "red",
     prompt: "Upload front",
     promptNote: "PNG, JPG up to 10MB",
     showDropHint: true,
@@ -35,7 +36,7 @@ const uploadOptions = [
     side: "back",
     heading: "Back Side",
     badge: "Recommended",
-    badgeClassName: "card-grader__badge--recommended",
+    badgeAccent: "yellow",
     prompt: "Upload back",
     promptNote: "Optional but recommended",
     showDropHint: false,
@@ -44,7 +45,7 @@ const uploadOptions = [
   side: CardSide;
   heading: string;
   badge: string;
-  badgeClassName: string;
+  badgeAccent: "red" | "yellow";
   prompt: string;
   promptNote: string;
   showDropHint: boolean;
@@ -224,7 +225,9 @@ export default function UploadCardPage() {
               <div className="card-grader__upload-side" key={option.side}>
                 <div className="card-grader__side-heading">
                   <strong>{option.heading}</strong>
-                  <span className={`card-grader__badge ${option.badgeClassName}`}>{option.badge}</span>
+                  <Badge accent={option.badgeAccent} size="sm" weight="strong">
+                    {option.badge}
+                  </Badge>
                 </div>
                 <label
                   className={`card-grader__dropzone${draggingSide === option.side ? " card-grader__dropzone--dragging" : ""}`}

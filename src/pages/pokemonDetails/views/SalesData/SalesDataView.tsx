@@ -1,5 +1,6 @@
 import { Layers3 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
@@ -199,9 +200,9 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                       >
                         <span>{market.grade || "Grade unavailable"}</span>
                         <strong>{market.price || "~"}</strong>
-                        <small className="sales-data-view__volume-badge">
+                        <Badge size="sm">
                           {market.volume || "~"}
-                        </small>
+                        </Badge>
                       </article>
                     ))}
                   </div>

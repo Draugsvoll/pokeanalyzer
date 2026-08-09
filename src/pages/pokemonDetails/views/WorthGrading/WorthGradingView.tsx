@@ -1,6 +1,7 @@
 import { CircleAlert, FileText, Scale } from "lucide-react";
 import type { ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { Badge } from "../../../../components/ui/Badge";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -88,12 +89,12 @@ function getPotentialProfitLabel(value: WorthGradingResponse["potential_profit"]
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function getPotentialProfitTone(value: WorthGradingResponse["potential_profit"]) {
-  if (value === "none") return "negative";
+function getPotentialProfitAccent(value: WorthGradingResponse["potential_profit"]) {
+  if (value === "none") return "red";
   if (value === "low" || value === "breakeven" || value === "modest") {
-    return "caution";
+    return "yellow";
   }
-  return "positive";
+  return "green";
 }
 
 function getConfidence(value: WorthGradingResponse["confidence"]) {
@@ -161,24 +162,22 @@ export function WorthGradingView({
         <div className="feature-panel-body worth-grading-view__body">
           <section className="worth-grading-view__decision">
             <div className="worth-grading-view__badges">
-              <div
-                className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
-                  data.realistic_profit,
-                )}`}
+              <Badge
+                accent={getPotentialProfitAccent(data.realistic_profit)}
+                weight="strong"
               >
                 Realistic: {getPotentialProfitLabel(data.realistic_profit)}
-              </div>
-              <div
-                className={`worth-grading-view__recommendation worth-grading-view__recommendation--${getPotentialProfitTone(
-                  data.potential_profit,
-                )}`}
+              </Badge>
+              <Badge
+                accent={getPotentialProfitAccent(data.potential_profit)}
+                weight="strong"
               >
                 Potential: {getPotentialProfitLabel(data.potential_profit)}
-              </div>
+              </Badge>
               {confidence && (
-                <div className="worth-grading-view__recommendation">
+                <Badge weight="strong">
                   Confidence: {confidence.score}
-                </div>
+                </Badge>
               )}
             </div>
 

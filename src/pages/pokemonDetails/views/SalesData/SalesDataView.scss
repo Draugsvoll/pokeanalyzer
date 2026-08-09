@@ -97,16 +97,6 @@
     overflow-wrap: anywhere;
   }
 
-  .sales-data-view__volume-badge {
-    background: color-mix(in srgb, var(--font-color-primary) 6%, transparent);
-    border-radius: var(--border-radius-pill);
-    color: var(--font-color-secondary);
-    justify-self: start;
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-medium);
-    line-height: 1;
-    padding: 0.35rem 0.55rem;
-  }
 }
 
 .sales-data-view__sold-list {

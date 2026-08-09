@@ -89,11 +89,13 @@
   border-radius: var(--border-radius-pill);
   color: var(--label-accent);
   display: inline-flex;
-  font-size: var(--font-size-badge);
+  font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
   gap: 0.35rem;
   letter-spacing: var(--font-tracking-wide);
-  padding: 0.3rem 0.65rem;
+  line-height: 1.1;
+  min-height: 1.5rem;
+  padding: 0.12rem 0.65rem 0.14rem;
   text-transform: capitalize;
 }
 

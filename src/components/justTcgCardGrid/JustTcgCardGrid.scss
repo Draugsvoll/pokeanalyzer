@@ -6,7 +6,7 @@
 }
 
 .justtcg-card-grid__header {
-  align-items: end;
+  align-items: center;
   border-bottom: 1px solid var(--border-divider);
   display: flex;
   gap: var(--space-4);
@@ -20,42 +20,17 @@
 
   h2 {
     color: var(--font-color-primary);
-    font-size: var(--font-size-section-title);
-    font-weight: var(--font-weight-section-title);
-    line-height: var(--font-leading-tight);
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-snug);
   }
 
   > p {
-    color: var(--font-color-muted);
+    color: var(--font-color-secondary);
     font-size: var(--font-size-paragraph-sm);
     line-height: var(--font-leading-normal);
-    max-width: 24rem;
+    max-width: 28rem;
     text-align: right;
-  }
-}
-
-.justtcg-card-grid__eyebrow {
-  color: var(--custom-color-blue);
-  font-size: var(--font-size-overline);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.12em;
-  line-height: var(--font-leading-snug);
-  margin-bottom: 0.35rem;
-  text-transform: uppercase;
-}
-
-.justtcg-card-grid__cards {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-}
-
-.justtcg-card-grid__item {
-  display: grid;
-  min-width: 0;
-
-  .pokemon-card-view {
-    width: 100%;
   }
 }
 
