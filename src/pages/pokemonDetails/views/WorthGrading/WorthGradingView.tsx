@@ -12,7 +12,7 @@ type WorthGradingViewProps = {
 };
 
 type WorthGradingResponse = {
-  calculate_grade?: string[] | string;
+  calculate_grading?: string[] | string;
   confidence?: {
     reason?: string;
     score?: string | number;
@@ -203,7 +203,7 @@ export function WorthGradingView({
             />
             <TextList
               icon={<Scale aria-hidden="true" size={18} strokeWidth={2.1} />}
-              items={asList(data.calculate_grade ?? [])}
+              items={asList(data.calculate_grading ?? [])}
               title="Profit Calculation Example"
             />
           </div>

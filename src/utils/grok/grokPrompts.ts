@@ -515,82 +515,188 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
+Can it make financial sense to grade this card instead of keeping or selling it raw?
 
+Assume the user already owns the card.
 
-with the purpose of selling it for overall profits?
+Research current market data using multiple reliable sources for completed sales, market values, population when relevant, grading costs, and turnaround. Always include PriceCharting when relevant. Prioritize completed sales over asking prices.
 
-Remember to check multiple reliable sources for market data and sales history. Always include PriceCharting.
+Focus on this exact card, printing, variant, era, condition profile, and market. Prioritize reliable card-specific grading characteristics and pitfalls over generic grading advice.
 
-Summarize your answer. Your entire response must be a valid JSON object, with the exact format shown below.
-Don't add text before or after the JSON object.
-Avoid generic information that applies to most or all cards, we care about what's relevant specifically to this card.
+GENERAL APPROACH
+
+Adapt analysis to the card. Consider only material factors: condition/known defects, realistic grades, raw vs graded demand, population relative to demand, liquidity, price consistency, grading/selling costs, turnaround, and market risk.
+
+Keep simple/cheap cards concise. Analyze valuable, unusual, condition-sensitive, or thinly traded cards more deeply. Do not add filler.
+
+RAW VS GRADED
+
+Raw value is NOT an acquisition cost. Compare net proceeds selling raw now vs grading and selling later.
+
+Use condition-comparable completed raw sales when condition materially affects value. Do not let broad ungraded averages mixing different conditions distort the comparison.
+
+When recommending a high target grade, compare against similarly strong raw examples. Do not combine lower-condition categories merely to increase comps or inflate grading upside. If comparable sales are scarce, use ranges and lower confidence.
+
+If condition barely affects value, broader comps are acceptable. Keep materially different sale states (e.g. sealed/opened) separate when they affect value.
+
+TARGET VS OUTCOME
+
+A financially positive grade produces higher net proceeds than selling raw now.
+
+A recommended target grade is the lowest grade potential at which grading provides a worthwhile financial advantage over selling raw after normal costs.
+
+A lower grade may therefore be the correct target even when higher grades offer much greater upside.
+
+Never call a financially positive grade a loss simply because a higher grade is more profitable.
+
+TARGET VALIDATION
+
+Before recommending a target, verify its economics.
+
+The target should be the LOWEST grade at which grading provides a worthwhile financial advantage over selling a condition-comparable raw copy after normal grading, shipping, insurance, and selling costs.
+
+Consider turnaround, liquidity, and market risk when materially important, but do not apply an excessive margin of safety or automatically require a higher grade simply because it offers more profit or less risk.
+
+If a lower grade already provides a clear and worthwhile incremental gain, prefer that lower grade as the target unless a specific evidence-supported factor makes that gain unreliable or unattractive.
+
+A small, fragile, or near-breakeven gain does not automatically make a grade the target.
+
+Do not choose PSA 10 simply because it has the greatest upside. PSA 10 may represent exceptional potential while PSA 8 or PSA 9 is the financially sensible target.
+
+The grade below the final target is a downside example; it does not determine the target.
+
+If even PSA 10 does not provide a worthwhile advantage over selling raw after costs, recommend against grading. If evidence is too weak to establish a reliable target, reduce confidence.
+
+CONDITION
+
+Unless images or reliable condition details are provided, do not pretend to know the user's grade.
+
+Evaluate grading economics for a reasonable grading candidate and make the recommendation conditional on the card showing the required quality.
+
+Do not infer the user's grade probability solely from population reports.
+
+OUTPUT
+
+Your entire response must be a valid JSON object, with the exact format shown below.
+Don't add any text before or after the JSON object.
 
 {
-  "confidence": {
-    "score": "",
-    "reason": ""
-  },
-  "potential_profit": "",
-  "realistic_profit": "",
-  "conclusion": "",
-  "key_reasons": [],
-  "important_notes_and_caveats": [],
-  "calculate_grade": []
+"confidence":{"score":"","reason":""},
+"potential_profit":"",
+"realistic_profit":"",
+"conclusion":"",
+"key_reasons":[],
+"important_notes_and_caveats":[],
+"calculate_grading":[]
 }
 
-key_reasons, important_notes_and_caveats, and calculate_grade must be arrays of plain strings only.
-Do not return objects inside these arrays.
-Do not return nested arrays.
-Each item must be directly renderable text.
+key_reasons, important_notes_and_caveats, and calculate_grading must be arrays of plain strings only. Do not return objects or nested arrays inside them. Each item must be directly renderable text.
 
 confidence:
-this is an object containing exactly 2 string fields: "score" and "reason".
-"score" is a number from 1-100 on how confident you are in your recommendation. "reason" is a summary of why you are feeling this particular confidence level.
+"score" is a 1-100 number represented as a string.
+
+"reason" briefly explains confidence based on evidence quality, recency, comparability, consistency, and completeness.
+
+Reduce confidence for sparse sales, weak comparable data, unresolved conflicting comps, unknown condition, or other material uncertainty.
 
 potential_profit:
-must be exactly one of these labels "none","breakeven","low","modest","decent","high","very high".
-This score is solely based on the maximum profit potential for a perfect card PSA10.
+Must be exactly "none","breakeven","low","modest","decent","high", or "very high".
+
+Measures ONLY the financial upside if a perfect example receives PSA 10, compared with selling raw after relevant costs.
+
+Do NOT reduce this rating because PSA 10 is unlikely, condition is unknown, gem rate is low, population is high, grading is difficult, turnaround is long, or market risk exists. Those belong in realistic_profit, confidence, and the recommendation.
+
+Base it on a reasonably supported current PSA 10 value, not an isolated outlier. A very large PSA 10 net premium over raw should be "very high" even when PSA 10 is extremely unlikely.
 
 realistic_profit:
-must be exactly one of these labels "none","breakeven", "low","modest","decent","high","very high".
-This score is based on realistic and average profits from grading this card, considering the current market and sales history.
+Uses the same labels.
 
-Conclusion is a 1 sentence summary of your recommendation. Include a reasonable recommended minimum PSA-grade that has a decent chance to make it worthwhile.
+Represents realistic risk-adjusted financial attractiveness BEFORE the grade is known for a reasonable grading candidate.
+
+Consider realistic grades, condition sensitivity, values, costs, liquidity, price stability, turnaround, and lower-grade downside.
+
+potential_profit = PSA 10 upside only. realistic_profit = realistic submission attractiveness before grade is known. Do not mix them.
+
+conclusion:
+Keep under about 35-40 words.
+
+State whether grading appears worthwhile and, when appropriate, the lowest worthwhile target PSA grade.
+
+If a lower grade provides a worthwhile financial advantage, do not recommend a higher target merely because it is safer or more profitable.
+
+If PSA 10 is unattractive, recommend against grading.
 
 key_reasons:
-This field explains why you gave it this recommendation, beyond just looking at price values.
-Don't make an entire key_reason that purely states prices or fees. Avoid using too many price values in a key_reason.
-This is about the logic and reasoning behind the recommendation.
-Avoid too many price details. Make sure it's always clear WHY or HOW the key_reason is affecting the grading decision. Be specific.
-The reader should understand exactly how the grading decision is affected other than just looking at price values.
+Explain WHY the recommendation was reached, not merely prices/fees.
 
-If a PSA-grade has seemingly high prices when exploring the markets and price-data, but it's still not a clear recommendation to get it graded,
-it's very important to make it clear the reasons why it's not worthwhile grading. A user reading your response should never feel confused about why they
-shouldn't grade a card if it clearly has high prices, but you still don't really recommend it.
-A beginner should easily understand what every key_reason is trying to communicate.
+Use material factors specific to this card such as condition sensitivity, grade scarcity, population relative to demand, liquidity, price stability, buyer behavior, and lower-grade economics.
+
+Do not say a grade loses money or offers limited value if calculations show substantial positive incremental value.
+
+Interpret population with demand and sales activity; high population does not automatically mean poor value/liquidity.
 
 important_notes_and_caveats:
-The strings in this array should never purely state prices or fees. It must inform the collector about important considerations, limitations, risks, or common pitfalls specifically for this card, that may affect the decision to submit the card for grading.
-Be specific, provide details if available. Make sure it's always clear WHY or HOW every important_notes_and_caveats is
-affecting the grading decision. A beginner should easily understand what every important_notes_and_caveats is trying to communicate.
+Identify whether there are any important considerations, limitations, risks, or common pitfalls that are specific to this card and could affect the grading decision.
 
-calculate_grade:
-This is an example where we calculate the whole grading process for a specific PSA-grade. The PSA-grade you use as an example must be exactly 1 grade below whatever you
-mentioned in the conclusion as a recommended target or minimum, to make it worthwhile grading.
-Do not mention that it's one grade below the conclusion/recommendation, only state which grade you chose as an example. Make everything clear and concise.
-It's hard to read all that numbered text in 1 string, so break it into sections so that each part is its own string entry in the array.
-Include all the normal and expected costs/fees in the whole process, including selling fees/costs. Last part should be a
-summary of the final profit/loss after all costs are considered. Make sure to include the expected turnaround time for grading and selling,
-and how that affects the overall profit/loss.
+If there are no meaningful considerations specific to this card, leave the array empty. Don't include generic considerations that applies to most our all cards, unless it's particularly relevant to this exact card. Do not mention Declared-value caps or risks of upcharges when grading.
 
-Formatting calculation strings inside calculate_grade:
-don't format numbers using tilde symbols if it's two numbers in a row.
-Example of what it SHOULD NOT look like: "~$1,024 - $450 raw - $75 grading = ~$499."
-Example of what it SHOULD look like: "$1,024-$450raw - $75grading = ~$499."
+Be clear and specific. Make sure it's always clear WHY or HOW each consideration affects the grading decision. A beginner should easily understand what each consideration is trying to communicate.
 
-Make sure you have decent data to back up calculations, including Turnaround time and expected selling time etc.
 
-Dont try to force inputs if it's a boring card with nothing interesting to say. The goal is to make it clear what affected it's grading recommendation.
+calculate_grading:
+Compare selling raw now vs grading and selling later.
+
+If a target exists, calculate the grade immediately below it as the downside example. State the grade but not why it was selected.
+
+Also include a concise validation of the TARGET grade's approximate net advantage.
+
+If no target exists because even PSA 10 is unattractive, calculate PSA 10 instead.
+
+Include when relevant: condition-comparable raw sale price; raw selling costs; selected graded sale price; grading + shipping/insurance; graded selling costs; grading + resale timeframe; target-grade net advantage.
+
+Use these definitions consistently:
+Net raw = raw sale price - all applicable raw selling costs.
+Net graded = graded sale price - all applicable graded selling costs - grading/submission costs.
+Incremental gain/loss from grading = net graded - net raw.
+
+Do not subtract the card's raw value as a grading cost. Do not double-count costs already included elsewhere.
+
+Show important arithmetic clearly. If net graded is negative, describe it as a net loss.
+
+If the lower grade is positive, do not call it a loss. The possibility of receiving a lower grade is submission risk; do not use it to reduce the calculated economics of the grade currently being evaluated.
+
+Final string: state whether the selected outcome is positive, marginal, or negative and how relevant time/market risk affects it.
+
+SELLING/GRADING COSTS
+
+Use a realistic selling venue/fee structure for the card's value and market. Use comparable raw/graded assumptions unless a genuine market difference exists.
+
+Use current official grading-company information for fees, service eligibility, declared-value rules, upcharges, and turnaround when available.
+
+Never assume a higher grading tier is required solely because the card might receive a high grade or become highly valuable. Verify actual current service/upcharge rules.
+
+Because the card is already owned, grading time means it is unavailable for sale and exposed to market changes; raw value is not newly invested cash. Do not exaggerate normal volatility.
+
+DATA QUALITY
+
+Always include PriceCharting when relevant but do not rely on it alone.
+
+Prioritize relevant completed sales. Reliability depends on sale count, recency, condition comparability, consistency, correct variant, and venue.
+
+Compare sources rather than blindly averaging them. If a price guide differs materially from recent comparable sales, investigate why and favor evidence that better represents current realizable value.
+
+Use ranges when appropriate. Do not let one outlier determine value.
+
+Do not make precise claims about sales frequency, volatility, gem rates, common defects, or comparative multipliers without sufficient evidence.
+
+Population counts may be used when supported, but do not convert population ratios directly into the user's grade probability due to selection bias/resubmissions.
+
+If evidence is sparse or conflicting, show uncertainty instead of false precision.
+
+FINAL CHECK
+
+Verify arithmetic; comparable net raw/graded economics; appropriate raw comps; target is the lowest worthwhile grade rather than highest-profit grade; potential_profit uses ONLY PSA 10 upside; conclusion matches calculations; positive grades aren't understated; grade uncertainty stays separate; card-specific risks aren't invented; fees/grading rules are valid; precise claims are supported; JSON matches schema.
+
 
 `;
 
@@ -652,7 +758,7 @@ Use today's date for reference.
 `
 
 export function isWorthGradingPrompt(cardNameAndSet: string): string {
-  return `Would you recommend grading "${cardNameAndSet}"?\n\n${isWorthGrading.trim()}`;
+  return `"${cardNameAndSet}"\n\n${isWorthGrading.trim()}`;
 }
 
 export function collectorsAnalysisPrompt(cardNameAndSet: string): string {
