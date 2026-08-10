@@ -71,11 +71,10 @@ export function JustTcgCardGrid({
   types,
 }: JustTcgCardGridProps) {
   const titleId = useId();
-  const typesKey = types?.length ? types.join("|") : type;
   const requestControllerRef = useRef<AbortController | null>(null);
   const moverTypes = useMemo(
     () => (types?.length ? [...types] : [type]),
-    [type, typesKey],
+    [type, types],
   );
   const [activeType, setActiveType] = useState<JustTcgMoverType>(moverTypes[0]);
   const activeKey = `${activeType}:${period}`;

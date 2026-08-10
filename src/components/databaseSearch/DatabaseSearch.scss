@@ -363,45 +363,6 @@
   }
 }
 
-.explore-price-source-control {
-  align-items: center;
-  background: var(--dropdown-trigger-bg);
-  border: var(--dropdown-border);
-  border-radius: var(--border-radius-pill);
-  box-sizing: border-box;
-  display: flex;
-  gap: 0.15rem;
-  height: var(--dropdown-trigger-height);
-  padding: 0.25rem;
-
-  label {
-    align-items: center;
-    border-radius: var(--border-radius-pill);
-    color: var(--font-color-muted);
-    cursor: pointer;
-    display: flex;
-    font-size: var(--font-size-label);
-    gap: 0.35rem;
-    height: 100%;
-    padding: 0 0.65rem;
-    transition:
-      background var(--delay-short) ease,
-      color var(--delay-short) ease;
-    white-space: nowrap;
-  }
-
-  label:hover,
-  label:has(input:checked) {
-    background: var(--radio-option-state-bg);
-    color: var(--font-color-secondary);
-  }
-
-  label:has(input:focus-visible) {
-    outline: 2px solid var(--custom-color-blue);
-    outline-offset: 1px;
-  }
-}
-
 /* ----- Results (full shell width, left-aligned text) ----- */
 
 .search-results {

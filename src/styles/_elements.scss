@@ -375,19 +375,19 @@ input[type="radio"] {
   flex: 0 0 auto;
   font-family: var(--font-family-base);
   font-weight: var(--font-weight-medium);
-  font-size: var(--font-size-paragraph-sm);
-  gap: 0.2rem;
-  height: 1.85rem;
+  font-size: var(--font-size-label);
+  gap: 0.18rem;
+  height: 1.7rem;
   justify-content: center;
   line-height: 1;
   letter-spacing: 0.02rem;
   margin: 0;
-  max-height: 1.85rem;
+  max-height: 1.7rem;
   max-width: 100%;
   min-width: 0;
-  min-height: 1.85rem;
+  min-height: 1.7rem;
   overflow: hidden;
-  padding: 0.45rem 0.78rem;
+  padding: 0.32rem 0.68rem;
   text-align: center;
   text-overflow: ellipsis;
   vertical-align: middle;
@@ -466,18 +466,18 @@ input[type="radio"] {
 }
 
 .app-badge--sm {
-  font-size: 0.7rem;
-  height: 1.5rem;
-  max-height: 1.5rem;
-  min-width: 3.9rem;
-  min-height: 1.5rem;
-  padding: 0.12rem 0.65rem 0.14rem;
+  font-size: 0.68rem;
+  height: 1.38rem;
+  max-height: 1.38rem;
+  min-width: 0;
+  min-height: 1.38rem;
+  padding: 0.1rem 0.58rem 0.12rem;
 }
 
 .app-badge--md {
-  height: 1.85rem;
-  max-height: 1.85rem;
-  min-height: 1.85rem;
+  height: 1.7rem;
+  max-height: 1.7rem;
+  min-height: 1.7rem;
 }
 
 .app-badge--weight-medium {

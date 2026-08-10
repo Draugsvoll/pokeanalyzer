@@ -3,13 +3,13 @@ import { JustTcgCardGrid } from '../../components/justTcgCardGrid/JustTcgCardGri
 import { WelcomeView } from '../../components/welcomeView/WelcomeView';
 import './Homepage.scss'
 
+const HOME_MOVER_TYPES = ["biggestGainers", "biggestLosers"] as const;
+
 export default function Homepage() {
   return (
     <div className="page-container">
       <WelcomeView />
-      <JustTcgCardGrid
-        types={["biggestGainers", "biggestLosers"]}
-      />
+      <JustTcgCardGrid types={HOME_MOVER_TYPES} />
       <NewsLane />
     </div>
   );

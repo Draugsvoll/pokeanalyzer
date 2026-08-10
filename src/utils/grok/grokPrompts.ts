@@ -115,7 +115,13 @@ If 2 variant names end up identical for some reason (which shouldn't happen), th
 We only do that if the variant names are identical and we need to differentiate them.
 Use precise official/common print terms such as "Holo", "Reverse Holo", "Non-Holo", "1st Edition", "Unlimited", or "Shadowless".
 Do not call a variant "Non-Holo" if the actual print is Reverse Holo.
-If you are unsure whether a print is Reverse Holo or Non-Holo, verify from reliable sources before naming the variant.
+Don't mix up "Reverse Holo" with "Holo".
+"Holo" and "Reverse Holo" are different variants and must never be merged.
+If PriceCharting has separate pages for Holo and Reverse Holo, return them as separate variant entries.
+If you are unsure whether a print is Reverse Holo, Holo, or Non-Holo, verify from reliable sources before naming the variant.
+
+If PriceCharting has only one English variant available but you are unsure about the variant name,
+do additional research using reliable sources to try and identify it more accurately.
 `.trim();
 
 const salesData: string = `
@@ -124,59 +130,52 @@ Can you fetch sold data based on grading for this card at PriceCharting website?
 Response must be only a valid JSON format. No extra text before or after the JSON format.
 Response must be put into the exact structure as the example response below.
 If data not available just leave the field empty.
-If there are multiple English variants available, include each one in the variants array.
-Remember to include variant name for each entry.
+The root JSON value must be an array. Each item in the array is one English variant.
+Each variant entry must include the variant name in the "variant" field.
 
 ${variantPrintNameInstructions}
 
 Notes field is optional for each variant. If there's valuable information related to that specific variant
-that collectors would want to know, then add it.
+that collectors would want to know, then add it. Each note is a string in the notes array.
 
-
-{
-  "title": "Blaine's Charizard #2",
-  "subtitle": "Gym Challenge • Unlimited • Rare Holo • PriceCharting Data",
-  "variants": [
-    {
-      "variant": "Unlimited Holo",
-      "market_prices": [
-        {
-          "grade": "Ungraded",
-          "price": "$272.83",
-          "volume": "~1 sale / week"
-        },
-        {
-          "grade": "Grade 7",
-          "price": "$568.23",
-          "volume": "~2 sales / week"
-        },
-        {
-          "grade": "Grade 8",
-          "price": "$830.00",
-          "volume": "~3 sales / week"
-        },
-        {
-          "grade": "Grade 9",
-          "price": "$1,173.92",
-          "volume": "~3 sales / week"
-        },
-        {
-          "grade": "Grade 9.5",
-          "price": "$1,290.02",
-          "volume": "~6 sales / year"
-        },
-        {
-          "grade": "PSA 10",
-          "price": "$6,000.25",
-          "volume": "~1 sale / month"
-        }
-      ],
-      "notes": [
-        ""
-      ]
-    }
-  ]
-}
+[
+  {
+    "variant": "Unlimited Holo",
+    "market_prices": [
+      {
+        "grade": "Ungraded",
+        "price": "$272.83",
+        "volume": "~1 sale / week"
+      },
+      {
+        "grade": "Grade 7",
+        "price": "$568.23",
+        "volume": "~2 sales / week"
+      },
+      {
+        "grade": "Grade 8",
+        "price": "$830.00",
+        "volume": "~3 sales / week"
+      },
+      {
+        "grade": "Grade 9",
+        "price": "$1,173.92",
+        "volume": "~3 sales / week"
+      },
+      {
+        "grade": "Grade 9.5",
+        "price": "$1,290.02",
+        "volume": "~6 sales / year"
+      },
+      {
+        "grade": "PSA 10",
+        "price": "$6,000.25",
+        "volume": "~1 sale / month"
+      }
+    ],
+    "notes": []
+  }
+]
 
 
 `
@@ -463,7 +462,7 @@ Give it a score from 1-100 where 100 would be the most desired card among collec
 You must research deeply (using reliable sources) before estimating the card,
 to avoid giving different scores to the same card when asked again later.
 
-If a card has multiple english variants, we want an analysis for each one you can find reliable data on. Don't include any Japanese variants.
+If a card has multiple English variants, we want an analysis for each one you can find reliable data on. Don't include any Japanese variants.
 
 Do not include sibling cards, counterpart cards, same-artwork cards,
 or related card numbers as variants to analyze. Only analyze variants of the exact card provided.
@@ -479,14 +478,13 @@ Significance
 Artwork & Aesthetics
 Long-Term Collectibility
 
-The output should now be in a summarized and fairly concise format.
-
 Make the category long-term collectibility less weighted than the others,
 but don't mention that. Give each category a score as well. All the scores are whole
-numbers as a string. for example 43/100 is "43" the response should be your output into
-a valid json, as formatted below. The response must only be a valid JSON format, no text added before or after.
+numbers as a string. For example 43/100 is "43".
 
-The root value must be an array. Each item in the array represents one English variant you found.
+The response must only be a valid JSON object, no text added before or after.
+The root object must contain an "analyses" array. Each item in the array represents one English variant you found.
+Use exactly the field names and nesting shown in the example response below.
 
 
 The overview field must be as concise and relevant to the collector as possible,
@@ -497,14 +495,48 @@ how this fits into an overall collection and the collection market.
 
 The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
 
+Example response below. Use the exact same structure and field names. Never invent data.
+
 ${variantPrintNameInstructions}
 
-variant
-totalScore
-verdict
-overview
-categories - each category has fields: score, name, text
-finalNote
+{
+  "analyses": [
+    {
+      "variant": "Unlimited Holo",
+      "totalScore": "82",
+      "verdict": "Iconic vintage holo with strong collector demand.",
+      "overview": "A desirable vintage holo from an important set, with broad appeal among set collectors.",
+      "categories": [
+        {
+          "name": "Rarity & scarcity",
+          "score": "78",
+          "text": "The card is not impossible to find, but clean copies and high-grade examples are meaningfully harder to source."
+        },
+        {
+          "name": "Collectors Demand",
+          "score": "88",
+          "text": "Demand is strong because the Pokemon, artwork, set, and era are all recognizable to collectors."
+        },
+        {
+          "name": "Significance",
+          "score": "84",
+          "text": "The card has lasting importance because of its place in the broader Pokemon collecting market."
+        },
+        {
+          "name": "Artwork & Aesthetics",
+          "score": "80",
+          "text": "The artwork is memorable and fits the collector expectations for this era and print style."
+        },
+        {
+          "name": "Long-Term Collectibility",
+          "score": "76",
+          "text": "Long-term interest should remain healthy, though upside depends on condition, supply, and broader market demand."
+        }
+      ],
+      "finalNote": "This variant fits well as a recognizable collector piece, especially for condition-focused vintage collectors."
+    }
+  ]
+}
 
 
 Now rank this card:
@@ -515,179 +547,149 @@ Now rank this card:
 
 const isWorthGrading: string =
 `
-Can it make financial sense to grade this card instead of keeping or selling it raw?
+Can it make financial sense to grade this and sell it, instead of selling it raw today?
 
-Assume the user already owns the card.
+Break down the grading economics for PSA7,8,9,10 including selling fees/costs, showing us total expected ROI of grading it and then sell, versus selling it raw today. Use reliable sources.
 
-Research current market data using multiple reliable sources for completed sales, market values, population when relevant, grading costs, and turnaround. Always include PriceCharting when available. Prioritize completed sales over asking prices.
+Then give a recommendation. If it's not really recommended even though it's showing paper
+profits, you must explain the reasons for that and how or why it affects the decision. A beginner should be able to easily understand it.
+Make everything clear and specific so users can understand well.
 
-Focus on this exact card, printing, variant, era, condition profile, and market. Prioritize reliable card-specific grading characteristics and pitfalls over generic grading advice.
 
-GENERAL APPROACH
 
-Adapt analysis to the card. Consider only material factors: condition/known defects, realistic grades, raw vs graded demand, population relative to demand, liquidity, price consistency, grading/selling costs, turnaround, and market risk.
+The example below is written in very dry and data-driven language. You must instead write in clear, natural language.
+Adjust the strength of your wording proportionally to the size of the actual edge or risk.
+Be clear about probabilities and expected value.
 
-Keep simple/cheap cards concise. Analyze valuable, unusual, condition-sensitive, or thinly traded cards more deeply.
+Research current PSA population data for the exact card/variant, including total PSA population and grade-specific populations.
+For PSA 7, PSA 8, PSA 9, and PSA 10, calculate each grade's percentage of the total PSA population.
+Use that data to fill all PSA population fields. Do not forget any population fields.
+Population fields include the PSA grade in their field name to make it clear which grade they refer to.
+Use the correct grade-specific data for each field. Use reliable sources.
+If data is not available for a field, leave the field empty, don't invent anything.
 
-RAW VS GRADED
-
-Raw value is NOT an acquisition cost. Compare net proceeds selling raw now vs grading and selling later.
-
-Use condition-comparable completed raw sales when condition materially affects value. Do not let broad ungraded averages mixing different conditions distort the comparison.
-
-When recommending a high target grade, compare against similarly strong raw examples. Do not combine lower-condition categories merely to increase comps or inflate grading upside. If comparable sales are scarce, use ranges and lower confidence.
-
-If condition barely affects value, broader comps are acceptable. Keep materially different sale states (e.g. sealed/opened) separate when they affect value.
-
-TARGET VS OUTCOME
-
-A financially positive grade produces higher net proceeds than selling raw now.
-
-A recommended target grade is the lowest grade potential at which grading provides a worthwhile financial advantage over selling raw after normal costs.
-
-Never call a financially positive grade a loss simply because a higher grade is more profitable.
-
-TARGET VALIDATION
-
-The target should be the LOWEST grade at which grading provides a worthwhile financial advantage over selling a condition-comparable raw copy after normal grading, shipping, insurance, and selling costs.
-
-Consider turnaround, liquidity, and market risk when materially important, but do not apply an excessive margin of safety or automatically require a higher grade simply because it offers more profit or less risk.
-
-If a lower grade already provides a clear and worthwhile incremental gain, prefer that lower grade as the target unless a specific evidence-supported factor makes that gain unreliable or unattractive.
-
-A small, fragile, or near-breakeven gain does not automatically make a grade the target.
-
-Do not choose PSA 10 simply because it has the greatest upside. PSA 10 may represent exceptional potential while PSA 8 or PSA 9 is the financially sensible target.
-
-The grade below the final target is a downside example; it does not determine the target.
-
-If even PSA 10 does not provide a worthwhile advantage over selling raw after costs, recommend against grading. If evidence is too weak to establish a reliable target, reduce confidence.
-
-CONDITION
-
-Unless images or reliable condition details are provided, do not pretend to know the user's grade.
-
-Evaluate grading economics for a reasonable grading candidate and make the recommendation conditional on the card showing the required quality.
-
-Do not infer the user's grade probability solely from population reports.
-
-OUTPUT
-
-Your entire response must be a valid JSON object, with the exact format shown below.
-Don't add any text before or after the JSON object.
+Your entire response must be a valid JSON object, no text added before or after.
+The example response below shows the structure and format you must follow.
+Never under any circumstances can you skip analysis and copy data below. You must always do
+a proper analysis and then fill in the schema with your results.
 
 {
-"confidence":{"score":"","reason":""},
-"potential_profit":"",
-"realistic_profit":"",
-"conclusion":"",
-"key_reasons":[],
-"important_notes_and_caveats":[],
-"calculate_grading":[]
+"card": {
+"name": "Charizard Holo",
+"set": "Base Set Unlimited",
+"number": "4/102",
+"variant": "Holo Rare",
+"year": 1999
+},
+"assumptions": {
+"raw_market_price_usd": 500,
+"grading_service": "PSA",
+"grading_tier": "Regular",
+"grading_fee_usd": 80,
+"shipping_insurance_supplies_usd": 50,
+"total_grading_cost_usd": 130,
+"ebay_fee_rate_low": 0.135,
+"ebay_fee_rate_high_value": 0.07,
+"high_value_threshold_usd": 1000,
+"notes": "Prices are approximate mid-2026 market averages from recent sold comps (PriceCharting, eBay, TCGPlayer aggregators). Raw assumes Near Mint / strong LP condition suitable for grading attempt. PSA fees reflect paused Value tiers (Regular is current entry). eBay high-value discount (50% off FVF on $1k+) applied where relevant. No taxes, no promoted listings, no membership amortization. Actual results vary with condition, market timing, and exact fees."
+},
+"raw_sale_today": {
+"gross_sale_usd": 500,
+"estimated_fees_usd": 68,
+"net_proceeds_usd": 432,
+"time_to_cash": "1-14 days"
+},
+"graded_scenarios": [
+{
+"grade": "PSA 7",
+"expected_sale_price_usd": 750,
+"grading_cost_usd": 130,
+"ebay_fees_usd": 101,
+"net_after_all_costs_usd": 519,
+"roi_vs_raw_net_percent": 20.1,
+"net_profit_vs_raw_usd": 87,
+"psa_7_population": 12500,
+"psa_7_population_percent": 31.2,
+"break_even": true,
+"notes": "Modest uplift. Fees and grading cost consume most of the premium."
+},
+{
+"grade": "PSA 8",
+"expected_sale_price_usd": 1400,
+"grading_cost_usd": 130,
+"ebay_fees_usd": 98,
+"net_after_all_costs_usd": 1172,
+"roi_vs_raw_net_percent": 171.3,
+"net_profit_vs_raw_usd": 740,
+"psa_8_population": 14200,
+"psa_8_population_percent": 35.5,
+"break_even": true,
+"notes": "Solid paper profit after costs."
+},
+{
+"grade": "PSA 9",
+"expected_sale_price_usd": 2900,
+"grading_cost_usd": 130,
+"ebay_fees_usd": 203,
+"net_after_all_costs_usd": 2567,
+"roi_vs_raw_net_percent": 494.0,
+"net_profit_vs_raw_usd": 2135,
+"psa_9_population": 6000,
+"psa_9_population_percent": 15.0,
+"break_even": true,
+"notes": "Strong return if achieved."
+},
+{
+"grade": "PSA 10",
+"expected_sale_price_usd": 20000,
+"grading_cost_usd": 130,
+"ebay_fees_usd": 1400,
+"net_after_all_costs_usd": 18470,
+"roi_vs_raw_net_percent": 4175.5,
+"net_profit_vs_raw_usd": 18038,
+"psa_10_population": 450,
+"psa_10_population_percent": 0.5,
+"break_even": true,
+"notes": "Huge upside, but extremely low probability for a random Unlimited copy."
+}
+],
+"probability_context": {
+"psa_total_population": 40000
+},
+"recommendation": {
+"should_grade": false,
+"summary": "Generally not recommended for a typical raw Unlimited Charizard unless the card is visually exceptional (near-perfect centering, zero whitening, clean holo, sharp corners) and you have a high-confidence pre-grade opinion from an experienced grader or service.",
+"reasons": [
+"High population and commonality of Unlimited printings keep mid-grade premiums modest relative to total costs and risk.",
+"PSA 7 barely covers costs + risk; PSA 8 is the realistic 'good' outcome for most decent copies and still requires waiting 1-3 months + capital tied up.",
+"True PSA 10s are rare unicorns on this print run — chasing them with average cards is gambling, not investing.",
+"Market liquidity is excellent raw; you can sell today and redeploy capital. Grading adds time risk (price drops, interest rates, opportunity cost).",
+"Even when paper ROI looks positive on PSA 8/9, the probability-weighted outcome for an unassessed card is often close to break-even or slightly negative after realistic grade distribution.",
+"Beginners frequently overestimate grade potential; whitening, print lines, and centering that look minor to the eye often drop the card a full grade."
+],
+"when_it_can_make_sense": [
+"Card has been pre-screened and is a strong PSA 9+ candidate.",
+"You already have other cards in a bulk submission so per-card shipping is diluted.",
+"You plan to hold long-term regardless and want the protection/liquidity of a slab.",
+"You enjoy the process and treat the grading fee as entertainment cost rather than pure ROI."
+],
+"beginner_advice": "Sell raw today if you need the money or want certainty. Only grade if the card looks dramatically better than average NM copies and you accept that a PSA 7 or 8 is the most likely result. Always check recent sold listings (not asking prices) on eBay and PriceCharting right before deciding."
+},
+"methodology": "Net = expected sale price − total grading cost − estimated eBay fees. ROI = (graded net − raw net) / raw net × 100. Fees approximate current eBay trading-card structure with high-value discount applied above $1,000. All figures are estimates for illustration; verify live comps and exact PSA/eBay rates before acting."
 }
 
-key_reasons, important_notes_and_caveats, and calculate_grading must be arrays of plain strings only. Do not return objects or nested arrays inside them. Each item must be directly renderable text.
+For fields with "_rate" in the field name, return decimal numbers only, exactly like the example above.
+Example: use 0.135 for 13.5%, not "13.5%" or 13.5.
 
-confidence:
-"score" is a 1-100 number represented as a string.
+When calculating Profit vs Raw and ROI:
+Calculate Raw Net = Raw sale price – selling fees on the raw sale.
+Calculate Graded Net = Graded sale price – grading costs – selling fees on the graded sale.
+Profit vs Raw = Graded Net – Raw Net
+ROI = (Graded Net – Raw Net) / Raw Net × 100
 
-"reason" briefly explains confidence based on evidence quality, recency, comparability, consistency, and completeness.
+Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
+Never use the raw sale price directly as the baseline without subtracting its selling fees.
 
-Reduce confidence for sparse sales, weak comparable data, unresolved conflicting comps, unknown condition, or other material uncertainty.
-
-potential_profit:
-Must be exactly "none","breakeven","low","modest","decent","high", or "very high".
-
-This describes potential profit assuming the card is a perfect example that achieves PSA 10, compared with selling it raw after relevant costs.
-
-Base it on a reasonably supported current PSA 10 value, not an isolated outlier. A very large PSA 10 net premium over raw should be "very high" even when PSA 10 is extremely unlikely.
-
-realistic_profit:
-Uses the same labels.
-
-Represents realistic risk-adjusted financial attractiveness BEFORE the grade is known for a reasonable grading candidate.
-
-Consider realistic grades, condition sensitivity, values, costs, liquidity, price stability, turnaround, and lower-grade downside.
-
-potential_profit = PSA 10 upside only. realistic_profit = realistic submission attractiveness before grade is known. Do not mix them.
-
-conclusion:
-Keep under about 35-40 words.
-
-State whether grading appears worthwhile and, when appropriate, the lowest worthwhile target PSA grade.
-
-If PSA 10 is unattractive, recommend against grading.
-
-key_reasons:
-Explain WHY the recommendation was reached, not merely prices/fees.
-
-Use material factors specific to this card such as condition sensitivity, grade scarcity, population relative to demand, liquidity, price stability, buyer behavior, and lower-grade economics.
-
-Do not say a grade loses money or offers limited value if calculations show substantial positive incremental value.
-
-Interpret population with demand and sales activity; high population does not automatically mean poor value/liquidity.
-
-important_notes_and_caveats:
-Identify whether there are any important considerations, limitations, risks, or common pitfalls that are specific to this card and could affect the grading decision.
-
-If there are no meaningful considerations specific to this card, leave the array empty. Don't include generic considerations that apply to most or all cards, unless it's particularly relevant to this exact card. Do not mention Declared-value caps or risks of upcharges when grading.
-
-Be clear and specific. Make sure it's always clear WHY or HOW each consideration affects the grading decision. A beginner should easily understand what each consideration is trying to communicate.
-
-
-calculate_grading:
-Compare selling raw now vs grading and selling later.
-
-If a target exists, calculate the grade immediately below it as the downside example. State the grade but not why it was selected.
-
-Also include a concise validation of the TARGET grade's approximate net advantage.
-
-If no target exists because even PSA 10 is unattractive, calculate PSA 10 instead.
-
-Include when relevant: condition-comparable raw sale price; raw selling costs; selected graded sale price; grading + shipping/insurance; graded selling costs; grading + resale timeframe; target-grade net advantage.
-Timeframe should mention what actually takes time (turnaround time? ebay sale? other?)
-
-Use these definitions consistently:
-Net raw = raw sale price - all applicable raw selling costs.
-Net graded = graded sale price - all applicable graded selling costs - grading/submission costs.
-Incremental gain/loss from grading = net graded - net raw.
-
-Do not subtract the card's raw value as a grading cost. Do not double-count costs already included elsewhere.
-
-If net graded is negative, describe it as a net loss.
-
-If the lower grade is positive, do not call it a loss. The possibility of receiving a lower grade is submission risk; do not use it to reduce the calculated economics of the grade currently being evaluated.
-
-Final string: state whether the selected outcome is positive, marginal, or negative and how relevant time/market risk affects it.
-
-SELLING/GRADING COSTS
-
-Use a realistic selling venue/fee structure for the card's value and market. Use comparable raw/graded assumptions unless a genuine market difference exists.
-
-Use current official grading-company information for fees, service eligibility, declared-value rules, upcharges, and turnaround when available.
-
-Never assume a higher grading tier is required solely because the card might receive a high grade or become highly valuable. Verify actual current service/upcharge rules.
-
-Because the card is already owned, grading time means it is unavailable for sale and exposed to market changes; raw value is not newly invested cash. Do not exaggerate normal volatility.
-
-DATA QUALITY
-
-Always include PriceCharting when relevant but do not rely on it alone.
-
-Prioritize relevant completed sales. Reliability depends on sale count, recency, condition comparability, consistency, correct variant, and venue.
-
-Compare sources rather than blindly averaging them. If a price guide differs materially from recent comparable sales, investigate why and favor evidence that better represents current realizable value.
-
-Use ranges when appropriate. Do not let one outlier determine value.
-
-Do not make precise claims about sales frequency, volatility, gem rates, common defects, or comparative multipliers without sufficient evidence.
-
-Population counts may be used when supported, but do not convert population ratios directly into the user's grade probability due to selection bias/resubmissions.
-
-If evidence is sparse or conflicting, show uncertainty instead of false precision.
-
-FINAL CHECK
-Verify arithmetic; conclusion matches calculations; target economics are valid; potential_profit uses only PSA 10 upside; card-specific risks aren't invented; JSON matches schema.
 `;
 
 export const getBiggestMovers: string =

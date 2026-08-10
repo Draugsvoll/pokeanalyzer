@@ -225,9 +225,6 @@ export function PokemonCardView({
     activeOption?.source === "justtcg" && activeOption.groupKey
       ? (activeOption.groupKey.split("|")[0] ?? activeOption.label)
       : activeOption?.label;
-  const conditionLabel = activeOption?.conditionLabel;
-  const sourceRowConditionLabel =
-    activeOption?.source === "tcgplayer" ? "Near Mint" : conditionLabel;
   const sourceLabel = activeOption
     ? getCardPriceSourceLabel(activeOption.source)
     : null;
@@ -470,9 +467,19 @@ export function PokemonCardView({
         </div>
 
         <div className="pokemon-card__identity">
-          <h2 className="pokemon-card__name" title={card.name}>
-            {card.name}
-          </h2>
+          <div className="pokemon-card__name-row">
+            <h2 className="pokemon-card__name" title={card.name}>
+              {card.name}
+            </h2>
+            {printedCardNumber && (
+              <span
+                className="pokemon-card__number"
+                title={`Card number ${printedCardNumber}`}
+              >
+                {printedCardNumber}
+              </span>
+            )}
+          </div>
           <div className="pokemon-card__set-row">
             <span className="pokemon-card__set" title={card.set?.name}>
               {card.set?.name ?? "Unknown set"}
@@ -483,14 +490,6 @@ export function PokemonCardView({
                 <span className="pokemon-card__series-name">
                   {card.set.series}
                 </span>
-              </span>
-            )}
-            {printedCardNumber && (
-              <span
-                className="pokemon-card__number card-number-badge"
-                title={`Card number ${printedCardNumber}`}
-              >
-                {printedCardNumber}
               </span>
             )}
           </div>
@@ -559,11 +558,8 @@ export function PokemonCardView({
                     </span>
                   ))}
               </div>
-            </div>
 
-            {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
-              <div className="pokemon-card__variant-row">
-                {/* <span className="pokemon-card__source-heading">Source</span> */}
+              {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
                 <div className="pokemon-card__source">
                   <button
                     ref={sourceToggleRef}
@@ -578,19 +574,6 @@ export function PokemonCardView({
                       else setSourceOpen(true);
                     }}
                   >
-                    {sourceRowConditionLabel && (
-                      <span className="pokemon-card__source-condition">
-                        {sourceRowConditionLabel}
-                      </span>
-                    )}
-                    {sourceRowConditionLabel && sourceLabel && (
-                      <span
-                        className="pokemon-card__source-separator"
-                        aria-hidden="true"
-                      >
-                        ·
-                      </span>
-                    )}
                     {sourceLabel && (
                       <span className="pokemon-card__source-name">
                         {sourceLabel}
@@ -604,8 +587,8 @@ export function PokemonCardView({
 
                   {sourceFlyout}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

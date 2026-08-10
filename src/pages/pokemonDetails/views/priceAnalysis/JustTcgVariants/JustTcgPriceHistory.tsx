@@ -8,10 +8,10 @@ import type {
 
 const VIEWBOX_WIDTH = 800;
 const VIEWBOX_HEIGHT = 300;
-const PLOT_LEFT = 42;
+const PLOT_LEFT = 34;
 const PLOT_RIGHT = 8;
 const PLOT_TOP = 20;
-const PLOT_BOTTOM = 42;
+const PLOT_BOTTOM = 38;
 const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT_LEFT - PLOT_RIGHT;
 const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
 const Y_TICK_COUNT = 6;
@@ -441,14 +441,7 @@ export function JustTcgPriceHistory({
           >
             <div>
               {groups.map((group) => (
-                <label
-                  className={
-                    group.printing.toLowerCase().includes("reverse")
-                      ? "is-reverse"
-                      : undefined
-                  }
-                  key={group.id}
-                >
+                <label key={group.id}>
                   <input
                     checked={selectedGroup.id === group.id}
                     name={`${controlId}-variant`}

@@ -1,5 +1,5 @@
 import { Layers3 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
@@ -257,11 +257,11 @@ function getStepOrder(step: SellPriceStep, index: number) {
 
 export function SellPriceView({ grokRequest }: SellPriceViewProps) {
   const { loading, error, response } = grokRequest;
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedVariantIndex(0);
-  }, [response]);
+  const responseKey = response ?? "";
+  const [selectedVariant, setSelectedVariant] = useState({
+    index: 0,
+    responseKey: "",
+  });
 
   if (loading) return <LoadingState>Calculating selling price...</LoadingState>;
   if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
@@ -273,6 +273,8 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
+  const selectedVariantIndex =
+    selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
   const activeVariantIndex = content.variants[selectedVariantIndex]
     ? selectedVariantIndex
     : 0;
@@ -301,12 +303,14 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                 <div>
                   {content.variants.map((variant, variantIndex) => (
                     <label key={`${variant.title}-${variantIndex}`}>
-                      <input
-                        checked={activeVariantIndex === variantIndex}
-                        name="sell-price-variant"
-                        onChange={() => setSelectedVariantIndex(variantIndex)}
-                        type="radio"
-                      />
+                        <input
+                          checked={activeVariantIndex === variantIndex}
+                          name="sell-price-variant"
+                          onChange={() =>
+                            setSelectedVariant({ index: variantIndex, responseKey })
+                          }
+                          type="radio"
+                        />
                       <span>
                         <Layers3 size={16} strokeWidth={2.1} />
                         <strong>{variant.title}</strong>

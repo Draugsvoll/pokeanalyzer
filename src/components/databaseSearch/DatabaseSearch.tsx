@@ -2,11 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
-import {
-  getCardPriceOptionForSourceKey,
-  resolveCardPriceOption,
-  type CardPriceSource,
-} from "../../utils/pokemonPricing";
+import { resolveCardPriceOption } from "../../utils/pokemonPricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
@@ -161,8 +157,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const [resultRenderKey, setResultRenderKey] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
-  const [priceSource, setPriceSource] =
-    useState<CardPriceSource>("tcgplayer");
   const [sortDirection, setSortDirection] =
     useState<SearchSortDirection>("price-high-low");
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
@@ -191,9 +185,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       }
 
       const getDisplayedPrice = (card: PokemonCardType) =>
-        embedded
-          ? resolveCardPriceOption(card, null, priceSource)?.price
-          : getCardPriceOptionForSourceKey(card, priceSource)?.price;
+        resolveCardPriceOption(card)?.price;
       const aPrice = getDisplayedPrice(a);
       const bPrice = getDisplayedPrice(b);
       const aSortPrice =
@@ -211,7 +203,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         ? bSortPrice - aSortPrice
         : aSortPrice - bSortPrice;
     });
-  }, [embedded, priceSource, results, sortDirection]);
+  }, [results, sortDirection]);
 
   async function handleSearch() {
     if (!canSearch || isSearching) return;
@@ -344,34 +336,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                     </p>
                   </div>
                   <div className="explore-results-toolbar__actions">
-                    <div
-                      className="explore-price-source-control"
-                      role="radiogroup"
-                      aria-label="Search result price source"
-                    >
-                      <label>
-                        <input
-                          className="app-radio"
-                          type="radio"
-                          name="search-result-price-source"
-                          value="tcgplayer"
-                          checked={priceSource === "tcgplayer"}
-                          onChange={() => setPriceSource("tcgplayer")}
-                        />
-                        <span>TCGPlayer</span>
-                      </label>
-                      <label>
-                        <input
-                          className="app-radio"
-                          type="radio"
-                          name="search-result-price-source"
-                          value="cardmarket"
-                          checked={priceSource === "cardmarket"}
-                          onChange={() => setPriceSource("cardmarket")}
-                        />
-                        <span>Cardmarket</span>
-                      </label>
-                    </div>
                     <label className="explore-sort-control">
                       <span>Sort by</span>
                       <SelectDropdown
@@ -393,8 +357,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   <PokemonCardView
                     key={card.id}
                     card={card}
-                    priceSource={priceSource}
-                    lockPriceSource={!embedded}
                     showPriceSourcePicker
                   />
                 ))}

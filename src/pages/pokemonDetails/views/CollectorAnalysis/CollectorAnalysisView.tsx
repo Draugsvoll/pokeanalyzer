@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -107,11 +107,11 @@ export default function CollectorAnalysis({
   grokRequest,
 }: CollectorAnalysisProps) {
   const { loading, error, response } = grokRequest;
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedVariantIndex(0);
-  }, [response]);
+  const responseKey = response ?? "";
+  const [selectedVariant, setSelectedVariant] = useState({
+    index: 0,
+    responseKey: "",
+  });
 
   if (loading) return <LoadingState>Building collector report...</LoadingState>;
   if (error)
@@ -123,9 +123,9 @@ export default function CollectorAnalysis({
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
-  const activeVariantIndex = analyses[selectedVariantIndex]
-    ? selectedVariantIndex
-    : 0;
+  const selectedVariantIndex =
+    selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
+  const activeVariantIndex = analyses[selectedVariantIndex] ? selectedVariantIndex : 0;
   const analysis = analyses[activeVariantIndex];
   const totalScore = Math.min(
     100,
@@ -142,12 +142,14 @@ export default function CollectorAnalysis({
         <div>
           {analyses.map((variantAnalysis, variantIndex) => (
             <label key={`${variantAnalysis.variant}-${variantIndex}`}>
-              <input
-                checked={activeVariantIndex === variantIndex}
-                name="collector-analysis-variant"
-                onChange={() => setSelectedVariantIndex(variantIndex)}
-                type="radio"
-              />
+                <input
+                  checked={activeVariantIndex === variantIndex}
+                  name="collector-analysis-variant"
+                  onChange={() =>
+                    setSelectedVariant({ index: variantIndex, responseKey })
+                  }
+                  type="radio"
+                />
               <span>
                 <Layers3 aria-hidden="true" />
                 <strong>{variantAnalysis.variant}</strong>

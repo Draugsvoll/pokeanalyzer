@@ -8,11 +8,12 @@
   width: 100%;
 
   .just-tcg-history {
+    --just-tcg-history-accent: var(--feature-accent, var(--custom-color-orange));
     background: var(--feature-card-bg);
     border: var(--feature-card-border);
     border-radius: var(--feature-card-radius);
     box-shadow: var(--feature-card-shadow);
-    color: var(--custom-color-orange);
+    color: var(--just-tcg-history-accent);
     min-width: 0;
     padding: 1.5rem;
 
@@ -88,14 +89,10 @@
     }
 
     &__radio-group label {
-      --radio-accent: var(--custom-color-orange);
+      --radio-accent: var(--just-tcg-history-accent);
       cursor: pointer;
       display: inline-flex;
       flex: 0 0 auto;
-    }
-
-    &__radio-group label.is-reverse {
-      --radio-accent: #60a5fa;
     }
 
     &__radio-group input {
@@ -403,7 +400,7 @@
     &__date-tick {
       fill: var(--font-color-muted);
       font-family: var(--font-family-base);
-      font-size: 11px;
+      font-size: 9px;
       font-variant-numeric: tabular-nums;
     }
 

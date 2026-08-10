@@ -1,5 +1,5 @@
 import { Layers3 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -64,10 +64,18 @@ function parseNotes(value: unknown): string[] {
 
 function parseSalesData(response: string): SalesData | null {
   const parsed = parseJsonText(response);
-  if (!isRecord(parsed)) return null;
+  if (!parsed || typeof parsed !== "object") return null;
 
-  const variants = Array.isArray(parsed.variants)
-    ? parsed.variants
+  const rawVariants = Array.isArray(parsed)
+    ? parsed
+    : isRecord(parsed) && Array.isArray(parsed.variants)
+      ? parsed.variants
+      : isRecord(parsed) && Array.isArray(parsed.analyses)
+        ? parsed.analyses
+      : [];
+
+  const variants = rawVariants.length
+    ? rawVariants
         .filter(isRecord)
         .map((variant, index) => {
           const variantTitle =
@@ -81,14 +89,17 @@ function parseSalesData(response: string): SalesData | null {
         })
         .filter((variant) => variant.marketPrices.length > 0 || variant.notes.length > 0)
     : [];
-  const fallbackMarketPrices = parseMarketPrices(parsed.market_prices);
+
+  const fallbackMarketPrices = isRecord(parsed)
+    ? parseMarketPrices(parsed.market_prices)
+    : [];
   const displayVariants =
     variants.length > 0
       ? variants
       : fallbackMarketPrices.length > 0
         ? [{ marketPrices: fallbackMarketPrices, notes: [], title: "" }]
         : [];
-  const recentSold = Array.isArray(parsed.recent_sold)
+  const recentSold = isRecord(parsed) && Array.isArray(parsed.recent_sold)
     ? parsed.recent_sold
         .filter(isRecord)
         .map((item) => ({
@@ -98,7 +109,7 @@ function parseSalesData(response: string): SalesData | null {
         .filter((item) => item.label || item.range)
     : [];
   const data = {
-    footer: text(parsed.footer),
+    footer: isRecord(parsed) ? text(parsed.footer) : "",
     recentSold,
     variants: displayVariants,
   };
@@ -127,11 +138,11 @@ function Notes({ notes }: { notes: string[] }) {
 
 export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
   const { loading, error, response } = grokRequest;
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedVariantIndex(0);
-  }, [response]);
+  const responseKey = response ?? "";
+  const [selectedVariant, setSelectedVariant] = useState({
+    index: 0,
+    responseKey: "",
+  });
 
   if (loading) return <LoadingState>Researching sales data...</LoadingState>;
   if (error)
@@ -146,9 +157,9 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
       </p>
     );
   }
-  const activeVariantIndex = data.variants[selectedVariantIndex]
-    ? selectedVariantIndex
-    : 0;
+  const selectedVariantIndex =
+    selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
+  const activeVariantIndex = data.variants[selectedVariantIndex] ? selectedVariantIndex : 0;
   const activeVariant = data.variants[activeVariantIndex];
 
   return (
@@ -174,7 +185,9 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                       name="sales-volume-variant"
                       type="radio"
                       value={variantIndex}
-                      onChange={() => setSelectedVariantIndex(variantIndex)}
+                      onChange={() =>
+                        setSelectedVariant({ index: variantIndex, responseKey })
+                      }
                     />
                     <span>
                       <Layers3 aria-hidden="true" />
