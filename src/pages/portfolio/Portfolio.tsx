@@ -10,6 +10,7 @@ import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import {
   getPortfolioJustTcgPrices,
   getHydratedPortfolio,
+  triggerMissingPortfolioJustTcgLookups,
   updatePortfolioPriceSource,
 } from "../../services/portfolioApi";
 import type {
@@ -218,6 +219,17 @@ function PortfolioForCurrentUser() {
           }),
         );
         setMissingJustTcgPriceIds(response.missingCardIds);
+        if (response.missingCardIds.length > 0) {
+          void triggerMissingPortfolioJustTcgLookups(
+            response.missingCardIds,
+            uid,
+          ).catch((error) => {
+            logClientError(
+              "Failed to trigger missing portfolio JustTCG lookups",
+              error,
+            );
+          });
+        }
       } catch (error) {
         if (controller.signal.aborted) return;
         logClientError("Failed to load portfolio JustTCG prices", error);

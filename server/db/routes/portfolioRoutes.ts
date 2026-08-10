@@ -36,6 +36,7 @@ const CARD_ID_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
 const PRICE_KEY_PATTERN = /^[A-Za-z0-9._-]{1,80}$/;
 const JUST_TCG_PRICE_KEY_PATTERN = /^[A-Za-z0-9._:-]{1,240}$/;
 const CARD_QUERY_CHUNK_SIZE = 400;
+const JUST_TCG_LOOKUP_BATCH_LIMIT = 400;
 const JUST_TCG_LOOKUP_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 type PortfolioEntry = {
@@ -102,6 +103,20 @@ function getCardId(value: unknown) {
     throw new PortfolioHttpError("Invalid card ID", 400);
   }
   return cardId;
+}
+
+function getCardIds(value: unknown) {
+  if (!Array.isArray(value)) {
+    throw new PortfolioHttpError("cardIds must be an array", 400);
+  }
+  if (value.length > JUST_TCG_LOOKUP_BATCH_LIMIT) {
+    throw new PortfolioHttpError(
+      `cardIds can contain at most ${JUST_TCG_LOOKUP_BATCH_LIMIT} cards`,
+      400,
+    );
+  }
+
+  return Array.from(new Set(value.map(getCardId)));
 }
 
 function getQuantity(value: unknown) {
@@ -302,6 +317,58 @@ async function saveJustTcgLookup(cardId: string, lookup: StoredJustTcgLookup) {
 
 function getStoredJustTcgLookup(rawJson: string) {
   return parseStoredJustTcgLookup(parseStoredCard(rawJson).justtcgLookup);
+}
+
+async function lookupAndSaveJustTcgIds(cardId: string, signal?: AbortSignal) {
+  const storedCard = await getStoredCardForJustTcgLookup(cardId);
+  if (!storedCard) {
+    throw new PortfolioHttpError("Card not found", 404);
+  }
+
+  const existingLookup = getStoredJustTcgLookup(String(storedCard.raw_json));
+  if (existingLookup.ids.length > 0) {
+    return { status: "ready", ids: existingLookup.ids };
+  }
+  if (!shouldRetryJustTcgLookup(existingLookup.failedAt)) {
+    return {
+      status: "recently_failed",
+      failedAt: existingLookup.failedAt,
+      ids: [],
+    };
+  }
+
+  const setName = storedCard.set_name?.trim();
+  const number = storedCard.number?.trim();
+  if (!setName || !number) {
+    const lookup = { failedAt: new Date().toISOString(), ids: [] };
+    await saveJustTcgLookup(cardId, lookup);
+    return { status: "failed", ...lookup };
+  }
+
+  const candidates = await fetchJustTcgCardIdentityCandidates(
+    storedCard.name,
+    number,
+    signal,
+  );
+  const ids = Array.from(
+    new Set(
+      candidates
+        .filter((candidate) =>
+          isVerifiedJustTcgCard(candidate, setName, number),
+        )
+        .map((candidate) => candidate.id),
+    ),
+  );
+
+  if (ids.length > 0) {
+    const lookup = { ids };
+    await saveJustTcgLookup(cardId, lookup);
+    return { status: "ready", ids };
+  }
+
+  const lookup = { failedAt: new Date().toISOString(), ids: [] };
+  await saveJustTcgLookup(cardId, lookup);
+  return { status: "failed", ...lookup };
 }
 
 function buildJustTcgPayload(
@@ -635,6 +702,46 @@ router.post("/cards", portfolioWriteLimiter, async (req, res) => {
 });
 
 router.post(
+  "/cards/justtcg-lookup-missing",
+  portfolioJustTcgLookupLimiter,
+  async (req, res) => {
+    try {
+      const uid = getAuthenticatedUid(res);
+      const requestedCardIds = getCardIds(req.body?.cardIds);
+      if (requestedCardIds.length === 0) {
+        res.status(204).send();
+        return;
+      }
+
+      const entries = await getPortfolioEntries(uid);
+      const ownedCardIds = new Set(entries.map((entry) => entry.cardId));
+
+      for (const cardId of requestedCardIds) {
+        if (!ownedCardIds.has(cardId)) continue;
+
+        try {
+          await lookupAndSaveJustTcgIds(cardId);
+        } catch (error) {
+          if (error instanceof JustTcgApiError) {
+            logError("Failed to look up missing portfolio JustTCG IDs", error);
+            break;
+          }
+          throw error;
+        }
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      sendPortfolioError(
+        res,
+        error,
+        "Failed to trigger missing JustTCG lookups",
+      );
+    }
+  },
+);
+
+router.post(
   "/cards/:cardId/justtcg-lookup",
   portfolioJustTcgLookupLimiter,
   async (req, res) => {
@@ -643,68 +750,14 @@ router.post(
     try {
       const uid = getAuthenticatedUid(res);
       const cardId = getCardId(req.params.cardId);
-      const [portfolioCard, storedCard] = await Promise.all([
-        portfolioCardRef(uid, cardId).get(),
-        getStoredCardForJustTcgLookup(cardId),
-      ]);
+      const portfolioCard = await portfolioCardRef(uid, cardId).get();
 
       if (!portfolioCard.exists) {
         throw new PortfolioHttpError("Portfolio card not found", 404);
       }
-      if (!storedCard) {
-        throw new PortfolioHttpError("Card not found", 404);
-      }
 
-      const existingLookup = getStoredJustTcgLookup(
-        String(storedCard.raw_json),
-      );
-      if (existingLookup.ids.length > 0) {
-        res.json({ status: "ready", ids: existingLookup.ids });
-        return;
-      }
-      if (!shouldRetryJustTcgLookup(existingLookup.failedAt)) {
-        res.json({
-          status: "recently_failed",
-          failedAt: existingLookup.failedAt,
-          ids: [],
-        });
-        return;
-      }
-
-      const setName = storedCard.set_name?.trim();
-      const number = storedCard.number?.trim();
-      if (!setName || !number) {
-        const lookup = { failedAt: new Date().toISOString(), ids: [] };
-        await saveJustTcgLookup(cardId, lookup);
-        res.json({ status: "failed", ...lookup });
-        return;
-      }
-
-      const candidates = await fetchJustTcgCardIdentityCandidates(
-        storedCard.name,
-        number,
-        signal,
-      );
-      const ids = Array.from(
-        new Set(
-          candidates
-            .filter((candidate) =>
-              isVerifiedJustTcgCard(candidate, setName, number),
-            )
-            .map((candidate) => candidate.id),
-        ),
-      );
-
-      if (ids.length > 0) {
-        const lookup = { ids };
-        await saveJustTcgLookup(cardId, lookup);
-        res.json({ status: "ready", ids });
-        return;
-      }
-
-      const lookup = { failedAt: new Date().toISOString(), ids: [] };
-      await saveJustTcgLookup(cardId, lookup);
-      res.json({ status: "failed", ...lookup });
+      const result = await lookupAndSaveJustTcgIds(cardId, signal);
+      res.json(result);
     } catch (error) {
       if (isRequestAbort(error, signal)) return;
       if (error instanceof JustTcgApiError) {

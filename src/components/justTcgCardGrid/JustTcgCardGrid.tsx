@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   fetchJustTcgBiggestGainers,
   fetchJustTcgBiggestLosers,
@@ -9,6 +9,7 @@ import {
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { Swimlane } from "../swimlane/Swimlane";
+import Button from "../button/Button";
 import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
 import "./JustTcgCardGrid.scss";
 
@@ -71,6 +72,7 @@ export function JustTcgCardGrid({
 }: JustTcgCardGridProps) {
   const titleId = useId();
   const typesKey = types?.length ? types.join("|") : type;
+  const requestControllerRef = useRef<AbortController | null>(null);
   const moverTypes = useMemo(
     () => (types?.length ? [...types] : [type]),
     [type, typesKey],
@@ -105,69 +107,59 @@ export function JustTcgCardGrid({
   }, [activeType, moverTypes]);
 
   useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
+
+  async function loadActiveCards() {
+    if (loading) return;
+
     const controller = new AbortController();
-    const missingTypes = moverTypes.filter((moverType) => {
-      const key = `${moverType}:${period}`;
-      return !resultsByKey[key] && !errorsByKey[key] && !loadingByKey[key];
-    });
+    requestControllerRef.current?.abort();
+    requestControllerRef.current = controller;
 
-    if (missingTypes.length === 0) return;
+    try {
+      setLoadingByKey((current) => ({ ...current, [activeKey]: true }));
+      setErrorsByKey((current) => {
+        const next = { ...current };
+        delete next[activeKey];
+        return next;
+      });
 
-    async function loadCards(moverType: JustTcgMoverType) {
-      const key = `${moverType}:${period}`;
-      try {
-        setLoadingByKey((current) => ({ ...current, [key]: true }));
-        setErrorsByKey((current) => {
-          const next = { ...current };
-          delete next[key];
-          return next;
-        });
+      const results =
+        activeType === "biggestGainers"
+          ? await fetchJustTcgBiggestGainers(controller.signal, period)
+          : await fetchJustTcgBiggestLosers(controller.signal, period);
 
-        const results =
-          moverType === "biggestGainers"
-            ? await fetchJustTcgBiggestGainers(controller.signal, period)
-            : await fetchJustTcgBiggestLosers(controller.signal, period);
-
-        if (!controller.signal.aborted) {
-          setResultsByKey((current) => ({
-            ...current,
-            [key]: results,
-          }));
-        }
-      } catch (loadError) {
-        if (controller.signal.aborted) return;
-        setResultsByKey((current) => {
-          const next = { ...current };
-          delete next[key];
-          return next;
-        });
-        setErrorsByKey((current) => ({
+      if (!controller.signal.aborted) {
+        setResultsByKey((current) => ({
           ...current,
-          [key]:
-            loadError instanceof Error
-              ? loadError.message
-              : "JustTCG cards are unavailable.",
+          [activeKey]: results,
         }));
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingByKey((current) => {
-            const next = { ...current };
-            delete next[key];
-            return next;
-          });
-        }
+      }
+    } catch (loadError) {
+      if (controller.signal.aborted) return;
+      setResultsByKey((current) => {
+        const next = { ...current };
+        delete next[activeKey];
+        return next;
+      });
+      setErrorsByKey((current) => ({
+        ...current,
+        [activeKey]:
+          loadError instanceof Error
+            ? loadError.message
+            : "JustTCG cards are unavailable.",
+      }));
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoadingByKey((current) => {
+          const next = { ...current };
+          delete next[activeKey];
+          return next;
+        });
+        requestControllerRef.current = null;
       }
     }
-
-    missingTypes.forEach((moverType) => {
-      void loadCards(moverType);
-    });
-
-    return () => controller.abort();
-  }, [moverTypes, period]);
-
-  if (!hasMultipleTypes && !loading && (error || cards.length === 0)) {
-    return null;
   }
 
   return (
@@ -184,6 +176,13 @@ export function JustTcgCardGrid({
               value={activeType}
             />
           )}
+          <Button
+            disabled={loading}
+            onClick={() => void loadActiveCards()}
+            size="small"
+          >
+            {loading ? "Fetching..." : hasResult ? "Refresh" : "Fetch movers"}
+          </Button>
         </div>
       </header>
 

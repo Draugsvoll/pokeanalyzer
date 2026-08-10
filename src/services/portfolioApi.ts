@@ -72,6 +72,16 @@ export function ensurePortfolioJustTcgLookup(
   );
 }
 
+export function triggerMissingPortfolioJustTcgLookups(
+  cardIds: string[],
+  expectedUid: string,
+) {
+  return portfolioRequest<void>("/cards/justtcg-lookup-missing", expectedUid, {
+    method: "POST",
+    body: JSON.stringify({ cardIds }),
+  });
+}
+
 export function getPortfolioJustTcgPrices(
   expectedUid: string,
   signal?: AbortSignal,
