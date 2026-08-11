@@ -544,33 +544,36 @@ Now rank this card:
 `;
 
 
-
 const isWorthGrading: string =
 `
-Can it make financial sense to grade this and sell it, instead of selling it raw today?
 
-Break down the grading economics for PSA7,8,9,10 including selling fees/costs, showing us total expected ROI of grading it and then sell, versus selling it raw today. Use reliable sources.
+Can it be worth it to grade this and sell it, instead of selling it raw today?
 
-Then give a recommendation. If it's not really recommended even though it's showing paper
-profits, you must explain the reasons for that and how or why it affects the decision. A beginner should be able to easily understand it.
-Make everything clear and specific so users can understand well.
+Break down the grading economics for PSA6,7,8,9,10 including selling fees/costs. We want the expected ROI for grading and selling, instead of selling raw today. We want to calculate this for each grade. Use reliable sources for all data.
 
+Remember ebay can have different fee structure/model for high prices, account for that in calculations.
 
+Verify for each grade you are using the correct grading tier service. Use the official website https://www.psacard.com as the source for grading services. Remember to check out all of the service levels, including the premium services which is in its own section.
+If you can't find grading services from the official website itself, or other reliable sources, mention it in assumptions in the JSON schema shown below.
 
-The example below is written in very dry and data-driven language. You must instead write in clear, natural language.
+For every grade, select the cheapest PSA service tier whose Max Insured Value is equal to or higher than the expected sale price of that grade.
+Never choose a cheaper tier if its Max Insured Value is lower than the expected sale price.
+Never choose a more expensive tier than necessary. Verify this for every grade calculation and when filling in grading examples in the JSON schema down below.
+
+Remember for eBay fees, and choosing the correct grading tier service, you account for that both in calculations and when filling in grading examples in the JSON schema shown down below.
+
+Then give an overall recommendation all things considered. If it's not really recommended even though it's showing paper
+profits, you must explain the reasons for that and how or why it affects the grading decision. A beginner should be able to easily understand how or why every reason affects the grading decision on a practical level. Make everything clear and specific. You don't need to explain that chasing a PSA10 is gambling or unrealistic.
+
+Write in clear, natural language.
 Adjust the strength of your wording proportionally to the size of the actual edge or risk.
-Be clear about probabilities and expected value.
+When mentioning probabilities or expected values, explain how you calculated them and what data or assumptions you used. In my example response down below the language around expected value and probabilities is a bit loose and not well reasoned, we need to tighten it up. Never claim a probability-weighted expected value unless you provide evidence or data.
 
-Research current PSA population data for the exact card/variant, including total PSA population and grade-specific populations.
-For PSA 7, PSA 8, PSA 9, and PSA 10, calculate each grade's percentage of the total PSA population.
-Use that data to fill all PSA population fields. Do not forget any population fields.
-Population fields include the PSA grade in their field name to make it clear which grade they refer to.
-Use the correct grade-specific data for each field. Use reliable sources.
-If data is not available for a field, leave the field empty, don't invent anything.
+Never invent facts or numbers in any field. If reliable data is unavailable, return null.
 
 Your entire response must be a valid JSON object, no text added before or after.
-The example response below shows the structure and format you must follow.
-Never under any circumstances can you skip analysis and copy data below. You must always do
+The example response below shows the structure and format you must follow. Never copy or rely on the example data below, it's likely outdated or wrong. Only use data that you found yourself.
+Never under any circumstances can you skip analysis and copy data from below. You must always do
 a proper analysis and then fill in the schema with your results.
 
 {
@@ -581,80 +584,93 @@ a proper analysis and then fill in the schema with your results.
 "variant": "Holo Rare",
 "year": 1999
 },
-"assumptions": {
-"raw_market_price_usd": 500,
-"grading_service": "PSA",
-"grading_tier": "Regular",
-"grading_fee_usd": 80,
-"shipping_insurance_supplies_usd": 50,
-"total_grading_cost_usd": 130,
-"ebay_fee_rate_low": 0.135,
-"ebay_fee_rate_high_value": 0.07,
-"high_value_threshold_usd": 1000,
-"notes": "Prices are approximate mid-2026 market averages from recent sold comps (PriceCharting, eBay, TCGPlayer aggregators). Raw assumes Near Mint / strong LP condition suitable for grading attempt. PSA fees reflect paused Value tiers (Regular is current entry). eBay high-value discount (50% off FVF on $1k+) applied where relevant. No taxes, no promoted listings, no membership amortization. Actual results vary with condition, market timing, and exact fees."
-},
+"assumptions": ["","",""],
 "raw_sale_today": {
-"gross_sale_usd": 500,
-"estimated_fees_usd": 68,
-"net_proceeds_usd": 432,
-"time_to_cash": "1-14 days"
+  "gross_sale_usd": 500,
+  "estimated_fees_usd": 66.65,
+  "net_proceeds_usd": 433.35,
+  "time_to_sell": ""
 },
 "graded_scenarios": [
-{
-"grade": "PSA 7",
-"expected_sale_price_usd": 750,
-"grading_cost_usd": 130,
-"ebay_fees_usd": 101,
-"net_after_all_costs_usd": 519,
-"roi_vs_raw_net_percent": 20.1,
-"net_profit_vs_raw_usd": 87,
-"psa_7_population": 12500,
-"psa_7_population_percent": 31.2,
-"break_even": true,
-"notes": "Modest uplift. Fees and grading cost consume most of the premium."
+  {
+  "grade": "PSA 6",
+  "expected_sale_price_usd": 375,
+  "grading_tier": "Regular",
+  "psa_grading_fee_usd": 79.99,
+  "grading_cost_usd": 129.99,
+  "ebay_fees_usd": 50.09,
+  "net_after_all_costs_usd": 194.92,
+  "roi_vs_raw_net_percent": -54.98,
+  "net_profit_vs_raw_usd": -238.08,
+  "break_even": false,
+  "turnaround_time": "",
+  "notes": "Meaningful loss versus selling raw."
 },
 {
-"grade": "PSA 8",
-"expected_sale_price_usd": 1400,
-"grading_cost_usd": 130,
-"ebay_fees_usd": 98,
-"net_after_all_costs_usd": 1172,
-"roi_vs_raw_net_percent": 171.3,
-"net_profit_vs_raw_usd": 740,
-"psa_8_population": 14200,
-"psa_8_population_percent": 35.5,
-"break_even": true,
-"notes": "Solid paper profit after costs."
+  "grade": "PSA 7",
+  "expected_sale_price_usd": 750,
+  "grading_tier": "Regular",
+  "psa_grading_fee_usd": 79.99,
+  "grading_cost_usd": 129.99,
+  "ebay_fees_usd": 99.78,
+  "net_after_all_costs_usd": 520.23,
+  "roi_vs_raw_net_percent": 20.15,
+  "net_profit_vs_raw_usd": 87.23,
+  "break_even": true,
+  "turnaround_time": "",
+  "notes": "Modest uplift after all fees/costs."
 },
 {
-"grade": "PSA 9",
-"expected_sale_price_usd": 2900,
-"grading_cost_usd": 130,
-"ebay_fees_usd": 203,
-"net_after_all_costs_usd": 2567,
-"roi_vs_raw_net_percent": 494.0,
-"net_profit_vs_raw_usd": 2135,
-"psa_9_population": 6000,
-"psa_9_population_percent": 15.0,
-"break_even": true,
-"notes": "Strong return if achieved."
+  "grade": "PSA 8",
+  "expected_sale_price_usd": 1400,
+  "grading_tier": "",
+  "psa_grading_fee_usd": null,
+  "grading_cost_usd": null,
+  "ebay_fees_usd": null,
+  "net_after_all_costs_usd": null,
+  "roi_vs_raw_net_percent": null,
+  "net_profit_vs_raw_usd": null,
+  "break_even": true,
+  "turnaround_time": "",
+  "notes": ""
 },
 {
-"grade": "PSA 10",
-"expected_sale_price_usd": 20000,
-"grading_cost_usd": 130,
-"ebay_fees_usd": 1400,
-"net_after_all_costs_usd": 18470,
-"roi_vs_raw_net_percent": 4175.5,
-"net_profit_vs_raw_usd": 18038,
-"psa_10_population": 450,
-"psa_10_population_percent": 0.5,
-"break_even": true,
-"notes": "Huge upside, but extremely low probability for a random Unlimited copy."
+  "grade": "PSA 9",
+  "expected_sale_price_usd": null,
+  "grading_tier": "",
+  "psa_grading_fee_usd": null,
+  "grading_cost_usd": null,
+  "ebay_fees_usd": null,
+  "net_after_all_costs_usd": null,
+  "roi_vs_raw_net_percent": null,
+  "net_profit_vs_raw_usd": null,
+  "break_even": true,
+  "turnaround_time": "",
+  "notes": ""
+},
+{
+  "grade": "PSA 10",
+  "expected_sale_price_usd": null,
+  "grading_tier": "",
+  "psa_grading_fee_usd": null,
+  "grading_cost_usd": null,
+  "ebay_fees_usd": null,
+  "net_after_all_costs_usd": null,
+  "roi_vs_raw_net_percent": null,
+  "net_profit_vs_raw_usd": null,
+  "break_even": true,
+  "turnaround_time": "",
+  "notes": "Very large upside if achieved; the expected value requires PSA Premium 1 and the eBay fee uses the high-value tier above $7,500."
 }
 ],
-"probability_context": {
-"psa_total_population": 40000
+"psa_population": {
+"source":"",
+"psa_population_total": 40000,
+"psa_population_psa10": 40000,
+"psa_population_psa9": 40000,
+"psa_population_psa8": 40000,
+"psa_population_psa7": 40000,
+"psa_population_psa6": 40000
 },
 "recommendation": {
 "should_grade": false,
@@ -662,30 +678,36 @@ a proper analysis and then fill in the schema with your results.
 "reasons": [
 "High population and commonality of Unlimited printings keep mid-grade premiums modest relative to total costs and risk.",
 "PSA 7 barely covers costs + risk; PSA 8 is the realistic 'good' outcome for most decent copies and still requires waiting 1-3 months + capital tied up.",
-"True PSA 10s are rare unicorns on this print run — chasing them with average cards is gambling, not investing.",
 "Market liquidity is excellent raw; you can sell today and redeploy capital. Grading adds time risk (price drops, interest rates, opportunity cost).",
 "Even when paper ROI looks positive on PSA 8/9, the probability-weighted outcome for an unassessed card is often close to break-even or slightly negative after realistic grade distribution.",
 "Beginners frequently overestimate grade potential; whitening, print lines, and centering that look minor to the eye often drop the card a full grade."
 ],
-"when_it_can_make_sense": [
-"Card has been pre-screened and is a strong PSA 9+ candidate.",
-"You already have other cards in a bulk submission so per-card shipping is diluted.",
-"You plan to hold long-term regardless and want the protection/liquidity of a slab.",
-"You enjoy the process and treat the grading fee as entertainment cost rather than pure ROI."
-],
 "beginner_advice": "Sell raw today if you need the money or want certainty. Only grade if the card looks dramatically better than average NM copies and you accept that a PSA 7 or 8 is the most likely result. Always check recent sold listings (not asking prices) on eBay and PriceCharting right before deciding."
 },
-"methodology": "Net = expected sale price − total grading cost − estimated eBay fees. ROI = (graded net − raw net) / raw net × 100. Fees approximate current eBay trading-card structure with high-value discount applied above $1,000. All figures are estimates for illustration; verify live comps and exact PSA/eBay rates before acting."
+"methodology": "Net = expected sale price − total grading cost − estimated eBay fees. ROI = (graded net − raw net) / raw net × 100. Fees use the current applicable eBay trading-card fee structure, including any tiered treatment for high-value sales. All figures are estimates for illustration; verify live comps and exact PSA/eBay rates before acting."
 }
+
+The field "Summary" is just a summarized headline for the recommendation. maximum 35-40 words. If you mention gem-rate you don't need to explain if it's high or low, the numbers speak for themselves.
+
+The fields in "reasons" should contain the reasoning behind the overall recommendation. Do not restate calculations or numbers already shown elsewhere unless they are necessary. This part explains recommendation including all costs and fees, and you need to make it perfectly clear if you included selling costs/fees when stating expected values.
+When making any claims or assumptions in the "reasons" field, explain how you concluded that. What are you basing it on? Don't just say things like "expected outcome is PSA7" without making it clear how you conluded that.
 
 For fields with "_rate" in the field name, return decimal numbers only, exactly like the example above.
 Example: use 0.135 for 13.5%, not "13.5%" or 13.5.
+
+Always use the official PSA Population Report as the source for PSA population figures when available, and ensure the population entry matches the set, card number, and variant. Always use the actual official website itself as the source https://www.psacard.com/. Provide the url to the exact page that displays the numbers. Only use other reliable sources if you can't get the numbers from the official website itself. If you can't find reliable psa population data for the card, return null
+
+The example response is provided strictly to show the required format and structure. All data and values in the example are purely illustrative; do not copy, rely on, or treat any of them as factual inputs. Under no circumstances can you ever rely on or copy data from the example. These values can differ dramatically from card to card, or change over time. Therefore always do the research yourself, no exceptions to this rule.
+
+Remember using correct fees and services for each grade when doing the grading economics.
 
 When calculating Profit vs Raw and ROI:
 Calculate Raw Net = Raw sale price – selling fees on the raw sale.
 Calculate Graded Net = Graded sale price – grading costs – selling fees on the graded sale.
 Profit vs Raw = Graded Net – Raw Net
 ROI = (Graded Net – Raw Net) / Raw Net × 100
+
+In the assumptions field, you simply mention all of your assumptions. Each assumption you made is its own string entry.
 
 Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
 Never use the raw sale price directly as the baseline without subtracting its selling fees.
