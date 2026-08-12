@@ -31,10 +31,10 @@ import {
 } from "./db/cardGrokStore.js";
 import { parsePublicStoredCard } from "./db/cardSerialization.js";
 import {
-  getJustTcgQuery,
-  JUST_TCG_QUERIES,
-  type JustTcgQuery,
-} from "./db/justTcgQueryStore.js";
+  getJustTcgCategory,
+  JUST_TCG_CATEGORIES,
+  type JustTcgCategory,
+} from "./db/justTcgCategoryStore.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -275,22 +275,22 @@ app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, re
 
 function registerJustTcgMoversRoute(
   path: string,
-  query: JustTcgQuery,
+  category: JustTcgCategory,
 ) {
   app.get(path, async (req, res) => {
     const signal = getRequestAbortSignal(res);
-    const periodQuery =
+    const periodCategory =
       typeof req.query.period === "string" ? req.query.period : "7d";
 
-    if (!["24h", "7d", "30d"].includes(periodQuery)) {
+    if (!["24h", "7d", "30d"].includes(periodCategory)) {
       res.status(400).json({ message: "Invalid JustTCG movement period" });
       return;
     }
 
     try {
-      const payload = await getJustTcgQuery(
-        query,
-        periodQuery as JustTcgMovementPeriod,
+      const payload = await getJustTcgCategory(
+        category,
+        periodCategory as JustTcgMovementPeriod,
       );
       res.json({
         cards: payload?.cards ?? [],
@@ -306,11 +306,11 @@ function registerJustTcgMoversRoute(
 
 registerJustTcgMoversRoute(
   "/api/justtcg/biggest-gainers",
-  JUST_TCG_QUERIES.biggestMovers,
+  JUST_TCG_CATEGORIES.biggestMovers,
 );
 registerJustTcgMoversRoute(
   "/api/justtcg/biggest-losers",
-  JUST_TCG_QUERIES.biggestLosers,
+  JUST_TCG_CATEGORIES.biggestLosers,
 );
 
 // SEARCH FUNCTION

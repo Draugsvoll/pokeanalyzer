@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createClient } from "@libsql/client";
 import {
-  JUST_TCG_QUERIES,
-  JUST_TCG_QUERY_UPSERT_SQL,
-} from "./justTcgQueryStore.js";
+  JUST_TCG_CATEGORIES,
+  JUST_TCG_CATEGORY_UPSERT_SQL,
+} from "./justTcgCategoryStore.js";
 
 const payload = {
   cards: [
@@ -29,7 +29,7 @@ const payload = {
   ],
 };
 
-test("JustTCG query schema keeps one row per query and period", async () => {
+test("JustTCG category schema keeps one row per category and period", async () => {
   const client = createClient({ url: "file::memory:" });
 
   try {
@@ -45,42 +45,42 @@ test("JustTCG query schema keeps one row per query and period", async () => {
     }
 
     await client.execute({
-      sql: JUST_TCG_QUERY_UPSERT_SQL,
-      args: [JUST_TCG_QUERIES.biggestMovers, "7d", JSON.stringify(payload)],
+      sql: JUST_TCG_CATEGORY_UPSERT_SQL,
+      args: [JUST_TCG_CATEGORIES.biggestMovers, "7d", JSON.stringify(payload)],
     });
     await client.execute({
-      sql: JUST_TCG_QUERY_UPSERT_SQL,
+      sql: JUST_TCG_CATEGORY_UPSERT_SQL,
       args: [
-        JUST_TCG_QUERIES.biggestMovers,
+        JUST_TCG_CATEGORIES.biggestMovers,
         "7d",
         JSON.stringify({ cards: [] }),
       ],
     });
 
     const result = await client.execute(
-      "SELECT query_key, period, payload_json FROM justtcg_queries",
+      "SELECT category_key, period, payload_json FROM justtcg_categories",
     );
     assert.equal(result.rows.length, 1);
-    assert.equal(result.rows[0].query_key, JUST_TCG_QUERIES.biggestMovers);
+    assert.equal(result.rows[0].category_key, JUST_TCG_CATEGORIES.biggestMovers);
     assert.equal(result.rows[0].period, "7d");
     assert.deepEqual(JSON.parse(String(result.rows[0].payload_json)), {
       cards: [],
     });
 
     await client.execute({
-      sql: JUST_TCG_QUERY_UPSERT_SQL,
+      sql: JUST_TCG_CATEGORY_UPSERT_SQL,
       args: ["trending_cards", "7d", JSON.stringify(payload)],
     });
     await assert.rejects(
       client.execute({
-        sql: JUST_TCG_QUERY_UPSERT_SQL,
-        args: [JUST_TCG_QUERIES.biggestMovers, "14d", JSON.stringify(payload)],
+        sql: JUST_TCG_CATEGORY_UPSERT_SQL,
+        args: [JUST_TCG_CATEGORIES.biggestMovers, "14d", JSON.stringify(payload)],
       }),
     );
     await assert.rejects(
       client.execute({
-        sql: JUST_TCG_QUERY_UPSERT_SQL,
-        args: [JUST_TCG_QUERIES.biggestMovers, "7d", "not json"],
+        sql: JUST_TCG_CATEGORY_UPSERT_SQL,
+        args: [JUST_TCG_CATEGORIES.biggestMovers, "7d", "not json"],
       }),
     );
   } finally {

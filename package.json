@@ -19,8 +19,8 @@
     "sync:cards:dry-run": "tsx server/scripts/syncCards.ts --dry-run",
     "news:generate": "tsx server/scripts/generateNews.ts",
     "news:generate:dry-run": "tsx server/scripts/generateNews.ts --dry-run",
-    "justtcg:queries": "tsx server/scripts/generateJustTcgQueries.ts",
-    "justtcg:queries:dry-run": "tsx server/scripts/generateJustTcgQueries.ts --dry-run",
+    "justtcg:categories": "tsx server/scripts/generateJustTcgCategories.ts",
+    "justtcg:categories:dry-run": "tsx server/scripts/generateJustTcgCategories.ts --dry-run",
     "test:server": "tsx --test \"server/**/*.test.ts\""
   },
   "dependencies": {

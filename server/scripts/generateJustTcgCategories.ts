@@ -2,12 +2,12 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
 import {
-  assertJustTcgQuerySchemaCompatible,
-  ensureJustTcgQueryTable,
-  JUST_TCG_QUERIES,
-  saveJustTcgQuery,
-  type JustTcgQuery,
-} from "../db/justTcgQueryStore.js";
+  assertJustTcgCategorySchemaCompatible,
+  ensureJustTcgCategoryTable,
+  JUST_TCG_CATEGORIES,
+  saveJustTcgCategory,
+  type JustTcgCategory,
+} from "../db/justTcgCategoryStore.js";
 import {
   fetchJustTcgBiggestGainers,
   fetchJustTcgBiggestLosers,
@@ -21,19 +21,19 @@ import {
   type ScriptLock,
 } from "./scriptLocks.js";
 
-const JUST_TCG_QUERIES_LOCK_TTL_SECONDS = 10 * 60;
+const JUST_TCG_CATEGORIES_LOCK_TTL_SECONDS = 10 * 60;
 const WEEKLY_MOVERS_PERIOD = "7d";
 
-const JUST_TCG_QUERY_REFRESHES = [
+const JUST_TCG_CATEGORY_REFRESHES = [
   {
+    category: JUST_TCG_CATEGORIES.biggestMovers,
     fetch: fetchJustTcgBiggestGainers,
     name: "weekly gainers",
-    query: JUST_TCG_QUERIES.biggestMovers,
   },
   {
+    category: JUST_TCG_CATEGORIES.biggestLosers,
     fetch: fetchJustTcgBiggestLosers,
     name: "weekly losers",
-    query: JUST_TCG_QUERIES.biggestLosers,
   },
 ] as const;
 
@@ -52,10 +52,10 @@ function validateArguments(args: string[]): boolean {
   return args.includes("--dry-run");
 }
 
-async function refreshJustTcgQuery(
+async function refreshJustTcgCategory(
   name: string,
   fetchMovers: typeof fetchJustTcgBiggestGainers,
-  query: JustTcgQuery,
+  category: JustTcgCategory,
   dryRun: boolean,
 ) {
   console.log(`Fetching JustTCG ${name}`);
@@ -66,7 +66,7 @@ async function refreshJustTcgQuery(
 
   console.log(`JustTCG ${name} validated: ${cards.length} matched cards`);
   if (!dryRun) {
-    await saveJustTcgQuery(query, WEEKLY_MOVERS_PERIOD, { cards });
+    await saveJustTcgCategory(category, WEEKLY_MOVERS_PERIOD, { cards });
     console.log(`JustTCG ${name} saved to SQL`);
   }
 }
@@ -75,8 +75,8 @@ async function main(): Promise<void> {
   const dryRun = validateArguments(process.argv.slice(2));
   assertExplicitDatabaseTarget();
   await ensureScriptLockTable();
-  await ensureJustTcgQueryTable();
-  await assertJustTcgQuerySchemaCompatible();
+  await ensureJustTcgCategoryTable();
+  await assertJustTcgCategorySchemaCompatible();
 
   const lock: ScriptLock = {
     name: SCHEDULED_MAINTENANCE_LOCK_NAME,
@@ -85,7 +85,7 @@ async function main(): Promise<void> {
   const acquired = await acquireScriptLock(
     lock.name,
     lock.token,
-    JUST_TCG_QUERIES_LOCK_TTL_SECONDS,
+    JUST_TCG_CATEGORIES_LOCK_TTL_SECONDS,
   );
   if (!acquired) {
     throw new Error(
@@ -94,19 +94,19 @@ async function main(): Promise<void> {
   }
 
   try {
-    for (const refresh of JUST_TCG_QUERY_REFRESHES) {
-      await refreshJustTcgQuery(
+    for (const refresh of JUST_TCG_CATEGORY_REFRESHES) {
+      await refreshJustTcgCategory(
         refresh.name,
         refresh.fetch,
-        refresh.query,
+        refresh.category,
         dryRun,
       );
     }
 
     console.log(
       dryRun
-        ? "Dry run complete; no JustTCG query rows changed"
-        : `JustTCG query refresh finished successfully; ${JUST_TCG_QUERY_REFRESHES.length} database rows updated`,
+        ? "Dry run complete; no JustTCG category rows changed"
+        : `JustTCG category refresh finished successfully; ${JUST_TCG_CATEGORY_REFRESHES.length} database rows updated`,
     );
   } finally {
     const released = await releaseScriptLock(lock);
@@ -122,7 +122,7 @@ main()
   .catch((error: unknown) => {
     const normalizedError =
       error instanceof Error ? error : new Error(String(error));
-    console.error("JustTCG query refresh failed", {
+    console.error("JustTCG category refresh failed", {
       name: normalizedError.name,
       message: normalizedError.message,
     });

@@ -45,19 +45,38 @@ Suggested Cron Schedule:
 This runs weekly on Saturday at 10:30 UTC, which is 12:30 in Norwegian summer
 time.
 
+## JustTCG categories
+
+Start Command:
+
+```sh
+npm run justtcg:categories
+```
+
+Suggested Cron Schedule:
+
+```text
+0 6 * * 1
+```
+
+This runs weekly on Monday at 06:00 UTC and refreshes the saved JustTCG
+category data used by the homepage.
+
 ## Required variables
 
-Set the same production variables on both cron services that the scripts need:
+Set the production variables each cron service needs:
 
 ```text
 TURSO_DATABASE_URL
 TURSO_AUTH_TOKEN
 POKEMON_TCG_API_KEY
 XAI_API_KEY
+JUSTTCG_API_KEY
 ```
 
 `news:generate` needs `XAI_API_KEY`. `sync:cards` needs the database variables
-and should use `POKEMON_TCG_API_KEY` when available.
+and should use `POKEMON_TCG_API_KEY` when available. `justtcg:categories`
+needs `JUSTTCG_API_KEY`.
 
 Do not set `ALLOW_LOCAL_DATABASE` on Railway cron services. The scripts require
 an explicit remote database target in production-like environments.
@@ -71,6 +90,7 @@ as one-off deployments:
 npm run db:check
 npm run sync:cards:dry-run
 npm run news:generate:dry-run
+npm run justtcg:categories:dry-run
 ```
 
 If the dry runs finish and the processes stop, enable the cron schedules.
