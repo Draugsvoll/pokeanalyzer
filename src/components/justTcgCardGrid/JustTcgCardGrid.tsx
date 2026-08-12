@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   fetchJustTcgBiggestGainers,
   fetchJustTcgBiggestLosers,
@@ -40,6 +40,21 @@ const typeOptions = [
   { color: "blue", label: "Losers", value: "biggestLosers" },
 ] as const;
 
+function isJustTcgMoverType(value: string): value is JustTcgMoverType {
+  return value === "biggestGainers" || value === "biggestLosers";
+}
+
+function fetchCardsByType(
+  type: JustTcgMoverType,
+  signal: AbortSignal,
+  period: JustTcgMovementPeriod,
+  forceRefresh = false,
+) {
+  return type === "biggestGainers"
+    ? fetchJustTcgBiggestGainers(signal, period, { forceRefresh })
+    : fetchJustTcgBiggestLosers(signal, period, { forceRefresh });
+}
+
 function CardLayout({
   children,
   layout,
@@ -76,7 +91,12 @@ export function JustTcgCardGrid({
     () => (types?.length ? [...types] : [type]),
     [type, types],
   );
-  const [activeType, setActiveType] = useState<JustTcgMoverType>(moverTypes[0]);
+  const moverTypesKey = moverTypes.join("|");
+  const [selectedType, setSelectedType] =
+    useState<JustTcgMoverType>(moverTypes[0]);
+  const activeType = moverTypes.includes(selectedType)
+    ? selectedType
+    : moverTypes[0];
   const activeKey = `${activeType}:${period}`;
   const [resultsByKey, setResultsByKey] = useState<
     Record<string, JustTcgMovementResult[]>
@@ -88,6 +108,9 @@ export function JustTcgCardGrid({
   const cards = resultsByKey[activeKey] ?? [];
   const error = errorsByKey[activeKey] ?? "";
   const loading = Boolean(loadingByKey[activeKey]);
+  const loadingAny = moverTypes.some((moverType) =>
+    Boolean(loadingByKey[`${moverType}:${period}`]),
+  );
   const hasError = activeKey in errorsByKey;
   const hasResult = activeKey in resultsByKey;
   const hasMultipleTypes = moverTypes.length > 1;
@@ -100,66 +123,92 @@ export function JustTcgCardGrid({
   );
 
   useEffect(() => {
-    if (!moverTypes.includes(activeType)) {
-      setActiveType(moverTypes[0]);
-    }
-  }, [activeType, moverTypes]);
-
-  useEffect(() => {
     return () => requestControllerRef.current?.abort();
   }, []);
 
-  async function loadActiveCards() {
-    if (loading) return;
+  const loadTypes = useCallback(
+    async (typesToLoad: JustTcgMoverType[], forceRefresh = false) => {
+      if (typesToLoad.length === 0) return;
 
-    const controller = new AbortController();
-    requestControllerRef.current?.abort();
-    requestControllerRef.current = controller;
+      const controller = new AbortController();
+      requestControllerRef.current?.abort();
+      requestControllerRef.current = controller;
 
-    try {
-      setLoadingByKey((current) => ({ ...current, [activeKey]: true }));
-      setErrorsByKey((current) => {
-        const next = { ...current };
-        delete next[activeKey];
-        return next;
-      });
+      const loadingEntries = Object.fromEntries(
+        typesToLoad.map((moverType) => [`${moverType}:${period}`, true]),
+      );
 
-      const results =
-        activeType === "biggestGainers"
-          ? await fetchJustTcgBiggestGainers(controller.signal, period)
-          : await fetchJustTcgBiggestLosers(controller.signal, period);
-
-      if (!controller.signal.aborted) {
-        setResultsByKey((current) => ({
-          ...current,
-          [activeKey]: results,
-        }));
-      }
-    } catch (loadError) {
-      if (controller.signal.aborted) return;
-      setResultsByKey((current) => {
-        const next = { ...current };
-        delete next[activeKey];
-        return next;
-      });
-      setErrorsByKey((current) => ({
-        ...current,
-        [activeKey]:
-          loadError instanceof Error
-            ? loadError.message
-            : "JustTCG cards are unavailable.",
-      }));
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoadingByKey((current) => {
+      try {
+        setLoadingByKey((current) => ({ ...current, ...loadingEntries }));
+        setErrorsByKey((current) => {
           const next = { ...current };
-          delete next[activeKey];
+          for (const moverType of typesToLoad) {
+            delete next[`${moverType}:${period}`];
+          }
           return next;
         });
-        requestControllerRef.current = null;
+
+        const settledResults = await Promise.allSettled(
+          typesToLoad.map(async (moverType) => ({
+            key: `${moverType}:${period}`,
+            results: await fetchCardsByType(
+              moverType,
+              controller.signal,
+              period,
+              forceRefresh,
+            ),
+          })),
+        );
+
+        if (controller.signal.aborted) return;
+
+        setResultsByKey((current) => {
+          const next = { ...current };
+          for (const result of settledResults) {
+            if (result.status === "fulfilled") {
+              next[result.value.key] = result.value.results;
+            }
+          }
+          return next;
+        });
+        setErrorsByKey((current) => {
+          const next = { ...current };
+          for (let index = 0; index < settledResults.length; index += 1) {
+            const result = settledResults[index];
+            if (result.status === "rejected") {
+              const key = `${typesToLoad[index]}:${period}`;
+              next[key] =
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : "JustTCG cards are unavailable.";
+            }
+          }
+          return next;
+        });
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingByKey((current) => {
+            const next = { ...current };
+            for (const moverType of typesToLoad) {
+              delete next[`${moverType}:${period}`];
+            }
+            return next;
+          });
+          requestControllerRef.current = null;
+        }
       }
-    }
-  }
+    },
+    [period],
+  );
+
+  useEffect(() => {
+    const typesToLoad = moverTypesKey.split("|").filter(isJustTcgMoverType);
+    const timeout = window.setTimeout(() => {
+      void loadTypes(typesToLoad, false);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [loadTypes, moverTypesKey]);
 
   return (
     <section className="justtcg-card-grid ui-render-fade" aria-labelledby={titleId}>
@@ -170,17 +219,17 @@ export function JustTcgCardGrid({
             <SegmentedRadioGroup
               ariaLabel="JustTCG mover category"
               name={`${titleId}-mover-category`}
-              onChange={setActiveType}
+              onChange={setSelectedType}
               options={visibleTypeOptions}
               value={activeType}
             />
           )}
           <Button
-            disabled={loading}
-            onClick={() => void loadActiveCards()}
+            disabled={loadingAny}
+            onClick={() => void loadTypes(moverTypes, true)}
             size="small"
           >
-            {loading ? "Fetching..." : hasResult ? "Refresh" : "Fetch movers"}
+            {loadingAny ? "Fetching..." : hasResult ? "Refresh" : "Fetch movers"}
           </Button>
         </div>
       </header>
@@ -208,7 +257,7 @@ export function JustTcgCardGrid({
         </CardLayout>
       )}
 
-      {showEmpty && hasMultipleTypes && (
+      {showEmpty && (
         <p className="justtcg-card-grid__empty">
           {error || "No cards available for this category."}
         </p>

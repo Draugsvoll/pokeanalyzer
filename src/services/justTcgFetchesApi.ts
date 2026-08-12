@@ -1,63 +1,70 @@
-import type { PokemonCard } from "../types/pokemon";
+import type {
+  JustTcgMovementPeriod,
+  JustTcgMovementResult,
+} from "../types/justTcgMovers";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+export type { JustTcgMovementPeriod, JustTcgMovementResult };
 
-export type JustTcgMovementPeriod = "24h" | "7d" | "30d";
+type JustTcgMoverCacheKey = "biggestGainers" | "biggestLosers";
 
-export type JustTcgMover = {
-  absoluteChange?: number;
-  cardName: string;
-  changePercent?: number;
-  condition: string;
-  currentPrice: number;
-  period: JustTcgMovementPeriod;
-  printing: string;
-  setName?: string;
-};
+const justTcgMoverCache = new Map<string, JustTcgMovementResult[]>();
 
-export type JustTcgMovementResult = {
-  card: PokemonCard;
-  mover: JustTcgMover;
-};
+function getCacheKey(type: JustTcgMoverCacheKey, period: JustTcgMovementPeriod) {
+  return `${type}:${period}`;
+}
 
-export async function fetchJustTcgBiggestGainers(
-  signal?: AbortSignal,
+async function fetchJustTcgMovers(
+  type: JustTcgMoverCacheKey,
+  path: string,
   period: JustTcgMovementPeriod = "7d",
+  options: { forceRefresh?: boolean; signal?: AbortSignal } = {},
 ) {
+  const cacheKey = getCacheKey(type, period);
+  if (!options.forceRefresh && justTcgMoverCache.has(cacheKey)) {
+    return justTcgMoverCache.get(cacheKey) ?? [];
+  }
+
   const params = new URLSearchParams({ period });
-  const response = await fetch(
-    `${API_URL}/api/justtcg/biggest-gainers?${params}`,
-    { signal },
-  );
+  const response = await fetch(`${API_URL}${path}?${params}`, {
+    signal: options.signal,
+  });
 
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as {
       message?: string;
     };
-    throw new Error(error.message ?? "Failed to fetch JustTCG gainers");
+    throw new Error(error.message ?? "Failed to fetch JustTCG cards");
   }
 
   const payload = (await response.json()) as { cards?: JustTcgMovementResult[] };
-  return Array.isArray(payload.cards) ? payload.cards : [];
+  const cards = Array.isArray(payload.cards) ? payload.cards : [];
+  justTcgMoverCache.set(cacheKey, cards);
+  return cards;
+}
+
+export async function fetchJustTcgBiggestGainers(
+  signal?: AbortSignal,
+  period: JustTcgMovementPeriod = "7d",
+  options: { forceRefresh?: boolean } = {},
+) {
+  return fetchJustTcgMovers(
+    "biggestGainers",
+    "/api/justtcg/biggest-gainers",
+    period,
+    { ...options, signal },
+  );
 }
 
 export async function fetchJustTcgBiggestLosers(
   signal?: AbortSignal,
   period: JustTcgMovementPeriod = "7d",
+  options: { forceRefresh?: boolean } = {},
 ) {
-  const params = new URLSearchParams({ period });
-  const response = await fetch(
-    `${API_URL}/api/justtcg/biggest-losers?${params}`,
-    { signal },
+  return fetchJustTcgMovers(
+    "biggestLosers",
+    "/api/justtcg/biggest-losers",
+    period,
+    { ...options, signal },
   );
-
-  if (!response.ok) {
-    const error = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-    throw new Error(error.message ?? "Failed to fetch JustTCG losers");
-  }
-
-  const payload = (await response.json()) as { cards?: JustTcgMovementResult[] };
-  return Array.isArray(payload.cards) ? payload.cards : [];
 }
