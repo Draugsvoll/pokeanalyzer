@@ -18,6 +18,12 @@ import {
   type PortfolioPriceSnapshot,
   type PortfolioPriceSnapshotRow,
 } from "../portfolioPriceSnapshots.js";
+import {
+  buildPortfolioPriceSourceSelectionUpdate,
+  buildSaveJustTcgPricesStatement,
+  type PortfolioEntry,
+  type PortfolioPriceSource,
+} from "./portfolioRouteHelpers.js";
 import { assessDefaultCardPrices } from "../../services/defaultPriceReliability.js";
 import {
   fetchJustTcgCardIdentityCandidates,
@@ -39,17 +45,11 @@ const CARD_QUERY_CHUNK_SIZE = 400;
 const JUST_TCG_LOOKUP_BATCH_LIMIT = 400;
 const JUST_TCG_LOOKUP_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
 
-type PortfolioEntry = {
-  cardId: string;
-  quantity: number;
-  priceSources?: Partial<Record<PortfolioPriceSource, string>>;
-};
-
-type PortfolioPriceSource = "tcgplayer" | "cardmarket" | "justtcg";
+type PortfolioPriceMode = "all" | PortfolioPriceSource;
 
 type MergeableUserDocument = {
   set: (
-    data: { portfolioPriceSource: PortfolioPriceSource },
+    data: { portfolioPriceSource: PortfolioPriceMode },
     options: { merge: true },
   ) => Promise<unknown>;
 };
@@ -141,6 +141,10 @@ function isPortfolioPriceSource(value: unknown): value is PortfolioPriceSource {
   return value === "tcgplayer" || value === "cardmarket" || value === "justtcg";
 }
 
+function isPortfolioPriceMode(value: unknown): value is PortfolioPriceMode {
+  return value === "all" || isPortfolioPriceSource(value);
+}
+
 function getPriceKey(value: unknown, priceSource: PortfolioPriceSource) {
   const priceKey = typeof value === "string" ? value.trim() : "";
   const pattern =
@@ -162,13 +166,21 @@ function getPortfolioPriceSource(value: unknown): PortfolioPriceSource {
   );
 }
 
-function parseStoredPortfolioPriceSource(value: unknown): PortfolioPriceSource {
-  return isPortfolioPriceSource(value) ? value : "tcgplayer";
+function getPortfolioPriceMode(value: unknown): PortfolioPriceMode {
+  if (isPortfolioPriceMode(value)) return value;
+  throw new PortfolioHttpError(
+    "priceSource must be all, tcgplayer, cardmarket, or justtcg",
+    400,
+  );
+}
+
+function parseStoredPortfolioPriceSource(value: unknown): PortfolioPriceMode {
+  return isPortfolioPriceMode(value) ? value : "all";
 }
 
 export async function savePortfolioPriceSourcePreference(
   document: MergeableUserDocument,
-  portfolioPriceSource: PortfolioPriceSource,
+  portfolioPriceSource: PortfolioPriceMode,
 ) {
   await document.set({ portfolioPriceSource }, { merge: true });
 }
@@ -185,12 +197,6 @@ function parseStoredPortfolioEntry(
   }
 
   const fields = data as Record<string, unknown>;
-  const unexpectedFields = Object.keys(fields).filter(
-    (field) => field !== "quantity" && field !== "priceSources",
-  );
-  if (unexpectedFields.length > 0) {
-    throw new Error(`Portfolio entry ${cardId} contains unsupported fields`);
-  }
   const quantity = fields.quantity;
   if (
     typeof quantity !== "number" ||
@@ -235,10 +241,18 @@ function parseStoredPortfolioEntry(
     }
   }
 
+  const allPriceSource = fields.allPriceSource;
+  if (allPriceSource !== undefined && !isPortfolioPriceSource(allPriceSource)) {
+    throw new Error(
+      `Portfolio entry ${cardId} has an invalid All price source`,
+    );
+  }
+
   return {
     cardId,
     quantity,
     ...(Object.keys(priceSources).length > 0 && { priceSources }),
+    ...(allPriceSource !== undefined && { allPriceSource }),
   };
 }
 
@@ -313,6 +327,14 @@ async function saveJustTcgLookup(cardId: string, lookup: StoredJustTcgLookup) {
     `,
     [JSON.stringify(lookup), cardId],
   );
+}
+
+async function saveJustTcgPrices(
+  cardId: string,
+  justtcg: { prices: Record<string, unknown>; updatedAt: string },
+) {
+  const statement = buildSaveJustTcgPricesStatement(cardId, justtcg);
+  await dbRun(statement.sql, statement.args);
 }
 
 function getStoredJustTcgLookup(rawJson: string) {
@@ -463,6 +485,7 @@ async function getHydratedCards(entries: PortfolioEntry[]) {
       id: entry.cardId,
       quantity: entry.quantity,
       ...(entry.priceSources && { priceSources: entry.priceSources }),
+      ...(entry.allPriceSource && { allPriceSource: entry.allPriceSource }),
       priceReliability,
       ...(priceSnapshots && { priceSnapshots }),
     });
@@ -524,7 +547,7 @@ type UpdatePortfolioPriceSourceHandlerDependencies = {
   authenticatedUid: (res: Response) => string;
   savePriceSource: (
     uid: string,
-    priceSource: PortfolioPriceSource,
+    priceSource: PortfolioPriceMode,
   ) => Promise<void>;
 };
 
@@ -534,16 +557,14 @@ export function createUpdatePortfolioPriceSourceHandler(
   const authenticatedUid = dependencies.authenticatedUid ?? getAuthenticatedUid;
   const savePriceSource =
     dependencies.savePriceSource ??
-    (async (uid: string, priceSource: PortfolioPriceSource) => {
+    (async (uid: string, priceSource: PortfolioPriceMode) => {
       await savePortfolioPriceSourcePreference(userDocument(uid), priceSource);
     });
 
   return async (req, res) => {
     try {
       const uid = authenticatedUid(res);
-      const portfolioPriceSource = getPortfolioPriceSource(
-        req.body?.priceSource,
-      );
+      const portfolioPriceSource = getPortfolioPriceMode(req.body?.priceSource);
       await savePriceSource(uid, portfolioPriceSource);
       res.json({ portfolioPriceSource });
     } catch (error) {
@@ -632,9 +653,13 @@ router.get("/cards/justtcg-prices", portfolioReadLimiter, async (_req, res) => {
     }
 
     const justTcgIds = Array.from(requestedJustTcgIds);
-    const pricesByJustTcgKey =
-      await fetchJustTcgPortfolioPricesByCardIds(justTcgIds, signal);
+    const pricesByJustTcgKey = await fetchJustTcgPortfolioPricesByCardIds(
+      justTcgIds,
+      signal,
+    );
 
+    const priceSaveTasks: Array<Promise<void>> = [];
+    const updatedAt = new Date().toISOString();
     const hydratedCards = localCardIds.map((cardId) => {
       const prices: Record<string, unknown> = {};
       const lookupIds = lookupIdsByCardId.get(cardId) ?? [];
@@ -646,12 +671,22 @@ router.get("/cards/justtcg-prices", portfolioReadLimiter, async (_req, res) => {
           }
         }
       }
+      const justtcg = buildJustTcgPayload(prices);
+      if (justtcg) {
+        priceSaveTasks.push(
+          saveJustTcgPrices(cardId, {
+            ...justtcg,
+            updatedAt,
+          }),
+        );
+      }
 
       return {
         cardId,
-        justtcg: buildJustTcgPayload(prices),
+        justtcg,
       };
     });
+    await Promise.all(priceSaveTasks);
 
     res.json({
       cards: hydratedCards,
@@ -809,6 +844,7 @@ router.patch(
       const cardId = getCardId(req.params.cardId);
       const priceSource = getPortfolioPriceSource(req.body?.priceSource);
       const priceKey = getPriceKey(req.body?.priceKey, priceSource);
+      const selectForAll = req.body?.selectForAll === true;
       const cardRef = portfolioCardRef(uid, cardId);
 
       const entry = await adminDb.runTransaction(async (transaction) => {
@@ -818,14 +854,14 @@ router.patch(
         }
 
         const existing = parseStoredPortfolioEntry(cardId, cardSnap.data());
-        const priceSources = {
-          ...(existing.priceSources ?? {}),
-          [priceSource]: priceKey,
-        };
-        const updatedEntry = { ...existing, priceSources };
-        transaction.update(cardRef, {
-          [`priceSources.${priceSource}`]: priceKey,
-        });
+        const { entry: updatedEntry, updates } =
+          buildPortfolioPriceSourceSelectionUpdate(
+            existing,
+            priceSource,
+            priceKey,
+            selectForAll,
+          );
+        transaction.update(cardRef, updates);
         return updatedEntry;
       });
 

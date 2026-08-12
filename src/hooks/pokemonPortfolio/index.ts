@@ -84,6 +84,7 @@ export function usePokemonPortfolio() {
     cardId: string,
     priceSource: PortfolioPriceSource,
     priceKey: string,
+    selectForAll = false,
   ) => {
     if (!authUser || !priceKey.trim()) return false;
 
@@ -92,6 +93,7 @@ export function usePokemonPortfolio() {
         cardId,
         priceSource,
         priceKey,
+        selectForAll,
         authUser.uid,
       );
       upsertPortfolioReference(entry);

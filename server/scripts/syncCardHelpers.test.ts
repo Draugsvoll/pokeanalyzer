@@ -180,6 +180,18 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
   try {
     const existing = completeCard({
       grok: { analysis: { keep: true } },
+      justtcg: {
+        prices: {
+          "pokemon-base-set-alakazam-holo-rare:holofoil-near-mint": {
+            market: 120,
+            percentChange24h: null,
+          },
+        },
+        metadata: {
+          sourceUrl: null,
+        },
+        updatedAt: "2026-08-12T00:00:00.000Z",
+      },
       justtcgLookup: { ids: ["pokemon-base-set-alakazam-holo-rare"] },
       name: "Old name",
       tcgplayer: {
@@ -251,6 +263,7 @@ test("one atomic apply updates metadata/prices, preserves Grok, and upserts one 
     assert.ok(isJsonObject(raw));
     assert.equal(cardRow.name, "Corrected name");
     assert.deepEqual(raw.grok, existing.grok);
+    assert.deepEqual(raw.justtcg, existing.justtcg);
     assert.deepEqual(raw.justtcgLookup, existing.justtcgLookup);
     assert.equal(
       (

@@ -226,9 +226,7 @@ function formatJustTcgConditionShortLabel(condition: string) {
   return condition;
 }
 
-export function listJustTcgMarketEntries(
-  prices?: JustTcg["prices"] | null,
-): {
+export function listJustTcgMarketEntries(prices?: JustTcg["prices"] | null): {
   conditionLabel: string;
   conditionShortLabel: string;
   groupKey: string;
@@ -377,6 +375,51 @@ export function getCardPriceOptionForSourceKey(
   return options.find((option) => option.key === key) ?? options[0];
 }
 
+const ALL_PRICE_SOURCE_PRIORITY: CardPriceSource[] = [
+  "justtcg",
+  "tcgplayer",
+  "cardmarket",
+];
+
+export function resolvePortfolioCardPriceOption(
+  card: {
+    tcgplayer?: TCGPlayer | null;
+    cardmarket?: CardMarket | null;
+    justtcg?: JustTcg | null;
+    priceSources?: Partial<Record<CardPriceSource, string>>;
+    allPriceSource?: CardPriceSource;
+  },
+  mode: "all" | CardPriceSource,
+): CardPriceOption | undefined {
+  if (mode !== "all") {
+    return getCardPriceOptionForSourceKey(
+      card,
+      mode,
+      card.priceSources?.[mode],
+    );
+  }
+
+  const sourcePriority = card.allPriceSource
+    ? [
+        card.allPriceSource,
+        ...ALL_PRICE_SOURCE_PRIORITY.filter(
+          (source) => source !== card.allPriceSource,
+        ),
+      ]
+    : ALL_PRICE_SOURCE_PRIORITY;
+
+  for (const source of sourcePriority) {
+    const option = getCardPriceOptionForSourceKey(
+      card,
+      source,
+      card.priceSources?.[source],
+    );
+    if (option) return option;
+  }
+
+  return undefined;
+}
+
 /** Selected option id → price option, else default for the card. */
 export function resolveCardPriceOption(
   card: {
@@ -407,7 +450,7 @@ export function getDirectPriceChangeForOption(
   const priceData = card.justtcg?.prices?.[option.key];
   if (!priceData) return undefined;
 
-  if (period === "24h") return priceData.percentChange24h;
+  if (period === "24h") return priceData.percentChange24h ?? 0;
   if (period === "7d") return priceData.percentChange7d;
   return priceData.percentChange30d;
 }

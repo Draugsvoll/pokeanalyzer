@@ -1,6 +1,7 @@
 import type {
   AddPortfolioCardResponse,
   HydratedPortfolioResponse,
+  PortfolioPriceMode,
   PortfolioPriceSource,
   PortfolioReference,
   PortfolioReferencesResponse,
@@ -122,6 +123,7 @@ export function updatePortfolioCardPriceSource(
   cardId: string,
   priceSource: PortfolioPriceSource,
   priceKey: string,
+  selectForAll: boolean,
   expectedUid: string,
 ) {
   return portfolioRequest<PortfolioReference>(
@@ -129,16 +131,16 @@ export function updatePortfolioCardPriceSource(
     expectedUid,
     {
       method: "PATCH",
-      body: JSON.stringify({ priceSource, priceKey }),
+      body: JSON.stringify({ priceSource, priceKey, selectForAll }),
     },
   );
 }
 
 export function updatePortfolioPriceSource(
-  priceSource: PortfolioPriceSource,
+  priceSource: PortfolioPriceMode,
   expectedUid: string,
 ) {
-  return portfolioRequest<{ portfolioPriceSource: PortfolioPriceSource }>(
+  return portfolioRequest<{ portfolioPriceSource: PortfolioPriceMode }>(
     "/price-source",
     expectedUid,
     {

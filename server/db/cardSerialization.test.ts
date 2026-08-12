@@ -15,14 +15,31 @@ test("parsePublicStoredCard removes application-owned card data", () => {
     justtcgLookup: {
       ids: ["pokemon-base-set-alakazam-holo-rare"],
     },
+    justtcg: {
+      prices: {
+        "pokemon-base-set-alakazam-holo-rare:holofoil-near-mint": {
+          market: 120,
+        },
+      },
+      updatedAt: "2026-08-12T00:00:00.000Z",
+    },
   });
 
   assert.deepEqual(parsePublicStoredCard(rawJson), {
     id: "base1-1",
+    justtcg: {
+      prices: {
+        "pokemon-base-set-alakazam-holo-rare:holofoil-near-mint": {
+          market: 120,
+        },
+      },
+      updatedAt: "2026-08-12T00:00:00.000Z",
+    },
     name: "Alakazam",
   });
   assert.equal("grok" in parseStoredCard(rawJson), true);
   assert.equal("justtcgLookup" in parseStoredCard(rawJson), true);
+  assert.equal("justtcg" in parseStoredCard(rawJson), true);
 });
 
 test("stored card JSON must contain an object", () => {

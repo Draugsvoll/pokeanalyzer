@@ -547,7 +547,7 @@ Now rank this card:
 const isWorthGrading: string =
 `
 
-Can it be worth it to grade this and sell it, instead of selling it raw today?
+I own this card. Can it make sense to grade and sell it, instead of selling it raw today?
 
 Break down the grading economics for PSA6,7,8,9,10 including selling fees/costs. We want the expected ROI for grading and selling, instead of selling raw today. We want to calculate this for each grade. Use reliable sources for all data.
 
@@ -690,7 +690,8 @@ a proper analysis and then fill in the schema with your results.
 The field "Summary" is just a summarized headline for the recommendation. maximum 35-40 words. If you mention gem-rate you don't need to explain if it's high or low, the numbers speak for themselves.
 
 The fields in "reasons" should contain the reasoning behind the overall recommendation. Do not restate calculations or numbers already shown elsewhere unless they are necessary. This part explains recommendation including all costs and fees, and you need to make it perfectly clear if you included selling costs/fees when stating expected values.
-When making any claims or assumptions in the "reasons" field, explain how you concluded that. What are you basing it on? Don't just say things like "expected outcome is PSA7" without making it clear how you conluded that.
+When making any claims or assumptions in the "reasons" field, explain how you concluded that. What are you basing it on? Don't just say things like "expected outcome is PSA7" without making it clear how you conluded that. I always need to know what you are basing a statement/assumption on in this field.
+If a PSA-grade shows paper profits after all costs and fees including selling, but it's not really recommended to grade, it must be clear why it's not worth the paper profits on a practical level.
 
 For fields with "_rate" in the field name, return decimal numbers only, exactly like the example above.
 Example: use 0.135 for 13.5%, not "13.5%" or 13.5.
@@ -712,17 +713,17 @@ In the assumptions field, you simply mention all of your assumptions. Each assum
 Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
 Never use the raw sale price directly as the baseline without subtracting its selling fees.
 
-`;
+`
 
 export const getBiggestMovers: string =
 `
-Please summarize each card in "The Biggest Price Spikes in Pokémon this Week" article from
+Please summarize each card in "The Biggest Price Spikes in Pokemon this Week" article from
 TCG. Use the most recent you can find. Always remember to include all the
 price values mentioned in the article. For every card you must mention the price values from the article.
 Keep things concise and to the point. The summary should be about 3-5 sentences for each card.
 
 - report_link is url to the report you used.
-- spike_summar summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.
+- spike_summary summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.
 
 Return only a valid JSON format as the one below. No text added before or after.
 
@@ -733,7 +734,7 @@ Return only a valid JSON format as the one below. No text added before or after.
     {
       "rank": "",
       "card_name": "",
-      "summary": "",
+      "summary": ""
     }
   ]
 }

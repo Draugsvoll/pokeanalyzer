@@ -25,6 +25,37 @@ export type SyncSqlStatement = {
   args: Array<string | number | null>;
 };
 
+const PRESERVED_CARD_JSON_FIELDS = ["grok", "justtcg", "justtcgLookup"] as const;
+
+const CLEAN_METADATA_RAW_JSON_SQL = `
+  json_remove(
+    json_remove(
+      json_remove(json(stage.raw_json), '$.grok'),
+      '$.justtcg'
+    ),
+    '$.justtcgLookup'
+  )
+`;
+
+function restorePreservedJsonField(expression: string, field: string) {
+  return `
+    CASE
+      WHEN json_type(cards.raw_json, '$.${field}') IS NOT NULL THEN
+        json_set(
+          ${expression},
+          '$.${field}',
+          json(json_extract(cards.raw_json, '$.${field}'))
+        )
+      ELSE ${expression}
+    END
+  `;
+}
+
+const PRESERVED_METADATA_RAW_JSON_SQL = PRESERVED_CARD_JSON_FIELDS.reduce(
+  restorePreservedJsonField,
+  CLEAN_METADATA_RAW_JSON_SQL,
+);
+
 export const CARD_SYNC_STAGE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS card_sync_stage (
     run_id TEXT NOT NULL,
@@ -57,31 +88,7 @@ export const APPLY_METADATA_UPDATES_SQL = `
     set_name = stage.set_name,
     image_small = stage.image_small,
     image_large = stage.image_large,
-    raw_json = CASE
-      WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL
-        AND json_type(cards.raw_json, '$.justtcgLookup') IS NOT NULL THEN
-        json_set(
-          json(stage.raw_json),
-          '$.grok',
-          json_extract(cards.raw_json, '$.grok'),
-          '$.justtcgLookup',
-          json_extract(cards.raw_json, '$.justtcgLookup')
-        )
-      WHEN json_type(cards.raw_json, '$.grok') IS NOT NULL THEN
-        json_set(
-          json(stage.raw_json),
-          '$.grok',
-          json_extract(cards.raw_json, '$.grok')
-        )
-      WHEN json_type(cards.raw_json, '$.justtcgLookup') IS NOT NULL THEN
-        json_set(
-          json(stage.raw_json),
-          '$.justtcgLookup',
-          json_extract(cards.raw_json, '$.justtcgLookup')
-        )
-      ELSE
-        json_remove(json_remove(json(stage.raw_json), '$.grok'), '$.justtcgLookup')
-    END,
+    raw_json = ${PRESERVED_METADATA_RAW_JSON_SQL},
     updated_at = CURRENT_TIMESTAMP
   FROM card_sync_stage AS stage
   WHERE
@@ -423,6 +430,12 @@ function cloneJsonObject(value: JsonObject): JsonObject {
   return parsed;
 }
 
+function removePreservedCardJsonFields(card: JsonObject) {
+  for (const field of PRESERVED_CARD_JSON_FIELDS) {
+    delete card[field];
+  }
+}
+
 function hasText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -446,8 +459,7 @@ export function sanitizeIncomingCard(
   }
 
   const sanitized = cloneJsonObject(card);
-  delete sanitized.grok;
-  delete sanitized.justtcgLookup;
+  removePreservedCardJsonFields(sanitized);
   const set = isJsonObject(sanitized.set) ? sanitized.set : null;
   const images = isJsonObject(sanitized.images) ? sanitized.images : null;
 
@@ -529,8 +541,7 @@ export function buildSafeFullCard(
   existingCard?: JsonObject,
 ): PokemonTcgApiCard {
   const safeCard = cloneJsonObject(incomingCard);
-  delete safeCard.grok;
-  delete safeCard.justtcgLookup;
+  removePreservedCardJsonFields(safeCard);
 
   for (const providerName of [
     "tcgplayer",
@@ -582,8 +593,7 @@ export function buildSafeFullCard(
 
 function metadataOnlyCard(card: JsonObject): JsonObject {
   const metadata = cloneJsonObject(card);
-  delete metadata.grok;
-  delete metadata.justtcgLookup;
+  removePreservedCardJsonFields(metadata);
 
   for (const providerName of [
     "tcgplayer",

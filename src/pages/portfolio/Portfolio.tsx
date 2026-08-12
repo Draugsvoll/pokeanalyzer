@@ -16,13 +16,14 @@ import {
 import type {
   PortfolioCard,
   PortfolioComparisonPeriod,
+  PortfolioPriceMode,
   PortfolioPriceSource,
 } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
-  getCardPriceOptionForSourceKey,
   getDirectPriceChangeForOption,
   getHistoricalPriceForOption,
+  resolvePortfolioCardPriceOption,
 } from "../../utils/pokemonPricing";
 import "./Portfolio.scss";
 
@@ -66,31 +67,21 @@ const CHANGE_PERIOD_OPTIONS: {
 
 function getPortfolioCardPrice(
   card: PortfolioCard,
-  priceSource: PortfolioPriceSource,
+  priceMode: PortfolioPriceMode,
 ) {
-  return (
-    getCardPriceOptionForSourceKey(
-      card,
-      priceSource,
-      card.priceSources?.[priceSource],
-    )?.price ?? null
-  );
+  return resolvePortfolioCardPriceOption(card, priceMode)?.price ?? null;
 }
 
 function getPortfolioCardPriceChange(
   card: PortfolioCard,
   period: PortfolioChangePeriod,
-  priceSource: PortfolioPriceSource,
+  priceMode: PortfolioPriceMode,
 ) {
-  const option = getCardPriceOptionForSourceKey(
-    card,
-    priceSource,
-    card.priceSources?.[priceSource],
-  );
+  const option = resolvePortfolioCardPriceOption(card, priceMode);
   const comparisonSnapshot = card.priceSnapshots?.[period];
   const directChange = getDirectPriceChangeForOption(card, option, period);
   if (directChange !== undefined) return directChange;
-  if (priceSource !== "tcgplayer") return null;
+  if (option?.source !== "tcgplayer") return null;
 
   if (!option || !comparisonSnapshot) {
     return null;
@@ -107,23 +98,20 @@ function PortfolioForCurrentUser() {
   const { user, loading: authLoading } = useAuth();
   const { replacePortfolioReferences } = usePortfolioCache();
   const activePortfolioRequestRef = useRef(0);
+  const justTcgUpdateAbortRef = useRef<AbortController | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioCard[]>([]);
   const [loadingPortfolio, setLoadingPortfolio] = useState(true);
   const [portfolioError, setPortfolioError] = useState("");
   const [missingCardIds, setMissingCardIds] = useState<string[]>([]);
   const [savedPriceSource, setSavedPriceSource] =
-    useState<PortfolioPriceSource>("tcgplayer");
-  const [priceSource, setPriceSource] =
-    useState<PortfolioPriceSource>("tcgplayer");
+    useState<PortfolioPriceMode>("all");
+  const [priceSource, setPriceSource] = useState<PortfolioPriceMode>("all");
   const [savingPriceSource, setSavingPriceSource] = useState(false);
   const [nameFilter, setNameFilter] = useState("");
   const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("");
   const [changePeriod, setChangePeriod] =
     useState<PortfolioChangePeriod>("24h");
   const [loadingJustTcgPrices, setLoadingJustTcgPrices] = useState(false);
-  const [missingJustTcgPriceIds, setMissingJustTcgPriceIds] = useState<
-    string[]
-  >([]);
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -185,78 +173,76 @@ function PortfolioForCurrentUser() {
     };
   }, [loadPortfolio]);
 
+  useEffect(
+    () => () => {
+      justTcgUpdateAbortRef.current?.abort();
+    },
+    [],
+  );
+
   const portfolioCardIdKey = useMemo(
     () => portfolio.map((card) => card.id).join("|"),
     [portfolio],
   );
 
-  useEffect(() => {
-    if (!user || priceSource !== "justtcg" || !portfolioCardIdKey) return;
+  const updateJustTcgPrices = useCallback(async () => {
+    if (!user || loadingJustTcgPrices || !portfolioCardIdKey) return;
 
+    justTcgUpdateAbortRef.current?.abort();
     const controller = new AbortController();
-    const uid = user.uid;
+    justTcgUpdateAbortRef.current = controller;
 
-    async function loadJustTcgPrices() {
-      setLoadingJustTcgPrices(true);
-      try {
-        const response = await getPortfolioJustTcgPrices(
-          uid,
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
+    setLoadingJustTcgPrices(true);
+    try {
+      const response = await getPortfolioJustTcgPrices(
+        user.uid,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
 
-        const justTcgByCardId = new Map(
-          response.cards.map((card) => [card.cardId, card.justtcg]),
-        );
+      const justTcgByCardId = new Map(
+        response.cards.map((card) => [card.cardId, card.justtcg]),
+      );
 
-        setPortfolio((current) =>
-          current.map((card) => {
-            if (!justTcgByCardId.has(card.id)) return card;
-            const justtcg = justTcgByCardId.get(card.id);
-            return justtcg
-              ? { ...card, justtcg }
-              : { ...card, justtcg: undefined };
-          }),
-        );
-        setMissingJustTcgPriceIds(response.missingCardIds);
-        if (response.missingCardIds.length > 0) {
-          void triggerMissingPortfolioJustTcgLookups(
-            response.missingCardIds,
-            uid,
-          ).catch((error) => {
-            logClientError(
-              "Failed to trigger missing portfolio JustTCG lookups",
-              error,
-            );
-          });
-        }
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logClientError("Failed to load portfolio JustTCG prices", error);
-        setMissingJustTcgPriceIds(portfolioCardIdKey.split("|"));
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingJustTcgPrices(false);
-        }
+      setPortfolio((current) =>
+        current.map((card) => {
+          if (!justTcgByCardId.has(card.id)) return card;
+          const justtcg = justTcgByCardId.get(card.id);
+          return justtcg ? { ...card, justtcg } : card;
+        }),
+      );
+      if (response.missingCardIds.length > 0) {
+        void triggerMissingPortfolioJustTcgLookups(
+          response.missingCardIds,
+          user.uid,
+        ).catch((error) => {
+          logClientError(
+            "Failed to trigger missing portfolio JustTCG lookups",
+            error,
+          );
+        });
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      logClientError("Failed to load portfolio JustTCG prices", error);
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoadingJustTcgPrices(false);
+      }
+      if (justTcgUpdateAbortRef.current === controller) {
+        justTcgUpdateAbortRef.current = null;
       }
     }
+  }, [loadingJustTcgPrices, portfolioCardIdKey, user]);
 
-    void loadJustTcgPrices();
-    return () => controller.abort();
-  }, [portfolioCardIdKey, priceSource, user]);
-
-  // Sum each card's selected price × quantity (USD / EUR kept separate)
+  // Sum each card's resolved price x quantity.
   const { totalValue, valuedCardCount } = useMemo(() => {
     let totalValue = 0;
     let valuedCardCount = 0;
 
     for (const card of portfolio) {
       const quantity = cardQuantity(card);
-      const option = getCardPriceOptionForSourceKey(
-        card,
-        priceSource,
-        card.priceSources?.[priceSource],
-      );
+      const option = resolvePortfolioCardPriceOption(card, priceSource);
       if (!option) continue;
 
       totalValue += option.price * quantity;
@@ -268,13 +254,14 @@ function PortfolioForCurrentUser() {
 
   const unstablePriceCardCount = useMemo(
     () =>
-      priceSource === "justtcg"
-        ? 0
-        : portfolio.reduce(
-            (count, card) =>
-              count + (card.priceReliability?.[priceSource]?.isFlagged ? 1 : 0),
-            0,
-          ),
+      portfolio.reduce((count, card) => {
+        const source = resolvePortfolioCardPriceOption(
+          card,
+          priceSource,
+        )?.source;
+        if (!source || source === "justtcg") return count;
+        return count + (card.priceReliability?.[source]?.isFlagged ? 1 : 0);
+      }, 0),
     [portfolio, priceSource],
   );
 
@@ -306,22 +293,29 @@ function PortfolioForCurrentUser() {
       .map((card, index) => ({
         card,
         index,
-        missingJustTcgPrice:
-          priceSource === "justtcg" &&
+        missingPrice:
+          (priceSource === "all" || priceSource === "justtcg") &&
           getPortfolioCardPrice(card, priceSource) == null,
         value: isPriceSort
           ? getPortfolioCardPrice(card, priceSource)
-          : priceSource === "tcgplayer" || priceSource === "justtcg"
-            ? getPortfolioCardPriceChange(card, changePeriod, priceSource)
-            : null,
+          : getPortfolioCardPriceChange(card, changePeriod, priceSource),
       }))
       .sort((a, b) => {
-        if (a.missingJustTcgPrice !== b.missingJustTcgPrice) {
-          return a.missingJustTcgPrice ? -1 : 1;
+        if (!isPriceSort) {
+          if (a.value == null && b.value == null) return a.index - b.index;
+          if (a.value == null) return 1;
+          if (b.value == null) return -1;
+
+          const difference = descending ? b.value - a.value : a.value - b.value;
+          return difference || a.index - b.index;
+        }
+
+        if (a.missingPrice !== b.missingPrice) {
+          return a.missingPrice ? -1 : 1;
         }
         if (a.value == null && b.value == null) return a.index - b.index;
-        if (a.value == null) return isPriceSort ? 1 : -1;
-        if (b.value == null) return isPriceSort ? -1 : 1;
+        if (a.value == null) return 1;
+        if (b.value == null) return -1;
 
         const difference = descending ? b.value - a.value : a.value - b.value;
         return difference || a.index - b.index;
@@ -331,10 +325,26 @@ function PortfolioForCurrentUser() {
 
   const priceSourceChanged = priceSource !== savedPriceSource;
   const totalCurrencySymbol = priceSource === "cardmarket" ? "€" : "$";
-  const missingJustTcgPriceCardCount =
-    priceSource === "justtcg" && !loadingJustTcgPrices
-      ? missingJustTcgPriceIds.length
-      : 0;
+  const missingPriceWarnings = (
+    priceSource === "all"
+      ? (["tcgplayer", "cardmarket", "justtcg"] as const)
+      : ([priceSource] as const)
+  )
+    .map((source) => ({
+      source,
+      label:
+        source === "tcgplayer"
+          ? "TCG"
+          : source === "cardmarket"
+            ? "Cardmarket"
+            : "JustTCG",
+      count: portfolio.reduce(
+        (count, card) =>
+          count + (resolvePortfolioCardPriceOption(card, source) ? 0 : 1),
+        0,
+      ),
+    }))
+    .filter((warning) => warning.count > 0);
 
   const handleCardQuantityUpdated = (cardId: string, quantity: number) => {
     setPortfolio((current) =>
@@ -352,6 +362,7 @@ function PortfolioForCurrentUser() {
     cardId: string,
     source: PortfolioPriceSource,
     priceKey: string,
+    selectForAll: boolean,
   ) => {
     setPortfolio((current) =>
       current.map((card) =>
@@ -362,6 +373,7 @@ function PortfolioForCurrentUser() {
                 ...(card.priceSources ?? {}),
                 [source]: priceKey,
               },
+              ...(selectForAll && { allPriceSource: source }),
             }
           : card,
       ),
@@ -526,6 +538,18 @@ function PortfolioForCurrentUser() {
                         className="app-radio"
                         type="radio"
                         name="portfolio-value-source"
+                        value="all"
+                        checked={priceSource === "all"}
+                        disabled={savingPriceSource}
+                        onChange={() => setPriceSource("all")}
+                      />
+                      <span>All</span>
+                    </label>
+                    <label>
+                      <input
+                        className="app-radio"
+                        type="radio"
+                        name="portfolio-value-source"
                         value="tcgplayer"
                         checked={priceSource === "tcgplayer"}
                         disabled={savingPriceSource}
@@ -579,6 +603,27 @@ function PortfolioForCurrentUser() {
                       )}
                     </Button>
                   )}
+                  {(priceSource === "all" || priceSource === "justtcg") && (
+                    <Button
+                      size="xsmall"
+                      disabled={loadingJustTcgPrices || portfolio.length === 0}
+                      aria-busy={loadingJustTcgPrices || undefined}
+                      aria-label={
+                        loadingJustTcgPrices
+                          ? "Updating JustTCG portfolio prices"
+                          : undefined
+                      }
+                      onClick={() => {
+                        void updateJustTcgPrices();
+                      }}
+                    >
+                      {loadingJustTcgPrices ? (
+                        <span className="app-btn__spinner" aria-hidden="true" />
+                      ) : (
+                        "Update JustTCG"
+                      )}
+                    </Button>
+                  )}
                 </div>
                 <span className="portfolio__total-count">
                   {valuedCardCount}{" "}
@@ -605,20 +650,20 @@ function PortfolioForCurrentUser() {
             </span>
           </div>
         )}
-        {missingJustTcgPriceCardCount > 0 && (
+        {missingPriceWarnings.map((warning) => (
           <div
+            key={warning.source}
             className="portfolio__price-warning"
             role="status"
             aria-live="polite"
           >
             <TriangleAlert aria-hidden="true" />
             <span>
-              {missingJustTcgPriceCardCount}{" "}
-              {missingJustTcgPriceCardCount === 1 ? "card is" : "cards are"}{" "}
-              missing JustTCG price data.
+              {warning.label} has {warning.count}{" "}
+              {warning.count === 1 ? "card" : "cards"} missing price data.
             </span>
           </div>
-        )}
+        ))}
       </div>
 
       {missingCardIds.length > 0 && (
@@ -649,36 +694,49 @@ function PortfolioForCurrentUser() {
         </div>
       ) : (
         <GridView>
-          {visiblePortfolio.map((card) => (
-            <PokemonCardPortfolioView
-              key={card.id}
-              card={card}
-              quantity={cardQuantity(card)}
-              comparisonPriceSnapshot={
-                priceSource === "tcgplayer"
-                  ? (card.priceSnapshots?.[changePeriod] ?? null)
-                  : undefined
-              }
-              priceChangePercent={
-                priceSource === "justtcg"
-                  ? getPortfolioCardPriceChange(card, changePeriod, priceSource)
-                  : undefined
-              }
-              priceChangeLabel={
-                priceSource === "justtcg" ? `${changePeriod} change` : undefined
-              }
-              priceSource={priceSource}
-              lockPriceSource
-              showRarityBadge
-              showPriceWarning={
-                priceSource !== "justtcg" &&
-                (card.priceReliability?.[priceSource]?.isFlagged ?? false)
-              }
-              onQuantityUpdated={handleCardQuantityUpdated}
-              onRemoved={handleCardRemoved}
-              onPriceSourceUpdated={handleCardPriceSourceUpdated}
-            />
-          ))}
+          {visiblePortfolio.map((card) => {
+            const option = resolvePortfolioCardPriceOption(card, priceSource);
+            const activeSource =
+              option?.source ??
+              (priceSource === "all" ? "justtcg" : priceSource);
+
+            return (
+              <PokemonCardPortfolioView
+                key={card.id}
+                card={card}
+                quantity={cardQuantity(card)}
+                priceMode={priceSource}
+                comparisonPriceSnapshot={
+                  activeSource === "tcgplayer"
+                    ? (card.priceSnapshots?.[changePeriod] ?? null)
+                    : undefined
+                }
+                priceChangePercent={
+                  activeSource === "justtcg"
+                    ? getPortfolioCardPriceChange(
+                        card,
+                        changePeriod,
+                        priceSource,
+                      )
+                    : undefined
+                }
+                priceChangeLabel={
+                  activeSource === "justtcg"
+                    ? `${changePeriod} change`
+                    : undefined
+                }
+                priceSource={activeSource}
+                showRarityBadge
+                showPriceWarning={
+                  activeSource !== "justtcg" &&
+                  (card.priceReliability?.[activeSource]?.isFlagged ?? false)
+                }
+                onQuantityUpdated={handleCardQuantityUpdated}
+                onRemoved={handleCardRemoved}
+                onPriceSourceUpdated={handleCardPriceSourceUpdated}
+              />
+            );
+          })}
         </GridView>
       )}
     </main>

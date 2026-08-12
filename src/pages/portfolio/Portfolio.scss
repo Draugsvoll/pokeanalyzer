@@ -85,6 +85,7 @@
     .portfolio__value-source-radios {
       align-items: center;
       display: flex;
+      flex-wrap: wrap;
       gap: 0.8rem;
     }
 
@@ -434,4 +435,3 @@
     }
   }
 }
-

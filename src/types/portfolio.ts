@@ -4,13 +4,16 @@ export type PortfolioReference = {
   cardId: string;
   quantity: number;
   priceSources?: Partial<Record<PortfolioPriceSource, string>>;
+  allPriceSource?: PortfolioPriceSource;
 };
 
 export type PortfolioPriceSource = "tcgplayer" | "cardmarket" | "justtcg";
+export type PortfolioPriceMode = "all" | PortfolioPriceSource;
 
 export type PortfolioCard = PokemonCard & {
   quantity: number;
   priceSources?: Partial<Record<PortfolioPriceSource, string>>;
+  allPriceSource?: PortfolioPriceSource;
   priceSnapshots?: Partial<
     Record<PortfolioComparisonPeriod, PortfolioPriceSnapshot>
   >;
@@ -33,7 +36,7 @@ export type PortfolioReferencesResponse = {
 export type HydratedPortfolioResponse = PortfolioReferencesResponse & {
   cards: PortfolioCard[];
   missingCardIds: string[];
-  portfolioPriceSource: PortfolioPriceSource;
+  portfolioPriceSource: PortfolioPriceMode;
 };
 
 export type AddPortfolioCardResponse = {
