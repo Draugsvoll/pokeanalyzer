@@ -16,6 +16,7 @@ export type CardPriceOption = {
   source: CardPriceSource;
   /** Raw key (TCG variant or Cardmarket field name) */
   key: string;
+  cardName?: string;
   groupKey?: string;
   conditionLabel?: string;
   conditionShortLabel?: string;
@@ -227,6 +228,7 @@ function formatJustTcgConditionShortLabel(condition: string) {
 }
 
 export function listJustTcgMarketEntries(prices?: JustTcg["prices"] | null): {
+  cardName?: string;
   conditionLabel: string;
   conditionShortLabel: string;
   groupKey: string;
@@ -246,6 +248,7 @@ export function listJustTcgMarketEntries(prices?: JustTcg["prices"] | null): {
 
   return Object.entries(prices)
     .map(([key, value]) => ({
+      cardName: value.cardName ?? "",
       condition: value.condition,
       conditionLabel: formatJustTcgConditionLabel(value.condition),
       conditionShortLabel: formatJustTcgConditionShortLabel(value.condition),
@@ -261,6 +264,7 @@ export function listJustTcgMarketEntries(prices?: JustTcg["prices"] | null): {
         entry,
       ): entry is {
         condition: string;
+        cardName: string;
         conditionLabel: string;
         conditionShortLabel: string;
         groupKey: string;
@@ -322,6 +326,7 @@ export function listCardPriceOptions(card: {
       id: `justtcg:${entry.key}`,
       source: "justtcg",
       key: entry.key,
+      cardName: entry.cardName,
       groupKey: entry.groupKey,
       conditionLabel: entry.conditionLabel,
       conditionShortLabel: entry.conditionShortLabel,

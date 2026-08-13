@@ -55,12 +55,22 @@ export type PokemonCardViewProps = {
   priceChangePercent?: number | null;
   priceChangeLabel?: string;
   showPriceWarning?: boolean;
+  hidePortfolioButtonUntilHover?: boolean;
   onPortfolioChanged?: (saved: boolean) => void;
 };
 
 function formatPriceChange(value: number) {
   if (value === 0) return "0.0%";
   return `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(1)}%`;
+}
+
+function getJustTcgOptionLabelParts(option: CardPriceOption) {
+  const [printing = "", setName = ""] = option.groupKey?.split("|") ?? [];
+  return {
+    condition: option.conditionShortLabel ?? option.conditionLabel ?? "",
+    printing,
+    setName,
+  };
 }
 
 export function PokemonCardView({
@@ -80,6 +90,7 @@ export function PokemonCardView({
   priceChangePercent,
   priceChangeLabel,
   showPriceWarning = false,
+  hidePortfolioButtonUntilHover = false,
   onPortfolioChanged,
 }: PokemonCardViewProps) {
   const navigate = useNavigate();
@@ -106,24 +117,21 @@ export function PokemonCardView({
 
     return priceOptions.filter((option) => option.source === priceSource);
   }, [lockPriceSource, priceOptions, priceSource]);
-  const duplicateJustTcgPrintings = useMemo(() => {
-    const setsByPrinting = new Map<string, Set<string>>();
+  const duplicateJustTcgGroupKeys = useMemo(() => {
+    const labelCounts = new Map<string, number>();
 
     for (const option of visiblePriceOptions) {
       if (option.source !== "justtcg" || !option.groupKey) continue;
-
-      const [printing, setName = ""] = option.groupKey.split("|");
-      if (!printing) continue;
-
-      const setNames = setsByPrinting.get(printing) ?? new Set<string>();
-      setNames.add(setName);
-      setsByPrinting.set(printing, setNames);
+      const { printing, setName } = getJustTcgOptionLabelParts(option);
+      const condition = option.conditionShortLabel ?? option.conditionLabel;
+      const labelKey = [printing, setName, condition].filter(Boolean).join("|");
+      labelCounts.set(labelKey, (labelCounts.get(labelKey) ?? 0) + 1);
     }
 
     return new Set(
-      Array.from(setsByPrinting.entries())
-        .filter(([, setNames]) => setNames.size > 1)
-        .map(([printing]) => printing),
+      Array.from(labelCounts.entries())
+        .filter(([, count]) => count > 1)
+        .map(([labelKey]) => labelKey),
     );
   }, [visiblePriceOptions]);
   const defaultPriceOption = lockPriceSource
@@ -300,24 +308,39 @@ export function PokemonCardView({
             const checked = option.id === activeOption?.id;
             const isPending = option.id === pendingPriceOptionId;
             const pretext = getCardPriceSourceLabel(option.source);
-            const [optionPrinting, optionSetName = ""] =
-              option.source === "justtcg" && option.groupKey
-                ? option.groupKey.split("|")
-                : ["", ""];
+            const {
+              condition: optionConditionLabel,
+              printing: optionPrinting,
+              setName: optionSetName,
+            } =
+              option.source === "justtcg"
+                ? getJustTcgOptionLabelParts(option)
+                : {
+                    condition:
+                      option.conditionShortLabel ?? option.conditionLabel ?? "",
+                    printing: "",
+                    setName: "",
+                  };
+            const justTcgLabelKey = [
+              optionPrinting,
+              optionSetName,
+              optionConditionLabel,
+            ]
+              .filter(Boolean)
+              .join("|");
             const optionLabel =
               option.source === "justtcg" && optionPrinting
                 ? [
                     optionPrinting,
-                    duplicateJustTcgPrintings.has(optionPrinting)
-                      ? optionSetName
+                    optionSetName,
+                    duplicateJustTcgGroupKeys.has(justTcgLabelKey)
+                      ? option.cardName
                       : "",
                   ]
                     .filter(Boolean)
                     .join(" · ")
                 : option.label;
             const hasOptionLabel = Boolean(optionLabel.trim());
-            const optionConditionLabel =
-              option.conditionShortLabel ?? option.conditionLabel;
             const hasOptionDetail = Boolean(
               optionLabel.trim() || optionConditionLabel,
             );
@@ -432,9 +455,15 @@ export function PokemonCardView({
   return (
     <div className="pokemon-card-view">
       <div
-        className={`pokemon-card-view__card${
-          sourceOpen ? " pokemon-card-view__card--source-open" : ""
-        }`}
+        className={[
+          "pokemon-card-view__card",
+          sourceOpen ? "pokemon-card-view__card--source-open" : "",
+          hidePortfolioButtonUntilHover
+            ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onClick={handleCardClick}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -780,6 +809,7 @@ export function PokemonCardPortfolioView({
         onConfirmPriceOption={confirmPriceOptionChange}
         onCancelPriceOption={() => setPendingPriceOptionId(null)}
         confirmingPriceOption={updatingPriceOption}
+        hidePortfolioButtonUntilHover
         onPortfolioChanged={(saved) => {
           onPortfolioChanged?.(saved);
           if (!saved) onRemoved?.(card.id);

@@ -409,6 +409,21 @@ export function JustTcgPriceHistory({
   }, [selectedVariant, selectedPeriod.days]);
   const multipleSets =
     new Set(groups.map((group) => group.setName).filter(Boolean)).size > 1;
+  const duplicatedVariantLabels = useMemo(() => {
+    const labelCounts = groups.reduce<Record<string, number>>((counts, group) => {
+      const key = [group.printing, multipleSets ? group.setName : ""]
+        .filter(Boolean)
+        .join("|");
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {});
+
+    return new Set(
+      Object.entries(labelCounts)
+        .filter(([, count]) => count > 1)
+        .map(([key]) => key),
+    );
+  }, [groups, multipleSets]);
 
   function selectGroup(groupId: string) {
     setSelectedGroupId(groupId);
@@ -458,6 +473,17 @@ export function JustTcgPriceHistory({
                         <small>{group.setName}</small>
                       </>
                     )}
+                    {group.cardName &&
+                      duplicatedVariantLabels.has(
+                        [group.printing, multipleSets ? group.setName : ""]
+                          .filter(Boolean)
+                          .join("|"),
+                      ) && (
+                        <>
+                          <i aria-hidden="true">•</i>
+                          <small>{group.cardName}</small>
+                        </>
+                      )}
                   </span>
                 </label>
               ))}

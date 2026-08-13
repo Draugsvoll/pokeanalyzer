@@ -58,6 +58,8 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
         data: [
           {
             name: "Reliable Pikachu",
+            number: "025/102",
+            rarity: "Rare Holo",
             set_name: "Test Set",
             variants: [
               {
@@ -75,6 +77,7 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
           },
           {
             name: "Tiny Outlier",
+            number: "001/102",
             variants: [
               {
                 condition: "NM",
@@ -89,6 +92,8 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
           },
           {
             name: "Reliable Bulbasaur",
+            number: "002/102",
+            rarity: "Common",
             set_name: "Test Set",
             variants: [
               {
@@ -118,8 +123,10 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
     assert.equal(result.length, 2);
     assert.equal(result[0].cardName, "Reliable Pikachu");
     assert.equal(result[0].currentPrice, 25);
+    assert.equal(result[0].just_tcg_number, "025/102");
     assert.equal(result[0].period, "7d");
     assert.equal(result[0].printing, "Holofoil");
+    assert.equal(result[0].rarity, "Rare Holo");
     assert.equal(result[1].cardName, "Reliable Bulbasaur");
     assert.equal(result[1].condition, "Lightly Played");
   } finally {
@@ -175,6 +182,7 @@ test("JustTCG biggest losers request uses safe filters and negative movers", asy
         data: [
           {
             name: "Reliable Charmander",
+            number: "004/102",
             variants: [
               {
                 condition: "NM",
@@ -191,6 +199,7 @@ test("JustTCG biggest losers request uses safe filters and negative movers", asy
           },
           {
             name: "Positive Mover",
+            number: "005/102",
             variants: [
               {
                 condition: "NM",

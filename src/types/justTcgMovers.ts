@@ -8,8 +8,10 @@ export type JustTcgMover = {
   changePercent?: number;
   condition: string;
   currentPrice: number;
+  just_tcg_number?: string;
   period: JustTcgMovementPeriod;
   printing: string;
+  rarity?: string;
   setName?: string;
 };
 

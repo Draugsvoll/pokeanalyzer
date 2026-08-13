@@ -18,16 +18,16 @@ async function fetchJustTcgMovers(
   type: JustTcgMoverCacheKey,
   path: string,
   period: JustTcgMovementPeriod = "7d",
-  options: { forceRefresh?: boolean; signal?: AbortSignal } = {},
+  signal?: AbortSignal,
 ) {
   const cacheKey = getCacheKey(type, period);
-  if (!options.forceRefresh && justTcgMoverCache.has(cacheKey)) {
+  if (justTcgMoverCache.has(cacheKey)) {
     return justTcgMoverCache.get(cacheKey) ?? [];
   }
 
   const params = new URLSearchParams({ period });
   const response = await fetch(`${API_URL}${path}?${params}`, {
-    signal: options.signal,
+    signal,
   });
 
   if (!response.ok) {
@@ -46,25 +46,23 @@ async function fetchJustTcgMovers(
 export async function fetchJustTcgBiggestGainers(
   signal?: AbortSignal,
   period: JustTcgMovementPeriod = "7d",
-  options: { forceRefresh?: boolean } = {},
 ) {
   return fetchJustTcgMovers(
     "biggestGainers",
     "/api/justtcg/biggest-gainers",
     period,
-    { ...options, signal },
+    signal,
   );
 }
 
 export async function fetchJustTcgBiggestLosers(
   signal?: AbortSignal,
   period: JustTcgMovementPeriod = "7d",
-  options: { forceRefresh?: boolean } = {},
 ) {
   return fetchJustTcgMovers(
     "biggestLosers",
     "/api/justtcg/biggest-losers",
     period,
-    { ...options, signal },
+    signal,
   );
 }

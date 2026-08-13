@@ -9,7 +9,6 @@ import {
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { Swimlane } from "../swimlane/Swimlane";
-import Button from "../button/Button";
 import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
 import "./JustTcgCardGrid.scss";
 
@@ -36,8 +35,8 @@ const typeLabels: Record<JustTcgMoverType, string> = {
 };
 
 const typeOptions = [
-  { color: "blue", label: "Gainers", value: "biggestGainers" },
-  { color: "blue", label: "Losers", value: "biggestLosers" },
+  { label: "Gainers", value: "biggestGainers" },
+  { color: "pink", label: "Losers", value: "biggestLosers" },
 ] as const;
 
 function isJustTcgMoverType(value: string): value is JustTcgMoverType {
@@ -48,11 +47,10 @@ function fetchCardsByType(
   type: JustTcgMoverType,
   signal: AbortSignal,
   period: JustTcgMovementPeriod,
-  forceRefresh = false,
 ) {
   return type === "biggestGainers"
-    ? fetchJustTcgBiggestGainers(signal, period, { forceRefresh })
-    : fetchJustTcgBiggestLosers(signal, period, { forceRefresh });
+    ? fetchJustTcgBiggestGainers(signal, period)
+    : fetchJustTcgBiggestLosers(signal, period);
 }
 
 function CardLayout({
@@ -108,9 +106,6 @@ export function JustTcgCardGrid({
   const cards = resultsByKey[activeKey] ?? [];
   const error = errorsByKey[activeKey] ?? "";
   const loading = Boolean(loadingByKey[activeKey]);
-  const loadingAny = moverTypes.some((moverType) =>
-    Boolean(loadingByKey[`${moverType}:${period}`]),
-  );
   const hasError = activeKey in errorsByKey;
   const hasResult = activeKey in resultsByKey;
   const hasMultipleTypes = moverTypes.length > 1;
@@ -127,7 +122,7 @@ export function JustTcgCardGrid({
   }, []);
 
   const loadTypes = useCallback(
-    async (typesToLoad: JustTcgMoverType[], forceRefresh = false) => {
+    async (typesToLoad: JustTcgMoverType[]) => {
       if (typesToLoad.length === 0) return;
 
       const controller = new AbortController();
@@ -155,7 +150,6 @@ export function JustTcgCardGrid({
               moverType,
               controller.signal,
               period,
-              forceRefresh,
             ),
           })),
         );
@@ -204,7 +198,7 @@ export function JustTcgCardGrid({
   useEffect(() => {
     const typesToLoad = moverTypesKey.split("|").filter(isJustTcgMoverType);
     const timeout = window.setTimeout(() => {
-      void loadTypes(typesToLoad, false);
+      void loadTypes(typesToLoad);
     }, 0);
 
     return () => window.clearTimeout(timeout);
@@ -224,13 +218,6 @@ export function JustTcgCardGrid({
               value={activeType}
             />
           )}
-          <Button
-            disabled={loadingAny}
-            onClick={() => void loadTypes(moverTypes, true)}
-            size="small"
-          >
-            {loadingAny ? "Fetching..." : hasResult ? "Refresh" : "Fetch movers"}
-          </Button>
         </div>
       </header>
 

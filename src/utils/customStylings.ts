@@ -1,6 +1,12 @@
 import type { CSSProperties } from "react";
 
-export type CustomColors = "purple" | "teal" | "yellow" | "orange" | "pink" | "blue";
+export type CustomColors =
+  | "purple"
+  | "teal"
+  | "yellow"
+  | "orange"
+  | "pink"
+  | "blue";
 
 const CUSTOM_COLORS: Record<CustomColors, string> = {
   purple: "var(--custom-color-purple)",

@@ -7,6 +7,11 @@ export type PortfolioEntry = {
   allPriceSource?: PortfolioPriceSource;
 };
 
+export type StoredJustTcgLookup = {
+  failedAt?: string;
+  ids: string[];
+};
+
 export function buildSaveJustTcgPricesStatement(
   cardId: string,
   justtcg: { prices: Record<string, unknown>; updatedAt: string },
@@ -25,6 +30,21 @@ export function buildSaveJustTcgPricesStatement(
       WHERE id = ?
     `,
     args: [JSON.stringify(justtcg.prices), justtcg.updatedAt, cardId],
+  };
+}
+
+export function buildSaveJustTcgLookupStatement(
+  cardId: string,
+  lookup: StoredJustTcgLookup,
+) {
+  return {
+    sql: `
+      UPDATE cards
+      SET raw_json = json_set(raw_json, '$.justtcgLookup', json(?)),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `,
+    args: [JSON.stringify(lookup), cardId],
   };
 }
 

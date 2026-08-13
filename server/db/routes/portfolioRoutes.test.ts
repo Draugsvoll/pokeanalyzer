@@ -9,6 +9,7 @@ import {
 } from "./portfolioRoutes.js";
 import {
   buildPortfolioPriceSourceSelectionUpdate,
+  buildSaveJustTcgLookupStatement,
   buildSaveJustTcgPricesStatement,
 } from "./portfolioRouteHelpers.js";
 import { requestFromTestServer } from "./httpTestServer.js";
@@ -276,6 +277,63 @@ test("JustTCG price save only updates JustTCG prices and updatedAt", async () =>
       },
     });
     assert.equal(raw.justtcg.updatedAt, "new-date");
+  } finally {
+    client.close();
+  }
+});
+
+test("JustTCG lookup save does not write JustTCG price data", async () => {
+  const client = createClient({ url: "file::memory:" });
+  try {
+    await client.execute(`
+      CREATE TABLE cards (
+        id TEXT PRIMARY KEY,
+        raw_json TEXT NOT NULL,
+        updated_at TEXT
+      )
+    `);
+
+    const existingRawJson = {
+      id: "base1-4",
+      name: "Charizard",
+      tcgplayer: {
+        prices: { holofoil: { market: 300 } },
+      },
+      cardmarket: {
+        prices: { trendPrice: 250 },
+      },
+      justtcg: {
+        prices: {
+          old: { market: 1 },
+        },
+        updatedAt: "old-date",
+      },
+    };
+
+    await client.execute({
+      sql: "INSERT INTO cards (id, raw_json) VALUES (?, json(?))",
+      args: ["base1-4", JSON.stringify(existingRawJson)],
+    });
+
+    await client.execute(
+      buildSaveJustTcgLookupStatement("base1-4", {
+        ids: ["pokemon-base-set-charizard-holo-rare"],
+      }),
+    );
+
+    const row = (
+      await client.execute("SELECT raw_json FROM cards WHERE id = 'base1-4'")
+    ).rows[0];
+    const raw = JSON.parse(String(row.raw_json)) as typeof existingRawJson & {
+      justtcgLookup: { ids: string[] };
+    };
+
+    assert.deepEqual(raw.tcgplayer, existingRawJson.tcgplayer);
+    assert.deepEqual(raw.cardmarket, existingRawJson.cardmarket);
+    assert.deepEqual(raw.justtcg, existingRawJson.justtcg);
+    assert.deepEqual(raw.justtcgLookup, {
+      ids: ["pokemon-base-set-charizard-holo-rare"],
+    });
   } finally {
     client.close();
   }

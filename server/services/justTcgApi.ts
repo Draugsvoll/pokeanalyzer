@@ -20,8 +20,10 @@ export type JustTcgPriceMovement = {
   changePercent?: number;
   condition: string;
   currentPrice: number;
+  just_tcg_number?: string;
   period: JustTcgMovementPeriod;
   printing: string;
+  rarity?: string;
   setName?: string;
 };
 
@@ -379,10 +381,13 @@ function parsePriceMovementResponse(
   for (const card of response.data) {
     if (!isRecord(card) || !Array.isArray(card.variants)) continue;
 
+    const justTcgNumber = optionalString(card.number);
     const cardName = optionalString(card.name);
-    if (!cardName || isLikelySealedProduct(cardName)) continue;
+    if (!cardName || !justTcgNumber || isLikelySealedProduct(cardName))
+      continue;
 
     const setName = optionalString(card.set_name);
+    const rarity = optionalString(card.rarity);
     for (const variant of card.variants) {
       if (!isRecord(variant)) continue;
 
@@ -404,8 +409,10 @@ function parsePriceMovementResponse(
         changePercent,
         condition,
         currentPrice,
+        just_tcg_number: justTcgNumber,
         period: config.orderBy,
         printing: optionalString(variant.printing) ?? "JustTCG",
+        rarity,
         setName,
       });
     }

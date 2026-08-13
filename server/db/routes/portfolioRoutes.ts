@@ -20,9 +20,11 @@ import {
 } from "../portfolioPriceSnapshots.js";
 import {
   buildPortfolioPriceSourceSelectionUpdate,
+  buildSaveJustTcgLookupStatement,
   buildSaveJustTcgPricesStatement,
   type PortfolioEntry,
   type PortfolioPriceSource,
+  type StoredJustTcgLookup,
 } from "./portfolioRouteHelpers.js";
 import { assessDefaultCardPrices } from "../../services/defaultPriceReliability.js";
 import {
@@ -265,11 +267,6 @@ async function requireCardInDatabase(cardId: string) {
   }
 }
 
-type StoredJustTcgLookup = {
-  failedAt?: string;
-  ids: string[];
-};
-
 function parseStoredJustTcgLookup(value: unknown): StoredJustTcgLookup {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ids: [] };
@@ -318,15 +315,8 @@ async function getStoredCardForJustTcgLookup(cardId: string) {
 }
 
 async function saveJustTcgLookup(cardId: string, lookup: StoredJustTcgLookup) {
-  await dbRun(
-    `
-      UPDATE cards
-      SET raw_json = json_set(raw_json, '$.justtcgLookup', json(?)),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `,
-    [JSON.stringify(lookup), cardId],
-  );
+  const statement = buildSaveJustTcgLookupStatement(cardId, lookup);
+  await dbRun(statement.sql, statement.args);
 }
 
 async function saveJustTcgPrices(

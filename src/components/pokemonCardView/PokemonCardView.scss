@@ -147,6 +147,20 @@
   visibility: visible;
 }
 
+.pokemon-card-view__card--hide-portfolio-button-until-hover
+  .pokemon-card__portfolio-toggle.is-saved {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.pokemon-card-view__card--hide-portfolio-button-until-hover:hover
+  .pokemon-card__portfolio-toggle.is-saved,
+.pokemon-card-view__card--hide-portfolio-button-until-hover:focus-within
+  .pokemon-card__portfolio-toggle.is-saved {
+  opacity: 1;
+  visibility: visible;
+}
+
 .pokemon-card-view__card:has(.pokemon-card__identity) {
   gap: 0.15rem;
 }
