@@ -102,7 +102,7 @@ export function SelectDropdown<T extends string>({
       {open && (
         <div
           id={menuId}
-          className="ui-select-dropdown__menu ui-render-fade"
+          className="ui-select-dropdown__menu"
           role="listbox"
           aria-label={ariaLabel}
         >

@@ -425,6 +425,18 @@ export function JustTcgPriceHistory({
     );
   }, [groups, multipleSets]);
 
+  function getVariantSecondaryLabel(group: JustTcgVariantGroup) {
+    const labelKey = [group.printing, multipleSets ? group.setName : ""]
+      .filter(Boolean)
+      .join("|");
+
+    if (group.cardName && duplicatedVariantLabels.has(labelKey)) {
+      return group.cardName;
+    }
+
+    return multipleSets ? group.setName : undefined;
+  }
+
   function selectGroup(groupId: string) {
     setSelectedGroupId(groupId);
     const nextGroup = groups.find((group) => group.id === groupId);
@@ -455,8 +467,11 @@ export function JustTcgPriceHistory({
             className="just-tcg-history__radio-group just-tcg-history__radio-group--variant feature-variant-radio-group"
           >
             <div>
-              {groups.map((group) => (
-                <label key={group.id}>
+              {groups.map((group) => {
+                const secondaryLabel = getVariantSecondaryLabel(group);
+
+                return (
+                  <label key={group.id}>
                   <input
                     checked={selectedGroup.id === group.id}
                     name={`${controlId}-variant`}
@@ -467,26 +482,16 @@ export function JustTcgPriceHistory({
                   <span>
                     <Layers3 aria-hidden="true" />
                     <strong>{group.printing}</strong>
-                    {multipleSets && group.setName && (
+                    {secondaryLabel && (
                       <>
                         <i aria-hidden="true">•</i>
-                        <small>{group.setName}</small>
+                        <small>{secondaryLabel}</small>
                       </>
                     )}
-                    {group.cardName &&
-                      duplicatedVariantLabels.has(
-                        [group.printing, multipleSets ? group.setName : ""]
-                          .filter(Boolean)
-                          .join("|"),
-                      ) && (
-                        <>
-                          <i aria-hidden="true">•</i>
-                          <small>{group.cardName}</small>
-                        </>
-                      )}
                   </span>
                 </label>
-              ))}
+                );
+              })}
             </div>
           </fieldset>
           <div className="just-tcg-history__segment-row">

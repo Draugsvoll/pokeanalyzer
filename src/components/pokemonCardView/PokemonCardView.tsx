@@ -1,6 +1,4 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Star, TriangleAlert, X } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
@@ -101,11 +99,7 @@ export function PokemonCardView({
     usePortfolioCache();
   const sourcePanelId = useId();
   const pricingRef = useRef<HTMLDivElement>(null);
-  const sourceToggleRef = useRef<HTMLButtonElement>(null);
-  const sourceFlyoutRef = useRef<HTMLDivElement>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
-  const [sourceFlyoutStyle, setSourceFlyoutStyle] =
-    useState<CSSProperties | null>(null);
   const [internalOptionId, setInternalOptionId] = useState<string | null>(null);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
 
@@ -154,8 +148,7 @@ export function PokemonCardView({
       if (
         pricingRef.current &&
         target &&
-        !pricingRef.current.contains(target) &&
-        !sourceFlyoutRef.current?.contains(target)
+        !pricingRef.current.contains(target)
       ) {
         setSourceOpen(false);
         onCancelPriceOption?.();
@@ -165,31 +158,6 @@ export function PokemonCardView({
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [sourceOpen, onCancelPriceOption]);
-
-  useEffect(() => {
-    if (!sourceOpen) return;
-
-    const updateFlyoutPosition = () => {
-      const toggle = sourceToggleRef.current;
-      if (!toggle) return;
-
-      const rect = toggle.getBoundingClientRect();
-      setSourceFlyoutStyle({
-        position: "fixed",
-        right: `${Math.max(8, window.innerWidth - rect.right)}px`,
-        top: `${rect.bottom + 6}px`,
-      });
-    };
-
-    updateFlyoutPosition();
-    window.addEventListener("resize", updateFlyoutPosition);
-    document.addEventListener("scroll", updateFlyoutPosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updateFlyoutPosition);
-      document.removeEventListener("scroll", updateFlyoutPosition, true);
-    };
-  }, [sourceOpen]);
 
   const activeOption: CardPriceOption | undefined =
     visiblePriceOptions.find((option) => option.id === selectedOptionId) ??
@@ -332,10 +300,10 @@ export function PokemonCardView({
               option.source === "justtcg" && optionPrinting
                 ? [
                     optionPrinting,
-                    optionSetName,
-                    duplicateJustTcgGroupKeys.has(justTcgLabelKey)
+                    duplicateJustTcgGroupKeys.has(justTcgLabelKey) &&
+                    option.cardName
                       ? option.cardName
-                      : "",
+                      : optionSetName,
                   ]
                     .filter(Boolean)
                     .join(" · ")
@@ -438,19 +406,9 @@ export function PokemonCardView({
     );
   }
 
-  const sourceFlyout =
-    sourceOpen && sourceFlyoutStyle
-      ? createPortal(
-          <div
-            className="pokemon-card__source-flyout pokemon-card__source-flyout--portal ui-render-fade"
-            ref={sourceFlyoutRef}
-            style={sourceFlyoutStyle}
-          >
-            {renderSourcePanel()}
-          </div>,
-          document.body,
-        )
-      : null;
+  const sourceFlyout = sourceOpen ? (
+    <div className="pokemon-card__source-flyout">{renderSourcePanel()}</div>
+  ) : null;
 
   return (
     <div className="pokemon-card-view">
@@ -615,7 +573,6 @@ export function PokemonCardView({
               {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
                 <div className="pokemon-card__source">
                   <button
-                    ref={sourceToggleRef}
                     type="button"
                     className={`pokemon-card__source-toggle${
                       sourceOpen ? " is-open" : ""
