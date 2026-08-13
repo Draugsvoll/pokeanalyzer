@@ -108,20 +108,128 @@
 .worth-grading-view__scenario-grid {
   display: grid;
   gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .worth-grading-view__scenario {
   display: grid;
-  gap: 0.8rem;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+
+  .worth-grading-view__detail-section {
+    background: var(--surface-color-elevated);
+    border: var(--border);
+    margin: 0 0.95rem 0.95rem;
+  }
+}
+
+.worth-grading-view__scenario-header {
+  align-items: center;
+  border-bottom: var(--border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
   padding: 0.95rem;
 
   h4 {
     color: var(--font-color-primary);
-    font-size: var(--font-size-paragraph);
+    font-size: var(--font-size-h3);
     font-weight: var(--font-weight-bold);
     line-height: var(--font-leading-snug);
     margin: 0;
   }
+}
+
+.worth-grading-view__scenario-profit {
+  align-items: center;
+  border-bottom: var(--border);
+  display: grid;
+  justify-items: center;
+  padding: 2rem 0.95rem;
+  text-align: center;
+
+  span {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    line-height: var(--font-leading-normal);
+  }
+
+  strong {
+    color: var(--font-color-primary);
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-h1);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-tight);
+  }
+
+  small {
+    color: var(--font-color-secondary);
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-paragraph-lg);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-tight);
+  }
+}
+
+.worth-grading-view__scenario-breakdown {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.95rem;
+
+  h5 {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wide);
+    line-height: var(--font-leading-snug);
+    margin: 0 0 0.25rem;
+    text-transform: uppercase;
+  }
+}
+
+.worth-grading-view__cost-row {
+  align-items: baseline;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+
+  span {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph);
+    line-height: var(--font-leading-normal);
+  }
+
+  strong {
+    color: var(--font-color-primary);
+    font-family: var(--font-family-price);
+    font-size: var(--font-size-paragraph);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-leading-tight);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &:last-child {
+    border-top: var(--border);
+    margin-top: 0.25rem;
+    padding-top: 0.8rem;
+
+    span,
+    strong {
+      font-weight: var(--font-weight-bold);
+    }
+  }
+}
+
+.worth-grading-view__scenario-meta {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 0.95rem 0.95rem;
 }
 
 .worth-grading-view__detail-section {
@@ -183,7 +291,21 @@
   }
 }
 
+.worth-grading-view__detail-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 58rem) {
+  .worth-grading-view__scenario-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .worth-grading-view__detail-grid {
+    grid-template-columns: 1fr;
+  }
+
   .worth-grading-view__summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

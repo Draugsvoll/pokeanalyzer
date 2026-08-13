@@ -20,6 +20,7 @@
     "news:generate": "tsx server/scripts/generateNews.ts",
     "news:generate:dry-run": "tsx server/scripts/generateNews.ts --dry-run",
     "justtcg:categories": "tsx server/scripts/generateJustTcgCategories.ts",
+    "justtcg:categories:reset-table": "tsx server/scripts/resetJustTcgCategoriesTable.ts",
     "justtcg:categories:dry-run": "tsx server/scripts/generateJustTcgCategories.ts --dry-run",
     "test:server": "tsx --test \"server/**/*.test.ts\""
   },

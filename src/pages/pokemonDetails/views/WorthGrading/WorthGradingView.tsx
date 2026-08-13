@@ -149,6 +149,19 @@ function formatProfit(value: unknown) {
   return `${number > 0 ? "+" : ""}${formatCurrency(number)}`;
 }
 
+function formatCost(value: unknown) {
+  const number = asNumber(value);
+  if (number == null) return EMPTY_VALUE;
+  return `-${formatCurrency(Math.abs(number))}`;
+}
+
+function formatOtherGradingCosts(scenario: GradedScenario) {
+  const gradingCost = asNumber(scenario.grading_cost_usd);
+  const psaFee = asNumber(scenario.psa_grading_fee_usd);
+  if (gradingCost == null || psaFee == null) return EMPTY_VALUE;
+  return formatCost(gradingCost - psaFee);
+}
+
 function getNumberTone(value: unknown) {
   if (hasParenthesizedNumber(value)) return undefined;
 
@@ -183,6 +196,105 @@ function FieldCard({
         {children}
       </strong>
     </div>
+  );
+}
+
+function CostRow({
+  children,
+  label,
+  tone,
+}: {
+  children: ReactNode;
+  label: string;
+  tone?: "negative" | "positive";
+}) {
+  return (
+    <div className="worth-grading-view__cost-row">
+      <span>{label}</span>
+      <strong
+        className={
+          tone
+            ? `worth-grading-view__field-value worth-grading-view__field-value--${tone}`
+            : "worth-grading-view__field-value"
+        }
+      >
+        {children}
+      </strong>
+    </div>
+  );
+}
+
+function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
+  const profitTone = getNumberTone(scenario.net_profit_vs_raw_usd);
+  const costTone = "negative" as const;
+
+  return (
+    <section className="worth-grading-view__scenario feature-card-inner-surface">
+      <header className="worth-grading-view__scenario-header">
+        <h4>{displayValue(scenario.grade)}</h4>
+        {typeof scenario.break_even === "boolean" && (
+          <Badge accent={scenario.break_even ? "green" : "red"} weight="strong">
+            {scenario.break_even ? "Break-even" : "Below break-even"}
+          </Badge>
+        )}
+      </header>
+
+      <div className="worth-grading-view__scenario-profit">
+        <span>Net Profit Vs Raw</span>
+        <strong
+          className={
+            profitTone
+              ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
+              : "worth-grading-view__field-value"
+          }
+        >
+          {formatProfit(scenario.net_profit_vs_raw_usd)}
+        </strong>
+        <small
+          className={
+            profitTone
+              ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
+              : "worth-grading-view__field-value"
+          }
+        >
+          {formatPercent(scenario.roi_vs_raw_net_percent)} ROI
+        </small>
+      </div>
+
+      <div className="worth-grading-view__scenario-breakdown">
+        <h5>Cost Breakdown</h5>
+        <CostRow label="Expected Sale Price">
+          {formatCurrency(scenario.expected_sale_price_usd)}
+        </CostRow>
+        <CostRow label="PSA Grading Fee" tone={costTone}>
+          {formatCost(scenario.psa_grading_fee_usd)}
+        </CostRow>
+        <CostRow label="Other Grading Costs" tone={costTone}>
+          {formatOtherGradingCosts(scenario)}
+        </CostRow>
+        <CostRow label="eBay Fees" tone={costTone}>
+          {formatCost(scenario.ebay_fees_usd)}
+        </CostRow>
+        <CostRow label="Net After All Costs">
+          {formatCurrency(scenario.net_after_all_costs_usd)}
+        </CostRow>
+      </div>
+
+      <div className="worth-grading-view__scenario-meta">
+        <FieldCard label="grading_tier">
+          {displayValue(scenario.grading_tier)}
+        </FieldCard>
+        <FieldCard label="turnaround">
+          {displayValue(scenario.turnaround_time)}
+        </FieldCard>
+      </div>
+
+      <TextList
+        icon={<Info aria-hidden="true" size={18} strokeWidth={2.1} />}
+        items={asList(scenario.notes)}
+        title="Notes"
+      />
+    </section>
   );
 }
 
@@ -237,6 +349,48 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
         <div className="feature-panel-body worth-grading-view__body">
           <section className="worth-grading-view__json-section">
+            <h3 className="worth-grading-view__section-title">Recommendation</h3>
+            <div className="worth-grading-view__badges">
+              {typeof recommendation?.should_grade === "boolean" && (
+                <Badge
+                  accent={recommendation.should_grade ? "green" : "red"}
+                  weight="strong"
+                >
+                  {recommendation.should_grade ? "Worth grading" : "Do not grade"}
+                </Badge>
+              )}
+            </div>
+            <div className="worth-grading-view__detail-grid">
+              <TextList
+                icon={
+                  recommendation?.should_grade ? (
+                    <CheckCircle2 aria-hidden="true" size={18} strokeWidth={2.1} />
+                  ) : (
+                    <XCircle aria-hidden="true" size={18} strokeWidth={2.1} />
+                  )
+                }
+                items={asList(recommendation?.summary)}
+                title="Summary"
+              />
+              <TextList
+                icon={<Scale aria-hidden="true" size={18} strokeWidth={2.1} />}
+                items={asList(recommendation?.reasons)}
+                title="Reasons"
+              />
+              <TextList
+                icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
+                items={asList(recommendation?.beginner_advice)}
+                title="Beginner Advice"
+              />
+              <TextList
+                icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
+                items={asList(data.methodology)}
+                title="Methodology"
+              />
+            </div>
+          </section>
+
+          <section className="worth-grading-view__json-section">
             <h3 className="worth-grading-view__section-title">Card</h3>
             <div className="worth-grading-view__summary-grid">
               <FieldCard label="name">{displayValue(data.card?.name)}</FieldCard>
@@ -278,55 +432,10 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
               </h3>
               <div className="worth-grading-view__scenario-grid">
                 {scenarios.map((scenario, index) => (
-                  <section
-                    className="worth-grading-view__scenario feature-card-inner-surface"
+                  <ScenarioCard
                     key={`${scenario.grade ?? "scenario"}-${index}`}
-                  >
-                    <h4>{displayValue(scenario.grade)}</h4>
-                    <div className="worth-grading-view__summary-grid">
-                      <FieldCard label="expected_sale_price_usd">
-                        {formatCurrency(scenario.expected_sale_price_usd)}
-                      </FieldCard>
-                      <FieldCard label="grading_tier">
-                        {displayValue(scenario.grading_tier)}
-                      </FieldCard>
-                      <FieldCard label="psa_grading_fee_usd">
-                        {formatCurrency(scenario.psa_grading_fee_usd)}
-                      </FieldCard>
-                      <FieldCard label="grading_cost_usd">
-                        {formatCurrency(scenario.grading_cost_usd)}
-                      </FieldCard>
-                      <FieldCard label="ebay_fees_usd">
-                        {formatCurrency(scenario.ebay_fees_usd)}
-                      </FieldCard>
-                      <FieldCard label="net_after_all_costs_usd">
-                        {formatCurrency(scenario.net_after_all_costs_usd)}
-                      </FieldCard>
-                      <FieldCard
-                        label="roi_vs_raw_net_percent"
-                        tone={getNumberTone(scenario.roi_vs_raw_net_percent)}
-                      >
-                        {formatPercent(scenario.roi_vs_raw_net_percent)}
-                      </FieldCard>
-                      <FieldCard
-                        label="net_profit_vs_raw_usd"
-                        tone={getNumberTone(scenario.net_profit_vs_raw_usd)}
-                      >
-                        {formatProfit(scenario.net_profit_vs_raw_usd)}
-                      </FieldCard>
-                      <FieldCard label="break_even">
-                        {displayValue(scenario.break_even)}
-                      </FieldCard>
-                      <FieldCard label="turnaround_time">
-                        {displayValue(scenario.turnaround_time)}
-                      </FieldCard>
-                    </div>
-                    <TextList
-                      icon={<Info aria-hidden="true" size={18} strokeWidth={2.1} />}
-                      items={asList(scenario.notes)}
-                      title="Notes"
-                    />
-                  </section>
+                    scenario={scenario}
+                  />
                 ))}
               </div>
             </section>
@@ -358,47 +467,6 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
               </FieldCard>
             </div>
           </section>
-
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">Recommendation</h3>
-            <div className="worth-grading-view__badges">
-              {typeof recommendation?.should_grade === "boolean" && (
-                <Badge
-                  accent={recommendation.should_grade ? "green" : "red"}
-                  weight="strong"
-                >
-                  {recommendation.should_grade ? "Worth grading" : "Do not grade"}
-                </Badge>
-              )}
-            </div>
-            <TextList
-              icon={
-                recommendation?.should_grade ? (
-                  <CheckCircle2 aria-hidden="true" size={18} strokeWidth={2.1} />
-                ) : (
-                  <XCircle aria-hidden="true" size={18} strokeWidth={2.1} />
-                )
-              }
-              items={asList(recommendation?.summary)}
-              title="Summary"
-            />
-            <TextList
-              icon={<Scale aria-hidden="true" size={18} strokeWidth={2.1} />}
-              items={asList(recommendation?.reasons)}
-              title="Reasons"
-            />
-            <TextList
-              icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
-              items={asList(recommendation?.beginner_advice)}
-              title="Beginner Advice"
-            />
-          </section>
-
-          <TextList
-            icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
-            items={asList(data.methodology)}
-            title="Methodology"
-          />
         </div>
       </article>
     </section>
