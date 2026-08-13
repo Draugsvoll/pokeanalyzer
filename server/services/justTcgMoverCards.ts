@@ -179,7 +179,7 @@ export function findUniqueJustTcgMoverCardRow(
 
   const firstLayerMatches = rows
     .map((row) => ({
-      card: parsePublicStoredCard(String(row.raw_json)),
+      card: parsePublicStoredCard(String(row.raw_json)) as Partial<PokemonCard>,
       row,
     }))
     .filter(({ card }) => {

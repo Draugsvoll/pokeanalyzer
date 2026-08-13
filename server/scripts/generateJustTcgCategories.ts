@@ -22,18 +22,18 @@ import {
 } from "./scriptLocks.js";
 
 const JUST_TCG_CATEGORIES_LOCK_TTL_SECONDS = 10 * 60;
-const WEEKLY_MOVERS_PERIOD = "7d";
+const JUST_TCG_CATEGORY_PERIODS = ["7d", "30d"] as const;
 
 const JUST_TCG_CATEGORY_REFRESHES = [
   {
     category: JUST_TCG_CATEGORIES.biggestMovers,
     fetch: fetchJustTcgBiggestGainers,
-    name: "weekly gainers",
+    name: "gainers",
   },
   {
     category: JUST_TCG_CATEGORIES.biggestLosers,
     fetch: fetchJustTcgBiggestLosers,
-    name: "weekly losers",
+    name: "losers",
   },
 ] as const;
 
@@ -56,18 +56,18 @@ async function refreshJustTcgCategory(
   name: string,
   fetchMovers: typeof fetchJustTcgBiggestGainers,
   category: JustTcgCategory,
+  period: (typeof JUST_TCG_CATEGORY_PERIODS)[number],
   dryRun: boolean,
 ) {
-  console.log(`Fetching JustTCG ${name}`);
-  const cards = await fetchHydratedJustTcgMovers(
-    fetchMovers,
-    WEEKLY_MOVERS_PERIOD,
-  );
+  console.log(`Fetching JustTCG ${name} (${period})`);
+  const cards = await fetchHydratedJustTcgMovers(fetchMovers, period);
 
-  console.log(`JustTCG ${name} validated: ${cards.length} matched cards`);
+  console.log(
+    `JustTCG ${name} (${period}) validated: ${cards.length} matched cards`,
+  );
   if (!dryRun) {
-    await saveJustTcgCategory(category, WEEKLY_MOVERS_PERIOD, { cards });
-    console.log(`JustTCG ${name} saved to SQL`);
+    await saveJustTcgCategory(category, period, { cards });
+    console.log(`JustTCG ${name} (${period}) saved to SQL`);
   }
 }
 
@@ -95,18 +95,23 @@ async function main(): Promise<void> {
 
   try {
     for (const refresh of JUST_TCG_CATEGORY_REFRESHES) {
-      await refreshJustTcgCategory(
-        refresh.name,
-        refresh.fetch,
-        refresh.category,
-        dryRun,
-      );
+      for (const period of JUST_TCG_CATEGORY_PERIODS) {
+        await refreshJustTcgCategory(
+          refresh.name,
+          refresh.fetch,
+          refresh.category,
+          period,
+          dryRun,
+        );
+      }
     }
 
+    const updatedRows =
+      JUST_TCG_CATEGORY_REFRESHES.length * JUST_TCG_CATEGORY_PERIODS.length;
     console.log(
       dryRun
         ? "Dry run complete; no JustTCG category rows changed"
-        : `JustTCG category refresh finished successfully; ${JUST_TCG_CATEGORY_REFRESHES.length} database rows updated`,
+        : `JustTCG category refresh finished successfully; ${updatedRows} database rows updated`,
     );
   } finally {
     const released = await releaseScriptLock(lock);
