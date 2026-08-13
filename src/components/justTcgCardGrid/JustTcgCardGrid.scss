@@ -9,13 +9,12 @@
 .justtcg-card-grid__header {
   align-items: center;
   border-bottom: 1px solid var(--border-divider);
-  display: flex;
+  display: grid;
   gap: var(--space-4);
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   padding-bottom: var(--space-3);
 
-  h2,
-  p {
+  h2 {
     margin: 0;
   }
 
@@ -25,20 +24,10 @@
     font-weight: var(--font-weight-bold);
     line-height: var(--font-leading-snug);
   }
-
-}
-
-.justtcg-card-grid__header-actions {
-  align-items: center;
-  display: flex;
-  flex: 0 0 auto;
-  gap: var(--space-3);
-  justify-content: flex-end;
-  min-width: 0;
 }
 
 .justtcg-card-grid__period-control .segmented-radio-group__option {
-  min-width: 4.25rem;
+  min-width: 4.35rem;
 }
 
 .justtcg-card-grid__cards {
@@ -55,12 +44,6 @@
 @media (max-width: 48rem) {
   .justtcg-card-grid__header {
     align-items: start;
-    display: grid;
-  }
-
-  .justtcg-card-grid__header-actions {
-    align-items: stretch;
-    flex-direction: column;
-    justify-content: flex-start;
+    grid-template-columns: 1fr;
   }
 }

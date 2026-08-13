@@ -47,7 +47,6 @@ export type PokemonCardViewProps = {
   confirmingPriceOption?: boolean;
   lockPriceSource?: boolean;
   showPriceSourcePicker?: boolean;
-  readOnlyPriceSources?: CardPriceSource[];
   showRarityBadge?: boolean;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
   priceChangePercent?: number | null;
@@ -82,7 +81,6 @@ export function PokemonCardView({
   confirmingPriceOption = false,
   lockPriceSource = false,
   showPriceSourcePicker = false,
-  readOnlyPriceSources = [],
   showRarityBadge = true,
   comparisonPriceSnapshot,
   priceChangePercent,
@@ -262,7 +260,27 @@ export function PokemonCardView({
     onCancelPriceOption?.();
   };
 
+  const cancelPendingPriceOption = () => {
+    onCancelPriceOption?.();
+  };
+
   function renderSourcePanel() {
+    const renderConfirmPopover = () => (
+      <ConfirmPopover
+        className="pokemon-card__source-confirm"
+        confirmLabel="Save"
+        aria-label="Confirm price source change"
+        confirming={confirmingPriceOption}
+        onConfirm={() => {
+          void (async () => {
+            await onConfirmPriceOption?.();
+            setSourceOpen(false);
+          })();
+        }}
+        onCancel={cancelPendingPriceOption}
+      />
+    );
+
     return (
       <>
         <div
@@ -312,21 +330,17 @@ export function PokemonCardView({
             const hasOptionDetail = Boolean(
               optionLabel.trim() || optionConditionLabel,
             );
-            const readOnly = readOnlyPriceSources.includes(option.source);
-
             const optionContent = (
               <>
-                {!readOnly && (
-                  <input
-                    className="app-radio"
-                    id={inputId}
-                    type="radio"
-                    name={`${sourcePanelId}-price`}
-                    value={option.id}
-                    checked={checked}
-                    onChange={() => selectOption(option.id)}
-                  />
-                )}
+                <input
+                  className="app-radio"
+                  id={inputId}
+                  type="radio"
+                  name={`${sourcePanelId}-price`}
+                  value={option.id}
+                  checked={checked}
+                  onChange={() => selectOption(option.id)}
+                />
                 <span className="pokemon-card__source-option-label">
                   <span
                     className={[
@@ -361,47 +375,23 @@ export function PokemonCardView({
               "pokemon-card__source-option",
               checked ? "is-selected" : "",
               isPending ? "is-pending" : "",
-              readOnly ? "is-readonly" : "",
             ]
               .filter(Boolean)
               .join(" ");
 
-            if (readOnly) {
-              return (
-                <div key={`${option.id}-${index}`} className={optionClassName}>
-                  {optionContent}
-                </div>
-              );
-            }
-
             return (
-              <label
+              <div
                 key={`${option.id}-${index}`}
-                htmlFor={inputId}
-                className={optionClassName}
+                className="pokemon-card__source-option-wrap"
               >
-                {optionContent}
-              </label>
+                <label htmlFor={inputId} className={optionClassName}>
+                  {optionContent}
+                </label>
+                {isPending && renderConfirmPopover()}
+              </div>
             );
           })}
         </div>
-
-        {pendingPriceOptionId && (
-          <ConfirmPopover
-            className="pokemon-card__source-confirm"
-            label="Update?"
-            confirmLabel="OK"
-            aria-label="Confirm price source change"
-            confirming={confirmingPriceOption}
-            onConfirm={() => {
-              void (async () => {
-                await onConfirmPriceOption?.();
-                setSourceOpen(false);
-              })();
-            }}
-            onCancel={closeSource}
-          />
-        )}
       </>
     );
   }
@@ -416,12 +406,16 @@ export function PokemonCardView({
         className={[
           "pokemon-card-view__card",
           sourceOpen ? "pokemon-card-view__card--source-open" : "",
+          confirmingPriceOption
+            ? "pokemon-card-view__card--price-option-updating"
+            : "",
           hidePortfolioButtonUntilHover
             ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
             : "",
         ]
           .filter(Boolean)
           .join(" ")}
+        aria-busy={confirmingPriceOption || undefined}
         onClick={handleCardClick}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -601,6 +595,12 @@ export function PokemonCardView({
             </div>
           </div>
         </div>
+
+        {confirmingPriceOption && (
+          <div className="pokemon-card__loading-overlay" aria-hidden="true">
+            <span className="app-loading-spinner" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -758,7 +758,6 @@ export function PokemonCardPortfolioView({
         {...cardViewProps}
         priceSource={activePriceSource}
         lockPriceSource={priceMode !== "all"}
-        readOnlyPriceSources={priceMode === "all" ? ["cardmarket"] : []}
         showPriceSourcePicker
         selectedPriceOptionId={resolvedPriceOption?.id ?? null}
         pendingPriceOptionId={activePendingPriceOptionId}
@@ -800,8 +799,7 @@ export function PokemonCardPortfolioView({
           {pendingQuantity != null && (
             <ConfirmPopover
               className="pokemon-card-portfolio-view__quantity-confirm"
-              label="Update?"
-              confirmLabel="OK"
+              confirmLabel="Save"
               aria-label="Confirm quantity change"
               confirmDisabled={pendingQuantity === quantity}
               confirming={updatingQuantity}

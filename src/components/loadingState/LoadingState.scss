@@ -12,19 +12,6 @@
   width: 100%;
 }
 
-.loading-state__spinner {
-  animation: loading-state-spin 0.75s linear infinite;
-  border: 3px solid
-    color-mix(in srgb, var(--feature-accent, var(--custom-color-blue)) 24%, transparent);
-  border-radius: var(--border-radius-round);
-  border-top-color: var(--feature-accent, var(--custom-color-blue));
-  box-sizing: border-box;
-  display: block;
-  flex: 0 0 auto;
-  height: 2rem;
-  width: 2rem;
-}
-
 .loading-state__text {
   color: inherit;
   display: block;
@@ -34,10 +21,4 @@
   letter-spacing: var(--font-tracking-normal);
   line-height: var(--font-leading-snug);
   margin: 0;
-}
-
-@keyframes loading-state-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }

@@ -36,7 +36,7 @@ export const JUST_TCG_CATEGORIES_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS justtcg_categories (
     category_key TEXT NOT NULL,
     period TEXT NOT NULL
-      CHECK (period IN ('24h', '7d', '30d')),
+      CHECK (period IN ('24h', '7d', '30d', '90d')),
     payload_json TEXT NOT NULL
       CHECK (json_valid(payload_json)),
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,7 +60,12 @@ export const JUST_TCG_CATEGORY_UPSERT_SQL = `
 function isJustTcgMovementPeriod(
   value: unknown,
 ): value is JustTcgMovementPeriod {
-  return value === "24h" || value === "7d" || value === "30d";
+  return (
+    value === "24h" ||
+    value === "7d" ||
+    value === "30d" ||
+    value === "90d"
+  );
 }
 
 function normalizeCategoryKey(category: JustTcgCategory) {

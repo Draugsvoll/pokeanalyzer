@@ -294,6 +294,7 @@ input[type="radio"] {
   gap: 0.4rem;
   line-height: 1;
   min-height: 2.45rem;
+  min-width: 7rem;
   padding: 0.55rem 0.9rem;
   transition:
     background var(--delay-short) ease,
@@ -356,6 +357,29 @@ input[type="radio"] {
 @media (max-width: 36rem) {
   .feature-panel-body {
     padding-inline: 1.1rem;
+  }
+}
+
+.app-loading-spinner {
+  animation: app-loading-spinner-spin 0.75s linear infinite;
+  border: 3px solid
+    color-mix(
+      in srgb,
+      var(--feature-accent, var(--custom-color-blue)) 24%,
+      transparent
+    );
+  border-radius: var(--border-radius-round);
+  border-top-color: var(--feature-accent, var(--custom-color-blue));
+  box-sizing: border-box;
+  display: block;
+  flex: 0 0 auto;
+  height: 2rem;
+  width: 2rem;
+}
+
+@keyframes app-loading-spinner-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

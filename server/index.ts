@@ -282,7 +282,7 @@ function registerJustTcgMoversRoute(
     const periodCategory =
       typeof req.query.period === "string" ? req.query.period : "7d";
 
-    if (!["24h", "7d", "30d"].includes(periodCategory)) {
+    if (!["24h", "7d", "30d", "90d"].includes(periodCategory)) {
       res.status(400).json({ message: "Invalid JustTCG movement period" });
       return;
     }

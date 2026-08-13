@@ -1,7 +1,7 @@
 const JUST_TCG_API_URL = "https://api.justtcg.com/v1/cards";
 
 type JustTcgFetchMethod = "biggestGainers" | "biggestLosers";
-export type JustTcgMovementPeriod = "24h" | "7d" | "30d";
+export type JustTcgMovementPeriod = "24h" | "7d" | "30d" | "90d";
 type JsonRecord = Record<string, unknown>;
 
 type JustTcgFetchConfig = {
@@ -9,7 +9,6 @@ type JustTcgFetchConfig = {
   includePriceHistory: boolean;
   includeStatistics: string;
   limit: number;
-  minPrice: number;
   order: "asc" | "desc";
   orderBy: JustTcgMovementPeriod;
 };
@@ -22,6 +21,7 @@ export type JustTcgPriceMovement = {
   currentPrice: number;
   just_tcg_number?: string;
   period: JustTcgMovementPeriod;
+  priceChangesCount?: number;
   printing: string;
   rarity?: string;
   setName?: string;
@@ -52,23 +52,34 @@ export type JustTcgPortfolioPrice = {
 
 const JUST_TCG_FETCH_CONFIGS: Record<JustTcgFetchMethod, JustTcgFetchConfig> = {
   biggestGainers: {
-    condition: "NM,LP",
+    condition: "NM",
     includePriceHistory: false,
     includeStatistics: "7d",
     limit: 20,
-    minPrice: 15,
     order: "desc",
     orderBy: "7d",
   },
   biggestLosers: {
-    condition: "NM,LP",
+    condition: "NM",
     includePriceHistory: false,
     includeStatistics: "7d",
     limit: 20,
-    minPrice: 15,
     order: "asc",
     orderBy: "7d",
   },
+};
+
+const JUST_TCG_CATEGORY_QUALITY = {
+  minPrice: 50,
+  minPriceChangesByPeriod: {
+    "24h": 2,
+    "7d": 2,
+    "30d": 3,
+    "90d": 5,
+  },
+} as const satisfies {
+  minPrice: number;
+  minPriceChangesByPeriod: Record<JustTcgMovementPeriod, number>;
 };
 const JUST_TCG_PORTFOLIO_BATCH_ROW_LIMIT = 20;
 
@@ -259,6 +270,36 @@ function getAbsoluteChange(
   ]);
 }
 
+function getPriceChangesCount(
+  variant: JsonRecord,
+  timeframe: JustTcgFetchConfig["orderBy"],
+) {
+  return getNestedNumber(variant, [
+    ["statistics", timeframe, "priceChangesCount"],
+    ["statistics", timeframe, "changesCount"],
+    ["stats", timeframe, "priceChangesCount"],
+    ["stats", timeframe, "changesCount"],
+    [`priceChangesCount${timeframe}`],
+    [`changesCount${timeframe}`],
+  ]);
+}
+
+function passesJustTcgCategoryQuality(
+  variant: JsonRecord,
+  currentPrice: number,
+  period: JustTcgMovementPeriod,
+) {
+  if (currentPrice < JUST_TCG_CATEGORY_QUALITY.minPrice) return false;
+
+  const priceChangesCount = getPriceChangesCount(variant, period);
+  if (priceChangesCount === undefined) return false;
+
+  return (
+    priceChangesCount >=
+    JUST_TCG_CATEGORY_QUALITY.minPriceChangesByPeriod[period]
+  );
+}
+
 function parseCardIdentityCandidate(
   card: unknown,
 ): JustTcgCardIdentityCandidate | null {
@@ -392,11 +433,13 @@ function parsePriceMovementResponse(
       if (!isRecord(variant)) continue;
 
       const currentPrice = optionalNumber(variant.price);
-      if (currentPrice === undefined || currentPrice < config.minPrice)
+      if (currentPrice === undefined) continue;
+      if (!passesJustTcgCategoryQuality(variant, currentPrice, config.orderBy))
         continue;
 
-      const condition = optionalString(variant.condition) ?? config.condition;
-      if (!/^near mint$|^nm$|^lightly played$|^lp$/i.test(condition)) continue;
+      const condition = optionalString(variant.condition);
+      if (!condition) continue;
+      if (!/^near mint$|^nm$/i.test(condition)) continue;
 
       const changePercent = getChangePercent(variant, config.orderBy);
       if (changePercent === undefined) continue;
@@ -411,6 +454,7 @@ function parsePriceMovementResponse(
         currentPrice,
         just_tcg_number: justTcgNumber,
         period: config.orderBy,
+        priceChangesCount: getPriceChangesCount(variant, config.orderBy),
         printing: optionalString(variant.printing) ?? "JustTCG",
         rarity,
         setName,
@@ -449,7 +493,7 @@ async function fetchJustTcgPriceMovements(
     include_price_history: String(config.includePriceHistory),
     include_statistics: config.includeStatistics,
     limit: String(config.limit),
-    min_price: String(config.minPrice),
+    min_price: String(JUST_TCG_CATEGORY_QUALITY.minPrice),
     order: config.order,
     orderBy: config.orderBy,
   });

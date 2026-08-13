@@ -13,7 +13,10 @@ export function LoadingState({ children, className }: LoadingStateProps) {
       aria-live="polite"
       aria-busy="true"
     >
-      <span className="loading-state__spinner" aria-hidden="true" />
+      <span
+        className="app-loading-spinner loading-state__spinner"
+        aria-hidden="true"
+      />
       <p className="loading-state__text">{children}</p>
     </div>
   );

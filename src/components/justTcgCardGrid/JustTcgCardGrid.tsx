@@ -26,6 +26,7 @@ const periodLabels: Record<JustTcgMovementPeriod, string> = {
   "24h": "24-hour change",
   "7d": "7-day change",
   "30d": "30-day change",
+  "90d": "90-day change",
 };
 
 const DISPLAY_LIMIT = 20;
@@ -44,6 +45,7 @@ const periodOptions = [
   { label: "24H", value: "24h" },
   { label: "7D", value: "7d" },
   { label: "30D", value: "30d" },
+  { label: "90D", value: "90d" },
 ] as const;
 
 function isJustTcgMoverType(value: string): value is JustTcgMoverType {
@@ -53,7 +55,12 @@ function isJustTcgMoverType(value: string): value is JustTcgMoverType {
 function isJustTcgMovementPeriod(
   value: string,
 ): value is JustTcgMovementPeriod {
-  return value === "24h" || value === "7d" || value === "30d";
+  return (
+    value === "24h" ||
+    value === "7d" ||
+    value === "30d" ||
+    value === "90d"
+  );
 }
 
 function fetchCardsByType(
@@ -245,30 +252,31 @@ export function JustTcgCardGrid({
   }, [loadTypes, moverPeriodsKey, moverTypesKey]);
 
   return (
-    <section className="justtcg-card-grid ui-render-fade" aria-labelledby={titleId}>
+    <section
+      className="justtcg-card-grid ui-render-fade"
+      aria-labelledby={titleId}
+    >
       <header className="justtcg-card-grid__header">
         <h2 id={titleId}>{title}</h2>
-        <div className="justtcg-card-grid__header-actions">
-          {visibleTypeOptions.length > 1 && (
-            <SegmentedRadioGroup
-              ariaLabel="JustTCG mover category"
-              name={`${titleId}-mover-category`}
-              onChange={setSelectedType}
-              options={visibleTypeOptions}
-              value={activeType}
-            />
-          )}
-          {hasMultiplePeriods && (
-            <SegmentedRadioGroup
-              ariaLabel="JustTCG movement period"
-              className="justtcg-card-grid__period-control"
-              name={`${titleId}-mover-period`}
-              onChange={setSelectedPeriod}
-              options={visiblePeriodOptions}
-              value={activePeriod}
-            />
-          )}
-        </div>
+        {hasMultiplePeriods && (
+          <SegmentedRadioGroup
+            ariaLabel="JustTCG movement period"
+            className="justtcg-card-grid__period-control"
+            name={`${titleId}-mover-period`}
+            onChange={setSelectedPeriod}
+            options={visiblePeriodOptions}
+            value={activePeriod}
+          />
+        )}
+        {visibleTypeOptions.length > 1 && (
+          <SegmentedRadioGroup
+            ariaLabel="JustTCG mover category"
+            name={`${titleId}-mover-category`}
+            onChange={setSelectedType}
+            options={visibleTypeOptions}
+            value={activeType}
+          />
+        )}
       </header>
 
       {showCards && (

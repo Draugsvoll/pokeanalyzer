@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS news_content (
 CREATE TABLE IF NOT EXISTS justtcg_categories (
     category_key TEXT NOT NULL,
     period TEXT NOT NULL
-        CHECK (period IN ('24h', '7d', '30d')),
+        CHECK (period IN ('24h', '7d', '30d', '90d')),
     payload_json TEXT NOT NULL
         CHECK (json_valid(payload_json)),
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

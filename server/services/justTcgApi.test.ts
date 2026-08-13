@@ -64,12 +64,13 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
             variants: [
               {
                 condition: "NM",
-                price: 25,
+                price: 50,
                 printing: "Holofoil",
                 statistics: {
                   "7d": {
                     priceChange: 4,
                     priceChangePercentage: 19.5,
+                    priceChangesCount: 2,
                   },
                 },
               },
@@ -85,6 +86,23 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
                 statistics: {
                   "7d": {
                     priceChangePercentage: 200,
+                    priceChangesCount: 20,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: "Missing Condition",
+            number: "003/102",
+            variants: [
+              {
+                price: 90,
+                printing: "Normal",
+                statistics: {
+                  "7d": {
+                    priceChangePercentage: 30,
+                    priceChangesCount: 10,
                   },
                 },
               },
@@ -104,6 +122,7 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
                   "7d": {
                     priceChange: 3,
                     priceChangePercentage: 16.7,
+                    priceChangesCount: 3,
                   },
                 },
               },
@@ -120,15 +139,14 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
 
   try {
     const result = await fetchJustTcgBiggestGainers();
-    assert.equal(result.length, 2);
+    assert.equal(result.length, 1);
     assert.equal(result[0].cardName, "Reliable Pikachu");
-    assert.equal(result[0].currentPrice, 25);
+    assert.equal(result[0].currentPrice, 50);
     assert.equal(result[0].just_tcg_number, "025/102");
     assert.equal(result[0].period, "7d");
+    assert.equal(result[0].priceChangesCount, 2);
     assert.equal(result[0].printing, "Holofoil");
     assert.equal(result[0].rarity, "Rare Holo");
-    assert.equal(result[1].cardName, "Reliable Bulbasaur");
-    assert.equal(result[1].condition, "Lightly Played");
   } finally {
     restoreEnv(originalApiKey, originalFetch);
   }
@@ -137,11 +155,11 @@ test("JustTCG biggest gainers request uses safe filters and drops low-price card
   assert.equal(url.searchParams.get("game"), "pokemon");
   assert.equal(url.searchParams.get("orderBy"), "7d");
   assert.equal(url.searchParams.get("order"), "desc");
-  assert.equal(url.searchParams.get("condition"), "NM,LP");
+  assert.equal(url.searchParams.get("condition"), "NM");
   assert.equal(url.searchParams.get("include_price_history"), "false");
   assert.equal(url.searchParams.get("include_statistics"), "7d");
   assert.equal(url.searchParams.get("limit"), "20");
-  assert.equal(url.searchParams.get("min_price"), "15");
+  assert.equal(url.searchParams.get("min_price"), "50");
 });
 
 test("JustTCG biggest gainers can use a selected movement period", async () => {
@@ -159,14 +177,67 @@ test("JustTCG biggest gainers can use a selected movement period", async () => {
   }) as typeof fetch;
 
   try {
-    await fetchJustTcgBiggestGainers(undefined, "30d");
+    await fetchJustTcgBiggestGainers(undefined, "90d");
   } finally {
     restoreEnv(originalApiKey, originalFetch);
   }
 
   const url = new URL(requestedUrl);
-  assert.equal(url.searchParams.get("orderBy"), "30d");
-  assert.equal(url.searchParams.get("include_statistics"), "30d");
+  assert.equal(url.searchParams.get("orderBy"), "90d");
+  assert.equal(url.searchParams.get("include_statistics"), "90d");
+});
+
+test("JustTCG biggest gainers require enough price changes for the selected period", async () => {
+  const originalApiKey = process.env.JUSTTCG_API_KEY;
+  const originalFetch = global.fetch;
+  process.env.JUSTTCG_API_KEY = "test-key";
+
+  global.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        data: [
+          {
+            name: "Low Volume Mover",
+            number: "010/102",
+            variants: [
+              {
+                condition: "NM",
+                price: 80,
+                printing: "Normal",
+                priceChange90d: 50,
+                priceChangesCount90d: 4,
+              },
+            ],
+          },
+          {
+            name: "Reliable Mover",
+            number: "011/102",
+            variants: [
+              {
+                condition: "NM",
+                price: 90,
+                printing: "Normal",
+                priceChange90d: 40,
+                priceChangesCount90d: 5,
+              },
+            ],
+          },
+        ],
+      }),
+      {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      },
+    )) as typeof fetch;
+
+  try {
+    const result = await fetchJustTcgBiggestGainers(undefined, "90d");
+    assert.equal(result.length, 1);
+    assert.equal(result[0].cardName, "Reliable Mover");
+    assert.equal(result[0].priceChangesCount, 5);
+  } finally {
+    restoreEnv(originalApiKey, originalFetch);
+  }
 });
 
 test("JustTCG biggest losers request uses safe filters and negative movers", async () => {
@@ -186,12 +257,13 @@ test("JustTCG biggest losers request uses safe filters and negative movers", asy
             variants: [
               {
                 condition: "NM",
-                price: 30,
+                price: 60,
                 printing: "Holofoil",
                 statistics: {
                   "7d": {
                     priceChange: -6,
                     priceChangePercentage: -20,
+                    priceChangesCount: 2,
                   },
                 },
               },
@@ -207,6 +279,7 @@ test("JustTCG biggest losers request uses safe filters and negative movers", asy
                 statistics: {
                   "7d": {
                     priceChangePercentage: 12,
+                    priceChangesCount: 2,
                   },
                 },
               },
@@ -233,8 +306,8 @@ test("JustTCG biggest losers request uses safe filters and negative movers", asy
   const url = new URL(requestedUrl);
   assert.equal(url.searchParams.get("order"), "asc");
   assert.equal(url.searchParams.get("orderBy"), "7d");
-  assert.equal(url.searchParams.get("condition"), "NM,LP");
-  assert.equal(url.searchParams.get("min_price"), "15");
+  assert.equal(url.searchParams.get("condition"), "NM");
+  assert.equal(url.searchParams.get("min_price"), "50");
 });
 
 test("JustTCG portfolio batch requests one row per card ID", async () => {

@@ -13,6 +13,7 @@ import {
   fetchJustTcgBiggestLosers,
 } from "../services/justTcgApi.js";
 import { fetchHydratedJustTcgMovers } from "../services/justTcgMoverCards.js";
+import type { JustTcgMovementResult } from "../../src/types/justTcgMovers.js";
 import {
   acquireScriptLock,
   ensureScriptLockTable,
@@ -22,7 +23,7 @@ import {
 } from "./scriptLocks.js";
 
 const JUST_TCG_CATEGORIES_LOCK_TTL_SECONDS = 10 * 60;
-const JUST_TCG_CATEGORY_PERIODS = ["7d", "30d"] as const;
+const JUST_TCG_CATEGORY_PERIODS = ["7d", "30d", "90d"] as const;
 
 const JUST_TCG_CATEGORY_REFRESHES = [
   {
@@ -59,8 +60,7 @@ async function refreshJustTcgCategory(
   period: (typeof JUST_TCG_CATEGORY_PERIODS)[number],
   dryRun: boolean,
 ) {
-  console.log(`Fetching JustTCG ${name} (${period})`);
-  const cards = await fetchHydratedJustTcgMovers(fetchMovers, period);
+  const cards = await fetchJustTcgCategoryWithRetry(name, fetchMovers, period);
 
   console.log(
     `JustTCG ${name} (${period}) validated: ${cards.length} matched cards`,
@@ -69,6 +69,38 @@ async function refreshJustTcgCategory(
     await saveJustTcgCategory(category, period, { cards });
     console.log(`JustTCG ${name} (${period}) saved to SQL`);
   }
+}
+
+async function fetchJustTcgCategoryWithRetry(
+  name: string,
+  fetchMovers: typeof fetchJustTcgBiggestGainers,
+  period: (typeof JUST_TCG_CATEGORY_PERIODS)[number],
+): Promise<JustTcgMovementResult[]> {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    console.log(`Fetching JustTCG ${name} (${period}) attempt ${attempt}`);
+    try {
+      const cards = await fetchHydratedJustTcgMovers(fetchMovers, period);
+      console.log(
+        `JustTCG ${name} (${period}) fetch succeeded on attempt ${attempt}`,
+      );
+      return cards;
+    } catch (error: unknown) {
+      const normalizedError =
+        error instanceof Error ? error : new Error(String(error));
+      console.error(
+        `JustTCG ${name} (${period}) fetch failed on attempt ${attempt}`,
+        {
+          name: normalizedError.name,
+          message: normalizedError.message,
+        },
+      );
+
+      if (attempt === 2) throw normalizedError;
+      console.warn(`Retrying JustTCG ${name} (${period}) once`);
+    }
+  }
+
+  throw new Error(`JustTCG ${name} (${period}) fetch failed`);
 }
 
 async function main(): Promise<void> {
@@ -94,25 +126,45 @@ async function main(): Promise<void> {
   }
 
   try {
+    const failures: string[] = [];
+    let updatedRows = 0;
+
     for (const refresh of JUST_TCG_CATEGORY_REFRESHES) {
       for (const period of JUST_TCG_CATEGORY_PERIODS) {
-        await refreshJustTcgCategory(
-          refresh.name,
-          refresh.fetch,
-          refresh.category,
-          period,
-          dryRun,
-        );
+        try {
+          await refreshJustTcgCategory(
+            refresh.name,
+            refresh.fetch,
+            refresh.category,
+            period,
+            dryRun,
+          );
+          updatedRows += 1;
+        } catch (error: unknown) {
+          const normalizedError =
+            error instanceof Error ? error : new Error(String(error));
+          console.error(`JustTCG ${refresh.name} (${period}) refresh failed`, {
+            name: normalizedError.name,
+            message: normalizedError.message,
+          });
+          failures.push(
+            `${refresh.name} (${period}): ${normalizedError.message}`,
+          );
+        }
       }
     }
 
-    const updatedRows =
-      JUST_TCG_CATEGORY_REFRESHES.length * JUST_TCG_CATEGORY_PERIODS.length;
     console.log(
       dryRun
         ? "Dry run complete; no JustTCG category rows changed"
-        : `JustTCG category refresh finished successfully; ${updatedRows} database rows updated`,
+        : `JustTCG category refresh finished; ${updatedRows} database rows updated`,
     );
+
+    if (failures.length > 0) {
+      throw new Error(
+        `JustTCG category refresh completed with ${failures.length} failed fetch(es): ${failures.join("; ")}`,
+      );
+    }
   } finally {
     const released = await releaseScriptLock(lock);
     if (!released) {

@@ -65,7 +65,6 @@ export function ConfirmPopover({
       className={[
         "ui-popover-surface",
         "ui-confirm-popover",
-        "ui-render-fade",
         className,
       ]
         .filter(Boolean)

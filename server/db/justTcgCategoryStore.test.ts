@@ -71,10 +71,18 @@ test("JustTCG category schema keeps one row per category and period", async () =
       sql: JUST_TCG_CATEGORY_UPSERT_SQL,
       args: ["trending_cards", "7d", JSON.stringify(payload)],
     });
+    await client.execute({
+      sql: JUST_TCG_CATEGORY_UPSERT_SQL,
+      args: [JUST_TCG_CATEGORIES.biggestMovers, "90d", JSON.stringify(payload)],
+    });
     await assert.rejects(
       client.execute({
         sql: JUST_TCG_CATEGORY_UPSERT_SQL,
-        args: [JUST_TCG_CATEGORIES.biggestMovers, "14d", JSON.stringify(payload)],
+        args: [
+          JUST_TCG_CATEGORIES.biggestMovers,
+          "180d",
+          JSON.stringify(payload),
+        ],
       }),
     );
     await assert.rejects(

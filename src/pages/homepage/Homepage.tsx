@@ -4,7 +4,7 @@ import { WelcomeView } from '../../components/welcomeView/WelcomeView';
 import './Homepage.scss'
 
 const HOME_MOVER_TYPES = ["biggestGainers", "biggestLosers"] as const;
-const HOME_MOVER_PERIODS = ["7d", "30d"] as const;
+const HOME_MOVER_PERIODS = ["7d", "30d", "90d"] as const;
 
 export default function Homepage() {
   return (
