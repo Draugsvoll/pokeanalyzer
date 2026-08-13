@@ -9,8 +9,7 @@
   gap: 4rem;
   margin: 0 auto;
   max-width: 100%;
-  padding: 3rem 0rem;
-  padding-bottom:2rem;
+  padding: 3rem 0 2rem;
   width: 100%;
 
   &--status {
@@ -49,10 +48,8 @@
     align-items: center;
     box-sizing: border-box;
     display: grid;
-    gap: 2rem;
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-    justify-content: space-evenly;
-    /* Horizontal padding while stacked; cleared on desktop row layout */
+    gap: 2.25rem;
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
     padding: 1.65rem;
     width: 100%;
   }
@@ -91,23 +88,19 @@
 
   &__image-side {
     align-items: center;
-    display: flex;
-    flex: 0 0 auto;
-    flex-direction: column;
+    display: grid;
     gap: 1rem;
     justify-content: center;
     padding: 0;
   }
 
-  &__image-actions {
+  &__image-controls {
     display: grid;
     gap: 0.75rem;
-    justify-items: stretch;
-    max-width: 100%;
     width: 17.5rem;
+    max-width: 100%;
 
     .card-view__portfolio-control {
-      justify-self: stretch;
       width: 100%;
     }
   }
@@ -184,11 +177,6 @@
   &__info-side {
     box-sizing: border-box;
     display: grid;
-    flex: 1 1 auto;
-    gap: 1.9rem;
-    grid-template-columns: minmax(0, 1fr);
-    height: 100%;
-    justify-content: stretch;
     max-width: 100%;
     min-width: 0;
     padding: 0;
@@ -196,11 +184,9 @@
   }
 
   &__identity {
-    align-content: space-between;
     align-self: stretch;
     display: grid;
-    gap: 0;
-    grid-template-rows: repeat(3, auto);
+    gap: 1.35rem;
     min-width: 0;
   }
 
@@ -214,10 +200,7 @@
   }
 
   &__lower-sections {
-    align-self: end;
-    display: grid;
-    gap: 1.25rem;
-    min-width: 0;
+    display: contents;
   }
 
   &__identity-top {
@@ -230,7 +213,7 @@
 
   &__title {
     margin: 0;
-    font-size: clamp(2rem, 3vw, 2.1rem);
+    font-size: clamp(2.2rem, 3.2vw, 2.45rem);
     font-weight: var(--font-weight-bold);
     text-transform: capitalize;
     line-height: 0.95;
@@ -297,16 +280,15 @@
   }
 
   &__info-grid {
-    display: grid;
-    gap: 1.2rem 2.4rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     font-size: var(--font-size-paragraph-sm);
     padding-top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
   }
 
   &__flavor-text {
-    border-left: 2px solid
-      color-mix(in srgb, var(--custom-color-blue) 42%, transparent);
+    border-left: 2px solid var(--custom-color-blue);
     color: color-mix(
       in srgb,
       var(--font-color-secondary) 84%,
@@ -322,21 +304,21 @@
 
   &__detail-panel {
     display: grid;
-    gap: 1.75rem;
+    gap: 0.75rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
     padding-top: 0;
   }
 
   &__detail-section {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    background: var(--feature-card-inner-bg);
+    border: var(--border);
+    border-radius: var(--feature-card-radius);
+    box-shadow: var(--feature-card-shadow);
     display: grid;
     gap: 0.75rem;
     min-width: 0;
-    padding: 0;
+    padding: 0.95rem;
 
     h3 {
       color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
@@ -1102,25 +1084,15 @@
     align-items: stretch;
     gap: 2.8rem;
     grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
-    justify-content: space-evenly;
     padding: 2rem 2.35rem;
   }
 
   .card-view__image-side {
     align-self: center;
-    flex: 0 0 auto;
   }
 
   .card-view__info-side {
-    /* flex-basis (not width alone) sizes flex items — keep these in sync */
-    align-items: stretch;
     align-self: stretch;
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
-  }
-
-  .card-view__identity {
-    min-height: 100%;
   }
 
   .card-view__detail-panel {
@@ -1162,10 +1134,6 @@
 
     &__portfolio-control {
       min-width: 0;
-    }
-
-    &__info-grid {
-      grid-template-columns: 1fr;
     }
 
     &__actions {

@@ -720,7 +720,7 @@ function PokemonDetailsForCard() {
                   <span>Card image unavailable</span>
                 </div>
               )}
-              <div className="card-view__image-actions">
+              <div className="card-view__image-controls">
                 <div className="card-view__change-card">
                   <Button
                     fill="ghost"

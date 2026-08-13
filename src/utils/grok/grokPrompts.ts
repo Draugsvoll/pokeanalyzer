@@ -495,7 +495,8 @@ how this fits into an overall collection and the collection market.
 
 The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
 
-Example response below. Use the exact same structure and field names. Never invent data.
+Example response below. Use the exact same structure and field names. Never invent data. The example response data
+is only illustrative, under no circumstances can you copy or rely on it, always do the full analysis yourself.
 
 ${variantPrintNameInstructions}
 
