@@ -147,7 +147,6 @@ input[type="radio"] {
 
 /* Shared interactive card hover (database results, eBay sold, etc.) */
 .card-hover {
-  cursor: pointer;
   transition:
     border-color var(--delay-short) ease,
     box-shadow var(--delay-short) ease,
@@ -156,6 +155,16 @@ input[type="radio"] {
   &:hover {
     border-color: rgba(255, 255, 255, 0.13);
     box-shadow: var(--hover-shadow);
+    transform: translateY(var(--hover-lift));
+  }
+}
+
+/* Shared hover lift for non-clickable surfaces that should only move subtly. */
+.surface-hover-lift {
+  transition: transform var(--delay-short) ease;
+
+  &:hover {
+    transform: translateY(var(--hover-lift));
   }
 }
 

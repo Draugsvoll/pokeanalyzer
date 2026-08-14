@@ -65,7 +65,7 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
 
             return (
               <article
-                className="general-news__trend"
+                className="general-news__trend surface-hover-lift"
                 key={item.headline ?? item.url ?? index}
                 style={label ? getLabelAccent(label) : undefined}
               >

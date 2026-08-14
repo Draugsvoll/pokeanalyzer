@@ -51,7 +51,7 @@ export function BiggestMovers({ payload }: BiggestMoversProps) {
 
             return (
               <article
-                className="biggest-gainers__card"
+                className="biggest-gainers__card surface-hover-lift"
                 key={`${index}-${item.rank ?? ""}-${item.card_name ?? "card"}`}
               >
                 <div className="biggest-gainers__body">

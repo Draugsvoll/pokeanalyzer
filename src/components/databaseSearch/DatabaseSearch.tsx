@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
@@ -14,6 +14,7 @@ type DatabaseSearchProps = {
   autoFocusName?: boolean;
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
+  onSearchStart?: () => void;
   showHero?: boolean;
   /** When set, results render into this element (e.g. below the card shell) */
   resultsPortalEl?: HTMLElement | null;
@@ -64,6 +65,12 @@ export function DatabaseSearchBar({
   setSeries,
 }: DatabaseSearchBarProps) {
   const searchButtonBusy = isSearching || !canSearch;
+  const pokemonNameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoFocusName) return;
+    pokemonNameInputRef.current?.focus({ preventScroll: true });
+  }, [autoFocusName]);
 
   return (
     <div className="database-search-bar">
@@ -81,8 +88,8 @@ export function DatabaseSearchBar({
             aria-hidden="true"
           />
           <input
+            ref={pokemonNameInputRef}
             className="database-search"
-            autoFocus={autoFocusName}
             value={pokemonName}
             onChange={(event) => onPokemonNameChange(event.target.value)}
             onKeyDown={onSearchKeyDown}
@@ -129,6 +136,7 @@ export function DatabaseSearchBar({
           type="button"
           className="explore-search-shell__submit"
           onClick={onSearch}
+          onMouseDown={(event) => event.preventDefault()}
           disabled={searchButtonBusy}
           aria-busy={searchButtonBusy || undefined}
         >
@@ -146,6 +154,7 @@ export function DatabaseSearchBar({
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
+  onSearchStart,
   showHero = true,
   resultsPortalEl = null,
 }) => {
@@ -273,9 +282,25 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     event: React.KeyboardEvent<HTMLInputElement>
   ) => {
     if (event.key === "Enter") {
-      handleSearch();
+      submitSearch();
     }
   };
+
+  function submitSearch() {
+    if (!canSearch || isSearching) return;
+
+    const hasSearchInput =
+      pokemonName.trim() ||
+      setName.trim() ||
+      setSeries.trim() ||
+      cardNumber.trim();
+
+    if (hasSearchInput) {
+      onSearchStart?.();
+    }
+
+    handleSearch();
+  }
   return (
     <section
       className={`database-preview explore-page${embedded ? " database-preview--embedded" : ""}`}
@@ -301,7 +326,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           isSearching={isSearching}
           onCardNumberChange={setCardNumber}
           onPokemonNameChange={setPokemonName}
-          onSearch={handleSearch}
+          onSearch={submitSearch}
           onSearchKeyDown={handleSearchKeyDown}
           onSetNameChange={setSetName}
           onSetSeriesChange={setSetSeries}

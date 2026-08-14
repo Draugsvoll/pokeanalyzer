@@ -73,6 +73,7 @@ const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
   year: "numeric",
 });
+const EMBEDDED_SEARCH_SCROLL_OFFSET = 80;
 
 type CardInfoField = {
   icon: LucideIcon;
@@ -307,6 +308,28 @@ function PokemonDetailsForCard() {
     usePokemonPortfolio();
   const { isCardSaved, loadingPortfolioReferences, portfolioReferencesError } =
     usePortfolioCache();
+
+  function scrollForEmbeddedSearch() {
+    window.scrollBy({
+      behavior: "smooth",
+      left: 0,
+      top: EMBEDDED_SEARCH_SCROLL_OFFSET,
+    });
+  }
+
+  function openEmbeddedSearch() {
+    scrollForEmbeddedSearch();
+    setShowCardSearch(true);
+  }
+
+  function handleEmbeddedSearchToggle() {
+    if (showCardSearch) {
+      setShowCardSearch(false);
+      return;
+    }
+
+    openEmbeddedSearch();
+  }
   const { loadingSubscription, subscription, updateSubscription } =
     useMembershipSubscription();
   const { creditMessage, creditsRemaining, updatingCredits } =
@@ -726,7 +749,7 @@ function PokemonDetailsForCard() {
                     fill="ghost"
                     fullWidth
                     style={getCustomColors("blue")}
-                    onClick={() => setShowCardSearch((open) => !open)}
+                    onClick={handleEmbeddedSearchToggle}
                     aria-expanded={showCardSearch}
                   >
                     {showCardSearch ? (
@@ -750,10 +773,59 @@ function PokemonDetailsForCard() {
                     )}
                   </Button>
                 </div>
+              </div>
+            </div>
+
+            <div className="card-view__info-side">
+              <div className="card-view__identity">
+                <div className="card-view__identity-top">
+                  <div className="card-view__title-row">
+                    <div className="card-view__title-copy">
+                      {formattedDisplayedCardNumber && (
+                        <span
+                          className="card-view__title-number card-number-badge"
+                          aria-label={`Card number ${formattedDisplayedCardNumber}`}
+                        >
+                          {formattedDisplayedCardNumber}
+                        </span>
+                      )}
+                      <h2 className="card-view__title">{card.name}</h2>
+                      {card.set?.name && (
+                        <p className="card-view__title-set">
+                          {card.set.images?.symbol && (
+                            <img
+                              src={card.set.images.symbol}
+                              alt={`${card.set.name} symbol`}
+                            />
+                          )}
+                          <span>{card.set.name}</span>
+                          {card.set?.series && (
+                            <>
+                              <i aria-hidden="true">•</i>
+                              <span>({card.set.series})</span>
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {(card.rarity || displaySubtype) && (
+                        <div className="card-view__title-badges">
+                          {card.rarity && (
+                            <Badge
+                              accent={getRarityBadgeAccent(card.rarity)}
+                              weight="strong"
+                            >
+                              {card.rarity}
+                            </Badge>
+                          )}
+                          {displaySubtype && <Badge>{displaySubtype}</Badge>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="card-view__portfolio-control">
                   <Button
                     variant="portfolio"
-                    fullWidth
                     disabled={portfolioBusy || portfolioUnavailable}
                     onClick={handlePortfolioToggle}
                     aria-label={
@@ -796,56 +868,6 @@ function PokemonDetailsForCard() {
                       </>
                     )}
                   </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="card-view__info-side">
-              <div className="card-view__identity">
-                <div className="card-view__identity-top">
-                  <div className="card-view__title-row">
-                    <div className="card-view__title-copy">
-                      {formattedDisplayedCardNumber && (
-                        <span
-                          className="card-view__title-number card-number-badge"
-                          aria-label={`Card number ${formattedDisplayedCardNumber}`}
-                        >
-                          {formattedDisplayedCardNumber}
-                        </span>
-                      )}
-                      <h2 className="card-view__title">{card.name}</h2>
-                      {card.set?.name && (
-                        <p className="card-view__title-set">
-                          {card.set.images?.symbol && (
-                            <img
-                              src={card.set.images.symbol}
-                              alt={`${card.set.name} symbol`}
-                            />
-                          )}
-                          <span>{card.set.name}</span>
-                          {card.set?.series && (
-                            <>
-                              <i aria-hidden="true">•</i>
-                              <span>{card.set.series}</span>
-                            </>
-                          )}
-                        </p>
-                      )}
-                      {(card.rarity || displaySubtype) && (
-                        <div className="card-view__title-badges">
-                          {card.rarity && (
-                            <Badge
-                              accent={getRarityBadgeAccent(card.rarity)}
-                              weight="strong"
-                            >
-                              {card.rarity}
-                            </Badge>
-                          )}
-                          {displaySubtype && <Badge>{displaySubtype}</Badge>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 <section
@@ -928,6 +950,7 @@ function PokemonDetailsForCard() {
               <DatabaseSearch
                 autoFocusName
                 embedded
+                onSearchStart={scrollForEmbeddedSearch}
                 resultsPortalEl={searchResultsHost}
               />
             </div>
