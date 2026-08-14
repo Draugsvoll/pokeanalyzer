@@ -19,6 +19,8 @@
   padding: 0.55rem 0.85rem;
   white-space: nowrap;
   z-index: 5;
+  min-width:13rem;
+  justify-content: center;
 
   &__label {
     color: var(--font-color-primary);

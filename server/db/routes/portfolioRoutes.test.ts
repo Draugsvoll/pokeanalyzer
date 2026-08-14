@@ -4,138 +4,24 @@ import { createClient } from "@libsql/client";
 import express from "express";
 import {
   createHydratedPortfolioHandler,
-  createUpdatePortfolioPriceSourceHandler,
-  savePortfolioPriceSourcePreference,
 } from "./portfolioRoutes.js";
 import {
   buildPortfolioPriceSourceSelectionUpdate,
+  buildSaveJustTcgPriceFailedAtStatement,
   buildSaveJustTcgLookupStatement,
   buildSaveJustTcgPricesStatement,
 } from "./portfolioRouteHelpers.js";
 import { requestFromTestServer } from "./httpTestServer.js";
 
-test("PATCH price-source validates and saves the global portfolio source", async () => {
-  const saves: Array<{ uid: string; priceSource: string }> = [];
-  const app = express();
-  app.use(express.json());
-  app.patch(
-    "/api/portfolio/price-source",
-    createUpdatePortfolioPriceSourceHandler({
-      authenticatedUid: () => "user-123",
-      savePriceSource: async (uid, priceSource) => {
-        saves.push({ uid, priceSource });
-      },
-    }),
-  );
-
-  const response = await requestFromTestServer(
-    app,
-    "/api/portfolio/price-source",
-    {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ priceSource: "cardmarket" }),
-    },
-  );
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    portfolioPriceSource: "cardmarket",
-  });
-  assert.deepEqual(saves, [{ uid: "user-123", priceSource: "cardmarket" }]);
-});
-
-test("PATCH price-source accepts and saves All mode", async () => {
-  const saves: Array<{ uid: string; priceSource: string }> = [];
-  const app = express();
-  app.use(express.json());
-  app.patch(
-    "/api/portfolio/price-source",
-    createUpdatePortfolioPriceSourceHandler({
-      authenticatedUid: () => "user-123",
-      savePriceSource: async (uid, priceSource) => {
-        saves.push({ uid, priceSource });
-      },
-    }),
-  );
-
-  const response = await requestFromTestServer(
-    app,
-    "/api/portfolio/price-source",
-    {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ priceSource: "all" }),
-    },
-  );
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { portfolioPriceSource: "all" });
-  assert.deepEqual(saves, [{ uid: "user-123", priceSource: "all" }]);
-});
-
-test("PATCH price-source rejects unsupported values before writing", async () => {
-  let saveCount = 0;
-  const app = express();
-  app.use(express.json());
-  app.patch(
-    "/api/portfolio/price-source",
-    createUpdatePortfolioPriceSourceHandler({
-      authenticatedUid: () => "user-123",
-      savePriceSource: async () => {
-        saveCount += 1;
-      },
-    }),
-  );
-
-  const response = await requestFromTestServer(
-    app,
-    "/api/portfolio/price-source",
-    {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ priceSource: "ebay" }),
-    },
-  );
-
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    message: "priceSource must be all, tcgplayer, cardmarket, or justtcg",
-  });
-  assert.equal(saveCount, 0);
-});
-
-test("the saved preference uses a merge write and preserves other user fields", async () => {
-  const storedUser: Record<string, unknown> = {
-    displayName: "Ove",
-    credits: 12,
-  };
-
-  await savePortfolioPriceSourcePreference(
-    {
-      set: async (data, options) => {
-        assert.deepEqual(options, { merge: true });
-        Object.assign(storedUser, data);
-      },
-    },
-    "cardmarket",
-  );
-
-  assert.deepEqual(storedUser, {
-    displayName: "Ove",
-    credits: 12,
-    portfolioPriceSource: "cardmarket",
-  });
-});
-
-test("GET hydrated portfolio returns the saved source and reliability payload", async () => {
+test("GET hydrated portfolio returns All mode and reliability payload", async () => {
   const app = express();
   app.get(
     "/api/portfolio/cards/hydrated",
     createHydratedPortfolioHandler({
       authenticatedUid: () => "user-123",
       loadEntries: async () => [{ cardId: "base1-4", quantity: 2 }],
-      loadStoredPriceSource: async () => "cardmarket",
+      loadStoredJustTcgPricesFetchedAt: async () =>
+        "2026-08-14T10:00:00.000Z",
       loadHydratedCards: async () => ({
         cards: [
           {
@@ -172,7 +58,8 @@ test("GET hydrated portfolio returns the saved source and reliability payload", 
     ],
     entries: [{ cardId: "base1-4", quantity: 2 }],
     missingCardIds: [],
-    portfolioPriceSource: "cardmarket",
+    portfolioPriceSource: "all",
+    portfolioJustTcgPricesFetchedAt: "2026-08-14T10:00:00.000Z",
   });
 });
 
@@ -183,7 +70,7 @@ test("GET hydrated portfolio defaults an absent saved source to All", async () =
     createHydratedPortfolioHandler({
       authenticatedUid: () => "user-123",
       loadEntries: async () => [],
-      loadStoredPriceSource: async () => undefined,
+      loadStoredJustTcgPricesFetchedAt: async () => undefined,
       loadHydratedCards: async () => ({
         cards: [],
         missingCardIds: [],
@@ -334,6 +221,75 @@ test("JustTCG lookup save does not write JustTCG price data", async () => {
     assert.deepEqual(raw.justtcgLookup, {
       ids: ["pokemon-base-set-charizard-holo-rare"],
     });
+  } finally {
+    client.close();
+  }
+});
+
+test("JustTCG price failure save only updates the JustTCG price retry timestamp", async () => {
+  const client = createClient({ url: "file::memory:" });
+  try {
+    await client.execute(`
+      CREATE TABLE cards (
+        id TEXT PRIMARY KEY,
+        raw_json TEXT NOT NULL,
+        updated_at TEXT
+      )
+    `);
+
+    const existingRawJson = {
+      id: "base1-4",
+      name: "Charizard",
+      tcgplayer: {
+        prices: { holofoil: { market: 300 } },
+      },
+      cardmarket: {
+        prices: { trendPrice: 250 },
+      },
+      grok: {
+        worthGrading: { response: "keep" },
+      },
+      justtcgLookup: {
+        ids: ["pokemon-base-set-charizard-holo-rare"],
+      },
+      justtcg: {
+        url: "https://example.test/justtcg",
+        metadata: { sourceUrl: null },
+        prices: {
+          old: { market: 1 },
+        },
+        updatedAt: "old-date",
+      },
+    };
+
+    await client.execute({
+      sql: "INSERT INTO cards (id, raw_json) VALUES (?, json(?))",
+      args: ["base1-4", JSON.stringify(existingRawJson)],
+    });
+
+    await client.execute(
+      buildSaveJustTcgPriceFailedAtStatement(
+        "base1-4",
+        "2026-08-14T10:00:00.000Z",
+      ),
+    );
+
+    const row = (
+      await client.execute("SELECT raw_json FROM cards WHERE id = 'base1-4'")
+    ).rows[0];
+    const raw = JSON.parse(String(row.raw_json)) as typeof existingRawJson & {
+      justtcg: { priceFailedAt: string };
+    };
+
+    assert.deepEqual(raw.tcgplayer, existingRawJson.tcgplayer);
+    assert.deepEqual(raw.cardmarket, existingRawJson.cardmarket);
+    assert.deepEqual(raw.grok, existingRawJson.grok);
+    assert.deepEqual(raw.justtcgLookup, existingRawJson.justtcgLookup);
+    assert.equal(raw.justtcg.url, existingRawJson.justtcg.url);
+    assert.deepEqual(raw.justtcg.metadata, existingRawJson.justtcg.metadata);
+    assert.deepEqual(raw.justtcg.prices, existingRawJson.justtcg.prices);
+    assert.equal(raw.justtcg.updatedAt, existingRawJson.justtcg.updatedAt);
+    assert.equal(raw.justtcg.priceFailedAt, "2026-08-14T10:00:00.000Z");
   } finally {
     client.close();
   }

@@ -1,7 +1,6 @@
 import type {
   AddPortfolioCardResponse,
   HydratedPortfolioResponse,
-  PortfolioPriceMode,
   PortfolioPriceSource,
   PortfolioReference,
   PortfolioReferencesResponse,
@@ -73,16 +72,6 @@ export function ensurePortfolioJustTcgLookup(
   );
 }
 
-export function triggerMissingPortfolioJustTcgLookups(
-  cardIds: string[],
-  expectedUid: string,
-) {
-  return portfolioRequest<void>("/cards/justtcg-lookup-missing", expectedUid, {
-    method: "POST",
-    body: JSON.stringify({ cardIds }),
-  });
-}
-
 export function getPortfolioJustTcgPrices(
   expectedUid: string,
   signal?: AbortSignal,
@@ -93,7 +82,27 @@ export function getPortfolioJustTcgPrices(
       justtcg: HydratedPortfolioResponse["cards"][number]["justtcg"] | null;
     }>;
     missingCardIds: string[];
+    portfolioJustTcgPricesFetchedAt?: string;
   }>("/cards/justtcg-prices", expectedUid, { signal });
+}
+
+export function fillMissingPortfolioJustTcgData(
+  cardIds: string[],
+  expectedUid: string,
+  signal?: AbortSignal,
+) {
+  return portfolioRequest<{
+    cards: Array<{
+      cardId: string;
+      justtcg: HydratedPortfolioResponse["cards"][number]["justtcg"] | null;
+    }>;
+    missingCardIds: string[];
+    portfolioJustTcgPricesFetchedAt?: string;
+  }>("/cards/justtcg-fill-missing", expectedUid, {
+    method: "POST",
+    body: JSON.stringify({ cardIds }),
+    signal,
+  });
 }
 
 export function removePortfolioCard(cardId: string, expectedUid: string) {
@@ -132,20 +141,6 @@ export function updatePortfolioCardPriceSource(
     {
       method: "PATCH",
       body: JSON.stringify({ priceSource, priceKey, selectForAll }),
-    },
-  );
-}
-
-export function updatePortfolioPriceSource(
-  priceSource: PortfolioPriceMode,
-  expectedUid: string,
-) {
-  return portfolioRequest<{ portfolioPriceSource: PortfolioPriceMode }>(
-    "/price-source",
-    expectedUid,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ priceSource }),
     },
   );
 }

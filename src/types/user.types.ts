@@ -7,7 +7,7 @@ export type UserProfile = {
   uid: string;
   email: string;
   firstName?: string;
-  portfolioPriceSource?: "all" | "tcgplayer" | "cardmarket" | "justtcg";
+  portfolioPriceSource?: "all";
   createdAt?: UserCreatedAt;
   /** Legacy field retained for existing profiles. */
   username?: string;

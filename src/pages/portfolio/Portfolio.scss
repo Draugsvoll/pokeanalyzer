@@ -76,78 +76,10 @@
     gap: 0.6rem 1rem;
   }
 
-  &__value-source-options {
-    align-items: flex-start;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-
-    .portfolio__value-source-radios {
-      align-items: center;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.8rem;
-    }
-
-    label {
-      align-items: center;
-      color: var(--font-color-muted);
-      cursor: pointer;
-      display: inline-flex;
-      font-size: var(--font-size-label);
-      gap: 0.35rem;
-      white-space: nowrap;
-    }
-
-    label:has(input:checked) {
-      color: var(--font-color-primary);
-    }
-
-    label:has(input:disabled) {
-      cursor: wait;
-      opacity: 0.65;
-    }
-
-    > .app-btn {
-      min-width: 3.5rem;
-    }
-  }
-
   &__total-count {
     color: var(--font-color-muted);
     font-size: var(--font-size-caption);
     font-variant-numeric: tabular-nums;
-  }
-
-  &__price-warning {
-    align-items: flex-start;
-    background: color-mix(in srgb, var(--custom-color-yellow) 9%, var(--bg2));
-    border: 1px solid
-      color-mix(in srgb, var(--custom-color-yellow) 28%, transparent);
-    border-radius: calc(var(--border-radius) * 0.75);
-    box-sizing: border-box;
-    color: color-mix(
-      in srgb,
-      var(--custom-color-yellow) 70%,
-      var(--font-color-primary)
-    );
-    display: flex;
-    font-size: var(--font-size-caption);
-    gap: 0.55rem;
-    grid-column: 1 / -1;
-    line-height: var(--font-leading-snug);
-    max-width: 42rem;
-    padding: 0.65rem 0.7rem;
-    width: fit-content;
-
-    svg {
-      color: var(--custom-color-yellow);
-      flex: 0 0 auto;
-      height: 1rem;
-      margin-top: 0.05rem;
-      stroke-width: 2.25;
-      width: 1rem;
-    }
   }
 
   &__total-market-value {

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import Button from "../button/Button";
 import { getCustomColors } from "../../utils/customStylings";
 import "./ConfirmPopover.scss";
@@ -23,7 +23,7 @@ export type ConfirmPopoverProps = {
  */
 export function ConfirmPopover({
   label,
-  confirmLabel = "OK",
+  confirmLabel = "Apply",
   cancelLabel = "Cancel",
   onConfirm,
   onCancel,
@@ -58,6 +58,23 @@ export function ConfirmPopover({
     window.addEventListener("resize", updatePlacement);
     return () => window.removeEventListener("resize", updatePlacement);
   }, []);
+
+  useEffect(() => {
+    if (confirming) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      const clickedPopover =
+        target instanceof Node && popoverRef.current?.contains(target);
+
+      if (!clickedPopover) {
+        onCancel();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [confirming, onCancel]);
 
   return (
     <div

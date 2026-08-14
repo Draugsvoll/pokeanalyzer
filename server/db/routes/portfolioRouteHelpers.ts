@@ -33,6 +33,32 @@ export function buildSaveJustTcgPricesStatement(
   };
 }
 
+export function buildSaveJustTcgPriceFailedAtStatement(
+  cardId: string,
+  failedAt: string,
+) {
+  return {
+    sql: `
+      UPDATE cards
+      SET raw_json = json_set(
+            raw_json,
+            '$.justtcg',
+            json_patch(
+              CASE
+                WHEN json_type(raw_json, '$.justtcg') = 'object'
+                  THEN json_extract(raw_json, '$.justtcg')
+                ELSE json('{}')
+              END,
+              json(?)
+            )
+          ),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `,
+    args: [JSON.stringify({ priceFailedAt: failedAt }), cardId],
+  };
+}
+
 export function buildSaveJustTcgLookupStatement(
   cardId: string,
   lookup: StoredJustTcgLookup,
