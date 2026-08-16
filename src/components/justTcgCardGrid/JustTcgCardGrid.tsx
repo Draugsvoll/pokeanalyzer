@@ -6,6 +6,10 @@ import {
   type JustTcgMovementPeriod,
   type JustTcgMovementResult,
 } from "../../services/justTcgFetchesApi";
+import { askGrok } from "../../utils/grok/grokClient";
+import { marketContextPrompt } from "../../utils/grok/grokPrompts";
+import { formatCardNumber } from "../../utils/formatCardNumber";
+import Button from "../button/Button";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { Swimlane } from "../swimlane/Swimlane";
@@ -22,6 +26,19 @@ type JustTcgCardGridProps = {
   types?: readonly JustTcgMoverType[];
 };
 
+type JustTcgContextCard = {
+  analysis: string[];
+  cardNumber: string;
+  context_id: string;
+  name: string;
+  percentChange: number | null;
+  period: JustTcgMovementPeriod;
+  price: string;
+  rarity: string;
+  series: string;
+  setName: string;
+};
+
 const periodLabels: Record<JustTcgMovementPeriod, string> = {
   "24h": "24-hour change",
   "7d": "7-day change",
@@ -30,6 +47,18 @@ const periodLabels: Record<JustTcgMovementPeriod, string> = {
 };
 
 const DISPLAY_LIMIT = 20;
+const EMPTY_RESULTS: JustTcgMovementResult[] = [];
+
+const money = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+function createContextId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 const typeLabels: Record<JustTcgMoverType, string> = {
   biggestGainers: "Gainers",
@@ -71,6 +100,95 @@ function fetchCardsByType(
   return type === "biggestGainers"
     ? fetchJustTcgBiggestGainers(signal, period)
     : fetchJustTcgBiggestLosers(signal, period);
+}
+
+function buildContextCards(
+  results: JustTcgMovementResult[],
+  period: JustTcgMovementPeriod,
+): JustTcgContextCard[] {
+  return results.slice(0, DISPLAY_LIMIT).map(({ card, mover }) => ({
+    analysis: [],
+    cardNumber: formatCardNumber(card) ?? "",
+    context_id: createContextId(),
+    name: card.name,
+    percentChange: mover.changePercent ?? null,
+    period,
+    price: `$${money.format(mover.currentPrice)}`,
+    rarity: card.rarity ?? mover.rarity ?? "",
+    series: card.set?.series ?? "",
+    setName: card.set?.name ?? mover.setName ?? "",
+  }));
+}
+
+function getReturnedContextCard(value: unknown): JustTcgContextCard | null {
+  if (!value || typeof value !== "object") return null;
+
+  const item = value as Record<string, unknown>;
+  if (
+    (!Array.isArray(item.analysis) ||
+      !item.analysis.every((entry) => typeof entry === "string")) ||
+    typeof item.cardNumber !== "string" ||
+    typeof item.context_id !== "string" ||
+    typeof item.name !== "string" ||
+    !("percentChange" in item) ||
+    (typeof item.percentChange !== "number" && item.percentChange !== null) ||
+    typeof item.period !== "string" ||
+    !isJustTcgMovementPeriod(item.period) ||
+    typeof item.price !== "string" ||
+    typeof item.rarity !== "string" ||
+    typeof item.series !== "string" ||
+    typeof item.setName !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    analysis: item.analysis,
+    cardNumber: item.cardNumber,
+    context_id: item.context_id,
+    name: item.name,
+    percentChange: item.percentChange,
+    period: item.period,
+    price: item.price,
+    rarity: item.rarity,
+    series: item.series,
+    setName: item.setName,
+  };
+}
+
+function parseContextResponse(
+  value: string,
+  sentItems: JustTcgContextCard[],
+) {
+  const parsed = JSON.parse(value) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error("Response must be a JSON array.");
+  }
+
+  const sentById = new Map<string, JustTcgContextCard>();
+  for (const item of sentItems) {
+    if (sentById.has(item.context_id)) {
+      sentById.delete(item.context_id);
+      continue;
+    }
+    sentById.set(item.context_id, item);
+  }
+
+  const nextContextByKey: Record<string, { analysis: string[] }> = {};
+
+  for (const item of parsed) {
+    const candidate = getReturnedContextCard(item);
+    if (!candidate) continue;
+
+    const sentItem = sentById.get(candidate.context_id);
+    if (!sentItem) continue;
+
+    nextContextByKey[sentItem.context_id] = {
+      analysis: candidate.analysis,
+    };
+  }
+
+  return nextContextByKey;
 }
 
 function CardLayout({
@@ -134,7 +252,21 @@ export function JustTcgCardGrid({
   const [loadingByKey, setLoadingByKey] = useState<Record<string, boolean>>(
     {},
   );
-  const cards = resultsByKey[activeKey] ?? [];
+  const [contextPreview, setContextPreview] = useState<{
+    key: string;
+    payload: JustTcgContextCard[];
+  } | null>(null);
+  const [contextResponse, setContextResponse] = useState("");
+  const [contextError, setContextError] = useState("");
+  const [contextLoading, setContextLoading] = useState(false);
+  const [contextByKey, setContextByKey] = useState<
+    | {
+        key: string;
+        values: Record<string, { analysis: string[] }>;
+      }
+    | null
+  >(null);
+  const cards = resultsByKey[activeKey] ?? EMPTY_RESULTS;
   const error = errorsByKey[activeKey] ?? "";
   const loading = Boolean(loadingByKey[activeKey]);
   const hasError = activeKey in errorsByKey;
@@ -150,6 +282,8 @@ export function JustTcgCardGrid({
   const visiblePeriodOptions = periodOptions.filter((option) =>
     moverPeriods.includes(option.value),
   );
+  const activeContextPayload =
+    contextPreview?.key === activeKey ? contextPreview.payload : null;
 
   useEffect(() => {
     return () => requestControllerRef.current?.abort();
@@ -251,6 +385,60 @@ export function JustTcgCardGrid({
     return () => window.clearTimeout(timeout);
   }, [loadTypes, moverPeriodsKey, moverTypesKey]);
 
+  const applyContextResponse = (response: string) => {
+    if (!contextPreview || contextPreview.key !== activeKey) return;
+
+    try {
+      setContextByKey({
+        key: activeKey,
+        values: parseContextResponse(response, contextPreview.payload),
+      });
+      setContextError("");
+    } catch (error) {
+      setContextError(
+        error instanceof Error ? error.message : "Invalid context response.",
+      );
+    }
+  };
+
+  const handleApplyContext = () => {
+    applyContextResponse(contextResponse);
+  };
+
+  const handleAskContext = async () => {
+    const payload = contextPreview?.key === activeKey
+      ? contextPreview.payload
+      : buildContextCards(cards, activePeriod);
+    if (payload.length === 0) return;
+
+    setContextLoading(true);
+    setContextError("");
+    setContextPreview({ key: activeKey, payload });
+    try {
+      const result = await askGrok(
+        marketContextPrompt(payload),
+        "manual_test",
+      );
+      if (!result.ok) {
+        setContextError(result.error);
+        return;
+      }
+      setContextResponse(result.text);
+      try {
+        setContextByKey({
+          key: activeKey,
+          values: parseContextResponse(result.text, payload),
+        });
+      } catch (error) {
+        setContextError(
+          error instanceof Error ? error.message : "Invalid context response.",
+        );
+      }
+    } finally {
+      setContextLoading(false);
+    }
+  };
+
   return (
     <section
       className="justtcg-card-grid ui-render-fade"
@@ -277,29 +465,73 @@ export function JustTcgCardGrid({
             value={activeType}
           />
         )}
+        <Button
+          disabled={!showCards}
+          fill="ghost"
+          fitContent
+          onClick={handleAskContext}
+          size="small"
+        >
+          {contextLoading ? "Adding..." : "Add Context"}
+        </Button>
       </header>
 
       {showCards && (
         <CardLayout layout={layout} renderKey={`${activeKey}:cards`}>
           {cards
             .slice(0, DISPLAY_LIMIT)
-            .map(({ card, mover }, index) => (
-              <PokemonCardView
-                key={[
-                  card.id,
-                  mover.printing,
-                  mover.condition,
-                  mover.setName ?? "",
-                  index,
-                ].join("-")}
-                card={card}
-                priceChangeLabel={periodLabels[mover.period]}
-                priceChangePercent={mover.changePercent}
-                priceSource="justtcg"
-                showPriceSourcePicker={true}
-              />
-            ))}
+            .map(({ card, mover }, index) => {
+              const contextItem = activeContextPayload?.[index];
+              const context =
+                contextItem && contextByKey?.key === activeKey
+                  ? contextByKey.values[contextItem.context_id]
+                  : undefined;
+
+              return (
+                <PokemonCardView
+                  key={[
+                    card.id,
+                    mover.printing,
+                    mover.condition,
+                    mover.setName ?? "",
+                    index,
+                  ].join("-")}
+                  card={card}
+                  context={context}
+                  priceChangeLabel={periodLabels[mover.period]}
+                  priceChangePercent={mover.changePercent}
+                  priceSource="justtcg"
+                  showPriceSourcePicker={true}
+                />
+              );
+            })}
         </CardLayout>
+      )}
+
+      {contextPreview?.key === activeKey && (
+        <div className="justtcg-card-grid__context-panel">
+          <pre className="justtcg-card-grid__context-preview">
+            {JSON.stringify(contextPreview.payload, null, 2)}
+          </pre>
+          <textarea
+            aria-label="Returned context JSON"
+            className="justtcg-card-grid__context-input"
+            onChange={(event) => setContextResponse(event.target.value)}
+            placeholder="Paste returned AI JSON array here"
+            value={contextResponse}
+          />
+          <Button
+            disabled={!contextResponse.trim() || contextLoading}
+            fitContent
+            onClick={handleApplyContext}
+            size="small"
+          >
+            Apply Context
+          </Button>
+          {contextError && (
+            <p className="justtcg-card-grid__context-error">{contextError}</p>
+          )}
+        </div>
       )}
 
       {showEmpty && (

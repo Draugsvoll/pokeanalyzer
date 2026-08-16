@@ -452,6 +452,25 @@ Use exactly this structure example (field names and nesting must match):
 }
 `.trim();
 
+const marketContext: string =
+`
+
+Here is a list of pokemon cards with price changes for the period stated in the list.
+7d = 7 days, 30d = 30 days, 90d = 90 days, 180d = 180 days
+
+Please do research to see if the price-values and price-changes reflects market prices across multiple sources. Also try to find the reasons for the price movement.
+
+Don't mention if a source fits the numbers exactly on the dollar.
+The purpose is to verify if the numbers align with market values across multiple sources.
+
+Your entire response must be the exact JSON format provided. No extra text before or after.
+Return the whole schema supplied below as it is, except you fill in the field "analysis"
+with your findings. Its an array of strings so you can easily split into paragraphs if needed.
+Don't make long sentences using semicolons.
+Make it in a slightly summarized format where we can easily get an overview, but still use complete sentences. Use natural language that beginners can understand, but still
+a professional tone.
+
+`
 
 const collectorsAnalysis: string =
 `
@@ -874,4 +893,11 @@ Card details:
 "card-name": ${JSON.stringify(cardName)}
 "set-name": ${JSON.stringify(setName)}
 "card-number": ${JSON.stringify(String(cardNumber))}`;
+}
+
+export function marketContextPrompt(contextCards: unknown[]): string {
+  return `${marketContext.trim()}
+
+Cards:
+${JSON.stringify(contextCards, null, 2)}`;
 }

@@ -59,6 +59,9 @@ export type PokemonCardViewProps = {
   priceChangeLabel?: string;
   showPriceWarning?: boolean;
   hidePortfolioButtonUntilHover?: boolean;
+  context?: {
+    analysis: string[];
+  };
   onPortfolioChanged?: (saved: boolean) => void;
 };
 
@@ -93,6 +96,7 @@ export function PokemonCardView({
   priceChangeLabel,
   showPriceWarning = false,
   hidePortfolioButtonUntilHover = false,
+  context,
   onPortfolioChanged,
 }: PokemonCardViewProps) {
   const navigate = useNavigate();
@@ -105,6 +109,7 @@ export function PokemonCardView({
   const pricingRef = useRef<HTMLDivElement>(null);
   const sourceFlyoutRef = useRef<HTMLDivElement>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
   const [internalOptionId, setInternalOptionId] = useState<string | null>(null);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
 
@@ -246,6 +251,7 @@ export function PokemonCardView({
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
   const portfolioUnavailable =
     Boolean(authUser) && Boolean(portfolioReferencesError);
+  const hasContext = Boolean(context?.analysis.length);
 
   async function handlePortfolioToggle() {
     if (
@@ -630,6 +636,31 @@ export function PokemonCardView({
             </div>
           </div>
         </div>
+
+        {hasContext && (
+          <div
+            className="pokemon-card__context"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="pokemon-card__context-toggle"
+              aria-expanded={contextOpen}
+              onClick={() => setContextOpen((current) => !current)}
+            >
+              Context
+              <ChevronDown aria-hidden="true" />
+            </button>
+            {contextOpen && (
+              <div className="pokemon-card__context-body">
+                {context?.analysis.map((entry, index) => (
+                  <p key={`${entry}-${index}`}>{entry}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {confirmingPriceOption && (
           <div className="pokemon-card__loading-overlay" aria-hidden="true">

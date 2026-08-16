@@ -11,7 +11,7 @@
   border-bottom: 1px solid var(--border-divider);
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   padding-bottom: var(--space-3);
 
   h2 {
@@ -38,6 +38,53 @@
 .justtcg-card-grid__empty {
   color: var(--font-color-secondary);
   font-size: var(--font-size-paragraph);
+  margin: 0;
+}
+
+.justtcg-card-grid__context-preview {
+  background: var(--bg2);
+  border: var(--border);
+  border-radius: var(--border-radius-card);
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--font-leading-relaxed);
+  margin: 0;
+  max-height: 28rem;
+  overflow: auto;
+  padding: var(--space-4);
+  white-space: pre-wrap;
+}
+
+.justtcg-card-grid__context-panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.justtcg-card-grid__context-input {
+  background: var(--bg2);
+  border: var(--border);
+  color: var(--font-color-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  line-height: var(--font-leading-relaxed);
+  min-height: 9rem;
+  padding: var(--space-4);
+  resize: vertical;
+  width: 100%;
+
+  &:focus-visible {
+    border-color: color-mix(
+      in srgb,
+      var(--custom-color-blue) 45%,
+      var(--border-color-strong)
+    );
+    outline: none;
+  }
+}
+
+.justtcg-card-grid__context-error {
+  color: var(--custom-color-red);
+  font-size: var(--font-size-caption);
   margin: 0;
 }
 
