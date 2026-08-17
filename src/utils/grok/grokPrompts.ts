@@ -7,7 +7,7 @@ If the data is available, please show today's market prices for the Pokemon card
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
 Make sure to include the source "PriceCharting" if it has available data.
 When using PriceCharting, make sure to include the most recent sales data for the card, and include the range of prices for the most recent sales, if it's available.
-If you can't find any reliable sources outside of tcgplayer and cardmarket, you leave it empty!
+If you can't find any reliable sources outside of tcgplayer and cardmarket, leave it empty.
 
 In market_data field, you can add different types of market price data, as long as its
 relevant and valuable to the reader. Make sure the market_price field actually reflects the
@@ -45,8 +45,7 @@ and shall only be filled if you have reliable data.
       "url": "https://www.tcgplayer.com/product/85826/pokemon-dragon-golem"
     },
     {
-      "source": "source",
-      "region": "EU",
+      "source": "CardMarket",
       "near_mint_listing": {
         "value": 30.00,
         "currency": "EUR"
@@ -89,7 +88,7 @@ and shall only be filled if you have reliable data.
         "value": 42.21,
         "currency": "USD"
       },
-      "notes": "Aggregates current market value using recent eBay sales and historical pricing.",
+      "notes": "",
       "url": "https://pokescope.app/card/ex3-5/"
     }
   ],
@@ -105,20 +104,20 @@ const variantPrintNameInstructions = `
 The variant field must contain only the variant/print name, not the Pokemon-name or set-name.
 
 Examples:
-"Unlimited Holo"
-"Shadowless Holo"
-"1st Edition Holo"
-"Reverse Holo"
+"Unlimited Holofoil"
+"Shadowless Holofoil"
+"1st Edition Holofoil"
+"Reverse Holofoil"
 
 Do not include the Pokemon/card name in the variant field.
-If 2 variant names end up identical for some reason (which shouldn't happen), then also include the set name so we can tell them apart. For example, "Unlimited Holo (Base Set)" or "Unlimited Holo (Jungle)".
+If 2 variant names end up identical for some reason (which shouldn't happen), then also include the set name so we can tell them apart. For example, "Unlimited Holofoil (Base Set)" or "Unlimited Holofoil (Jungle)".
 We only do that if the variant names are identical and we need to differentiate them.
-Use precise official/common print terms such as "Holo", "Reverse Holo", "Non-Holo", "1st Edition", "Unlimited", or "Shadowless".
-Do not call a variant "Non-Holo" if the actual print is Reverse Holo.
-Don't mix up "Reverse Holo" with "Holo".
-"Holo" and "Reverse Holo" are different variants and must never be merged.
-If PriceCharting has separate pages for Holo and Reverse Holo, return them as separate variant entries.
-If you are unsure whether a print is Reverse Holo, Holo, or Non-Holo, verify from reliable sources before naming the variant.
+Use precise official/common print terms such as "Holofoil", "Reverse Holofoil", "Non-Holo", "1st Edition", "Unlimited", or "Shadowless".
+Do not call a variant "Non-Holo" if the actual print is Reverse Holofoil.
+Don't mix up "Reverse Holofoil" with "Holofoil".
+"Holofoil" and "Reverse Holofoil" are different variants and must never be merged.
+If PriceCharting has separate pages for Holofoil and Reverse Holofoil, return them as separate variant entries.
+If you are unsure whether a print is Reverse Holofoil, Holofoil, or Non-Holo, verify from reliable sources before naming the variant.
 
 If PriceCharting has only one English variant available but you are unsure about the variant name,
 do additional research using reliable sources to try and identify it more accurately.
@@ -140,7 +139,7 @@ that collectors would want to know, then add it. Each note is a string in the no
 
 [
   {
-    "variant": "Unlimited Holo",
+    "variant": "Unlimited Holofoil",
     "market_prices": [
       {
         "grade": "Ungraded",
@@ -220,7 +219,7 @@ const sellMyCard: string = `
   {
     "variants": [
       {
-        "variant": "Unlimited Holo",
+        "variant": "Unlimited Holofoil",
         "notes": [
           "Collectors may pay more for strong holo swirl placement or unusually clean centering."
         ],
@@ -257,7 +256,7 @@ const sellMyCard: string = `
         ]
       },
       {
-        "variant": "Reverse Holo",
+        "variant": "Reverse Holofoil",
         "notes": [
           "Reverse holo demand can be more condition-sensitive than standard raw copies."
         ],
@@ -503,7 +502,7 @@ ${variantPrintNameInstructions}
 {
   "analyses": [
     {
-      "variant": "Unlimited Holo",
+      "variant": "Unlimited Holofoil",
       "totalScore": "82",
       "verdict": "Iconic vintage holo with strong collector demand.",
       "overview": "A desirable vintage holo from an important set, with broad appeal among set collectors.",

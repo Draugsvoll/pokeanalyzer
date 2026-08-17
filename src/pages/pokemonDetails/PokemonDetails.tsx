@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowUp,
@@ -59,7 +66,10 @@ import {
   useAbortableRequest,
 } from "../../hooks/useAbortableRequest";
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
-import { CardFeatureHeader } from "./components/CardFeatureHeader";
+import {
+  CardFeatureHeader,
+  CARD_FEATURE_HEADER_ACTION_LABEL,
+} from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
@@ -289,9 +299,18 @@ function PokemonDetailsForCard() {
   const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [showCardSearch, setShowCardSearch] = useState(false);
   const [grokResponse, setGrokResponse] = useState("");
+  const [grokResponseView, setGrokResponseView] = useState<ActiveView | null>(
+    null,
+  );
+  const [grokResponseCardId, setGrokResponseCardId] = useState<string | null>(
+    null,
+  );
   const [grokError, setGrokError] = useState("");
   const [grokLoading, setGrokLoading] = useState(false);
   const [marketSalesResponse, setMarketSalesResponse] = useState("");
+  const [marketSalesResponseCardId, setMarketSalesResponseCardId] = useState<
+    string | null
+  >(null);
   const [marketSalesError, setMarketSalesError] = useState("");
   const [marketSalesLoading, setMarketSalesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -299,7 +318,14 @@ function PokemonDetailsForCard() {
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
   const [justTcgResult, setJustTcgResult] = useState<unknown>(null);
+  const [justTcgResultCardId, setJustTcgResultCardId] = useState<string | null>(
+    null,
+  );
   const [ebayLoading, setEbayLoading] = useState(false);
+  const [ebayRunToken, setEbayRunToken] = useState(0);
+  const [ebayRunCardId, setEbayRunCardId] = useState<string | null>(null);
+  const [ebayReportAvailable, setEbayReportAvailable] = useState(false);
+  const [ebayReportCardId, setEbayReportCardId] = useState<string | null>(null);
   const [featureCooldown, setFeatureCooldown] = useState(false);
   const { abortActiveRequest, isCurrentRequest, startRequest } =
     useAbortableRequest();
@@ -382,13 +408,18 @@ function PokemonDetailsForCard() {
     setJustTcgError("");
     setGrokError("");
     setMarketSalesError("");
+    setGrokResponseView("prices");
+    setGrokResponseCardId(card.id);
     setGrokResponse("");
+    setMarketSalesResponseCardId(card.id);
     setMarketSalesResponse("");
+    setJustTcgResultCardId(null);
     setJustTcgResult(null);
 
     const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
       .then((result) => {
         setJustTcgResult(verifyJustTcgCard(result, card.set.name, cardNumber));
+        setJustTcgResultCardId(card.id);
         return true;
       })
       .catch((error: unknown) => {
@@ -460,30 +491,28 @@ function PokemonDetailsForCard() {
     return justTcgSucceeded || grokSucceeded;
   }
 
-  async function handleFeatureClick(aiFeature: AI_feature) {
-    abortActiveRequest();
+  function handleFeatureClick(aiFeature: AI_feature) {
     setActiveView(aiFeature.view);
+  }
 
-    if (aiFeature.view === "prices") {
-      setGrokResponse("");
-      setGrokError("");
-      setGrokLoading(false);
-      setJustTcgResult(null);
-      setJustTcgError("");
-      setJustTcgLoading(false);
-      setMarketSalesResponse("");
-      setMarketSalesError("");
-      setMarketSalesLoading(false);
-      return;
-    }
-
+  async function handleGenerateFeature(aiFeature: AI_feature) {
     if (!card || featureCooldown || !subscription || creditsRemaining < 1)
       return;
 
     setFeatureCooldown(true);
+    setActiveView(aiFeature.view);
 
-    // ebay handles in its own component
     if (aiFeature.view === "ebay_sold") {
+      setEbayRunCardId(card.id);
+      setEbayReportAvailable(false);
+      setEbayReportCardId(null);
+      setEbayRunToken((current) => current + 1);
+      return;
+    }
+
+    if (aiFeature.view === "prices") {
+      abortActiveRequest();
+      await handlePriceAnalysis(startRequest());
       return;
     }
 
@@ -520,6 +549,8 @@ function PokemonDetailsForCard() {
 
     setGrokLoading(true);
     setGrokError("");
+    setGrokResponseView(aiFeature.view);
+    setGrokResponseCardId(card.id);
     setGrokResponse("");
 
     const usesStoredCardResponse =
@@ -553,16 +584,6 @@ function PokemonDetailsForCard() {
     } finally {
       if (isCurrentRequest(signal)) setGrokLoading(false);
     }
-  }
-
-  async function handleGenerateMarketAnalysis() {
-    if (!card || featureCooldown || !subscription || creditsRemaining < 1)
-      return;
-
-    setFeatureCooldown(true);
-    abortActiveRequest();
-    setActiveView("prices");
-    await handlePriceAnalysis(startRequest());
   }
 
   useEffect(() => {
@@ -653,6 +674,15 @@ function PokemonDetailsForCard() {
     return () => window.clearTimeout(cooldownTimer);
   }, [featureCooldown]);
 
+  const activeCardId = card?.id ?? null;
+  const handleEbayReportAvailableChange = useCallback(
+    (available: boolean) => {
+      setEbayReportAvailable(available);
+      setEbayReportCardId(available ? activeCardId : null);
+    },
+    [activeCardId],
+  );
+
   if (loading) {
     return (
       <div className="card-view card-view--status ui-render-fade">
@@ -716,33 +746,105 @@ function PokemonDetailsForCard() {
   const activeFeature = AI_Features.find(
     (feature) => feature.view === activeView,
   );
+  const currentGrokResponse =
+    grokResponseCardId === card.id && grokResponseView === activeView
+      ? grokResponse
+      : "";
+  const currentMarketSalesResponse =
+    marketSalesResponseCardId === card.id ? marketSalesResponse : "";
+  const currentJustTcgResult =
+    justTcgResultCardId === card.id ? justTcgResult : null;
+  const currentEbayRunToken = ebayRunCardId === card.id ? ebayRunToken : 0;
+  const currentEbayReportAvailable =
+    ebayReportCardId === card.id && ebayReportAvailable;
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
     error: grokError,
-    response: grokResponse,
+    response: currentGrokResponse,
   };
+  const isActiveFeatureLoading =
+    grokLoading ||
+    (activeView === "prices" && (justTcgLoading || marketSalesLoading)) ||
+    (activeView === "ebay_sold" && ebayLoading);
+  const activeFeatureHasResponse =
+    activeView === "prices"
+      ? Boolean(
+          currentGrokResponse || currentJustTcgResult || currentMarketSalesResponse,
+        )
+      : activeView === "ebay_sold"
+        ? currentEbayReportAvailable
+        : Boolean(currentGrokResponse);
+  const activeFeatureActionDisabled =
+    featureCooldown ||
+    loadingSubscription ||
+    updatingCredits ||
+    !subscription ||
+    creditsRemaining < 1 ||
+    isActiveFeatureLoading;
 
   // RENDERING
   return (
     <div className="card-view ui-render-fade">
-      <div className="card-view__panel-wrap">
-        <div className="card-view__shell">
-          <div className="card-view__details">
+        <div className="card-view__panel-wrap">
+          <div className="card-view__shell">
+            <div className="card-view__details">
             <div className="card-view__image-side">
-              {cardImageSrc && failedCardImageSrc !== cardImageSrc ? (
-                <img
-                  key={card.id}
-                  className="card-view__image ui-render-fade"
-                  src={cardImageSrc}
-                  alt={card.name}
-                  onError={() => setFailedCardImageSrc(cardImageSrc)}
-                />
-              ) : (
-                <div className="card-view__image-placeholder" role="img">
-                  <Search aria-hidden="true" />
-                  <span>Card image unavailable</span>
-                </div>
-              )}
+              <div className="card-view__image-frame">
+                {authUser && (
+                  <button
+                    type="button"
+                    className={`portfolio-toggle-button card-view__portfolio-toggle${
+                      cardIsSaved ? " is-saved" : ""
+                    }`}
+                    disabled={portfolioBusy || portfolioUnavailable}
+                    onClick={handlePortfolioToggle}
+                    aria-label={
+                      portfolioUnavailable
+                        ? "Portfolio is unavailable"
+                        : updatingPortfolio
+                          ? "Updating portfolio"
+                          : loadingPortfolioReferences
+                            ? "Checking portfolio"
+                            : cardIsSaved
+                              ? "Remove from portfolio"
+                              : "Add to portfolio"
+                    }
+                    aria-pressed={cardIsSaved}
+                    aria-busy={portfolioBusy}
+                    title={
+                      portfolioUnavailable
+                        ? "Portfolio is unavailable"
+                        : updatingPortfolio
+                          ? "Updating portfolio"
+                          : loadingPortfolioReferences
+                            ? "Checking portfolio"
+                            : cardIsSaved
+                              ? "Remove from portfolio"
+                              : "Add to portfolio"
+                    }
+                  >
+                    {portfolioBusy ? (
+                      <span className="app-btn__spinner" aria-hidden="true" />
+                    ) : (
+                      <Star aria-hidden="true" />
+                    )}
+                  </button>
+                )}
+                {cardImageSrc && failedCardImageSrc !== cardImageSrc ? (
+                  <img
+                    key={card.id}
+                    className="card-view__image ui-render-fade"
+                    src={cardImageSrc}
+                    alt={card.name}
+                    onError={() => setFailedCardImageSrc(cardImageSrc)}
+                  />
+                ) : (
+                  <div className="card-view__image-placeholder" role="img">
+                    <Search aria-hidden="true" />
+                    <span>Card image unavailable</span>
+                  </div>
+                )}
+              </div>
               <div className="card-view__image-controls">
                 <div className="card-view__change-card">
                   <Button
@@ -800,10 +902,7 @@ function PokemonDetailsForCard() {
                           )}
                           <span>{card.set.name}</span>
                           {card.set?.series && (
-                            <>
-                              <i aria-hidden="true">•</i>
-                              <span>({card.set.series})</span>
-                            </>
+                            <span>({card.set.series})</span>
                           )}
                         </p>
                       )}
@@ -823,53 +922,6 @@ function PokemonDetailsForCard() {
                     </div>
                   </div>
                 </div>
-                <div className="card-view__portfolio-control">
-                  <Button
-                    variant="portfolio"
-                    disabled={portfolioBusy || portfolioUnavailable}
-                    onClick={handlePortfolioToggle}
-                    aria-label={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : authUser && loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                    aria-pressed={cardIsSaved}
-                    aria-busy={portfolioBusy}
-                    title={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : authUser && loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                  >
-                    {portfolioBusy ? (
-                      <span className="app-btn__spinner" aria-hidden="true" />
-                    ) : (
-                      <>
-                        <Star aria-hidden="true" />
-                        <span>
-                          {portfolioUnavailable
-                            ? "Unavailable"
-                            : cardIsSaved
-                              ? "In portfolio"
-                              : "Add to portfolio"}
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-
                 <section
                   className="card-view__info-section"
                   aria-label="Card credits"
@@ -1043,9 +1095,7 @@ function PokemonDetailsForCard() {
                   grokLoading ||
                   justTcgLoading ||
                   ebayLoading ||
-                  marketSalesLoading ||
-                  featureCooldown ||
-                  creditsRemaining < 1
+                  marketSalesLoading
                 }
                 aria-pressed={activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}
@@ -1097,43 +1147,43 @@ function PokemonDetailsForCard() {
                     (justTcgLoading || marketSalesLoading)) ||
                   (activeView === "ebay_sold" && ebayLoading)
                 }
+                actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
+                actionLoading={isActiveFeatureLoading}
+                actionDisabled={activeFeatureActionDisabled}
+                actionVisible={!activeFeatureHasResponse}
+                onAction={() => void handleGenerateFeature(activeFeature)}
               />
               <div className="card-view__active-body">
                 {activeView === "ebay_sold" && (
                   <EbaySoldView
                     card={card}
+                    runToken={currentEbayRunToken}
                     onSubscriptionChange={updateSubscription}
                     onLoadingChange={setEbayLoading}
+                    onReportAvailableChange={handleEbayReportAvailableChange}
                   />
                 )}
                 {activeView === "prices" && (
                   <PriceAnalysis
                     card={card}
                     grokRequest={grokRequest}
-                    onGenerateReport={() => void handleGenerateMarketAnalysis()}
                     reportLoading={
                       grokLoading || justTcgLoading || marketSalesLoading
                     }
                     reportAvailable={Boolean(
-                      grokResponse || justTcgResult || marketSalesResponse,
+                      currentGrokResponse ||
+                        currentJustTcgResult ||
+                        currentMarketSalesResponse,
                     )}
-                    reportDisabled={
-                      featureCooldown ||
-                      !subscription ||
-                      creditsRemaining < 1 ||
-                      grokLoading ||
-                      justTcgLoading ||
-                      marketSalesLoading
-                    }
                     salesDataRequest={{
                       loading: marketSalesLoading,
                       error: marketSalesError,
-                      response: marketSalesResponse,
+                      response: currentMarketSalesResponse,
                     }}
                     justTcgRequest={{
                       loading: justTcgLoading,
                       error: justTcgError,
-                      response: justTcgResult,
+                      response: currentJustTcgResult,
                     }}
                   />
                 )}

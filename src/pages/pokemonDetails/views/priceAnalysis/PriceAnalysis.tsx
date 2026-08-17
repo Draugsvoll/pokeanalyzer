@@ -19,10 +19,8 @@ type PriceAnalysisProps = {
     error: string;
     response: unknown;
   };
-  onGenerateReport?: () => void;
   reportLoading?: boolean;
   reportAvailable?: boolean;
-  reportDisabled?: boolean;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -98,7 +96,7 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
     <section className="grok-price-analysis ui-render-fade">
       {marketData.length > 0 && (
         <div>
-          <h2 className="app-subheader">Other market sources</h2>
+          <h2 className="app-subheader">Other</h2>
           <div className="grok-price-analysis__markets">
           {marketData.map((market, index) => {
             const source = text(market.source);
@@ -135,7 +133,7 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
 
             return (
               <article
-                className={`grok-price-analysis__market grok-price-analysis__market--${tone} feature-card-surface`}
+                className={`grok-price-analysis__market grok-price-analysis__market--${tone} default-container`}
                 key={`${source ?? "source"}-${index}`}
               >
                 {(source || region) && (
@@ -216,19 +214,15 @@ export function PriceAnalysis({
   grokRequest,
   justTcgRequest,
   salesDataRequest,
-  onGenerateReport,
   reportLoading = false,
   reportAvailable = false,
-  reportDisabled = false,
 }: PriceAnalysisProps) {
   return (
     <div className="price-analysis-view ui-render-fade">
       <StoredPrices
         card={card}
-        onGenerateReport={onGenerateReport}
         reportLoading={reportLoading}
         reportAvailable={reportAvailable}
-        reportDisabled={reportDisabled}
       />
       <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
       <SalesDataView cardName={card.name} grokRequest={salesDataRequest} />

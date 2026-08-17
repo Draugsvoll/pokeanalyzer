@@ -184,7 +184,7 @@ function FieldCard({
   tone?: "negative" | "positive";
 }) {
   return (
-    <div className="worth-grading-view__metric feature-card-inner-surface">
+    <div className="worth-grading-view__metric default-container-inner">
       <span>{label}</span>
       <strong
         className={
@@ -229,7 +229,7 @@ function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
   const costTone = "negative" as const;
 
   return (
-    <section className="worth-grading-view__scenario feature-card-inner-surface">
+    <section className="worth-grading-view__scenario default-container-inner">
       <header className="worth-grading-view__scenario-header">
         <h4>{displayValue(scenario.grade)}</h4>
         {typeof scenario.break_even === "boolean" && (
@@ -310,7 +310,7 @@ function TextList({
   if (!items.length) return null;
 
   return (
-    <section className="worth-grading-view__detail-section feature-card-inner-surface">
+    <section className="worth-grading-view__detail-section default-container-inner">
       <h3>
         {icon}
         {title}
@@ -342,12 +342,12 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
   return (
     <section className="worth-grading-view ui-render-fade">
-      <article className="worth-grading-view__card feature-card-surface">
-        <header className="feature-panel-header worth-grading-view__header">
+      <article className="worth-grading-view__card default-container">
+        <header className="default-container-header worth-grading-view__header">
           <h2 className="feature-section-heading">Grading Recommendation</h2>
         </header>
 
-        <div className="feature-panel-body worth-grading-view__body">
+        <div className="default-container-body worth-grading-view__body">
           <section className="worth-grading-view__json-section">
             <h3 className="worth-grading-view__section-title">Recommendation</h3>
             <div className="worth-grading-view__badges">

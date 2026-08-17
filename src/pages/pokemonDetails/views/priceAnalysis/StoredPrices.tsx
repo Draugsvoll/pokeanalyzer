@@ -8,8 +8,6 @@ import {
 } from "lucide-react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import { getDefaultCardPriceOptionForSource } from "../../../../utils/pokemonPricing";
-import { getCustomColors } from "../../../../utils/customStylings";
-import Button from "../../../../components/button/Button";
 import "./StoredPrices.scss";
 
 type FlatPriceField = { label: string; value: number | string };
@@ -141,7 +139,7 @@ function SourceCard({
   ) : null;
 
   return (
-    <div className="stored-prices__source-block feature-card-surface">
+    <div className="stored-prices__source-block default-container">
       <article
         className={`stored-prices__source stored-prices__source--${accent}`}
       >
@@ -170,10 +168,17 @@ function SourceCard({
                     className="stored-prices__group"
                     key={`${name}-${groupIndex}`}
                   >
-                    {name !== "Prices" && (
-                      <h4>
+                    {(name !== "Prices" || accent === "cardmarket") && (
+                      <h4
+                        className={
+                          name === "Prices"
+                            ? "stored-prices__group-heading--placeholder"
+                            : undefined
+                        }
+                        aria-hidden={name === "Prices" ? "true" : undefined}
+                      >
                         <Layers3 aria-hidden="true" />
-                        <span>{name}</span>
+                        <span>{name === "Prices" ? "Prices" : name}</span>
                       </h4>
                     )}
                     {fields.map((field) => (
@@ -247,16 +252,12 @@ function fieldLeafName(label: string) {
 
 export function StoredPrices({
   card,
-  onGenerateReport,
   reportLoading = false,
   reportAvailable = false,
-  reportDisabled = false,
 }: {
   card: PokemonCard;
-  onGenerateReport?: () => void;
   reportLoading?: boolean;
   reportAvailable?: boolean;
-  reportDisabled?: boolean;
 }) {
   const [showTcgplayerDetails, setShowTcgplayerDetails] = useState(false);
   const [showCardmarketDetails, setShowCardmarketDetails] = useState(false);
@@ -367,18 +368,6 @@ export function StoredPrices({
           />
         )}
       </div>
-      )}
-      {!reportLoading && !reportAvailable && (
-        <div className="stored-prices__report-action">
-          <Button
-            fill="solid"
-            style={getCustomColors("orange")}
-            onClick={onGenerateReport}
-            disabled={!onGenerateReport || reportDisabled}
-          >
-            Full Market Analysis
-          </Button>
-        </div>
       )}
     </div>
   );

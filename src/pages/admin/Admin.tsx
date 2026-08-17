@@ -163,7 +163,7 @@ export default function Admin() {
         </p>
       </header>
 
-      <section className="admin-page__tool" aria-labelledby="general-news-tool">
+      <section className="admin-page__tool default-container" aria-labelledby="general-news-tool">
         <div>
           <h2 id="general-news-tool">Latest news</h2>
           <p>Generate the latest market-news content shown on the homepage.</p>
@@ -199,7 +199,7 @@ export default function Admin() {
         </section>
       )}
 
-      <section className="admin-page__tool" aria-labelledby="movers-tool">
+      <section className="admin-page__tool default-container" aria-labelledby="movers-tool">
         <div>
           <h2 id="movers-tool">Biggest movers</h2>
           <p>Generate the biggest weekly movers shown on the homepage.</p>

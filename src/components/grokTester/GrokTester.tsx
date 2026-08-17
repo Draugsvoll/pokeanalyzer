@@ -65,7 +65,7 @@ export default function GrokTester() {
 
       {error && <p className="grok-tester__error">{error}</p>}
 
-      <div className="grok-tester__response">
+      <div className="grok-tester__response default-container">
         <div className="grok-tester__response-header">
           <h2>Response</h2>
           <Button

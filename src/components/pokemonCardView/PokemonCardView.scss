@@ -98,69 +98,10 @@
 }
 
 .pokemon-card__portfolio-toggle {
-  align-items: center;
-  background: var(--bg5);
-  border: 1px solid var(--border-color-strong);
-  border-radius: var(--border-radius-round);
-  color: var(--font-color-secondary);
-  cursor: pointer;
-  display: flex;
-  height: 2rem;
-  justify-content: center;
-  opacity: 0;
-  padding: 0;
   position: absolute;
   right: 0.35rem;
   top: 0.35rem;
-  transition:
-    background var(--delay-short) ease,
-    border-color var(--delay-short) ease,
-    color var(--delay-short) ease,
-    opacity var(--delay-short) ease,
-    transform var(--delay-short) ease,
-    visibility var(--delay-short) ease;
-  visibility: hidden;
-  width: 2rem;
   z-index: 3;
-
-  svg {
-    height: 1rem;
-    stroke-width: 2.25;
-    width: 1rem;
-  }
-
-  .app-btn__spinner {
-    color: var(--custom-color-blue);
-    height: 1rem;
-    width: 1rem;
-  }
-
-  &:hover:not(:disabled),
-  &:focus-visible,
-  &.is-saved {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    background: var(--surface3);
-    color: var(--font-color-primary);
-    transform: translateY(-1px);
-  }
-
-  &.is-saved {
-    color: var(--custom-color-blue);
-
-    svg {
-      fill: currentColor;
-    }
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
 }
 
 .pokemon-card-view__card:hover .pokemon-card__portfolio-toggle,

@@ -168,48 +168,56 @@ input[type="radio"] {
   }
 }
 
-/* Shared feature surfaces used inside active /card views. */
-.feature-card-surface {
+/* Shared app surfaces. Local styles should only add layout or true overrides. */
+.default-container {
   background: var(--feature-card-bg);
   border: var(--feature-card-border);
   border-radius: var(--feature-card-radius);
+  box-sizing: border-box;
   box-shadow: var(--feature-card-shadow);
+  padding: var(--default-container-padding, 1.25rem);
 }
 
-.feature-card-inner-surface {
+.default-container-inner {
   background: var(--feature-card-inner-bg);
   border-radius: var(--feature-card-radius);
+  box-sizing: border-box;
+  padding: var(--default-container-inner-padding, 1rem);
 }
 
-.feature-panel-header {
+.default-container-header {
   align-items: center;
   display: flex;
   gap: 0.65rem;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 0;
 }
 
-.feature-panel-header > :is(h2, h3, h4, p) {
+.default-container > .default-container-header + .default-container-body {
+  margin-top: var(--default-container-section-gap, 1rem);
+}
+
+.default-container-header > :is(h2, h3, h4, p) {
   margin: 0;
 }
 
-.feature-panel-header p {
+.default-container-header p {
   color: var(--font-color-muted);
   font-size: var(--font-size-paragraph-sm);
   line-height: var(--font-leading-normal);
 }
 
-.feature-panel-header strong {
+.default-container-header strong {
   color: var(--font-color-secondary);
 }
 
-.feature-panel-body {
+.default-container-body {
   display: grid;
   gap: 1rem;
-  padding: 1.4rem 1.65rem 1.6rem;
+  padding: 0;
 }
 
-.feature-note-surface {
+.default-note-container {
   background: var(--feature-card-inner-bg);
   border-radius: var(--feature-card-radius);
   color: var(--font-color-secondary);
@@ -363,12 +371,6 @@ input[type="radio"] {
   font-style: normal;
 }
 
-@media (max-width: 36rem) {
-  .feature-panel-body {
-    padding-inline: 1.1rem;
-  }
-}
-
 .app-loading-spinner {
   animation: app-loading-spinner-spin 0.75s linear infinite;
   border: 3px solid
@@ -389,6 +391,68 @@ input[type="radio"] {
 @keyframes app-loading-spinner-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.portfolio-toggle-button {
+  align-items: center;
+  background: var(--bg5);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--border-radius-round);
+  color: var(--font-color-secondary);
+  cursor: pointer;
+  display: flex;
+  height: 2rem;
+  justify-content: center;
+  opacity: 0;
+  padding: 0;
+  transition:
+    background var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    color var(--delay-short) ease,
+    opacity var(--delay-short) ease,
+    transform var(--delay-short) ease,
+    visibility var(--delay-short) ease;
+  visibility: hidden;
+  width: 2rem;
+
+  svg {
+    height: 1rem;
+    stroke-width: 2.25;
+    width: 1rem;
+  }
+
+  .app-btn__spinner {
+    color: var(--custom-color-blue);
+    height: 1rem;
+    width: 1rem;
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible,
+  &.is-saved {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--surface3);
+    color: var(--font-color-primary);
+    transform: translateY(-1px);
+  }
+
+  &.is-saved {
+    color: var(--custom-color-blue);
+
+    svg {
+      fill: currentColor;
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
 }
 

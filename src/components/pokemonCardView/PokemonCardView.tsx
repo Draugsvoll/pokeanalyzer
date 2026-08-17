@@ -464,7 +464,7 @@ export function PokemonCardView({
         {authUser && (
           <button
             type="button"
-            className={`pokemon-card__portfolio-toggle${
+            className={`portfolio-toggle-button pokemon-card__portfolio-toggle${
               cardIsSaved ? " is-saved" : ""
             }`}
             aria-label={

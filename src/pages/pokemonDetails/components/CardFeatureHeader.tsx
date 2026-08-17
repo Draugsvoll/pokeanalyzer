@@ -4,8 +4,11 @@ import {
   getCustomColors,
   type CustomColors,
 } from "../../../utils/customStylings";
+import Button from "../../../components/button/Button";
 import { formatCardNumber } from "../../../utils/formatCardNumber";
 import "./CardFeatureHeader.scss";
+
+export const CARD_FEATURE_HEADER_ACTION_LABEL = "Open";
 
 type CardFeatureHeaderProps = {
   card: PokemonCard;
@@ -14,6 +17,11 @@ type CardFeatureHeaderProps = {
   icon: LucideIcon;
   label: string;
   loading?: boolean;
+  actionLabel?: string;
+  actionLoading?: boolean;
+  actionDisabled?: boolean;
+  actionVisible?: boolean;
+  onAction?: () => void;
 };
 
 export function CardFeatureHeader({
@@ -23,6 +31,11 @@ export function CardFeatureHeader({
   icon: Icon,
   label,
   loading,
+  actionLabel,
+  actionLoading,
+  actionDisabled,
+  actionVisible = false,
+  onAction,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
   const metadata = [
@@ -33,12 +46,16 @@ export function CardFeatureHeader({
   ].filter(Boolean);
 
   return (
-    <header className="card-feature-header" style={getCustomColors(color)}>
+    <header
+      className="card-feature-header default-container"
+      style={getCustomColors(color)}
+    >
       <span className="card-feature-header__label">
-        {loading && (
+        {loading ? (
           <span className="card-feature-header__spinner" aria-hidden="true" />
+        ) : (
+          <Icon aria-hidden="true" />
         )}
-        <Icon aria-hidden="true" />
         {label}
       </span>
       <div className="card-feature-header__identity">
@@ -54,6 +71,18 @@ export function CardFeatureHeader({
           </div>
         )}
       </div>
+      {actionVisible && (
+        <Button
+          fill="solid"
+          fitContent
+          style={getCustomColors(color)}
+          onClick={onAction}
+          disabled={actionDisabled || actionLoading}
+          aria-busy={actionLoading}
+        >
+          {actionLoading ? "Loading..." : actionLabel ?? label}
+        </Button>
+      )}
     </header>
   );
 }

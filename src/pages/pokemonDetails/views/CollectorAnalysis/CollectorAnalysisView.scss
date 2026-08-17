@@ -28,6 +28,11 @@
     justify-self: start;
   }
 
+  &__content {
+    display: grid;
+    gap: 1rem;
+  }
+
   &__summary {
     align-items: center;
     background:
@@ -196,12 +201,7 @@
   }
 
   &__category {
-    background: var(--feature-card-bg);
-    border: var(--feature-card-border);
-    border-radius: var(--feature-card-radius);
-    box-shadow: var(--feature-card-shadow);
     min-width: 0;
-    padding: 1rem;
     transition:
       border-color var(--delay-short) ease,
       transform var(--delay-short) ease;

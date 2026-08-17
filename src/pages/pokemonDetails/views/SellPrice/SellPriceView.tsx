@@ -291,11 +291,11 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
     <section className="sell-price-view ui-render-fade">
       <ol className="sell-price-view__variants">
         {activeVariant && (
-          <li className="sell-price-view__variant feature-card-surface">
-            <header className="feature-panel-header">
+          <li className="sell-price-view__variant default-container">
+            <header className="default-container-header">
               <h3 className="feature-section-heading">Selling</h3>
             </header>
-            <div className="sell-price-view__body feature-panel-body">
+            <div className="sell-price-view__body default-container-body">
               <fieldset
                 aria-label="Sell guide variant"
                 className="sell-price-view__variant-selector feature-variant-radio-group"
@@ -319,7 +319,10 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                   ))}
                 </div>
               </fieldset>
-              <div className="sell-price-view__variant-steps">
+              <div
+                className="sell-price-view__variant-steps ui-render-fade"
+                key={`${activeVariant.title}-${activeVariantIndex}`}
+              >
                 {orderedSteps.map(({ index: originalIndex, step }, stepIndex) => {
                   if (isPriceRecommendations(step, originalIndex)) {
                     return (
@@ -336,7 +339,7 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                               const recommendation = getRecommendation(detail);
                               return (
                                 <li
-                                  className="feature-card-inner-surface"
+                                  className="default-container-inner"
                                   key={`${recommendation.label}-${detailIndex}`}
                                 >
                                   {recommendation.label && <span>{recommendation.label}</span>}
@@ -374,7 +377,7 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
                   <section className="sell-price-view__step sell-price-view__step--notes">
                     <ul>
                       {activeVariant.notes.map((note, noteIndex) => (
-                        <li className="feature-note-surface" key={`${note}-${noteIndex}`}>
+                        <li className="default-note-container" key={`${note}-${noteIndex}`}>
                           {note}
                         </li>
                       ))}
@@ -387,13 +390,13 @@ export function SellPriceView({ grokRequest }: SellPriceViewProps) {
         )}
 
         {content.marketplaceStep && (
-          <li className="sell-price-view__variant feature-card-surface">
-            <header className="feature-panel-header">
+          <li className="sell-price-view__variant default-container">
+            <header className="default-container-header">
               <h3 className="feature-section-heading">
                 {content.marketplaceStep.title}
               </h3>
             </header>
-            <div className="sell-price-view__variant-steps feature-panel-body">
+            <div className="sell-price-view__variant-steps default-container-body">
               <section className="sell-price-view__step sell-price-view__step--guidance">
                 {content.marketplaceStep.details.length > 0 && (
                   <ul>

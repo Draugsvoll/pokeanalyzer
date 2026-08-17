@@ -7,7 +7,7 @@ export const CARD_GROK_FEATURES = {
   price_analysis: {
     storageKey: "price_analysis",
     // Change this number to control how long Markedspriser is reused.
-    reuseDays: 5,
+    reuseDays: -5,
   },
   ebay_sold: {
     storageKey: "ebay_sold",

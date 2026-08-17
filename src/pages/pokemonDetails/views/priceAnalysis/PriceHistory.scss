@@ -40,10 +40,8 @@
 
   &__source {
     --history-accent: var(--custom-color-teal);
-    background: var(--feature-card-bg);
-    border: var(--feature-card-border);
-    border-radius: var(--feature-card-radius);
-    box-shadow: var(--feature-card-shadow);
+    --default-container-padding: 0;
+
     min-width: 0;
     overflow: hidden;
   }

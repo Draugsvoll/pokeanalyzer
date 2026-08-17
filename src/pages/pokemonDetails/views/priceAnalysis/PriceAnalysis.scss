@@ -32,13 +32,8 @@
   &__market {
     --source-color: var(--custom-color-teal);
     --source-bg: color-mix(in srgb, var(--source-color) 12%, transparent);
-    background: var(--feature-card-bg);
-    border: var(--feature-card-border);
-    border-radius: var(--feature-card-radius);
-    box-shadow: var(--feature-card-shadow);
     display: flex;
     flex-direction: column;
-    padding: 1.35rem;
     transition: transform var(--delay-short) ease;
 
     &:hover {

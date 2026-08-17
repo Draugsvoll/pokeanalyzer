@@ -11,10 +11,6 @@
 }
 
 .sales-data-view__panel {
-  background: var(--feature-card-bg);
-  border: var(--feature-card-border);
-  border-radius: var(--feature-card-radius);
-  box-shadow: var(--feature-card-shadow);
   overflow: hidden;
 
   > header {
@@ -72,8 +68,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 
   article {
-    background: var(--feature-card-inner-bg);
-    border-radius: var(--border-radius);
     display: grid;
     gap: 0.45rem;
     min-width: 0;

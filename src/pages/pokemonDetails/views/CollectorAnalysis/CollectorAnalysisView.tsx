@@ -158,76 +158,81 @@ export default function CollectorAnalysis({
           ))}
         </div>
       </fieldset>
-      <div className="collector-ranking__summary">
-        <div
-          className="collector-ranking__score"
-          style={{ "--score": totalScore } as CSSProperties}
-          role="img"
-          aria-label={`Overall collector score: ${totalScore} out of 100`}
-        >
-          <div>
-            <strong>{totalScore}</strong>
-            <span>/100</span>
+      <div
+        className="collector-ranking__content ui-render-fade"
+        key={`${responseKey}-${activeVariantIndex}`}
+      >
+        <div className="collector-ranking__summary">
+          <div
+            className="collector-ranking__score"
+            style={{ "--score": totalScore } as CSSProperties}
+            role="img"
+            aria-label={`Overall collector score: ${totalScore} out of 100`}
+          >
+            <div>
+              <strong>{totalScore}</strong>
+              <span>/100</span>
+            </div>
+          </div>
+          <div className="collector-ranking__overview">
+            <div className="collector-ranking__meta">
+              <span>Overall score</span>
+              <strong>{scoreTone}</strong>
+            </div>
+            {analysis.verdict && (
+              <strong className="collector-ranking__verdict">
+                {analysis.verdict}
+              </strong>
+            )}
+            <h4>{analysis.overview}</h4>
           </div>
         </div>
-        <div className="collector-ranking__overview">
-          <div className="collector-ranking__meta">
-            <span>Overall score</span>
-            <strong>{scoreTone}</strong>
-          </div>
-          {analysis.verdict && (
-            <strong className="collector-ranking__verdict">
-              {analysis.verdict}
-            </strong>
-          )}
-          <h4>{analysis.overview}</h4>
-        </div>
-      </div>
 
-      <div className="collector-ranking__categories">
-        {analysis.categories.map((category, index) => {
-          const Icon = categoryIcons[index] ?? Gem;
-          const score = Math.min(100, Math.max(0, Number(category.score) || 0));
+        <div className="collector-ranking__categories">
+          {analysis.categories.map((category, index) => {
+            const Icon = categoryIcons[index] ?? Gem;
+            const score = Math.min(100, Math.max(0, Number(category.score) || 0));
 
-          return (
-            <article
-              key={`${category.name}-${index}`}
-              className="collector-ranking__category feature-card-surface"
-            >
-              <div className="collector-ranking__category-title">
-                <h4>
-                  <Icon size={19} aria-hidden="true" />
-                  {category.name}
-                </h4>
-                <strong>{score}</strong>
-              </div>
-              <div
-                className="collector-ranking__bar"
-                role="progressbar"
-                aria-label={category.name}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={score}
+            return (
+              <article
+                key={`${category.name}-${index}`}
+                className="collector-ranking__category default-container"
               >
-                <span style={{ width: `${score}%` }} />
-              </div>
-              <p>{category.text}</p>
-            </article>
-          );
-        })}
-      </div>
+                <div className="collector-ranking__category-title">
+                  <h4>
+                    <Icon size={19} aria-hidden="true" />
+                    {category.name}
+                  </h4>
+                  <strong>{score}</strong>
+                </div>
+                <div
+                  className="collector-ranking__bar"
+                  role="progressbar"
+                  aria-label={category.name}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={score}
+                >
+                  <span style={{ width: `${score}%` }} />
+                </div>
+                <p>{category.text}</p>
+              </article>
+            );
+          })}
+        </div>
 
-      {analysis.finalNote && (
-        <section className="collector-ranking__conclusion collector-ranking__category feature-card-surface">
-          <div className="collector-ranking__category-title">
-            <h4>
-              <FileText size={19} aria-hidden="true" />
-              Conclusion
-            </h4>
-          </div>
-          <p>{analysis.finalNote}</p>
-        </section>
-      )}
+        {analysis.finalNote && (
+          <section className="collector-ranking__conclusion collector-ranking__category default-container">
+            <div className="collector-ranking__category-title">
+              <h4>
+                <FileText size={19} aria-hidden="true" />
+                Conclusion
+              </h4>
+            </div>
+            <p>{analysis.finalNote}</p>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

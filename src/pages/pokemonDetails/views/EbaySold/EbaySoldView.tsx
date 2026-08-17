@@ -35,8 +35,10 @@ const FILTER_TRANSITION_MS = 250;
 
 type EbaySoldViewProps = {
   card: PokemonCard;
+  runToken: number;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
   onLoadingChange?: (loading: boolean) => void;
+  onReportAvailableChange?: (available: boolean) => void;
 };
 
 type EbaySortOrder =
@@ -426,8 +428,10 @@ function matchesGrade(
 
 export default function EbaySoldView({
   card,
+  runToken,
   onSubscriptionChange,
   onLoadingChange,
+  onReportAvailableChange,
 }: EbaySoldViewProps) {
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
@@ -464,6 +468,8 @@ export default function EbaySoldView({
   );
 
   useEffect(() => {
+    if (runToken <= 0) return;
+
     async function loadSoldListings() {
       const params = new URLSearchParams({ cardId: card.id });
       const signal = startRequest();
@@ -471,6 +477,7 @@ export default function EbaySoldView({
       setLoading(true);
       setError("");
       setResponse(null);
+      onReportAvailableChange?.(false);
       setSortOrder("default");
       setGradeFilter("all");
       setAppliedGradeFilter("all");
@@ -514,11 +521,13 @@ export default function EbaySoldView({
         }
         if (!signal.aborted) {
           setResponse(data.data);
+          onReportAvailableChange?.(true);
         }
       } catch (requestError) {
         if (isAbortError(requestError)) return;
         if (!signal.aborted) {
           setError(FEATURE_ERROR_MESSAGE);
+          onReportAvailableChange?.(false);
         }
       } finally {
         if (isCurrentRequest(signal)) {
@@ -528,7 +537,18 @@ export default function EbaySoldView({
     }
 
     loadSoldListings();
-  }, [card.id, isCurrentRequest, onSubscriptionChange, startRequest]);
+  }, [
+    card.id,
+    isCurrentRequest,
+    onReportAvailableChange,
+    onSubscriptionChange,
+    runToken,
+    startRequest,
+  ]);
+
+  if (runToken <= 0) {
+    return null;
+  }
 
   if (loading) {
     return <LoadingState>Loading eBay sold listings...</LoadingState>;
@@ -610,7 +630,7 @@ export default function EbaySoldView({
   }
 
   return (
-    <div className="ebay-sold-view feature-card-surface ui-render-fade">
+    <div className="ebay-sold-view default-container ui-render-fade">
       <div className="ebay-sold-view__surface">
         <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__filter-groups">

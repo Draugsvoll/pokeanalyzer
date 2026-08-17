@@ -217,12 +217,12 @@ function PriceHistoryChart({
   return (
     <>
       <div className="just-tcg-history__summary">
-        <div className="just-tcg-history__latest">
+        <div className="just-tcg-history__latest default-container-inner">
           <span>Market price</span>
           <strong>{formatUsd(currentMarketPrice)}</strong>
           <small>{formatDate(latest.timestamp, true)}</small>
         </div>
-        <div>
+        <div className="default-container-inner">
           <span>{changeLabel}</span>
           <strong
             className={
@@ -243,7 +243,7 @@ function PriceHistoryChart({
             )}
           </strong>
         </div>
-        <div className="just-tcg-history__all-time-high">
+        <div className="just-tcg-history__all-time-high default-container-inner">
           <span>All-time high</span>
           <strong>
             {variant.allTimeHigh === undefined
@@ -254,7 +254,7 @@ function PriceHistoryChart({
             <small>{formatStatisticDate(variant.allTimeHighDate)}</small>
           )}
         </div>
-        <div className="just-tcg-history__all-time-low">
+        <div className="just-tcg-history__all-time-low default-container-inner">
           <span>All-time low</span>
           <strong>
             {variant.allTimeLow === undefined
@@ -448,7 +448,7 @@ export function JustTcgPriceHistory({
 
   if (!selectedGroup || !selectedVariant) {
     return (
-      <section className="just-tcg-history just-tcg-history--empty feature-card-surface ui-render-fade">
+      <section className="just-tcg-history just-tcg-history--empty default-container ui-render-fade">
         <header>
           <JustTcgHistoryIntro />
         </header>
@@ -458,7 +458,7 @@ export function JustTcgPriceHistory({
   }
 
   return (
-    <section className="just-tcg-history feature-card-surface ui-render-fade">
+    <section className="just-tcg-history default-container ui-render-fade">
       <header>
         <JustTcgHistoryIntro />
         <div className="just-tcg-history__controls">
@@ -536,23 +536,28 @@ export function JustTcgPriceHistory({
           </div>
         </div>
       </header>
-      {selectedVariant.priceHistory.length >= 2 && periodPoints.length >= 2 ? (
-        <PriceHistoryChart
-          changeLabel={selectedPeriod.changeLabel}
-          periodKey={`${selectedVariant.id}-${selectedPeriod.id}`}
-          points={periodPoints}
-          variant={selectedVariant}
-        />
-      ) : (
-        <div className="just-tcg-history__chart-empty" role="status">
-          <strong>Historical pricing unavailable</strong>
-          <span>
-            {selectedVariant.priceHistory.length < 2
-              ? `No price history was returned for ${selectedVariant.condition}.`
-              : `Not enough data points for the ${selectedPeriod.label} window.`}
-          </span>
-        </div>
-      )}
+      <div
+        className="just-tcg-history__content ui-render-fade"
+        key={`${selectedVariant.id}-${selectedPeriod.id}`}
+      >
+        {selectedVariant.priceHistory.length >= 2 && periodPoints.length >= 2 ? (
+          <PriceHistoryChart
+            changeLabel={selectedPeriod.changeLabel}
+            periodKey={`${selectedVariant.id}-${selectedPeriod.id}`}
+            points={periodPoints}
+            variant={selectedVariant}
+          />
+        ) : (
+          <div className="just-tcg-history__chart-empty" role="status">
+            <strong>Historical pricing unavailable</strong>
+            <span>
+              {selectedVariant.priceHistory.length < 2
+                ? `No price history was returned for ${selectedVariant.condition}.`
+                : `Not enough data points for the ${selectedPeriod.label} window.`}
+            </span>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

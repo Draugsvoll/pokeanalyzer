@@ -127,7 +127,7 @@ function Notes({ notes }: { notes: string[] }) {
     <section className="sales-data-view__notes">
       <ul>
         {notes.map((note, index) => (
-          <li className="feature-note-surface" key={`${note}-${index}`}>
+          <li className="default-note-container" key={`${note}-${index}`}>
             {note}
           </li>
         ))}
@@ -165,14 +165,14 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
   return (
     <section className="sales-data-view ui-render-fade">
       {data.variants.length > 0 && (
-        <section className="sales-data-view__panel sales-data-view__market feature-card-surface">
-          <header className="sales-data-view__market-heading feature-panel-header">
+        <section className="sales-data-view__panel sales-data-view__market default-container">
+          <header className="sales-data-view__market-heading default-container-header">
             <h3 className="feature-section-heading">Graded Sales</h3>
             <p>
               Mostly eBay sales • <strong>PriceCharting</strong>
             </p>
           </header>
-          <div className="sales-data-view__variants feature-panel-body">
+          <div className="sales-data-view__variants default-container-body">
             <fieldset
               aria-label="Graded sales variant"
               className="sales-data-view__variant-selector feature-variant-radio-group"
@@ -201,14 +201,14 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
             </fieldset>
             {activeVariant && (
               <section
-                className="sales-data-view__variant"
+                className="sales-data-view__variant ui-render-fade"
                 key={`${activeVariant.title}-${activeVariantIndex}`}
               >
                 {activeVariant.marketPrices.length > 0 && (
                   <div className="sales-data-view__market-grid">
                     {activeVariant.marketPrices.map((market, index) => (
                       <article
-                        className="feature-card-inner-surface"
+                        className="default-container-inner"
                         key={`${market.grade}-${index}`}
                       >
                         <span>{market.grade || "Grade unavailable"}</span>
@@ -230,14 +230,14 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
       )}
 
       {data.recentSold.length > 0 && (
-        <section className="sales-data-view__panel sales-data-view__recent feature-card-surface">
+        <section className="sales-data-view__panel sales-data-view__recent default-container">
           <header>
             <h3>Recent Sold Examples</h3>
           </header>
           <div className="sales-data-view__sold-list">
             {data.recentSold.map((sale, index) => (
               <article
-                className="feature-card-inner-surface"
+                className="default-container-inner"
                 key={`${sale.label}-${index}`}
               >
                 <span>{sale.label || "Sale range"}</span>

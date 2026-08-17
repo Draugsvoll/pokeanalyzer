@@ -30,15 +30,6 @@
   }
 }
 
-.card-grader__upload,
-.card-grader__result {
-  background: var(--bg2);
-  border: var(--border);
-  border-radius: var(--border-radius);
-  padding: 1rem;
-  margin-top:2rem;
-}
-
 .card-grader__dropzone {
   aspect-ratio: 2.5 / 3.5;
   border: 1px dashed #475569;
@@ -122,8 +113,7 @@
 }
 
 .card-grader__upload,
-.card-grader__btn-row,
-.card-grader__result {
+.card-grader__btn-row {
   grid-column: 1 / -1;
 }
 
@@ -179,8 +169,7 @@
   }
 }
 
-.card-grader__upload { background: transparent; border: 0; margin-top: 0; padding: 0; }
-.card-grader__result { margin-top: 0; }
+.card-grader__upload { margin-top: 0; padding: 0; }
 
 .card-grader__upload-side { gap: 0.75rem; }
 
