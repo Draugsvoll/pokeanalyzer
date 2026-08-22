@@ -1,5 +1,5 @@
 const XAI_RESPONSES_URL = "https://api.x.ai/v1/responses";
-const DEFAULT_GROK_MODEL = "grok-4.3";
+const DEFAULT_GROK_MODEL = "grok-4.5";
 const MAX_GROK_ATTEMPTS = 2;
 
 type GrokResponse = {
@@ -119,8 +119,8 @@ async function requestGrokResponseOnce(
   signal?: AbortSignal,
 ) {
   const requestSignal = signal
-    ? AbortSignal.any([signal, AbortSignal.timeout(120_000)])
-    : AbortSignal.timeout(120_000);
+    ? AbortSignal.any([signal, AbortSignal.timeout(300_000)])
+    : AbortSignal.timeout(300_000);
   const response = await fetch(XAI_RESPONSES_URL, {
     method: "POST",
     headers: {
@@ -133,7 +133,7 @@ async function requestGrokResponseOnce(
       reasoning: {
         effort: "low", // none | low | medium | high
       },
-      instructions: "Answer the user's message clearly and concisely.",
+      instructions: `Entire response must be valid JSON format, as described in user input. Never add text before or after the JSON format.`,
       input,
       tools: [{ type: "web_search" }],
     }),

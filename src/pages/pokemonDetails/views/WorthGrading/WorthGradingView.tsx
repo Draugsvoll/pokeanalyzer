@@ -1,5 +1,5 @@
-import { CheckCircle2, FileText, Info, Scale, XCircle } from "lucide-react";
-import type { ReactNode } from "react";
+import { Layers3 } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -15,7 +15,7 @@ type CardInfo = {
   name?: string | null;
   number?: string | null;
   set?: string | null;
-  variant?: string | null;
+  variant_name?: string | null;
   year?: number | string | null;
 };
 
@@ -27,17 +27,17 @@ type RawSaleToday = {
 };
 
 type GradedScenario = {
-  break_even?: boolean | null;
   ebay_fees_usd?: number | string | null;
   expected_sale_price_usd?: number | string | null;
   grade?: string | null;
-  grading_cost_usd?: number | string | null;
   grading_tier?: string | null;
+  grading_tier_justification?: string | null;
   net_after_all_costs_usd?: number | string | null;
   net_profit_vs_raw_usd?: number | string | null;
-  notes?: string | null;
   psa_grading_fee_usd?: number | string | null;
+  psa_note?: string | null;
   roi_vs_raw_net_percent?: number | string | null;
+  shipping_and_insurance_usd?: number | string | null;
   turnaround_time?: string | null;
 };
 
@@ -52,20 +52,22 @@ type PsaPopulation = {
 };
 
 type Recommendation = {
-  beginner_advice?: string | null;
   reasons?: unknown;
   should_grade?: boolean | null;
   summary?: string | null;
 };
 
-type WorthGradingResponse = {
+type WorthGradingVariant = {
   assumptions?: unknown;
   card?: CardInfo;
   graded_scenarios?: unknown;
-  methodology?: string | null;
   psa_population?: PsaPopulation;
   raw_sale_today?: RawSaleToday;
   recommendation?: Recommendation;
+};
+
+type WorthGradingResponse = {
+  variants?: unknown;
 };
 
 const EMPTY_VALUE = "-";
@@ -133,6 +135,11 @@ function formatPercent(value: unknown) {
   return `${number.toFixed(1)}%`;
 }
 
+function formatRoi(value: unknown) {
+  const percent = formatPercent(value);
+  return percent === EMPTY_VALUE ? EMPTY_VALUE : `${percent} ROI`;
+}
+
 function formatNumber(value: unknown) {
   const number = asNumber(value);
   if (number == null) return EMPTY_VALUE;
@@ -155,13 +162,6 @@ function formatCost(value: unknown) {
   return `-${formatCurrency(Math.abs(number))}`;
 }
 
-function formatOtherGradingCosts(scenario: GradedScenario) {
-  const gradingCost = asNumber(scenario.grading_cost_usd);
-  const psaFee = asNumber(scenario.psa_grading_fee_usd);
-  if (gradingCost == null || psaFee == null) return EMPTY_VALUE;
-  return formatCost(gradingCost - psaFee);
-}
-
 function getNumberTone(value: unknown) {
   if (hasParenthesizedNumber(value)) return undefined;
 
@@ -171,6 +171,10 @@ function getNumberTone(value: unknown) {
 }
 
 function isScenario(value: unknown): value is GradedScenario {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isVariant(value: unknown): value is WorthGradingVariant {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
@@ -225,85 +229,133 @@ function CostRow({
 }
 
 function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const profitTone = getNumberTone(scenario.net_profit_vs_raw_usd);
   const costTone = "negative" as const;
 
   return (
     <section className="worth-grading-view__scenario default-container-inner">
-      <header className="worth-grading-view__scenario-header">
-        <h4>{displayValue(scenario.grade)}</h4>
-        {typeof scenario.break_even === "boolean" && (
-          <Badge accent={scenario.break_even ? "green" : "red"} weight="strong">
-            {scenario.break_even ? "Break-even" : "Below break-even"}
-          </Badge>
-        )}
-      </header>
-
       <div className="worth-grading-view__scenario-profit">
-        <span>Net Profit Vs Raw</span>
-        <strong
-          className={
-            profitTone
-              ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
-              : "worth-grading-view__field-value"
-          }
+        <h4>{displayValue(scenario.grade)}</h4>
+        <div className="worth-grading-view__profit-value">
+          <strong
+            className={
+              profitTone
+                ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
+                : "worth-grading-view__field-value"
+            }
+          >
+            {formatProfit(scenario.net_profit_vs_raw_usd)}
+          </strong>
+          <small
+            className={
+              profitTone
+                ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
+                : "worth-grading-view__field-value"
+            }
+          >
+            {formatRoi(scenario.roi_vs_raw_net_percent)}
+          </small>
+        </div>
+        <span>Grading vs. Selling raw</span>
+        <button
+          className="worth-grading-view__details-toggle"
+          onClick={() => setDetailsOpen((open) => !open)}
+          data-open={detailsOpen}
+          type="button"
         >
-          {formatProfit(scenario.net_profit_vs_raw_usd)}
-        </strong>
-        <small
-          className={
-            profitTone
-              ? `worth-grading-view__field-value worth-grading-view__field-value--${profitTone}`
-              : "worth-grading-view__field-value"
-          }
-        >
-          {formatPercent(scenario.roi_vs_raw_net_percent)} ROI
-        </small>
+          {detailsOpen ? "Hide details" : "Show details"}
+        </button>
       </div>
 
-      <div className="worth-grading-view__scenario-breakdown">
-        <h5>Cost Breakdown</h5>
-        <CostRow label="Expected Sale Price">
-          {formatCurrency(scenario.expected_sale_price_usd)}
-        </CostRow>
-        <CostRow label="PSA Grading Fee" tone={costTone}>
-          {formatCost(scenario.psa_grading_fee_usd)}
-        </CostRow>
-        <CostRow label="Other Grading Costs" tone={costTone}>
-          {formatOtherGradingCosts(scenario)}
-        </CostRow>
-        <CostRow label="eBay Fees" tone={costTone}>
-          {formatCost(scenario.ebay_fees_usd)}
-        </CostRow>
-        <CostRow label="Net After All Costs">
-          {formatCurrency(scenario.net_after_all_costs_usd)}
-        </CostRow>
-      </div>
+      {detailsOpen && (
+        <>
+          <div className="worth-grading-view__scenario-breakdown">
+            <h5>Breakdown</h5>
+            <div className="worth-grading-view__cost-group">
+              <CostRow label="Expected Sale Price">
+                {formatCurrency(scenario.expected_sale_price_usd)}
+              </CostRow>
+            </div>
+            <div className="worth-grading-view__cost-group">
+              <CostRow label="PSA Grading Fee" tone={costTone}>
+                {formatCost(scenario.psa_grading_fee_usd)}
+              </CostRow>
+              <CostRow label="Shipping & Insurance" tone={costTone}>
+                {formatCost(scenario.shipping_and_insurance_usd)}
+              </CostRow>
+              <CostRow label="eBay Fees" tone={costTone}>
+                {formatCost(scenario.ebay_fees_usd)}
+              </CostRow>
+            </div>
+            <div className="worth-grading-view__cost-group">
+              <CostRow
+                label="Net profit (grading vs. selling raw)"
+                tone={profitTone}
+              >
+                {formatProfit(scenario.net_profit_vs_raw_usd)}
+              </CostRow>
+            </div>
+          </div>
 
-      <div className="worth-grading-view__scenario-meta">
-        <FieldCard label="grading_tier">
-          {displayValue(scenario.grading_tier)}
-        </FieldCard>
-        <FieldCard label="turnaround">
-          {displayValue(scenario.turnaround_time)}
-        </FieldCard>
-      </div>
-
-      <TextList
-        icon={<Info aria-hidden="true" size={18} strokeWidth={2.1} />}
-        items={asList(scenario.notes)}
-        title="Notes"
-      />
+          <div className="worth-grading-view__scenario-meta">
+            <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
+              <span>grading_tier</span>
+              <div>
+                <strong>{displayValue(scenario.grading_tier)}</strong>
+                <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
+              </div>
+            </div>
+            <FieldCard label="turnaround">
+              {displayValue(scenario.turnaround_time)}
+            </FieldCard>
+          </div>
+          {scenario.psa_note?.trim() && (
+            <p className="worth-grading-view__psa-note default-container-inner">
+              {scenario.psa_note}
+            </p>
+          )}
+        </>
+      )}
     </section>
   );
 }
 
+function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
+  const gradeCounts = [
+    ["PSA 10", population?.psa_population_psa10],
+    ["PSA 9", population?.psa_population_psa9],
+    ["PSA 8", population?.psa_population_psa8],
+    ["PSA 7", population?.psa_population_psa7],
+    ["PSA 6", population?.psa_population_psa6],
+  ] as const;
+
+  return (
+    <article className="worth-grading-view__population-card default-container-inner">
+      <div className="worth-grading-view__population-source">
+        <span>Source</span>
+        <strong>{displayValue(population?.source)}</strong>
+      </div>
+      <div className="worth-grading-view__population-total">
+        <span>Total Population</span>
+        <strong>{formatNumber(population?.psa_population_total)}</strong>
+      </div>
+      <div className="worth-grading-view__population-grades">
+        {gradeCounts.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{formatNumber(value)}</strong>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 function TextList({
-  icon,
   items,
   title,
 }: {
-  icon: ReactNode;
   items: string[];
   title: string;
 }) {
@@ -311,10 +363,7 @@ function TextList({
 
   return (
     <section className="worth-grading-view__detail-section default-container-inner">
-      <h3>
-        {icon}
-        {title}
-      </h3>
+      <h3>{title}</h3>
       <ul>
         {items.map((item, index) => (
           <li key={`${item}-${index}`}>{item}</li>
@@ -326,19 +375,35 @@ function TextList({
 
 export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
+  const [selectedVariant, setSelectedVariant] = useState({
+    index: 0,
+    responseKey: "",
+  });
 
   if (loading) return <LoadingState>Researching value...</LoadingState>;
   if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
+  const responseKey = response;
   const data = parseWorthGradingResponse(response);
   if (!data) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
-  const assumptions = asList(data.assumptions);
-  const scenarios = Array.isArray(data.graded_scenarios)
-    ? data.graded_scenarios.filter(isScenario)
+  const variants = Array.isArray(data.variants)
+    ? data.variants.filter(isVariant)
     : [];
-  const recommendation = data.recommendation;
+  if (!variants.length) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+
+  const selectedVariantIndex =
+    selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
+  const activeVariantIndex = variants[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
+  const activeVariant = variants[activeVariantIndex];
+  const assumptions = asList(activeVariant.assumptions);
+  const scenarios = Array.isArray(activeVariant.graded_scenarios)
+    ? activeVariant.graded_scenarios.filter(isScenario)
+    : [];
+  const recommendation = activeVariant.recommendation;
 
   return (
     <section className="worth-grading-view ui-render-fade">
@@ -348,6 +413,41 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
         </header>
 
         <div className="default-container-body worth-grading-view__body">
+          <fieldset
+            aria-label="Grading recommendation variant"
+            className="worth-grading-view__variant-selector feature-variant-radio-group"
+          >
+            <div>
+              {variants.map((variant, variantIndex) => {
+                const variantName =
+                  variant.card?.variant_name ||
+                  variant.card?.name ||
+                  `Variant ${variantIndex + 1}`;
+
+                return (
+                  <label key={`${variantName}-${variantIndex}`}>
+                    <input
+                      checked={activeVariantIndex === variantIndex}
+                      name="worth-grading-variant"
+                      onChange={() =>
+                        setSelectedVariant({
+                          index: variantIndex,
+                          responseKey,
+                        })
+                      }
+                      type="radio"
+                      value={variantIndex}
+                    />
+                    <span>
+                      <Layers3 aria-hidden="true" />
+                      <strong>{variantName}</strong>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
           <section className="worth-grading-view__json-section">
             <h3 className="worth-grading-view__section-title">Recommendation</h3>
             <div className="worth-grading-view__badges">
@@ -362,47 +462,17 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             </div>
             <div className="worth-grading-view__detail-grid">
               <TextList
-                icon={
-                  recommendation?.should_grade ? (
-                    <CheckCircle2 aria-hidden="true" size={18} strokeWidth={2.1} />
-                  ) : (
-                    <XCircle aria-hidden="true" size={18} strokeWidth={2.1} />
-                  )
-                }
                 items={asList(recommendation?.summary)}
                 title="Summary"
               />
               <TextList
-                icon={<Scale aria-hidden="true" size={18} strokeWidth={2.1} />}
                 items={asList(recommendation?.reasons)}
                 title="Reasons"
               />
-              <TextList
-                icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
-                items={asList(recommendation?.beginner_advice)}
-                title="Beginner Advice"
-              />
-              <TextList
-                icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
-                items={asList(data.methodology)}
-                title="Methodology"
-              />
-            </div>
-          </section>
-
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">Card</h3>
-            <div className="worth-grading-view__summary-grid">
-              <FieldCard label="name">{displayValue(data.card?.name)}</FieldCard>
-              <FieldCard label="set">{displayValue(data.card?.set)}</FieldCard>
-              <FieldCard label="number">{displayValue(data.card?.number)}</FieldCard>
-              <FieldCard label="variant">{displayValue(data.card?.variant)}</FieldCard>
-              <FieldCard label="year">{displayValue(data.card?.year)}</FieldCard>
             </div>
           </section>
 
           <TextList
-            icon={<FileText aria-hidden="true" size={18} strokeWidth={2.1} />}
             items={assumptions}
             title="Assumptions"
           />
@@ -411,16 +481,16 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             <h3 className="worth-grading-view__section-title">Raw Sale Today</h3>
             <div className="worth-grading-view__summary-grid">
               <FieldCard label="gross_sale_usd">
-                {formatCurrency(data.raw_sale_today?.gross_sale_usd)}
+                {formatCurrency(activeVariant.raw_sale_today?.gross_sale_usd)}
               </FieldCard>
               <FieldCard label="estimated_fees_usd">
-                {formatCurrency(data.raw_sale_today?.estimated_fees_usd)}
+                {formatCurrency(activeVariant.raw_sale_today?.estimated_fees_usd)}
               </FieldCard>
               <FieldCard label="net_proceeds_usd">
-                {formatCurrency(data.raw_sale_today?.net_proceeds_usd)}
+                {formatCurrency(activeVariant.raw_sale_today?.net_proceeds_usd)}
               </FieldCard>
               <FieldCard label="time_to_sell">
-                {displayValue(data.raw_sale_today?.time_to_sell)}
+                {displayValue(activeVariant.raw_sale_today?.time_to_sell)}
               </FieldCard>
             </div>
           </section>
@@ -443,29 +513,14 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
 
           <section className="worth-grading-view__json-section">
             <h3 className="worth-grading-view__section-title">PSA Population</h3>
-            <div className="worth-grading-view__summary-grid">
-              <FieldCard label="source">
-                {displayValue(data.psa_population?.source)}
-              </FieldCard>
-              <FieldCard label="psa_population_total">
-                {formatNumber(data.psa_population?.psa_population_total)}
-              </FieldCard>
-              <FieldCard label="psa_population_psa10">
-                {formatNumber(data.psa_population?.psa_population_psa10)}
-              </FieldCard>
-              <FieldCard label="psa_population_psa9">
-                {formatNumber(data.psa_population?.psa_population_psa9)}
-              </FieldCard>
-              <FieldCard label="psa_population_psa8">
-                {formatNumber(data.psa_population?.psa_population_psa8)}
-              </FieldCard>
-              <FieldCard label="psa_population_psa7">
-                {formatNumber(data.psa_population?.psa_population_psa7)}
-              </FieldCard>
-              <FieldCard label="psa_population_psa6">
-                {formatNumber(data.psa_population?.psa_population_psa6)}
-              </FieldCard>
-            </div>
+            <PsaPopulationCard population={activeVariant.psa_population} />
+          </section>
+
+          <section className="worth-grading-view__json-section">
+            <h3 className="worth-grading-view__section-title">Raw Response</h3>
+            <pre className="worth-grading-view__raw-response">
+              {JSON.stringify(data, null, 2)}
+            </pre>
           </section>
         </div>
       </article>

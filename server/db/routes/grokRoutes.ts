@@ -83,6 +83,21 @@ type IndependentAnalysisResult =
   | { fromDatabase: boolean; ok: true; text: string }
   | { ok: false };
 
+function logRawGrokResponseBeforeParsing(
+  feature: string,
+  storageKey: string,
+  response: unknown,
+) {
+  if (process.env.DEBUG_LOCALLY !== "true") return;
+
+  const responseText =
+    typeof response === "string" ? response : JSON.stringify(response);
+  console.log(
+    `Raw Grok response before JSON parsing (${feature}/${storageKey}):`,
+    responseText?.slice(0, 2_000),
+  );
+}
+
 async function resolveStoredCardAnalysis(
   cardId: string,
   storageKey: string,
@@ -99,6 +114,7 @@ async function resolveStoredCardAnalysis(
   }
 
   const response = await chat(prompt, signal);
+  logRawGrokResponseBeforeParsing(storageKey, storageKey, response);
   const savedResponse = await saveCardGrokResponse(cardId, storageKey, response);
   if (!savedResponse) {
     throw new GrokApiError("AI returned invalid analysis JSON", 502);
@@ -263,7 +279,11 @@ router.post("/", async (req: Request, res: Response) => {
           context.cardNumber,
         );
       } else if (feature === "worth_grading") {
-        prompt = isWorthGradingPrompt(context.cardNameAndSet);
+        prompt = isWorthGradingPrompt(
+          [context.cardName, context.cardNumber, context.setName]
+            .filter(Boolean)
+            .join(" "),
+        );
       } else if (feature === "sell_price") {
         if (!context.setName || !context.cardNumber) {
           throw new CreditHttpError("Card is missing set or number data", 422);
@@ -289,6 +309,11 @@ router.post("/", async (req: Request, res: Response) => {
         const response = await chat(prompt, signal);
         if (!cardGrokTarget) return response;
 
+        logRawGrokResponseBeforeParsing(
+          feature,
+          cardGrokTarget.storageKey,
+          response,
+        );
         const storedResponse = await saveCardGrokResponse(
           cardGrokTarget.cardId,
           cardGrokTarget.storageKey,

@@ -74,6 +74,7 @@ import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
+import { formatCardPromptIdentity } from "../../utils/formatCardPromptIdentity";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 
@@ -535,7 +536,7 @@ function PokemonDetailsForCard() {
     }
 
     if (aiFeature.view === "worth_grading") {
-      prompt = isWorthGradingPrompt(cardNameAndSet);
+      prompt = isWorthGradingPrompt(formatCardPromptIdentity(card));
     }
 
     if (aiFeature.view === "sell_price") {
