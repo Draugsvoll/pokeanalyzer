@@ -23,7 +23,7 @@ type CollectorCategory = {
 };
 
 type CollectorAnalysisData = {
-  variant: string;
+  variantName: string;
   totalScore: string;
   verdict: string;
   overview: string;
@@ -49,7 +49,6 @@ function getScoreTone(score: number) {
 
 function parseCollectorAnalysisEntry(
   data: Record<string, unknown>,
-  index: number,
 ): CollectorAnalysisData | null {
   if (!Array.isArray(data.categories)) return null;
 
@@ -64,10 +63,14 @@ function parseCollectorAnalysisEntry(
       name: String(category.name ?? "Category"),
       score: String(category.score ?? "0"),
       text: String(category.text ?? ""),
-    }));
+  }));
+
+  const variantName =
+    typeof data.variant_name === "string" ? data.variant_name.trim() : "";
+  if (!variantName) return null;
 
   return {
-    variant: String(data.variant ?? data.name ?? data.title ?? `Variant ${index + 1}`),
+    variantName,
     totalScore: String(data.totalScore ?? "0"),
     verdict: String(data.verdict ?? ""),
     overview: String(data.overview ?? ""),
@@ -79,18 +82,18 @@ function parseCollectorAnalysisEntry(
 function parseCollectorAnalysis(response: string): CollectorAnalysisData[] | null {
   const value = parseJsonText(response);
 
-  if (!value || typeof value !== "object") return null;
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
 
   const root = value as Record<string, unknown>;
-  const rawAnalyses: unknown[] = Array.isArray(value)
-    ? value
-    : Array.isArray(root.analyses)
-      ? root.analyses
-      : Array.isArray(root.analysis)
-        ? root.analysis
-        : Array.isArray(root.variants)
-          ? root.variants
-          : [value];
+  const rawAnalyses: unknown[] = Array.isArray(root.analyses)
+    ? root.analyses
+    : [];
 
   const analyses = rawAnalyses
     .filter(
@@ -141,7 +144,7 @@ export default function CollectorAnalysis({
       >
         <div>
           {analyses.map((variantAnalysis, variantIndex) => (
-            <label key={`${variantAnalysis.variant}-${variantIndex}`}>
+            <label key={`${variantAnalysis.variantName}-${variantIndex}`}>
                 <input
                   checked={activeVariantIndex === variantIndex}
                   name="collector-analysis-variant"
@@ -152,7 +155,7 @@ export default function CollectorAnalysis({
                 />
               <span>
                 <Layers3 aria-hidden="true" />
-                <strong>{variantAnalysis.variant}</strong>
+                <strong>{variantAnalysis.variantName}</strong>
               </span>
             </label>
           ))}

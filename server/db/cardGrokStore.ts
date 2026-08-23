@@ -22,13 +22,6 @@ function parseJsonValue(value: string): unknown {
   }
 }
 
-function wrapArrayResponse(storageKey: string, value: unknown[]) {
-  if (storageKey === "sales_data") return { variants: value };
-  if (storageKey === "collectors_analysis") return { analyses: value };
-
-  return null;
-}
-
 async function readCard(cardId: string): Promise<JsonObject | null> {
   const row = await dbGet<{ raw_json: string }>(
     "SELECT raw_json FROM cards WHERE id = ?",
@@ -87,6 +80,9 @@ export async function getCardGrokContext(
   return {
     cardName,
     cardNameAndSet: [cardName, setName].filter(Boolean).join(" "),
+    cardPromptIdentity: [cardName, cardNumber, setName]
+      .filter(Boolean)
+      .join(" "),
     cardNumber,
     rarity,
     setName,
@@ -105,14 +101,10 @@ export async function saveCardGrokResponse(
     typeof response === "string"
         ? isJsonObject(parsedStringResponse)
           ? parsedStringResponse
-          : Array.isArray(parsedStringResponse)
-            ? wrapArrayResponse(storageKey, parsedStringResponse)
-            : null
+          : null
         : isJsonObject(response)
           ? response
-        : Array.isArray(response)
-            ? wrapArrayResponse(storageKey, response)
-            : null;
+          : null;
   if (!parsedResponse) return null;
 
   const storedResponse = {

@@ -90,7 +90,6 @@
     line-height: var(--font-leading-snug);
     overflow-wrap: anywhere;
   }
-
 }
 
 .sales-data-view__sold-list {
@@ -122,22 +121,6 @@
   }
 }
 
-@media (max-width: 54rem) {
-  .sales-data-view__market-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 36rem) {
-  .sales-data-view__variants {
-    padding-inline: 1.1rem;
-  }
-
-  .sales-data-view__market-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .sales-data-view__notes {
   padding: 0;
 
@@ -158,4 +141,20 @@
   color: var(--font-color-faint);
   font-size: var(--font-size-caption);
   text-align: center;
+}
+
+@media (max-width: 54rem) {
+  .sales-data-view__market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 36rem) {
+  .sales-data-view__variants {
+    padding-inline: 1.1rem;
+  }
+
+  .sales-data-view__market-grid {
+    grid-template-columns: 1fr;
+  }
 }

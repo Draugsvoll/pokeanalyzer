@@ -5,6 +5,7 @@ import type { NewsFeedsResponse } from "../../types/news";
 import type { CustomColors } from "../../utils/customStylings";
 import { logClientError } from "../../utils/logClientError";
 import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
+import { NEWS_FEATURES } from "../../../shared/newsFeatures";
 import { BiggestMovers } from "./news/biggestMovers/BiggestMovers";
 import { GeneralNews } from "./news/general/GeneralNews";
 import "./Newslane.scss";
@@ -19,7 +20,9 @@ type NewsCategoryConfig = {
 
 const CATEGORIES = [
   { color: "blue", label: "General", value: "general" },
-  { color: "teal", label: "TCG Spikers", value: "movers" },
+  ...(NEWS_FEATURES.biggestMovers
+    ? [{ color: "orange", label: "Movers", value: "movers" } as const]
+    : []),
 ] as const satisfies readonly NewsCategoryConfig[];
 
 export function NewsLane() {
@@ -61,14 +64,16 @@ export function NewsLane() {
     <section className="news-lane" aria-label="News">
       <header className="news-lane__header">
         <h2 className="news-lane__title">Market news</h2>
-        <SegmentedRadioGroup
-          ariaLabel="News category"
-          className="news-lane__nav"
-          name="news-category"
-          onChange={setActiveCategory}
-          options={availableCategories}
-          value={displayedCategory}
-        />
+        {availableCategories.length > 1 && (
+          <SegmentedRadioGroup
+            ariaLabel="News category"
+            className="news-lane__nav"
+            name="news-category"
+            onChange={setActiveCategory}
+            options={availableCategories}
+            value={displayedCategory}
+          />
+        )}
       </header>
 
       <div className="news-lane__panel">
@@ -81,7 +86,7 @@ export function NewsLane() {
             <GeneralNews payload={newsFeeds.generalNews} />
           </div>
         )}
-        {newsFeeds?.biggestMovers && (
+        {NEWS_FEATURES.biggestMovers && newsFeeds?.biggestMovers && (
           <div
             className="news-lane__view"
             hidden={displayedCategory !== "movers"}

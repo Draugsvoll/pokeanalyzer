@@ -1,14 +1,17 @@
 import { Router, type Request, type Response } from "express";
-import { chat, GrokApiError, multimodalChat } from "../../services/xaiService.js";
+import {
+  chat,
+  GrokApiError,
+  multimodalChat,
+} from "../../services/xaiService.js";
 import {
   authenticityCheckPrompt,
-  collectorsAnalysisPrompt,
   identifyCardPrompt,
-  isWorthGradingPrompt,
-  priceAnalysisPrompt,
+  priceAnalysisInput,
+  priceAnalysisInstructions,
   PsaGradingPrompt,
-  salesDataPrompt,
-  sellMyCardPrompt,
+  salesDataInput,
+  salesDataInstructions,
 } from "../../../src/utils/grok/grokPrompts.js";
 import { getAuthenticatedUid } from "../../security/auth.js";
 import { logError } from "../../security/logging.js";
@@ -20,14 +23,14 @@ import {
   getRequestAbortSignal,
   isRequestAbort,
 } from "../../security/requestAbort.js";
-import {
-  getCardGrokContext,
-  saveCardGrokResponse,
-} from "../cardGrokStore.js";
+import { getCardGrokContext, saveCardGrokResponse } from "../cardGrokStore.js";
 import { getCardGrokFeature } from "../cardGrokConfig.js";
+import {
+  getCardAnalysisRequest,
+  type CardAnalysisRequest,
+} from "./cardAnalysisRequests.js";
 
 const router = Router();
-const MAX_PROMPT_LENGTH = 10_000;
 const MAX_CARD_ID_LENGTH = 100;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_PREFIXES = [
@@ -65,9 +68,14 @@ function getImageDataUrl(value: unknown, required: boolean) {
     throw new CreditHttpError("Invalid image data", 400);
   }
 
-  const prefix = ALLOWED_IMAGE_PREFIXES.find((candidate) => value.startsWith(candidate));
+  const prefix = ALLOWED_IMAGE_PREFIXES.find((candidate) =>
+    value.startsWith(candidate),
+  );
   if (!prefix) {
-    throw new CreditHttpError("Only JPEG, PNG, and WebP images are supported", 400);
+    throw new CreditHttpError(
+      "Only JPEG, PNG, and WebP images are supported",
+      400,
+    );
   }
 
   const encoded = value.slice(prefix.length);
@@ -80,8 +88,8 @@ function getImageDataUrl(value: unknown, required: boolean) {
 }
 
 type IndependentAnalysisResult =
-  | { fromDatabase: boolean; ok: true; text: string }
-  | { ok: false };
+  { fromDatabase: boolean; ok: true; text: string } | { ok: false };
+type CardAnalysisGrokOptions = NonNullable<CardAnalysisRequest["grokOptions"]>;
 
 function logRawGrokResponseBeforeParsing(
   feature: string,
@@ -102,7 +110,8 @@ async function resolveStoredCardAnalysis(
   cardId: string,
   storageKey: string,
   storedResponse: Record<string, unknown> | null,
-  prompt: string,
+  userInput: string,
+  instructions: string,
   signal: AbortSignal,
 ): Promise<IndependentAnalysisResult> {
   if (storedResponse) {
@@ -113,9 +122,16 @@ async function resolveStoredCardAnalysis(
     };
   }
 
-  const response = await chat(prompt, signal);
+  const response = await chat(userInput, {
+    instructions,
+    signal,
+  });
   logRawGrokResponseBeforeParsing(storageKey, storageKey, response);
-  const savedResponse = await saveCardGrokResponse(cardId, storageKey, response);
+  const savedResponse = await saveCardGrokResponse(
+    cardId,
+    storageKey,
+    response,
+  );
   if (!savedResponse) {
     throw new GrokApiError("AI returned invalid analysis JSON", 502);
   }
@@ -131,16 +147,28 @@ router.post("/market-prices", async (req: Request, res: Response) => {
   const signal = getRequestAbortSignal(res);
   try {
     const uid = getAuthenticatedUid(res);
-    const cardId = typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
+    const cardId =
+      typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
     if (!cardId || cardId.length > MAX_CARD_ID_LENGTH) {
-      throw new CreditHttpError("A valid cardId is required for card analysis", 400);
+      throw new CreditHttpError(
+        "A valid cardId is required for card analysis",
+        400,
+      );
     }
 
     const priceFeature = getCardGrokFeature("price_analysis")!;
     const salesFeature = getCardGrokFeature("sales_data")!;
     const [priceContext, salesContext] = await Promise.all([
-      getCardGrokContext(cardId, priceFeature.storageKey, priceFeature.reuseDays),
-      getCardGrokContext(cardId, salesFeature.storageKey, salesFeature.reuseDays),
+      getCardGrokContext(
+        cardId,
+        priceFeature.storageKey,
+        priceFeature.reuseDays,
+      ),
+      getCardGrokContext(
+        cardId,
+        salesFeature.storageKey,
+        salesFeature.reuseDays,
+      ),
     ]);
 
     if (!priceContext?.cardName || !salesContext?.cardName) {
@@ -164,37 +192,49 @@ router.post("/market-prices", async (req: Request, res: Response) => {
             cardId,
             priceFeature.storageKey,
             priceContext.storedResponse,
-            priceAnalysisPrompt(
+            priceAnalysisInput(
               priceContext.cardName,
               priceContext.setName,
               priceContext.cardNumber,
             ),
+            priceAnalysisInstructions,
             signal,
           ),
           resolveStoredCardAnalysis(
             cardId,
             salesFeature.storageKey,
             salesContext.storedResponse,
-            salesDataPrompt(
+            salesDataInput(
               salesContext.cardName,
               salesContext.setName,
               salesContext.cardNumber,
             ),
+            salesDataInstructions,
             signal,
           ),
         ]);
 
-        if (priceResult.status === "rejected" && !isRequestAbort(priceResult.reason, signal)) {
+        if (
+          priceResult.status === "rejected" &&
+          !isRequestAbort(priceResult.reason, signal)
+        ) {
           logError("AI market price analysis failed", priceResult.reason);
         }
-        if (salesResult.status === "rejected" && !isRequestAbort(salesResult.reason, signal)) {
+        if (
+          salesResult.status === "rejected" &&
+          !isRequestAbort(salesResult.reason, signal)
+        ) {
           logError("AI sales data analysis failed", salesResult.reason);
         }
 
         const priceAnalysis: IndependentAnalysisResult =
-          priceResult.status === "fulfilled" ? priceResult.value : { ok: false };
+          priceResult.status === "fulfilled"
+            ? priceResult.value
+            : { ok: false };
         const salesData: IndependentAnalysisResult =
-          salesResult.status === "fulfilled" ? salesResult.value : { ok: false };
+          salesResult.status === "fulfilled"
+            ? salesResult.value
+            : { ok: false };
 
         if (!priceAnalysis.ok && !salesData.ok) {
           throw new GrokApiError("Both AI market requests failed", 502);
@@ -220,8 +260,14 @@ router.post("/", async (req: Request, res: Response) => {
   const signal = getRequestAbortSignal(res);
   try {
     const uid = getAuthenticatedUid(res);
-    const requestedPrompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
-    const feature = typeof req.body?.feature === "string" ? req.body.feature.trim() : "";
+    const clientUserInput =
+      typeof req.body?.userInput === "string" ? req.body.userInput.trim() : "";
+    const requestedInstructions =
+      typeof req.body?.instructions === "string"
+        ? req.body.instructions.trim()
+        : undefined;
+    const feature =
+      typeof req.body?.feature === "string" ? req.body.feature.trim() : "";
 
     if (!ALLOWED_GROK_FEATURES.has(feature)) {
       throw new CreditHttpError("Invalid AI feature", 400);
@@ -232,14 +278,21 @@ router.post("/", async (req: Request, res: Response) => {
       throw new CreditHttpError("Admin access required", 403);
     }
 
-    let prompt = requestedPrompt;
+    let resolvedUserInput = clientUserInput;
+    let instructions =
+      feature === "market_news" ? requestedInstructions : undefined;
+    let grokOptions: CardAnalysisGrokOptions = {};
     let cardGrokTarget: { cardId: string; storageKey: string } | null = null;
     const cardGrokFeature = getCardGrokFeature(feature);
 
     if (cardGrokFeature) {
-      const cardId = typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
+      const cardId =
+        typeof req.body?.cardId === "string" ? req.body.cardId.trim() : "";
       if (!cardId || cardId.length > MAX_CARD_ID_LENGTH) {
-        throw new CreditHttpError("A valid cardId is required for card analysis", 400);
+        throw new CreditHttpError(
+          "A valid cardId is required for card analysis",
+          400,
+        );
       }
 
       const context = await getCardGrokContext(
@@ -267,46 +320,34 @@ router.post("/", async (req: Request, res: Response) => {
       }
 
       cardGrokTarget = { cardId, storageKey: cardGrokFeature.storageKey };
-      if (feature === "collector_analysis") {
-        prompt = collectorsAnalysisPrompt(context.cardNameAndSet);
-      } else if (feature === "price_analysis") {
-        if (!context.setName || !context.cardNumber) {
-          throw new CreditHttpError("Card is missing set or number data", 422);
-        }
-        prompt = priceAnalysisPrompt(
-          context.cardName,
-          context.setName,
-          context.cardNumber,
-        );
-      } else if (feature === "worth_grading") {
-        prompt = isWorthGradingPrompt(
-          [context.cardName, context.cardNumber, context.setName]
-            .filter(Boolean)
-            .join(" "),
-        );
-      } else if (feature === "sell_price") {
-        if (!context.setName || !context.cardNumber) {
-          throw new CreditHttpError("Card is missing set or number data", 422);
-        }
-        prompt = sellMyCardPrompt(
-          context.cardName,
-          context.setName,
-          context.cardNumber,
-        );
-      } else {
+      const cardAnalysisRequest = getCardAnalysisRequest(feature);
+      if (!cardAnalysisRequest) {
         throw new CreditHttpError("Unsupported stored card feature", 400);
       }
+      resolvedUserInput = cardAnalysisRequest.buildUserInput(context);
+      instructions = cardAnalysisRequest.instructions;
+      grokOptions = cardAnalysisRequest.grokOptions ?? {};
     }
 
-    if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
-      throw new CreditHttpError("prompt must contain 1 to 10000 characters", 400);
+    if (!resolvedUserInput) {
+      throw new CreditHttpError("userInput is required", 400);
+    }
+    if (feature === "market_news" && !instructions) {
+      throw new CreditHttpError(
+        "instructions are required for market news",
+        400,
+      );
     }
 
     const result = await runPaidFeature(
       uid,
       feature,
       async () => {
-        const response = await chat(prompt, signal);
+        const response = await chat(resolvedUserInput, {
+          instructions,
+          signal,
+          ...grokOptions,
+        });
         if (!cardGrokTarget) return response;
 
         logRawGrokResponseBeforeParsing(
@@ -346,8 +387,10 @@ router.post("/psa-grade", async (req: Request, res: Response) => {
     const frontImageBase64 = getImageDataUrl(req.body?.frontImageBase64, true)!;
     const backImageBase64 = getImageDataUrl(req.body?.backImageBase64, false);
     const message = PsaGradingPrompt(frontImageBase64, backImageBase64);
-    const result = await runPaidFeature(uid, "worth_grading", () =>
-      multimodalChat([message], signal),
+    const result = await runPaidFeature(
+      uid,
+      "worth_grading",
+      () => multimodalChat([message], signal),
       signal,
     );
 
@@ -369,8 +412,10 @@ router.post("/identify-card", async (req: Request, res: Response) => {
     const uid = getAuthenticatedUid(res);
     const frontImageBase64 = getImageDataUrl(req.body?.frontImageBase64, true)!;
     const message = identifyCardPrompt(frontImageBase64);
-    const result = await runPaidFeature(uid, "card_identification", () =>
-      multimodalChat([message], signal),
+    const result = await runPaidFeature(
+      uid,
+      "card_identification",
+      () => multimodalChat([message], signal),
       signal,
     );
 
@@ -393,8 +438,10 @@ router.post("/authenticity-check", async (req: Request, res: Response) => {
     const frontImageBase64 = getImageDataUrl(req.body?.frontImageBase64, true)!;
     const backImageBase64 = getImageDataUrl(req.body?.backImageBase64, false);
     const message = authenticityCheckPrompt(frontImageBase64, backImageBase64);
-    const result = await runPaidFeature(uid, "authenticity_check", () =>
-      multimodalChat([message], signal),
+    const result = await runPaidFeature(
+      uid,
+      "authenticity_check",
+      () => multimodalChat([message], signal),
       signal,
     );
 

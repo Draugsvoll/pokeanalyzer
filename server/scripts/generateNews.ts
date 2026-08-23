@@ -4,16 +4,19 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  getBiggestMovers,
-  getGeneralNewsPrompt,
+  biggestMoversInput,
+  biggestMoversInstructions,
+  generalNewsInput,
+  generalNewsInstructions,
 } from "../../src/utils/grok/grokPrompts.js";
+import { NEWS_FEATURES } from "../../shared/newsFeatures.js";
 import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
 import {
   assertNewsContentSchemaCompatible,
   NEWS_FEEDS,
   saveNewsFeed,
 } from "../db/newsStore.js";
-import { chat } from "../services/xaiService.js";
+import { chat, chatWithRawResponse } from "../services/xaiService.js";
 import {
   parseBiggestMoversResponse,
   parseGeneralNewsResponse,
@@ -28,35 +31,53 @@ import {
 } from "./scriptLocks.js";
 
 const NEWS_GENERATION_LOCK_TTL_SECONDS = 15 * 60;
+const DEBUG_LOCALLY = process.env.DEBUG_LOCALLY === "true";
 
-async function saveInvalidResponse(
+async function saveRawResponse(
   responseName: string,
-  responseText: string,
+  payload: unknown,
 ): Promise<string> {
   const outputPath = path.join(
     tmpdir(),
-    `pokeanalyzer-${responseName}-response-${Date.now()}.txt`,
+    `pokeanalyzer-${responseName}-response-${Date.now()}.json`,
   );
-  await writeFile(outputPath, responseText, "utf8");
+  await writeFile(outputPath, JSON.stringify(payload, null, 2), "utf8");
   return outputPath;
 }
 
 async function generateAndValidate<T>(
   name: string,
-  prompt: string,
+  userInput: string,
+  instructions: string,
   parser: (responseText: string) => T,
 ): Promise<T> {
   console.log(`Generating ${name}`);
-  const responseText = await chat(prompt);
+  let responseText: string;
+  let rawResponsePath: string | null = null;
+
+  if (DEBUG_LOCALLY) {
+    const response = await chatWithRawResponse(userInput, { instructions });
+    responseText = response.text;
+    rawResponsePath = await saveRawResponse(name, {
+      userInput,
+      instructions,
+      extractedText: response.text,
+      rawResponse: response.rawResponse,
+    });
+    console.log(`${name} raw response saved to ${rawResponsePath}`);
+  } else {
+    responseText = await chat(userInput, { instructions });
+  }
 
   try {
     return parser(responseText);
   } catch (error) {
-    const rawResponsePath = await saveInvalidResponse(name, responseText);
-    throw new Error(
-      `${name} response failed validation. Raw response saved to ${rawResponsePath}`,
-      { cause: error },
-    );
+    const debugDetails = rawResponsePath
+      ? ` Raw response saved to ${rawResponsePath}`
+      : "";
+    throw new Error(`${name} response failed validation.${debugDetails}`, {
+      cause: error,
+    });
   }
 }
 
@@ -91,12 +112,18 @@ async function renewNewsLock(lock: ScriptLock): Promise<void> {
 
 async function runGeneration<T>(
   name: string,
-  prompt: string,
+  userInput: string,
+  instructions: string,
   parser: (responseText: string) => T,
   describePayload: (payload: T) => string,
 ): Promise<GenerationResult<T>> {
   try {
-    const payload = await generateAndValidate(name, prompt, parser);
+    const payload = await generateAndValidate(
+      name,
+      userInput,
+      instructions,
+      parser,
+    );
     console.log(`${name} validated: ${describePayload(payload)}`);
     return { ok: true, payload };
   } catch (error) {
@@ -165,18 +192,26 @@ async function main(): Promise<void> {
     await renewNewsLock(lock);
     const generalNewsResult = await runGeneration(
       "latest_news",
-      getGeneralNewsPrompt,
+      generalNewsInput,
+      generalNewsInstructions,
       parseGeneralNewsResponse,
       (payload) => `${payload.items.length} items`,
     );
     await renewNewsLock(lock);
-
-    const biggestMoversResult = await runGeneration(
-      "biggest_movers",
-      getBiggestMovers,
-      parseBiggestMoversResponse,
-      (payload) => `${payload.cards.length} cards`,
-    );
+    const biggestMoversResult = NEWS_FEATURES.biggestMovers
+      ? await runGeneration(
+          "biggest_movers",
+          biggestMoversInput,
+          biggestMoversInstructions,
+          parseBiggestMoversResponse,
+          (payload) => `${payload.cards.length} cards`,
+        )
+      : null;
+    if (!NEWS_FEATURES.biggestMovers) {
+      console.log(
+        "Skipping biggest_movers because the news feature is disabled",
+      );
+    }
     await renewNewsLock(lock);
 
     const taskErrors = (
@@ -184,17 +219,25 @@ async function main(): Promise<void> {
         saveGeneration("latest_news", generalNewsResult, dryRun, (payload) =>
           saveNewsFeed(NEWS_FEEDS.generalNews, payload),
         ),
-        saveGeneration("biggest_movers", biggestMoversResult, dryRun, (payload) =>
-          saveNewsFeed(NEWS_FEEDS.biggestMovers, payload),
-        ),
+        ...(biggestMoversResult
+          ? [
+              saveGeneration(
+                "biggest_movers",
+                biggestMoversResult,
+                dryRun,
+                (payload) => saveNewsFeed(NEWS_FEEDS.biggestMovers, payload),
+              ),
+            ]
+          : []),
       ])
     ).filter((error): error is Error => error !== null);
     await renewNewsLock(lock);
 
+    const taskCount = NEWS_FEATURES.biggestMovers ? 2 : 1;
     if (taskErrors.length > 0) {
-      const successfulTasks = 2 - taskErrors.length;
+      const successfulTasks = taskCount - taskErrors.length;
       console.warn(
-        `NEWS WARNING [partial_run]: ${taskErrors.length} of 2 tasks failed; ${
+        `NEWS WARNING [news_generation]: ${taskErrors.length} of ${taskCount} task(s) failed; ${
           dryRun
             ? "no database rows were changed"
             : `${successfulTasks} database row(s) were updated`
@@ -209,8 +252,8 @@ async function main(): Promise<void> {
 
     console.log(
       dryRun
-        ? "Dry run complete; both responses passed and no database rows changed"
-        : "News generation finished successfully; 2 database rows updated",
+        ? `Dry run complete; ${taskCount} news task(s) passed and no database rows changed`
+        : `News generation finished successfully; ${taskCount} news row(s) updated`,
     );
   } finally {
     const released = await releaseScriptLock(lock);

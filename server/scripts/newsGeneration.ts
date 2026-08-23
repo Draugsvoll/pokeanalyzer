@@ -38,36 +38,23 @@ function requiredUrl(value: unknown, field: string): string {
   return url;
 }
 
-export function extractJsonObject(responseText: string): unknown {
-  let candidate = responseText.trim();
+function optionalUrl(value: unknown, field: string): string {
+  if (value == null || value === "") return "";
+  return requiredUrl(value, field);
+}
 
-  const fencedMatch = candidate.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  if (fencedMatch) {
-    candidate = fencedMatch[1].trim();
-  }
-
+function parseJsonResponse(responseText: string): unknown {
   try {
-    return JSON.parse(candidate) as unknown;
+    return JSON.parse(responseText) as unknown;
   } catch {
-    const firstBrace = candidate.indexOf("{");
-    const lastBrace = candidate.lastIndexOf("}");
-
-    if (firstBrace === -1 || lastBrace <= firstBrace) {
-      throw new Error("response did not contain a JSON object");
-    }
-
-    try {
-      return JSON.parse(candidate.slice(firstBrace, lastBrace + 1)) as unknown;
-    } catch {
-      throw new Error("response contained invalid JSON");
-    }
+    throw new Error("response contained invalid JSON");
   }
 }
 
 export function parseGeneralNewsResponse(
   responseText: string,
 ): GeneralNewsPayload {
-  const payload = extractJsonObject(responseText);
+  const payload = parseJsonResponse(responseText);
   if (!isRecord(payload)) {
     throw new Error("latest news response must be a JSON object");
   }
@@ -93,7 +80,7 @@ export function parseGeneralNewsResponse(
         action: item.action.map((action, actionIndex) =>
           requiredString(action, `items[${index}].action[${actionIndex}]`),
         ),
-        url: requiredUrl(item.url, `items[${index}].url`),
+        url: optionalUrl(item.url, `items[${index}].url`),
       };
     }),
   };
@@ -102,7 +89,7 @@ export function parseGeneralNewsResponse(
 export function parseBiggestMoversResponse(
   responseText: string,
 ): BiggestMoversPayload {
-  const payload = extractJsonObject(responseText);
+  const payload = parseJsonResponse(responseText);
   if (!isRecord(payload)) {
     throw new Error("biggest movers response must be a JSON object");
   }
@@ -123,13 +110,8 @@ export function parseBiggestMoversResponse(
         throw new Error(`cards[${index}] must be an object`);
       }
 
-      const rank =
-        typeof card.rank === "number"
-          ? String(card.rank)
-          : requiredString(card.rank, `cards[${index}].rank`);
-
       return {
-        rank,
+        rank: String(index + 1),
         card_name: requiredString(card.card_name, `cards[${index}].card_name`),
         summary: requiredString(card.summary, `cards[${index}].summary`),
       };

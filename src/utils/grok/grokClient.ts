@@ -1,4 +1,7 @@
-import type { CreditUsageFeature, UserSubscription } from "../../subscriptions/types";
+import type {
+  CreditUsageFeature,
+  UserSubscription,
+} from "../../subscriptions/types";
 import { authenticatedFetch } from "../authenticatedFetch";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 
@@ -12,7 +15,12 @@ type GrokResponse = {
 };
 
 export type GrokResult =
-  | { ok: true; text: string; subscription: UserSubscription; fromDatabase: boolean }
+  | {
+      ok: true;
+      text: string;
+      subscription: UserSubscription;
+      fromDatabase: boolean;
+    }
   | { ok: false; error: string };
 
 export type GrokRequestState = {
@@ -22,8 +30,7 @@ export type GrokRequestState = {
 };
 
 export type IndependentAnalysisResult =
-  | { fromDatabase: boolean; ok: true; text: string }
-  | { ok: false };
+  { fromDatabase: boolean; ok: true; text: string } | { ok: false };
 
 type MarketPricesResponse = {
   error?: string;
@@ -75,17 +82,23 @@ export async function askMarketPrices(
   }
 }
 
+type AskGrokOptions = {
+  cardId?: string;
+  instructions?: string;
+  signal?: AbortSignal;
+  userInput?: string;
+};
+
 export async function askGrok(
-  prompt: string,
   feature: CreditUsageFeature,
-  signal?: AbortSignal,
-  cardId?: string,
+  options: AskGrokOptions = {},
 ): Promise<GrokResult> {
   try {
+    const { cardId, instructions, signal, userInput } = options;
     const res = await authenticatedFetch(`${API_URL}/ai`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, feature, cardId }),
+      body: JSON.stringify({ feature, userInput, cardId, instructions }),
       signal,
     });
     const data = (await res.json()) as GrokResponse;
@@ -94,7 +107,10 @@ export async function askGrok(
       return { ok: false, error: data.error ?? "AI request failed" };
     }
     if (!data.subscription) {
-      return { ok: false, error: "AI response did not include subscription data" };
+      return {
+        ok: false,
+        error: "AI response did not include subscription data",
+      };
     }
 
     return {
@@ -107,7 +123,10 @@ export async function askGrok(
     if (isAbortError(error)) throw error;
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not reach the AI endpoint",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not reach the AI endpoint",
     };
   }
 }

@@ -34,11 +34,6 @@ import {
   type GrokRequestState,
   type IndependentAnalysisResult,
 } from "../../utils/grok/grokClient";
-import {
-  collectorsAnalysisPrompt,
-  isWorthGradingPrompt,
-  sellMyCardPrompt,
-} from "../../utils/grok/grokPrompts";
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
@@ -74,7 +69,6 @@ import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../utils/formatCardNumber";
-import { formatCardPromptIdentity } from "../../utils/formatCardPromptIdentity";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 
@@ -119,7 +113,7 @@ type AI_feature = {
   description: string;
   icon: LucideIcon;
   color: CustomColors;
-  creditFeature: CreditUsageFeature;
+  featureKey: CreditUsageFeature;
 };
 
 const AI_Features: AI_feature[] = [
@@ -129,7 +123,7 @@ const AI_Features: AI_feature[] = [
     description: "TCGPlayer, Cardmarket & sales history",
     icon: LineChart,
     color: "orange",
-    creditFeature: "price_analysis",
+    featureKey: "price_analysis",
   },
   {
     view: "collector_analysis",
@@ -137,7 +131,7 @@ const AI_Features: AI_feature[] = [
     description: "AI score for long-term collectibility",
     icon: Gem,
     color: "blue",
-    creditFeature: "collector_analysis",
+    featureKey: "collector_analysis",
   },
   {
     view: "ebay_sold",
@@ -145,7 +139,7 @@ const AI_Features: AI_feature[] = [
     description: "Recent comps from real sales",
     icon: BadgeDollarSign,
     color: "teal",
-    creditFeature: "ebay_sold",
+    featureKey: "ebay_sold",
   },
   {
     view: "worth_grading",
@@ -153,7 +147,7 @@ const AI_Features: AI_feature[] = [
     description: "PSA economics for this card",
     icon: BadgeDollarSign,
     color: "pink",
-    creditFeature: "worth_grading",
+    featureKey: "worth_grading",
   },
   {
     view: "sell_price",
@@ -161,7 +155,7 @@ const AI_Features: AI_feature[] = [
     description: "Where and what to list for",
     icon: BadgeDollarSign,
     color: "yellow",
-    creditFeature: "sell_price",
+    featureKey: "sell_price",
   },
 ];
 
@@ -526,26 +520,12 @@ function PokemonDetailsForCard() {
       return;
     }
 
-    const cardNameAndSet = [card?.name, card?.set?.name]
-      .filter(Boolean)
-      .join(" ");
-    let prompt = "";
-
-    if (aiFeature.view === "collector_analysis") {
-      prompt = collectorsAnalysisPrompt(cardNameAndSet);
-    }
-
-    if (aiFeature.view === "worth_grading") {
-      prompt = isWorthGradingPrompt(formatCardPromptIdentity(card));
-    }
-
     if (aiFeature.view === "sell_price") {
       if (!card.number) {
         setGrokError(FEATURE_ERROR_MESSAGE);
         setGrokResponse("");
         return;
       }
-      prompt = sellMyCardPrompt(card.name, card.set.name, card.number);
     }
 
     setGrokLoading(true);
@@ -560,12 +540,10 @@ function PokemonDetailsForCard() {
       aiFeature.view === "sell_price";
     const signal = startRequest();
     try {
-      const result = await askGrok(
-        prompt,
-        aiFeature.creditFeature,
+      const result = await askGrok(aiFeature.featureKey, {
         signal,
-        usesStoredCardResponse ? card.id : undefined,
-      );
+        cardId: usesStoredCardResponse ? card.id : undefined,
+      });
       if (signal.aborted) return;
 
       if (!result.ok) {
@@ -770,7 +748,9 @@ function PokemonDetailsForCard() {
   const activeFeatureHasResponse =
     activeView === "prices"
       ? Boolean(
-          currentGrokResponse || currentJustTcgResult || currentMarketSalesResponse,
+          currentGrokResponse ||
+          currentJustTcgResult ||
+          currentMarketSalesResponse,
         )
       : activeView === "ebay_sold"
         ? currentEbayReportAvailable
@@ -786,9 +766,9 @@ function PokemonDetailsForCard() {
   // RENDERING
   return (
     <div className="card-view ui-render-fade">
-        <div className="card-view__panel-wrap">
-          <div className="card-view__shell">
-            <div className="card-view__details">
+      <div className="card-view__panel-wrap">
+        <div className="card-view__shell">
+          <div className="card-view__details">
             <div className="card-view__image-side">
               <div className="card-view__image-frame">
                 {authUser && (
@@ -902,9 +882,7 @@ function PokemonDetailsForCard() {
                             />
                           )}
                           <span>{card.set.name}</span>
-                          {card.set?.series && (
-                            <span>({card.set.series})</span>
-                          )}
+                          {card.set?.series && <span>({card.set.series})</span>}
                         </p>
                       )}
                       {(card.rarity || displaySubtype) && (
@@ -1173,8 +1151,8 @@ function PokemonDetailsForCard() {
                     }
                     reportAvailable={Boolean(
                       currentGrokResponse ||
-                        currentJustTcgResult ||
-                        currentMarketSalesResponse,
+                      currentJustTcgResult ||
+                      currentMarketSalesResponse,
                     )}
                     salesDataRequest={{
                       loading: marketSalesLoading,

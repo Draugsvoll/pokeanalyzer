@@ -1,7 +1,9 @@
-import type { GrokImageContent, GrokMultimodalMessage } from "./grokPromptTypes";
+import type {
+  GrokImageContent,
+  GrokMultimodalMessage,
+} from "./grokPromptTypes";
 
-export const priceAnalysis: string =
-`
+export const priceAnalysisInstructions: string = `
 If the data is available, please show today's market prices for the Pokemon card I provided.
 
 Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
@@ -15,8 +17,10 @@ current realistic price of today.
 
 notes field should be concise and user-friendly to read. Its a summary.
 
-Return as a valid JSON format, like the format example below. All fields are optional,
-and shall only be filled if you have reliable data.
+Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
+I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+
+All fields are optional, and shall only be filled if you have reliable data.
 
 {
   "card": {
@@ -98,91 +102,75 @@ and shall only be filled if you have reliable data.
     "secondary": "EUR"
   }
 }
-`
-
-const variantPrintNameInstructions = `
-The variant field must contain only the variant/print name, not the Pokemon-name or set-name.
-
-Examples:
-"Unlimited Holofoil"
-"Shadowless Holofoil"
-"1st Edition Holofoil"
-"Reverse Holofoil"
-
-Do not include the Pokemon/card name in the variant field.
-If 2 variant names end up identical for some reason (which shouldn't happen), then also include the set name so we can tell them apart. For example, "Unlimited Holofoil (Base Set)" or "Unlimited Holofoil (Jungle)".
-We only do that if the variant names are identical and we need to differentiate them.
-Use precise official/common print terms such as "Holofoil", "Reverse Holofoil", "Non-Holo", "1st Edition", "Unlimited", or "Shadowless".
-Do not call a variant "Non-Holo" if the actual print is Reverse Holofoil.
-Don't mix up "Reverse Holofoil" with "Holofoil".
-"Holofoil" and "Reverse Holofoil" are different variants and must never be merged.
-If PriceCharting has separate pages for Holofoil and Reverse Holofoil, return them as separate variant entries.
-If you are unsure whether a print is Reverse Holofoil, Holofoil, or Non-Holo, verify from reliable sources before naming the variant.
-
-If PriceCharting has only one English variant available but you are unsure about the variant name,
-do additional research using reliable sources to try and identify it more accurately.
 `.trim();
 
-const salesData: string = `
+const variantPrintNameInstructions = `
+The variant field must contain the official and commonly used variant name for the card. For example, "Unlimited Holofoil", "1st Edition Shadowless Holofoil", "Reverse Holofoil", etc.
+`.trim();
+
+export const salesDataInstructions: string = `
 Can you fetch sold data based on grading for this card at PriceCharting website?
 
-Response must be only a valid JSON format. No extra text before or after the JSON format.
-Response must be put into the exact structure as the example response below.
-If data not available just leave the field empty.
-The root JSON value must be an array. Each item in the array is one English variant.
+I need this for every English variant of the card.
+
+Respond in the JSON format provided below. The JSON example below shows you formatting/structure, it doesn't contain real live data. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
+I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+
+If data is not available for a field, just leave the field empty.
+The root JSON value must be an object. Each item in the "variants" array is an English variant.
 Each variant entry must include the variant name in the "variant" field.
 
 ${variantPrintNameInstructions}
 
-Notes field is optional for each variant. If there's valuable information related to that specific variant
-that collectors would want to know, then add it. Each note is a string in the notes array.
+{
+  "variants": [
+    {
+      "variant": "Unlimited Holofoil",
+      "market_prices": [
+        {
+          "grade": "Ungraded",
+          "price": "$272.83",
+          "volume": "~1 sale / week"
+        },
+        {
+          "grade": "Grade 7",
+          "price": "$568.23",
+          "volume": "~2 sales / week"
+        },
+        {
+          "grade": "Grade 8",
+          "price": "$830.00",
+          "volume": "~3 sales / week"
+        },
+        {
+          "grade": "Grade 9",
+          "price": "$1,173.92",
+          "volume": "~3 sales / week"
+        },
+        {
+          "grade": "Grade 9.5",
+          "price": "$1,290.02",
+          "volume": "~6 sales / year"
+        },
+        {
+          "grade": "PSA 10",
+          "price": "$6,000.25",
+          "volume": "~1 sale / month"
+        }
+      ]
+    }
+  ]
+}
 
-[
-  {
-    "variant": "Unlimited Holofoil",
-    "market_prices": [
-      {
-        "grade": "Ungraded",
-        "price": "$272.83",
-        "volume": "~1 sale / week"
-      },
-      {
-        "grade": "Grade 7",
-        "price": "$568.23",
-        "volume": "~2 sales / week"
-      },
-      {
-        "grade": "Grade 8",
-        "price": "$830.00",
-        "volume": "~3 sales / week"
-      },
-      {
-        "grade": "Grade 9",
-        "price": "$1,173.92",
-        "volume": "~3 sales / week"
-      },
-      {
-        "grade": "Grade 9.5",
-        "price": "$1,290.02",
-        "volume": "~6 sales / year"
-      },
-      {
-        "grade": "PSA 10",
-        "price": "$6,000.25",
-        "volume": "~1 sale / month"
-      }
-    ],
-    "notes": []
-  }
-]
+`.trim();
 
-
-`
-
-const sellMyCard: string = `
+export const sellMyCardInstructions: string = `
   How much should I sell this card for? Give a summarized response as valid JSON.
+
+  Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
+  I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+
   Use reliable sources (PriceCharting, PokeScope, and eBay are good examples)
-  No extra text before or after the JSON.
   Include multiple English variants when they exist.
   The root must be an object with a "variants" array and a "marketplace_availability" array.
   Each variant must contain a "variant" and a "steps" array.
@@ -297,10 +285,9 @@ const sellMyCard: string = `
     ]
   }
 
-`;
+`.trim();
 
-const identifyCard: string =
-`
+const identifyCard: string = `
 Identify the exact Pokemon card provided in the image. Return a valid JSON containing
 these fields:
 
@@ -308,10 +295,9 @@ these fields:
 - set name
 - card number
 - set series
-`
+`;
 
-const authenticityCheck: string =
-`
+const authenticityCheck: string = `
 You are a professional Pokemon-card inspector. Verify if my Pokemon card is real from image(s) provided. Do a thorough analysis, take your time.
 Your response must be in a valid JSON format as shown below.
 Don't subtract from the score because you can't do physical tests on it,
@@ -392,7 +378,7 @@ No extra text before or after.
   }
 }
 
-`
+`;
 
 const psaGrading: string = `
 Do a PSA grading of this Pokemon card. Be as strict and thorough as a professional grader.
@@ -447,106 +433,86 @@ Use exactly this structure example (field names and nesting must match):
     "No raking/angled light photos to reveal surface texture, indentations, or subtle dents.",
     "Exact border measurements (in mm or %) and corner magnification are not possible.",
     "Color accuracy and any potential fading are harder to judge under the photo's lighting."
-  ],
+  ]
 }
 `.trim();
 
+export const collectorsAnalysisInstructions: string = `
+You are an expert Pokémon TCG collectible analyst.
 
-const collectorsAnalysis: string =
-`
-You are a professional Pokemon collector, and you are hired to rank cards for serious
-collectors. You need to rank a card professionally. Take your time,
-get as much data as possible from many trustworthy/reliable sources.
-Give it a score from 1-100 where 100 would be the most desired card among collectors.
-You must research deeply (using reliable sources) before estimating the card,
-to avoid giving different scores to the same card when asked again later.
+Your task is to rate the provided card as a collectible for Pokémon collectors on a scale of 1-100.
 
-If a card has multiple English variants, we want an analysis for each one you can find reliable data on. Don't include any Japanese variants.
+### Core Rules
+- Identify every distinct English variant/print that has reliable collector data.
+- Analyze each English variant separately. Never blend or average different variants.
+- In "variant_name" field insert the official and commonly used variant name for the card. For example, "Unlimited Holofoil", "1st Edition Shadowless Holofoil", "Reverse Holofoil", etc.
+- Completely ignore Japanese and all non-English variants.
+- Never invent anything.
+- All scores must be whole numbers written as strings (example: "84").
+- Your entire response must be a single valid JSON object. No text, markdown, or explanation before or after the JSON.
 
-Do not include sibling cards, counterpart cards, same-artwork cards,
-or related card numbers as variants to analyze. Only analyze variants of the exact card provided.
-You may mention these related cards in finalNote if they are relevant for collectors.
+### Scoring Categories
+For every variant, score these five categories independently from overall score:
+1. Rarity & Scarcity
+2. Collectors Demand
+3. Significance
+4. Artwork & Aesthetics
+5. Long-Term Collectibility
 
-You must justify exactly WHY it was given its score. a collector should walk away
-understanding exactly why it deserved that score and feel more educated about the card.
-The score should reflect your reasoning. The categories are as follows.
-
-Rarity & scarcity
-Collectors Demand
-Significance
-Artwork & Aesthetics
-Long-Term Collectibility
-
-Make the category long-term collectibility less weighted than the others,
-but don't mention that. Give each category a score as well. All the scores are whole
-numbers as a string. For example 43/100 is "43".
-
-The response must only be a valid JSON object, no text added before or after.
-The root object must contain an "analyses" array. Each item in the array represents one English variant you found.
-Use exactly the field names and nesting shown in the example response below.
-
-
-The overview field must be as concise and relevant to the collector as possible,
-but it should only shortly explain the card's role as a collectible.
-Don't explain the score or Pokemon stats in this field. Avoid stating exact price numbers for the card.
-The finalNote field should be a summarized version of the reasoning behind the totalScore, also let the reader know
-how this fits into an overall collection and the collection market.
-
-The verdict field is a 1 sentence summary of the finalNote field, maximum 15 words.
-
-Example response below. Use the exact same structure and field names. Never invent data. The example response data
-is only illustrative, under no circumstances can you copy or rely on it, always do the full analysis yourself.
-
-${variantPrintNameInstructions}
-
+### Required JSON Structure
 {
   "analyses": [
     {
-      "variant": "Unlimited Holofoil",
-      "totalScore": "82",
-      "verdict": "Iconic vintage holo with strong collector demand.",
-      "overview": "A desirable vintage holo from an important set, with broad appeal among set collectors.",
+      "variant_name": "The variant name, as explained in core rules above",
+      "totalScore": "XX",
+      "verdict": "One sentence, maximum 15 words, summarizing the finalNote.",
+      "overview": "1-3 sentences about the card’s role as a collectible only. Do not mention scores, prices, or Pokémon stats.",
       "categories": [
         {
-          "name": "Rarity & scarcity",
-          "score": "78",
-          "text": "The card is not impossible to find, but clean copies and high-grade examples are meaningfully harder to source."
+          "name": "Rarity & Scarcity",
+          "score": "XX",
+          "text": "Justification"
         },
         {
           "name": "Collectors Demand",
-          "score": "88",
-          "text": "Demand is strong because the Pokemon, artwork, set, and era are all recognizable to collectors."
+          "score": "XX",
+          "text": "Justification"
         },
         {
           "name": "Significance",
-          "score": "84",
-          "text": "The card has lasting importance because of its place in the broader Pokemon collecting market."
+          "score": "XX",
+          "text": "Justification"
         },
         {
           "name": "Artwork & Aesthetics",
-          "score": "80",
-          "text": "The artwork is memorable and fits the collector expectations for this era and print style."
+          "score": "XX",
+          "text": "Justification"
         },
         {
           "name": "Long-Term Collectibility",
-          "score": "76",
-          "text": "Long-term interest should remain healthy, though upside depends on condition, supply, and broader market demand."
+          "score": "XX",
+          "text": "Justification"
         }
       ],
-      "finalNote": "This variant fits well as a recognizable collector piece, especially for condition-focused vintage collectors."
+      "finalNote": "Reasoning for the totalScore. You can add facts or history about the card if it's valuable to a collector. Explain how this variant fits into a collection and the broader market."
     }
   ]
 }
 
+### Additional Guidance
+- The totalScore should be a thoughtful overall assessment, not a simple average of the five categories,
+  those are scored independently.
+- Keep the overview concise and collector-focused.
+- Every English variant is an item in the "analyses" array. Each variant must have its own complete analysis.
 
-Now rank this card:
+Now analyze the card.
 
-`;
+`.trim();
 
-
-const isWorthGrading: string =
-`
+export const worthGradingInstructions: string = `
   I own this card. Can it make sense to grade & sell it, instead of just selling it raw?
+
+  I need to know this for every English variant of the card, as long as it has reliable data available. Don't include Japanese variants.
 
   Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Use reliable sources for all data.
   Remember ebay can have different fee structure/model for high prices, account for that in calculations.
@@ -582,8 +548,9 @@ const isWorthGrading: string =
 
   The field "shipping_and_insurance_usd" is an estimation. Make sure each PSA-grade individually uses a reasonable shipping and insurance estimation.
 
-  Your entire response must be a valid JSON object, no text added before or after.
-  The example response below shows the structure and format you must follow.
+  Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
+  I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+
   Your job is to fit your analysis into this JSON schema. Do not add any extra fields or change the structure of the JSON schema.
 
   Always include every English variant where you can find data from reliable sources.
@@ -695,13 +662,11 @@ const isWorthGrading: string =
   If a PSA-grade shows paper profits after all costs and fees including selling,
   but it's not really recommended to grade, it must be clear why it's not worth the paper profits on a practical level.
 
-  For fields with "_rate" in the field name, return decimal numbers only, exactly like the example response above.
-  Example: use 0.135 for 13.5%, not "13.5%" or 13.5.
-
   Always use the official PSA Population Report as the source for PSA population figures when available,
   and ensure the population entry matches the set, card number, and variant. Use the actual official website
   itself as the source https://www.psacard.com/. Provide the url to the exact page that displays the numbers.
   Only use other reliable sources if you can't get the numbers from the official website itself.
+  Don't forget to populate "psa_population_psa6" when filling in psa_population data.
   If you can't find psa population data from a reliable source then return null.
   Never invent any of the numbers.
 
@@ -714,45 +679,52 @@ const isWorthGrading: string =
   Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
   Never use the raw sale price directly as the baseline without subtracting its selling fees.
 
+`.trim();
 
-`
+export const biggestMoversInput: string = `
+Please summarize all the cards in "The Biggest Price Spikes in Pokemon this Week" article from
+TCG website.
 
-export const getBiggestMovers: string =
-`
-Please summarize each card in "The Biggest Price Spikes in Pokemon this Week" article from
-TCG. Use the most recent you can find. Always remember to include all the
-price values mentioned in the article. For every card you must mention the price values from the article.
-Keep things concise and to the point. The summary should be about 3-5 sentences for each card.
+`.trim();
+
+export const biggestMoversInstructions: string = `
+Use the most recent article you can find. Respond using the JSON format provided below.
+
+### Strict Process Rules
+1. Identify all the cards that are individual pokemons and mentioned both by their name and a set name.
+2. Summarize the identified cards in the article by including all price-values and price-movements mentioned in the article,
+  include the explanation for the spike if it is mentioned.
+
 
 - report_link is url to the report you used.
-- spike_summary summarizes the price spikes in the cards report. Specify if number is from sale or a listing/available.
-
-Return only a valid JSON format as the one below. No text added before or after.
 
 {
   "date": "Publication date of the report",
   "report_link": "",
   "cards": [
     {
-      "rank": "",
       "card_name": "",
       "summary": ""
     }
   ]
 }
 
-`
+`.trim();
 
-export const getGeneralNewsPrompt: string =
-`
-You are an expert researcher for serious Pokémon TCG collectors and investors.
-Provide the latest and most important news from the past 30 days only.
-Focus on: major set announcements, valuable card reveals, population report updates,
+export const generalNewsInput: string = `
+You are a researcher for Pokemon TCG collectors and investors. Your job is to collect the most important and valueable news.
+`.trim();
+
+export const generalNewsInstructions: string = `
+Provide the latest and most important news from the past 30 days (as of today's date) for Pokemon TCG collectors and investors.
+Focus on (but not limited to): major set announcements, valuable card reveals, population report updates,
 price spikes/crashes, grading news, tournaments, scandals, official PSA/Beckett/CGC updates,
-and high-value sales. Use reliable sources. Choose accurate short labels, such as
+and high-value sales.
+
+Use reliable sources. Choose accurate short labels, such as
 "release", "set reveal", "promo", "market", "grading", "population", "high-value sale", "restock", "competitive", "industry"
 
-Respond strictly in this JSON format (no extra text outside the JSON):
+Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
 
 { "date": "YYYY-MM-DD", "items":
  [
@@ -767,25 +739,26 @@ Respond strictly in this JSON format (no extra text outside the JSON):
  Rules: Limit to top 5-8 items. "action" array: only 1-3 bullets if they add real value
  (why important + how to act); leave empty array [] if redundant or minor.
 
- Include "url" only if it's a direct link to a specific article.
-Never use a link that's just a general site or news section, only if it's a specified article.
-Don't put links to YouTube videos. The url link must be the actual http link so user can see
-the source. Prioritize high-impact news for serious collectors/investors.
-Use today's date for reference.
+ Only populate "url" field if it's a direct link to a specific article, otherwise leave it empty.
+  Never add a link that's just a generic homepage or news section, only add if it links directly to an article or the content.
+  For example never add a link like "https://www.pokemon.com/us/pokemon-news/", but if you have a specific article, add that link.
+  Don't put links to YouTube videos. The url link must be the actual http link so user can see
+  the source. Prioritize high-impact news for serious collectors/investors.
 
-`
+  Use today's date for reference in "date" field.
 
-export function isWorthGradingPrompt(cardNameAndSet: string): string {
-  return `"${cardNameAndSet}"\n\n${isWorthGrading.trim()}`;
+`.trim();
+
+export function worthGradingInput(cardNameAndSet: string): string {
+  return `"${cardNameAndSet}"`;
 }
 
-export function collectorsAnalysisPrompt(cardNameAndSet: string): string {
-  const instructions = collectorsAnalysis.split("Now rank this card:")[0].trimEnd();
-  return `${instructions}\n\nNow rank this card:\n${cardNameAndSet}`;
+export function collectorsAnalysisInput(cardNameAndSet: string): string {
+  return cardNameAndSet;
 }
 
 export function identifyCardPrompt(
-  frontImageBase64: string
+  frontImageBase64: string,
 ): GrokMultimodalMessage {
   return {
     role: "user",
@@ -796,9 +769,41 @@ export function identifyCardPrompt(
   };
 }
 
+export function priceAnalysisInput(
+  name: string,
+  setName: string,
+  number: string | number,
+): string {
+  return `"name": ${JSON.stringify(name)},
+          "set": ${JSON.stringify(setName)},
+          "number": ${JSON.stringify(String(number))},`;
+}
+
+export function sellMyCardInput(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number,
+): string {
+  return `Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
+}
+
+export function salesDataInput(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number,
+): string {
+  return `Card details:
+"card-name": ${JSON.stringify(cardName)}
+"set-name": ${JSON.stringify(setName)}
+"card-number": ${JSON.stringify(String(cardNumber))}`;
+}
+
 export function PsaGradingPrompt(
   frontImageBase64: string,
-  backImageBase64?: string
+  backImageBase64?: string,
 ): GrokMultimodalMessage {
   const images: GrokImageContent[] = [
     { type: "input_image", image_url: frontImageBase64 },
@@ -820,7 +825,7 @@ export function PsaGradingPrompt(
 
 export function authenticityCheckPrompt(
   frontImageBase64: string,
-  backImageBase64?: string
+  backImageBase64?: string,
 ): GrokMultimodalMessage {
   const images: GrokImageContent[] = [
     { type: "input_image", image_url: frontImageBase64 },
@@ -838,42 +843,4 @@ export function authenticityCheckPrompt(
       ...images.slice(1),
     ],
   };
-}
-
-export function priceAnalysisPrompt(
-  name: string,
-  setName: string,
-  number: string | number
-): string {
-  return `"name": ${JSON.stringify(name)},
-          "set": ${JSON.stringify(setName)},
-          "number": ${JSON.stringify(String(number))},
-
-          ${priceAnalysis}`;
-}
-
-export function sellMyCardPrompt(
-  cardName: string,
-  setName: string,
-  cardNumber: string | number
-): string {
-  return `${sellMyCard.trim()}
-
-Card details:
-"card-name": ${JSON.stringify(cardName)}
-"set-name": ${JSON.stringify(setName)}
-"card-number": ${JSON.stringify(String(cardNumber))}`;
-}
-
-export function salesDataPrompt(
-  cardName: string,
-  setName: string,
-  cardNumber: string | number
-): string {
-  return `${salesData.trim()}
-
-Card details:
-"card-name": ${JSON.stringify(cardName)}
-"set-name": ${JSON.stringify(setName)}
-"card-number": ${JSON.stringify(String(cardNumber))}`;
 }

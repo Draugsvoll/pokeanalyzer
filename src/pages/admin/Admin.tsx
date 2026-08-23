@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { NEWS_FEATURES } from "../../../shared/newsFeatures";
 import Button from "../../components/button/Button";
 import { useAuth } from "../../context/authContextValue";
 import { askGrok } from "../../utils/grok/grokClient";
 import {
-  getBiggestMovers,
-  getGeneralNewsPrompt,
+  biggestMoversInput,
+  biggestMoversInstructions,
+  generalNewsInput,
+  generalNewsInstructions,
 } from "../../utils/grok/grokPrompts";
 import "./Admin.scss";
 import { Navigate } from "react-router-dom";
@@ -57,13 +60,11 @@ export default function Admin() {
     return () => controller.abort();
   }, [authLoading, user]);
 
-  const adminCheckMatchesUser =
-    Boolean(user) && adminCheck.uid === user?.uid;
+  const adminCheckMatchesUser = Boolean(user) && adminCheck.uid === user?.uid;
   const checkingAdmin =
     Boolean(user) &&
     (!adminCheckMatchesUser || adminCheck.status === "checking");
-  const isAdmin =
-    adminCheckMatchesUser && adminCheck.status === "allowed";
+  const isAdmin = adminCheckMatchesUser && adminCheck.status === "allowed";
 
   const generateNews = async () => {
     if (generatingNews) return;
@@ -73,7 +74,10 @@ export default function Admin() {
     setNewsMessage("");
     setNewsError("");
 
-    const result = await askGrok(getGeneralNewsPrompt, "market_news");
+    const result = await askGrok("market_news", {
+      userInput: generalNewsInput,
+      instructions: generalNewsInstructions,
+    });
 
     if (!result.ok) {
       setNewsError(result.error);
@@ -92,7 +96,9 @@ export default function Admin() {
       setNewsMessage("JSON copied to clipboard.");
     } catch {
       setNewsMessage("");
-      setNewsError("Could not copy the JSON. Select the text and copy it manually.");
+      setNewsError(
+        "Could not copy the JSON. Select the text and copy it manually.",
+      );
     }
   };
 
@@ -104,7 +110,10 @@ export default function Admin() {
     setMoversMessage("");
     setMoversError("");
 
-    const result = await askGrok(getBiggestMovers, "market_news");
+    const result = await askGrok("market_news", {
+      userInput: biggestMoversInput,
+      instructions: biggestMoversInstructions,
+    });
 
     if (!result.ok) {
       setMoversError(result.error);
@@ -163,7 +172,10 @@ export default function Admin() {
         </p>
       </header>
 
-      <section className="admin-page__tool default-container" aria-labelledby="general-news-tool">
+      <section
+        className="admin-page__tool default-container"
+        aria-labelledby="general-news-tool"
+      >
         <div>
           <h2 id="general-news-tool">Latest news</h2>
           <p>Generate the latest market-news content shown on the homepage.</p>
@@ -199,28 +211,33 @@ export default function Admin() {
         </section>
       )}
 
-      <section className="admin-page__tool default-container" aria-labelledby="movers-tool">
-        <div>
-          <h2 id="movers-tool">Biggest movers</h2>
-          <p>Generate the biggest weekly movers shown on the homepage.</p>
-        </div>
-        <Button disabled={generatingMovers} onClick={generateMovers}>
-          {generatingMovers ? "Generating..." : "Get biggest movers"}
-        </Button>
-      </section>
+      {NEWS_FEATURES.biggestMovers && (
+        <section
+          className="admin-page__tool default-container"
+          aria-labelledby="movers-tool"
+        >
+          <div>
+            <h2 id="movers-tool">Biggest movers</h2>
+            <p>Generate the biggest weekly movers shown on the homepage.</p>
+          </div>
+          <Button disabled={generatingMovers} onClick={generateMovers}>
+            {generatingMovers ? "Generating..." : "Get biggest movers"}
+          </Button>
+        </section>
+      )}
 
-      {moversMessage && (
+      {NEWS_FEATURES.biggestMovers && moversMessage && (
         <p className="admin-page__message" role="status">
           {moversMessage}
         </p>
       )}
-      {moversError && (
+      {NEWS_FEATURES.biggestMovers && moversError && (
         <p className="admin-page__error" role="alert">
           {moversError}
         </p>
       )}
 
-      {generatedMovers && (
+      {NEWS_FEATURES.biggestMovers && generatedMovers && (
         <section
           className="admin-page__output"
           aria-labelledby="generated-movers-heading"

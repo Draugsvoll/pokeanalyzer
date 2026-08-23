@@ -202,9 +202,7 @@
 
   &__category {
     min-width: 0;
-    transition:
-      border-color var(--delay-short) ease,
-      transform var(--delay-short) ease;
+    transition: border-color var(--delay-short) ease;
     -webkit-backdrop-filter: blur(16px) saturate(115%);
 
     &:hover {
@@ -213,7 +211,6 @@
         var(--collector-accent) 32%,
         transparent
       );
-      transform: translateY(-1px);
     }
 
     &:last-child:nth-child(odd) {

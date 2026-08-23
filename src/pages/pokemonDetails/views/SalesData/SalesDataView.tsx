@@ -64,22 +64,18 @@ function parseNotes(value: unknown): string[] {
 
 function parseSalesData(response: string): SalesData | null {
   const parsed = parseJsonText(response);
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!isRecord(parsed)) return null;
 
-  const rawVariants = Array.isArray(parsed)
-    ? parsed
-    : isRecord(parsed) && Array.isArray(parsed.variants)
-      ? parsed.variants
-      : isRecord(parsed) && Array.isArray(parsed.analyses)
-        ? parsed.analyses
-      : [];
+  const rawVariants = Array.isArray(parsed.variants) ? parsed.variants : [];
 
   const variants = rawVariants.length
     ? rawVariants
         .filter(isRecord)
         .map((variant, index) => {
           const variantTitle =
-            text(variant.variant) || text(variant.name) || `Variant ${index + 1}`;
+            text(variant.variant) ||
+            text(variant.name) ||
+            `Variant ${index + 1}`;
 
           return {
             marketPrices: parseMarketPrices(variant.market_prices),
@@ -87,19 +83,21 @@ function parseSalesData(response: string): SalesData | null {
             title: variantTitle,
           };
         })
-        .filter((variant) => variant.marketPrices.length > 0 || variant.notes.length > 0)
+        .filter(
+          (variant) =>
+            variant.marketPrices.length > 0 || variant.notes.length > 0,
+        )
     : [];
 
-  const fallbackMarketPrices = isRecord(parsed)
-    ? parseMarketPrices(parsed.market_prices)
-    : [];
+  const fallbackMarketPrices = parseMarketPrices(parsed.market_prices);
   const displayVariants =
     variants.length > 0
       ? variants
       : fallbackMarketPrices.length > 0
         ? [{ marketPrices: fallbackMarketPrices, notes: [], title: "" }]
         : [];
-  const recentSold = isRecord(parsed) && Array.isArray(parsed.recent_sold)
+
+  const recentSold = Array.isArray(parsed.recent_sold)
     ? parsed.recent_sold
         .filter(isRecord)
         .map((item) => ({
@@ -108,8 +106,9 @@ function parseSalesData(response: string): SalesData | null {
         }))
         .filter((item) => item.label || item.range)
     : [];
+
   const data = {
-    footer: isRecord(parsed) ? text(parsed.footer) : "",
+    footer: text(parsed.footer),
     recentSold,
     variants: displayVariants,
   };
@@ -159,7 +158,9 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
   }
   const selectedVariantIndex =
     selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
-  const activeVariantIndex = data.variants[selectedVariantIndex] ? selectedVariantIndex : 0;
+  const activeVariantIndex = data.variants[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
   const activeVariant = data.variants[activeVariantIndex];
 
   return (
@@ -191,9 +192,7 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                     />
                     <span>
                       <Layers3 aria-hidden="true" />
-                      <strong>
-                        {variant.title || cardName}
-                      </strong>
+                      <strong>{variant.title || cardName}</strong>
                     </span>
                   </label>
                 ))}
@@ -213,9 +212,7 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                       >
                         <span>{market.grade || "Grade unavailable"}</span>
                         <strong>{market.price || "~"}</strong>
-                        <Badge size="sm">
-                          {market.volume || "~"}
-                        </Badge>
+                        <Badge size="sm">{market.volume || "~"}</Badge>
                       </article>
                     ))}
                   </div>
