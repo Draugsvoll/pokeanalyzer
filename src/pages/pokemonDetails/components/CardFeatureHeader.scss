@@ -2,13 +2,14 @@
   display: grid;
   gap: 0.5rem;
   justify-items: center;
-  margin: 1.1rem 0 1.35rem;
+  margin: var(--space-4) 0 1.35rem;
+  margin-bottom: 0;
   text-align: center;
   width: 100%;
 
   button {
-    margin-top:1.0rem;
-    min-width:7rem;
+    margin-top: 0.5rem;
+    min-width: 7rem;
   }
 
   &__label {

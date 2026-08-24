@@ -39,9 +39,11 @@ export function SegmentedRadioGroup<T extends string>({
             key={option.value}
             className="segmented-radio-group__option"
             style={
-              {
-                "--segment-accent": getCustomColor(option.color ?? "blue"),
-              } as CSSProperties
+              option.color
+                ? ({
+                    "--segment-accent": getCustomColor(option.color),
+                  } as CSSProperties)
+                : undefined
             }
           >
             <input

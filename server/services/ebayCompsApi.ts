@@ -1,13 +1,24 @@
-export async function fetchEbayComps(query: string, signal?: AbortSignal) {
+export async function fetchEbayComps(
+  query: string,
+  signal?: AbortSignal,
+  options: { sold?: boolean } = {},
+) {
   const apiKey = process.env.EBAYCOMPS_API_KEY;
-  const api_url = process.env.EBAYCOMPS_API_URL || "https://api.sold-comps.com/v1/scrape";
+  const api_url =
+    process.env.EBAYCOMPS_API_URL || "https://api.sold-comps.com/v1/scrape";
   const api_param = process.env.EBAYCOMPS_API_PARAM || "keyword";
 
   if (!apiKey) {
     throw new Error("Missing EBAYCOMPS_API_KEY");
   }
 
-  const url = `${api_url}?${api_param}=${encodeURIComponent(query)}`;
+  const params = new URLSearchParams({
+    [api_param]: query,
+    count: "200",
+    page: "1",
+  });
+  if (options.sold === false) params.set("sold", "false");
+  const url = `${api_url}?${params.toString()}`;
 
   const res = await fetch(url, {
     headers: {

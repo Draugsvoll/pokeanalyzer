@@ -20,7 +20,6 @@ type CardFeatureHeaderProps = {
   actionLabel?: string;
   actionLoading?: boolean;
   actionDisabled?: boolean;
-  actionVisible?: boolean;
   onAction?: () => void;
 };
 
@@ -34,7 +33,6 @@ export function CardFeatureHeader({
   actionLabel,
   actionLoading,
   actionDisabled,
-  actionVisible = false,
   onAction,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
@@ -71,7 +69,7 @@ export function CardFeatureHeader({
           </div>
         )}
       </div>
-      {actionVisible && (
+      {onAction && (
         <Button
           fill="solid"
           fitContent
@@ -80,7 +78,7 @@ export function CardFeatureHeader({
           disabled={actionDisabled || actionLoading}
           aria-busy={actionLoading}
         >
-          {actionLoading ? "Loading..." : actionLabel ?? label}
+          {actionLoading ? "Loading..." : (actionLabel ?? label)}
         </Button>
       )}
     </header>

@@ -18,7 +18,10 @@ import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
 import { getSafeErrorDetails, logError } from "./security/logging.js";
-import { CreditHttpError, runPaidFeature } from "./subscriptions/creditService.js";
+import {
+  CreditHttpError,
+  runPaidFeature,
+} from "./subscriptions/creditService.js";
 import {
   attachRequestAbortSignal,
   getRequestAbortSignal,
@@ -89,24 +92,35 @@ const paidApiLimiter = rateLimit({
 });
 
 app.use((_req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'none'; frame-ancestors 'none'",
+  );
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   if (process.env.NODE_ENV === "production") {
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
   }
   next();
 });
-app.use(cors({
-  origin(origin, callback) {
-    callback(null, !origin || allowedOrigins.has(origin));
-  },
-  methods: ["DELETE", "GET", "PATCH", "POST", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type", "Stripe-Signature"],
-  maxAge: 86400,
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      callback(null, !origin || allowedOrigins.has(origin));
+    },
+    methods: ["DELETE", "GET", "PATCH", "POST", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "Stripe-Signature"],
+    maxAge: 86400,
+  }),
+);
 app.post(
   "/api/subscription/stripe/webhook",
   express.raw({ type: "application/json", limit: "256kb" }),
@@ -155,16 +169,30 @@ app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
         : undefined;
     const statusCode =
       typeof possibleStatusCode === "number" ? possibleStatusCode : 401;
-    const message = error instanceof Error ? error.message : "Authentication failed";
+    const message =
+      error instanceof Error ? error.message : "Authentication failed";
     res.status(statusCode).json({ message });
   }
 });
+
+function isCompleteEbayResponse(
+  value: Record<string, unknown> | null,
+): value is Record<string, unknown> & { active: object; sold: object } {
+  return Boolean(
+    value &&
+    value.active &&
+    typeof value.active === "object" &&
+    value.sold &&
+    typeof value.sold === "object",
+  );
+}
 
 app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   const signal = getRequestAbortSignal(res);
   try {
     const uid = getAuthenticatedUid(res);
-    const cardId = typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
+    const cardId =
+      typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
     if (!cardId || cardId.length > 100) {
       throw new CreditHttpError("A valid cardId is required", 400);
     }
@@ -178,7 +206,7 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
     if (!context || !context.cardNameAndSet) {
       throw new CreditHttpError("Card not found", 404);
     }
-    if (context.storedResponse) {
+    if (isCompleteEbayResponse(context.storedResponse)) {
       const storedResult = await runPaidFeature(
         uid,
         "ebay_sold",
@@ -200,8 +228,26 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
           context.cardNameAndSet,
           context.rarity,
           context.cardNumber,
-        ].filter(Boolean).join(" ");
-        const response = await fetchEbayComps(ebayQuery, signal);
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const [soldResult, activeResult] = await Promise.allSettled([
+          fetchEbayComps(ebayQuery, signal),
+          fetchEbayComps(ebayQuery, signal, { sold: false }),
+        ]);
+        if (
+          soldResult.status === "rejected" &&
+          activeResult.status === "rejected"
+        ) {
+          throw soldResult.reason;
+        }
+        const response = {
+          sold: soldResult.status === "fulfilled" ? soldResult.value : null,
+          active:
+            activeResult.status === "fulfilled" ? activeResult.value : null,
+        };
+        if (!isCompleteEbayResponse(response)) return response;
+
         const storedResponse = await saveCardGrokResponse(
           cardId,
           feature.storageKey,
@@ -219,10 +265,12 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   } catch (error) {
     if (isRequestAbort(error, signal)) return;
     logError("eBay request failed", error);
-    const statusCode = error instanceof CreditHttpError ? error.statusCode : 502;
-    const message = error instanceof CreditHttpError
-      ? error.message
-      : "Failed to fetch eBay sold listings";
+    const statusCode =
+      error instanceof CreditHttpError ? error.statusCode : 502;
+    const message =
+      error instanceof CreditHttpError
+        ? error.message
+        : "Failed to fetch eBay listings";
     res.status(statusCode).json({ error: message });
   }
 });
@@ -242,7 +290,9 @@ app.get("/api/cards", async (_req, res) => {
       LIMIT 10
       `,
     );
-    const cards = rows.map((row) => parsePublicStoredCard(String(row.raw_json)));
+    const cards = rows.map((row) =>
+      parsePublicStoredCard(String(row.raw_json)),
+    );
     res.json(cards);
   } catch (err) {
     logError("Failed to fetch cards", err);
@@ -250,33 +300,38 @@ app.get("/api/cards", async (_req, res) => {
   }
 });
 
-app.get("/api/justtcg-card", requireVerifiedUser, paidApiLimiter, async (req, res) => {
-  const signal = getRequestAbortSignal(res);
-  const name = typeof req.query.name === "string" ? req.query.name.trim() : "";
-  const number = typeof req.query.number === "string" ? req.query.number.trim() : "";
+app.get(
+  "/api/justtcg-card",
+  requireVerifiedUser,
+  paidApiLimiter,
+  async (req, res) => {
+    const signal = getRequestAbortSignal(res);
+    const name =
+      typeof req.query.name === "string" ? req.query.name.trim() : "";
+    const number =
+      typeof req.query.number === "string" ? req.query.number.trim() : "";
 
-  if (!name || !number) {
-    res.status(400).json({ message: "name and number are required" });
-    return;
-  }
+    if (!name || !number) {
+      res.status(400).json({ message: "name and number are required" });
+      return;
+    }
 
-  try {
-    const result = await fetchJustTcgCard(name, number, signal);
-    res.json(result);
-  } catch (error) {
-    if (isRequestAbort(error, signal)) return;
-    logError("JustTCG API request failed", error);
-    const statusCode = error instanceof JustTcgApiError && error.statusCode === 429
-      ? 429
-      : 502;
-    res.status(statusCode).json({ message: "JustTCG API request failed" });
-  }
-});
+    try {
+      const result = await fetchJustTcgCard(name, number, signal);
+      res.json(result);
+    } catch (error) {
+      if (isRequestAbort(error, signal)) return;
+      logError("JustTCG API request failed", error);
+      const statusCode =
+        error instanceof JustTcgApiError && error.statusCode === 429
+          ? 429
+          : 502;
+      res.status(statusCode).json({ message: "JustTCG API request failed" });
+    }
+  },
+);
 
-function registerJustTcgMoversRoute(
-  path: string,
-  category: JustTcgCategory,
-) {
+function registerJustTcgMoversRoute(path: string, category: JustTcgCategory) {
   app.get(path, async (req, res) => {
     const signal = getRequestAbortSignal(res);
     const periodCategory =
@@ -316,7 +371,9 @@ registerJustTcgMoversRoute(
 // SEARCH FUNCTION
 app.get("/api/cards/search", async (req, res) => {
   const pokemonName =
-    typeof req.query.pokemonName === "string" ? req.query.pokemonName.trim() : "";
+    typeof req.query.pokemonName === "string"
+      ? req.query.pokemonName.trim()
+      : "";
   const setName =
     typeof req.query.setName === "string" ? req.query.setName.trim() : "";
   const setSeries =
@@ -393,7 +450,9 @@ app.get("/api/cards/search", async (req, res) => {
 
   try {
     const rows = await dbAll<{ raw_json: string }>(sql, params);
-    const cards = rows.map((row) => parsePublicStoredCard(String(row.raw_json)));
+    const cards = rows.map((row) =>
+      parsePublicStoredCard(String(row.raw_json)),
+    );
     res.json(cards);
   } catch (err) {
     logError("Card search failed", err);
@@ -485,12 +544,14 @@ app.get("/api/cards/:id/price-history", async (req, res) => {
           String(row.recorded_at),
           "cardmarket",
         ),
-        tcgplayerUpdatedAt: row.tcgplayer_updated_at == null
-          ? null
-          : String(row.tcgplayer_updated_at),
-        cardmarketUpdatedAt: row.cardmarket_updated_at == null
-          ? null
-          : String(row.cardmarket_updated_at),
+        tcgplayerUpdatedAt:
+          row.tcgplayer_updated_at == null
+            ? null
+            : String(row.tcgplayer_updated_at),
+        cardmarketUpdatedAt:
+          row.cardmarket_updated_at == null
+            ? null
+            : String(row.cardmarket_updated_at),
       })),
     });
   } catch (err) {
@@ -510,8 +571,12 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   }
 
   logError("Unhandled request error", error);
-  const details = getSafeErrorDetails(error) as { status?: number; statusCode?: number };
-  const statusCode = details.status === 413 || details.statusCode === 413 ? 413 : 400;
+  const details = getSafeErrorDetails(error) as {
+    status?: number;
+    statusCode?: number;
+  };
+  const statusCode =
+    details.status === 413 || details.statusCode === 413 ? 413 : 400;
   res.status(statusCode).json({
     error: statusCode === 413 ? "Request body is too large" : "Invalid request",
   });

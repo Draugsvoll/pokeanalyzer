@@ -58,7 +58,7 @@ export function getEbayCompsQuery(card: {
 
 export function getVisibleEbayCompResults(
   data: EbayCompsResponse,
-  limit = 250
+  limit = 250,
 ): EbayCompResult[] {
   return getEbayCompsCards(data)
     .slice(0, limit)
@@ -75,7 +75,7 @@ export function getVisibleEbayCompResults(
           .filter(
             ([key]) =>
               key !== "thumbnailUrl" &&
-              !HIDDEN_EBAY_COMP_FIELDS.has(key.toLowerCase())
+              !HIDDEN_EBAY_COMP_FIELDS.has(key.toLowerCase()),
           )
           .map(([key, value]) => ({
             key,

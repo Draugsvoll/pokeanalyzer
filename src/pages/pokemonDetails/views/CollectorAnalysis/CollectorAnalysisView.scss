@@ -13,7 +13,7 @@
 
   box-sizing: border-box;
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   margin: 0;
   max-width: 100%;
   width: 100%;
@@ -30,7 +30,7 @@
 
   &__content {
     display: grid;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   &__summary {
@@ -80,9 +80,18 @@
       var(--animation-ease-standard) forwards;
     background: conic-gradient(
       from -90deg,
-      color-mix(in srgb, var(--collector-accent) 82%, var(--font-color-secondary)) 0,
+      color-mix(
+          in srgb,
+          var(--collector-accent) 82%,
+          var(--font-color-secondary)
+        )
+        0,
       var(--collector-accent) calc(var(--score-progress) * 0.56%),
-      color-mix(in srgb, var(--collector-accent) 82%, var(--font-color-secondary))
+      color-mix(
+          in srgb,
+          var(--collector-accent) 82%,
+          var(--font-color-secondary)
+        )
         calc(var(--score-progress) * 1%),
       color-mix(in srgb, var(--font-color-primary) 7%, transparent) 0
     );
@@ -196,22 +205,13 @@
 
   &__categories {
     display: grid;
-    gap: 0.8rem;
+    gap: var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   &__category {
     min-width: 0;
-    transition: border-color var(--delay-short) ease;
     -webkit-backdrop-filter: blur(16px) saturate(115%);
-
-    &:hover {
-      border-color: color-mix(
-        in srgb,
-        var(--collector-accent) 32%,
-        transparent
-      );
-    }
 
     &:last-child:nth-child(odd) {
       grid-column: 1 / -1;
@@ -263,12 +263,11 @@
   }
 
   &__bar {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--font-color-primary) 5%, transparent),
-        color-mix(in srgb, var(--font-color-primary) 3%, transparent)
-      );
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--font-color-primary) 5%, transparent),
+      color-mix(in srgb, var(--font-color-primary) 3%, transparent)
+    );
     border-radius: var(--border-radius-pill);
     height: 0.42rem;
     margin-top: 0.8rem;
@@ -284,7 +283,11 @@
         linear-gradient(
           90deg,
           color-mix(in srgb, var(--collector-accent) 46%, var(--bg2)),
-          color-mix(in srgb, var(--collector-accent) 72%, var(--font-color-secondary))
+          color-mix(
+            in srgb,
+            var(--collector-accent) 72%,
+            var(--font-color-secondary)
+          )
         );
       border-radius: var(--border-radius-pill);
       box-shadow: none;

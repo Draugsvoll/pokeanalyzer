@@ -8,30 +8,8 @@
 
   &__surface {
     display: grid;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-  }
-
-  &__summary-bar {
-    align-items: center;
-    border-top: 1px solid var(--border-divider);
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-    padding-top: 0.9rem;
-
-    span {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-medium);
-    }
-
-    strong {
-      color: var(--font-color-secondary);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-semibold);
-      white-space: nowrap;
-    }
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
   }
 
   &__state {
@@ -40,8 +18,16 @@
     text-align: center;
   }
 
+  &__listing-toggle {
+    --segment-group-accent: var(--ebay-accent);
+    display: flex;
+    justify-self: center;
+    width: fit-content;
+    margin: 0.6rem;
+  }
+
   &__filter-row {
-    align-items: start;
+    align-items: end;
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -51,19 +37,13 @@
     align-items: end;
     display: flex;
     flex: 1 1 auto;
-    flex-wrap: wrap;
-    gap: 1.25rem;
+    gap: 2.25rem;
     min-width: 0;
-  }
-
-  &__sort-panel {
-    margin-left: auto;
-    min-width: 10rem;
   }
 
   &__sorting {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.3rem;
     justify-content: end;
 
     > span {
@@ -83,7 +63,8 @@
       color: var(--font-color-muted);
       font-size: var(--font-size-caption);
       font-weight: var(--font-weight-medium);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.3rem;
+      padding-left:0.4rem;
     }
 
     > div {
@@ -137,9 +118,15 @@
     }
   }
 
+  &__filters.feature-variant-radio-group.feature-variant-radio-group
+    label
+    > span {
+    min-width: 4rem;
+  }
+
   &__results {
     display: grid;
-    gap: 1.25rem;
+    gap: 0.85rem;
   }
 
   &__results-region {
@@ -217,12 +204,22 @@
     border-radius: var(--border-radius);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
     display: grid;
-    gap: 1.25rem;
-    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.9rem;
+    grid-template-columns: 5rem minmax(0, 1fr);
     overflow: hidden;
-    padding: 1.7rem;
+    padding: 0.6rem 1.3rem;
     position: relative;
     text-align: left;
+    align-items: center;
+
+    cursor: pointer;
+
+    &.card-hover:hover {
+      background: var(--surface2);
+      border-color: var(--border-divider);
+      box-shadow: none;
+      transform: none;
+    }
   }
 
   &__visual {
@@ -237,14 +234,18 @@
     border-radius: var(--border-radius);
     overflow: hidden;
     position: relative;
-    width: fit-content;
+    height: 4.5rem;
+    width: 5rem;
 
     > img {
       display: block;
-      max-height: 9.5rem;
-      max-width: 8rem;
+      height: 100%;
+      margin: 0 auto;
+      max-height: 4.5rem;
+      max-width: 4.5rem;
       object-fit: contain;
-      width: auto;
+      object-position: center;
+      width: 100%;
     }
 
     > svg {
@@ -277,6 +278,9 @@
       color: var(--font-color-primary);
       font-size: 1.1rem;
       font-weight: var(--font-weight-medium);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
@@ -284,18 +288,18 @@
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 0.65rem;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
   }
 
   &__sold-date {
     align-items: center;
     color: var(--font-color-muted);
     display: inline-flex;
-    font-size: var(--font-size-label);
+    font-size: var(--font-size-paragraph-sm);
     font-weight: var(--font-weight-medium);
-    gap: 0.35rem;
-    padding: 0.3rem 0;
+    gap: 0.5rem;
+    padding: 0;
 
     svg {
       color: currentColor;
@@ -351,96 +355,7 @@
     gap: 0.4rem;
   }
 
-  &__details {
-    display: grid;
-    gap: 0.65rem 0.25rem;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-top: 0.4rem;
-    padding: 0.85rem 0;
-
-    > div {
-      color: var(--ebay-accent);
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    /* Label + value stack: keep label→value tight */
-    span {
-      color: var(--font-color-muted);
-      display: flex;
-      flex-direction: column;
-      font-size: var(--font-size-paragraph-sm);
-      gap: 0.15rem;
-      line-height: var(--font-leading-tight);
-      max-width: 100%;
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    /*
-     * Ellipsis only works on block/inline-block (not flex).
-     * Icon stays inline next to the text inside <strong>.
-     */
-    strong {
-      display: block;
-      line-height: var(--font-leading-snug);
-      max-width: 100%;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-
-      svg {
-        color: var(--ebay-accent);
-        display: inline-block;
-        height: 0.95rem;
-        margin-right: 0.1rem;
-        vertical-align: -0.15em;
-        width: 0.95rem;
-      }
-    }
-  }
-
-  &__extra-fields {
-    display: grid;
-    gap: 0.45rem 1rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin: 0.85rem 0 0;
-
-    > div {
-      display: grid;
-      gap: 0.15rem;
-    }
-
-    dt {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-label);
-      font-weight: var(--font-weight-medium);
-      text-transform: capitalize;
-    }
-
-    dd {
-      color: var(--font-color-secondary);
-      font-size: var(--font-size-value);
-      margin: 0;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
   @media (max-width: 48rem) {
-    &__result {
-      grid-template-columns: max-content minmax(0, 1fr);
-    }
-    &__media {
-      min-height: 7rem;
-    }
-    &__media > img {
-      height: 7rem;
-      max-width: 10rem;
-    }
     &__header {
       flex-direction: column;
       gap: 0.8rem;
@@ -448,9 +363,6 @@
     &__price {
       align-items: flex-start;
       text-align: left;
-    }
-    &__details {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
@@ -467,26 +379,6 @@
     &__filter-groups {
       align-items: stretch;
       flex-direction: column;
-    }
-
-    &__sort-panel {
-      margin-left: 0;
-    }
-
-    &__result {
-      grid-template-columns: 1fr;
-    }
-    &__media {
-      min-height: 12rem;
-    }
-    &__media > img {
-      height: auto;
-      max-width: 100%;
-      width: 100%;
-    }
-    &__details,
-    &__extra-fields {
-      grid-template-columns: 1fr;
     }
   }
 }

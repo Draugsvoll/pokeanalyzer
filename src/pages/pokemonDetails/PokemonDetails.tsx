@@ -748,8 +748,8 @@ function PokemonDetailsForCard() {
   const activeFeatureHasResponse =
     activeView === "prices"
       ? Boolean(
-          currentGrokResponse ||
-          currentJustTcgResult ||
+          currentGrokResponse &&
+          currentJustTcgResult &&
           currentMarketSalesResponse,
         )
       : activeView === "ebay_sold"
@@ -1108,32 +1108,32 @@ function PokemonDetailsForCard() {
         >
           {activeFeature && activeView !== "empty_view" && (
             <div
-              key={activeView}
               className="card-view__active-feature ui-render-fade"
               style={getCustomColors(activeFeature.color)}
             >
-              <CardFeatureHeader
-                card={card}
-                cardNumber={
-                  activeView === "prices" ? displayedCardNumber : undefined
-                }
-                color={activeFeature.color}
-                icon={activeFeature.icon}
-                label={activeFeature.title}
-                loading={
-                  grokLoading ||
-                  (activeView === "prices" &&
-                    (justTcgLoading || marketSalesLoading)) ||
-                  (activeView === "ebay_sold" && ebayLoading)
-                }
-                actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
-                actionLoading={isActiveFeatureLoading}
-                actionDisabled={activeFeatureActionDisabled}
-                actionVisible={!activeFeatureHasResponse}
-                onAction={() => void handleGenerateFeature(activeFeature)}
-              />
+              {!activeFeatureHasResponse && (
+                <CardFeatureHeader
+                  card={card}
+                  cardNumber={
+                    activeView === "prices" ? displayedCardNumber : undefined
+                  }
+                  color={activeFeature.color}
+                  icon={activeFeature.icon}
+                  label={activeFeature.title}
+                  loading={
+                    grokLoading ||
+                    (activeView === "prices" &&
+                      (justTcgLoading || marketSalesLoading)) ||
+                    (activeView === "ebay_sold" && ebayLoading)
+                  }
+                  actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
+                  actionLoading={isActiveFeatureLoading}
+                  actionDisabled={activeFeatureActionDisabled}
+                  onAction={() => void handleGenerateFeature(activeFeature)}
+                />
+              )}
               <div className="card-view__active-body">
-                {activeView === "ebay_sold" && (
+                <div hidden={activeView !== "ebay_sold"}>
                   <EbaySoldView
                     card={card}
                     runToken={currentEbayRunToken}
@@ -1141,7 +1141,7 @@ function PokemonDetailsForCard() {
                     onLoadingChange={setEbayLoading}
                     onReportAvailableChange={handleEbayReportAvailableChange}
                   />
-                )}
+                </div>
                 {activeView === "prices" && (
                   <PriceAnalysis
                     card={card}

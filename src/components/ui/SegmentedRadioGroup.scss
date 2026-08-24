@@ -1,4 +1,6 @@
 .segmented-radio-group {
+  --segment-group-accent: var(--custom-color-blue);
+
   align-items: center;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border-divider);
@@ -11,7 +13,7 @@
 }
 
 .segmented-radio-group__option {
-  --segment-accent: var(--custom-color-blue);
+  --segment-accent: var(--segment-group-accent);
 
   cursor: pointer;
   display: inline-flex;
@@ -59,11 +61,8 @@
 .segmented-radio-group__option input:checked + span::after {
   background: var(--segment-accent);
   bottom: 0.2rem;
-  box-shadow: 0 0 0.65rem color-mix(
-    in srgb,
-    var(--segment-accent) 50%,
-    transparent
-  );
+  box-shadow: 0 0 0.65rem
+    color-mix(in srgb, var(--segment-accent) 50%, transparent);
   content: "";
   height: 2px;
   left: 1rem;
