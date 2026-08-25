@@ -78,6 +78,8 @@
     color: var(--font-color-secondary);
     font-size: var(--font-size-paragraph-sm);
     font-weight: var(--font-weight-semibold);
+    width: fit-content;
+    margin: auto;
   }
 
   strong {
@@ -89,6 +91,7 @@
     letter-spacing: var(--font-tracking-tight);
     line-height: var(--font-leading-snug);
     overflow-wrap: anywhere;
+    text-align: center;
   }
 }
 

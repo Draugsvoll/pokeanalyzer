@@ -19,7 +19,7 @@ import type {
   PortfolioPriceSource,
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
-import { formatCardNumber } from "../../utils/formatCardNumber";
+import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
@@ -331,15 +331,14 @@ export function PokemonCardView({
               condition: optionConditionLabel,
               printing: optionPrinting,
               setName: optionSetName,
-            } =
-              option.source === "justtcg"
-                ? getJustTcgOptionLabelParts(option)
-                : {
-                    condition:
-                      option.conditionShortLabel ?? option.conditionLabel ?? "",
-                    printing: "",
-                    setName: "",
-                  };
+            } = option.source === "justtcg"
+              ? getJustTcgOptionLabelParts(option)
+              : {
+                  condition:
+                    option.conditionShortLabel ?? option.conditionLabel ?? "",
+                  printing: "",
+                  setName: "",
+                };
             const justTcgLabelKey = [
               optionPrinting,
               optionSetName,
@@ -663,10 +662,8 @@ export function PokemonCardPortfolioView({
   onPortfolioChanged,
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
-  const {
-    updatePokemonPriceSource,
-    updatePokemonQuantity,
-  } = usePokemonPortfolio();
+  const { updatePokemonPriceSource, updatePokemonQuantity } =
+    usePokemonPortfolio();
   const resolvedPriceOption = resolvePortfolioCardPriceOption(card, "all");
   const activePriceSource: PortfolioPriceSource =
     resolvedPriceOption?.source ?? "justtcg";

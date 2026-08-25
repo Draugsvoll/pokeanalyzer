@@ -5,7 +5,7 @@ import {
   type CustomColors,
 } from "../../../utils/customStylings";
 import Button from "../../../components/button/Button";
-import { formatCardNumber } from "../../../utils/formatCardNumber";
+import { formatCardNumber } from "../../../../shared/formatCardNumber";
 import "./CardFeatureHeader.scss";
 
 export const CARD_FEATURE_HEADER_ACTION_LABEL = "Open";
@@ -16,10 +16,10 @@ type CardFeatureHeaderProps = {
   color: CustomColors;
   icon: LucideIcon;
   label: string;
-  loading?: boolean;
   actionLabel?: string;
   actionLoading?: boolean;
   actionDisabled?: boolean;
+  actionHidden?: boolean;
   onAction?: () => void;
 };
 
@@ -29,10 +29,10 @@ export function CardFeatureHeader({
   color,
   icon: Icon,
   label,
-  loading,
   actionLabel,
   actionLoading,
   actionDisabled,
+  actionHidden,
   onAction,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
@@ -49,11 +49,7 @@ export function CardFeatureHeader({
       style={getCustomColors(color)}
     >
       <span className="card-feature-header__label">
-        {loading ? (
-          <span className="card-feature-header__spinner" aria-hidden="true" />
-        ) : (
-          <Icon aria-hidden="true" />
-        )}
+        <Icon aria-hidden="true" />
         {label}
       </span>
       <div className="card-feature-header__identity">
@@ -69,17 +65,26 @@ export function CardFeatureHeader({
           </div>
         )}
       </div>
-      {onAction && (
-        <Button
-          fill="solid"
-          fitContent
-          style={getCustomColors(color)}
-          onClick={onAction}
-          disabled={actionDisabled || actionLoading}
-          aria-busy={actionLoading}
-        >
-          {actionLoading ? "Loading..." : (actionLabel ?? label)}
-        </Button>
+      {onAction && !actionHidden && (
+        <div className="card-feature-header__action">
+          <Button
+            fill="solid"
+            fitContent
+            style={getCustomColors(color)}
+            onClick={onAction}
+            disabled={actionDisabled || actionLoading}
+            aria-busy={actionLoading}
+            aria-label={
+              actionLoading ? `Loading ${actionLabel ?? label}` : undefined
+            }
+          >
+            {actionLoading ? (
+              <span className="app-btn__spinner" aria-hidden="true" />
+            ) : (
+              (actionLabel ?? label)
+            )}
+          </Button>
+        </div>
       )}
     </header>
   );

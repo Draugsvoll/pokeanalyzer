@@ -68,7 +68,7 @@ import {
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
-import { formatCardNumber } from "../../utils/formatCardNumber";
+import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 
@@ -1111,27 +1111,20 @@ function PokemonDetailsForCard() {
               className="card-view__active-feature ui-render-fade"
               style={getCustomColors(activeFeature.color)}
             >
-              {!activeFeatureHasResponse && (
-                <CardFeatureHeader
-                  card={card}
-                  cardNumber={
-                    activeView === "prices" ? displayedCardNumber : undefined
-                  }
-                  color={activeFeature.color}
-                  icon={activeFeature.icon}
-                  label={activeFeature.title}
-                  loading={
-                    grokLoading ||
-                    (activeView === "prices" &&
-                      (justTcgLoading || marketSalesLoading)) ||
-                    (activeView === "ebay_sold" && ebayLoading)
-                  }
-                  actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
-                  actionLoading={isActiveFeatureLoading}
-                  actionDisabled={activeFeatureActionDisabled}
-                  onAction={() => void handleGenerateFeature(activeFeature)}
-                />
-              )}
+              <CardFeatureHeader
+                card={card}
+                cardNumber={
+                  activeView === "prices" ? displayedCardNumber : undefined
+                }
+                color={activeFeature.color}
+                icon={activeFeature.icon}
+                label={activeFeature.title}
+                actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
+                actionLoading={isActiveFeatureLoading}
+                actionDisabled={activeFeatureActionDisabled}
+                actionHidden={activeFeatureHasResponse}
+                onAction={() => void handleGenerateFeature(activeFeature)}
+              />
               <div className="card-view__active-body">
                 <div hidden={activeView !== "ebay_sold"}>
                   <EbaySoldView

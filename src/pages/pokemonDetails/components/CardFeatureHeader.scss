@@ -7,11 +7,6 @@
   text-align: center;
   width: 100%;
 
-  button {
-    margin-top: 0.5rem;
-    min-width: 7rem;
-  }
-
   &__label {
     align-items: center;
     color: var(--feature-accent);
@@ -29,15 +24,15 @@
     }
   }
 
-  &__spinner {
-    animation: card-feature-header-spin 0.75s linear infinite;
-    border: 2px solid color-mix(in srgb, var(--feature-accent) 22%, transparent);
-    border-radius: 50%;
-    border-top-color: var(--feature-accent);
-    display: inline-block;
-    flex: 0 0 auto;
-    height: 0.85rem;
-    width: 0.85rem;
+  &__action {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+    width: 100%;
+
+    button {
+      min-width: 7rem;
+    }
   }
 
   &__identity {
@@ -92,11 +87,5 @@
     font-size: inherit;
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-medium);
-  }
-}
-
-@keyframes card-feature-header-spin {
-  to {
-    transform: rotate(360deg);
   }
 }

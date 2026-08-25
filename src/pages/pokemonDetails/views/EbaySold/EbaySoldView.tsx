@@ -239,7 +239,7 @@ function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                {isActive ? "Buy" : "View listing"}{" "}
+                {isActive ? "Buy" : "View sale"}{" "}
                 <ExternalLink aria-hidden="true" />
               </a>
             )}
@@ -619,7 +619,15 @@ export default function EbaySoldView({
         if (!signal.aborted) {
           const responseData = data.data as EbayCompsResponse;
           setResponse(responseData);
-          onReportAvailableChange?.(true);
+          const hasCompleteResponse =
+            responseData &&
+            typeof responseData === "object" &&
+            !Array.isArray(responseData) &&
+            "sold" in responseData &&
+            "active" in responseData &&
+            Boolean(responseData.sold) &&
+            Boolean(responseData.active);
+          onReportAvailableChange?.(Boolean(hasCompleteResponse));
         }
       } catch (requestError) {
         if (isAbortError(requestError)) return;
@@ -667,6 +675,9 @@ export default function EbaySoldView({
           active?: EbayCompsResponse;
         })
       : null;
+  const selectedResponseUnavailable = Boolean(
+    splitResponse && !splitResponse[listingTypeFilter],
+  );
   const results = splitResponse
     ? getVisibleEbayCompResults(splitResponse[listingTypeFilter])
     : listingTypeFilter === "sold"
@@ -749,7 +760,7 @@ export default function EbaySoldView({
   }
 
   return (
-    <div className="ebay-sold-view ui-render-fade">
+    <div className="ebay-sold-view default-container ui-render-fade">
       <div className="ebay-sold-view__surface">
         <SegmentedRadioGroup
           ariaLabel="eBay listing type"
@@ -757,12 +768,12 @@ export default function EbaySoldView({
           name="ebay-listing-type"
           onChange={handleListingTypeChange}
           options={[
-            { label: "Sales", value: "sold" },
+            { label: "Sold", value: "sold" },
             { label: "Listings", value: "active" },
           ]}
           value={listingTypeFilter}
         />
-        <div className="ebay-sold-view__filter-row default-container">
+        <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__filter-groups">
             <fieldset className="ebay-sold-view__filters feature-variant-radio-group">
               <legend>Grade</legend>
@@ -834,12 +845,17 @@ export default function EbaySoldView({
           </div>
         )}
         <>
-          {visibleResults.length === 0 && (
+          {selectedResponseUnavailable ? (
+            <p className="ebay-sold-view__state">
+              Could not fetch eBay{" "}
+              {listingTypeFilter === "sold" ? "sales" : "listings"}.
+            </p>
+          ) : visibleResults.length === 0 ? (
             <p className="ebay-sold-view__state">
               No matching eBay{" "}
               {listingTypeFilter === "sold" ? "sales" : "listings"} found.
             </p>
-          )}
+          ) : null}
           <div
             className="ebay-sold-view__results ui-render-fade"
             key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedVariantFilter}-${sortOrder}`}

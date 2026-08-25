@@ -64,7 +64,7 @@
       font-size: var(--font-size-caption);
       font-weight: var(--font-weight-medium);
       margin-bottom: 0.3rem;
-      padding-left:0.4rem;
+      padding-left: 0.4rem;
     }
 
     > div {
@@ -180,10 +180,12 @@
     font-weight: var(--font-weight-semibold);
     gap: 0.35rem;
     padding: 0;
+    margin-top: 1rem;
 
     svg {
       height: 0.9rem;
       width: 0.9rem;
+      margin-top: 0.18rem;
     }
 
     &:hover,
@@ -215,10 +217,16 @@
     cursor: pointer;
 
     &.card-hover:hover {
-      background: var(--surface2);
+      background-color: var(--surface2);
       border-color: var(--border-divider);
       box-shadow: none;
       transform: none;
+    }
+
+    &.card-hover {
+      transition:
+        background-color var(--delay-short) ease,
+        border-color var(--delay-short) ease;
     }
   }
 
@@ -305,6 +313,7 @@
       color: currentColor;
       height: 0.85rem;
       width: 0.85rem;
+      margin-right: -0.18rem;
     }
   }
 

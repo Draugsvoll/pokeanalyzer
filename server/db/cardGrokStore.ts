@@ -1,4 +1,8 @@
 import { dbGet, dbRun } from "./db.js";
+import {
+  formatCardNumber,
+  formatUnpaddedCardNumber,
+} from "../../shared/formatCardNumber.js";
 
 type JsonObject = Record<string, unknown>;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -14,9 +18,7 @@ function parseJsonObject(value: string): JsonObject | null {
 
 function parseJsonValue(value: string): unknown {
   try {
-    return JSON.parse(
-      value.replace(/^```(?:json)?\s*|\s*```$/gi, ""),
-    );
+    return JSON.parse(value.replace(/^```(?:json)?\s*|\s*```$/gi, ""));
   } catch {
     return null;
   }
@@ -76,6 +78,11 @@ export async function getCardGrokContext(
       : typeof rawCardNumber === "number" && Number.isFinite(rawCardNumber)
         ? String(rawCardNumber)
         : "";
+  const rawPrintedTotal = set?.printedTotal;
+  const printedTotal =
+    typeof rawPrintedTotal === "number" && Number.isFinite(rawPrintedTotal)
+      ? rawPrintedTotal
+      : undefined;
 
   return {
     cardName,
@@ -84,6 +91,14 @@ export async function getCardGrokContext(
       .filter(Boolean)
       .join(" "),
     cardNumber,
+    formattedCardNumber:
+      formatCardNumber({ number: cardNumber, set: { printedTotal } }) ??
+      cardNumber,
+    unpaddedCardNumber:
+      formatUnpaddedCardNumber({
+        number: cardNumber,
+        set: { printedTotal },
+      }) ?? cardNumber,
     rarity,
     setName,
     storedResponse: getFreshFeatureResponse(card, storageKey, reuseDays),
@@ -99,12 +114,12 @@ export async function saveCardGrokResponse(
     typeof response === "string" ? parseJsonValue(response) : null;
   const parsedResponse =
     typeof response === "string"
-        ? isJsonObject(parsedStringResponse)
-          ? parsedStringResponse
-          : null
-        : isJsonObject(response)
-          ? response
-          : null;
+      ? isJsonObject(parsedStringResponse)
+        ? parsedStringResponse
+        : null
+      : isJsonObject(response)
+        ? response
+        : null;
   if (!parsedResponse) return null;
 
   const storedResponse = {

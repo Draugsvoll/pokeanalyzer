@@ -8,7 +8,11 @@ import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
-import { fetchEbayComps } from "./services/ebayCompsApi.js";
+import {
+  buildEbayCardRequests,
+  fetchEbayComps,
+  filterEbayCompsResponseByTitle,
+} from "./services/ebayCompsApi.js";
 import {
   fetchJustTcgCard,
   type JustTcgMovementPeriod,
@@ -207,10 +211,21 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
       throw new CreditHttpError("Card not found", 404);
     }
     if (isCompleteEbayResponse(context.storedResponse)) {
+      const storedResponse = {
+        ...context.storedResponse,
+        active: filterEbayCompsResponseByTitle(
+          context.storedResponse.active,
+          context.cardName,
+        ),
+        sold: filterEbayCompsResponseByTitle(
+          context.storedResponse.sold,
+          context.cardName,
+        ),
+      };
       const storedResult = await runPaidFeature(
         uid,
         "ebay_sold",
-        async () => context.storedResponse,
+        async () => storedResponse,
         signal,
       );
       res.json({
@@ -224,16 +239,11 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
       uid,
       "ebay_sold",
       async () => {
-        const ebayQuery = [
-          context.cardNameAndSet,
-          context.rarity,
-          context.cardNumber,
-        ]
-          .filter(Boolean)
-          .join(" ");
+        const { query, soldOptions, activeOptions } =
+          buildEbayCardRequests(context);
         const [soldResult, activeResult] = await Promise.allSettled([
-          fetchEbayComps(ebayQuery, signal),
-          fetchEbayComps(ebayQuery, signal, { sold: false }),
+          fetchEbayComps(query, signal, soldOptions),
+          fetchEbayComps(query, signal, activeOptions),
         ]);
         if (
           soldResult.status === "rejected" &&
@@ -407,7 +417,7 @@ app.get("/api/cards/search", async (req, res) => {
   }
 
   if (cardNumber) {
-    conditions.push("number = ?");
+    conditions.push("number = ? COLLATE NOCASE");
     params.push(cardNumber);
   }
 
