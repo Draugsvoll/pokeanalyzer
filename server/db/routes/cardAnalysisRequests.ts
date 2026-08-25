@@ -49,6 +49,8 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       buildUserInput: (context) =>
         collectorsAnalysisInput(context.cardPromptIdentity),
       grokOptions: {
+        model: "grok-4.5",
+        reasoningEffort: "medium",
         useCodeInterpreter: true,
       },
       instructions: collectorsAnalysisInstructions,

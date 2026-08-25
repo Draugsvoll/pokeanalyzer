@@ -142,7 +142,11 @@
   background: var(--trend-accent);
   border-radius: var(--border-radius-round);
   box-shadow: 0 0 var(--glow-dot-shadow-size)
-    color-mix(in srgb, var(--trend-accent) var(--glow-dot-shadow-strength), transparent);
+    color-mix(
+      in srgb,
+      var(--trend-accent) var(--glow-dot-shadow-strength),
+      transparent
+    );
   content: "";
   flex: 0 0 var(--glow-dot-size);
   height: var(--glow-dot-size);
@@ -150,12 +154,19 @@
 }
 
 .general-news__link {
+  align-items: center;
   color: var(--trend-accent);
   display: inline-flex;
   font-size: var(--font-size-paragraph-sm);
   font-weight: var(--font-weight-semibold);
+  gap: 0.3rem;
   margin-top: 1rem;
   text-decoration: none;
+
+  svg {
+    height: 0.875rem;
+    width: 0.875rem;
+  }
 
   &:hover {
     text-decoration: underline;

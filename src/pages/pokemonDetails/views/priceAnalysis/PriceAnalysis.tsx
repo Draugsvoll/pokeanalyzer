@@ -51,7 +51,9 @@ function formatAmount(amount: number, currency: string | null): string {
   }
 }
 
-function getMoney(value: unknown): { amount: string; condition: string | null } | null {
+function getMoney(
+  value: unknown,
+): { amount: string; condition: string | null } | null {
   if (!isRecord(value)) return null;
 
   const amount = number(value.value);
@@ -75,11 +77,14 @@ function PriceField({ label, value }: { label: string; value: unknown }) {
   );
 }
 
-function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokRequest">) {
+function GrokPriceAnalysis({
+  grokRequest,
+}: Pick<PriceAnalysisProps, "grokRequest">) {
   const { loading, error, response } = grokRequest;
 
   if (loading) return <LoadingState>Researching sources...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (error)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const parsed = parseJsonText(response);
@@ -98,86 +103,126 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
         <div>
           <h2 className="app-subheader">Other</h2>
           <div className="grok-price-analysis__markets">
-          {marketData.map((market, index) => {
-            const source = text(market.source);
-            const region = text(market.region);
-            const notes = text(market.notes);
-            const url = text(market.url);
-            const recentSales = isRecord(market.recent_near_mint_sales)
-              ? market.recent_near_mint_sales
-              : null;
-            const range = recentSales && isRecord(recentSales.range)
-              ? recentSales.range
-              : null;
-            const sales = recentSales && Array.isArray(recentSales.sales)
-              ? recentSales.sales.filter((sale): sale is number => number(sale) !== null)
-              : [];
-            const salesCurrency = recentSales ? text(recentSales.currency) : null;
-            const rangeMin = range ? number(range.min) : null;
-            const rangeMax = range ? number(range.max) : null;
-            const sourceKey = source?.toLowerCase() ?? "";
-            const tone = sourceKey.includes("tcgplayer")
-              ? "orange"
-              : sourceKey.includes("cardmarket")
-                ? "green"
-                : sourceKey.includes("pricecharting")
-                  ? "violet"
-                  : "blue";
-            const SourceIcon = sourceKey.includes("tcgplayer")
-              ? Store
-              : sourceKey.includes("cardmarket")
-                ? Globe2
-                : sourceKey.includes("pricecharting")
-                  ? ChartLine
-                  : Search;
+            {marketData.map((market, index) => {
+              const source = text(market.source);
+              const region = text(market.region);
+              const notes = text(market.notes);
+              const url = text(market.url);
+              const recentSales = isRecord(market.recent_near_mint_sales)
+                ? market.recent_near_mint_sales
+                : null;
+              const range =
+                recentSales && isRecord(recentSales.range)
+                  ? recentSales.range
+                  : null;
+              const sales =
+                recentSales && Array.isArray(recentSales.sales)
+                  ? recentSales.sales.filter(
+                      (sale): sale is number => number(sale) !== null,
+                    )
+                  : [];
+              const salesCurrency = recentSales
+                ? text(recentSales.currency)
+                : null;
+              const rangeMin = range ? number(range.min) : null;
+              const rangeMax = range ? number(range.max) : null;
+              const sourceKey = source?.toLowerCase() ?? "";
+              const tone = sourceKey.includes("tcgplayer")
+                ? "orange"
+                : sourceKey.includes("cardmarket")
+                  ? "green"
+                  : sourceKey.includes("pricecharting")
+                    ? "violet"
+                    : "blue";
+              const SourceIcon = sourceKey.includes("tcgplayer")
+                ? Store
+                : sourceKey.includes("cardmarket")
+                  ? Globe2
+                  : sourceKey.includes("pricecharting")
+                    ? ChartLine
+                    : Search;
 
-            return (
-              <article
-                className={`grok-price-analysis__market grok-price-analysis__market--${tone} default-container`}
-                key={`${source ?? "source"}-${index}`}
-              >
-                {(source || region) && (
-                  <div className="grok-price-analysis__source">
-                    <span><SourceIcon aria-hidden="true" /></span>
-                    <div>
-                      {source && <h3>{source}</h3>}
-                      {region && <small>{region}</small>}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grok-price-analysis__price-details">
-                  <div className="grok-price-analysis__prices">
-                    <PriceField label="Market price" value={market.market_price} />
-                    <PriceField label="Lowest listing" value={market.lowest_listing} />
-                    <PriceField label="Most recent sale" value={market.most_recent_sale} />
-                    <PriceField label="Near Mint listing" value={market.near_mint_listing} />
-                    <PriceField label="Excellent listing" value={market.excellent_listing} />
-                    <PriceField label="Lowest playable listing" value={market.lowest_playable_listing} />
-                  </div>
-
-                  {rangeMin !== null && rangeMax !== null && (
-                    <div className="grok-price-analysis__range">
-                      <span>Recent Near Mint sales range</span>
-                      <strong>{formatAmount(rangeMin, salesCurrency)} – {formatAmount(rangeMax, salesCurrency)}</strong>
+              return (
+                <article
+                  className={`grok-price-analysis__market grok-price-analysis__market--${tone} default-container`}
+                  key={`${source ?? "source"}-${index}`}
+                >
+                  {(source || region) && (
+                    <div className="grok-price-analysis__source">
+                      <span>
+                        <SourceIcon aria-hidden="true" />
+                      </span>
+                      <div>
+                        {source && <h3>{source}</h3>}
+                        {region && <small>{region}</small>}
+                      </div>
                     </div>
                   )}
 
-                  {sales.length > 0 && (
-                    <div className="grok-price-analysis__sales">
-                      <span>Recent sales</span>
-                      <div>{sales.map((sale, saleIndex) => (
-                        <strong key={`${sale}-${saleIndex}`}>{formatAmount(sale, salesCurrency)}</strong>
-                      ))}</div>
+                  <div className="grok-price-analysis__price-details">
+                    <div className="grok-price-analysis__prices">
+                      <PriceField
+                        label="Market price"
+                        value={market.market_price}
+                      />
+                      <PriceField
+                        label="Lowest listing"
+                        value={market.lowest_listing}
+                      />
+                      <PriceField
+                        label="Most recent sale"
+                        value={market.most_recent_sale}
+                      />
+                      <PriceField
+                        label="Near Mint listing"
+                        value={market.near_mint_listing}
+                      />
+                      <PriceField
+                        label="Excellent listing"
+                        value={market.excellent_listing}
+                      />
+                      <PriceField
+                        label="Lowest playable listing"
+                        value={market.lowest_playable_listing}
+                      />
                     </div>
-                  )}
-                </div>
 
-                {notes && <p className="grok-price-analysis__notes">{notes}</p>}
-                {url && <a href={url} target="_blank" rel="noreferrer">View on {source ?? "source"}<ExternalLink aria-hidden="true" /></a>}
-              </article>
-            );
-          })}
+                    {rangeMin !== null && rangeMax !== null && (
+                      <div className="grok-price-analysis__range">
+                        <span>Recent Near Mint sales range</span>
+                        <strong>
+                          {formatAmount(rangeMin, salesCurrency)} –{" "}
+                          {formatAmount(rangeMax, salesCurrency)}
+                        </strong>
+                      </div>
+                    )}
+
+                    {sales.length > 0 && (
+                      <div className="grok-price-analysis__sales">
+                        <span>Recent sales</span>
+                        <div>
+                          {sales.map((sale, saleIndex) => (
+                            <strong key={`${sale}-${saleIndex}`}>
+                              {formatAmount(sale, salesCurrency)}
+                            </strong>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {notes && (
+                    <p className="grok-price-analysis__notes">{notes}</p>
+                  )}
+                  {url && (
+                    <a href={url} target="_blank" rel="noreferrer">
+                      View on {source ?? "source"}
+                      <ExternalLink aria-hidden="true" />
+                    </a>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </div>
       )}
@@ -192,8 +237,9 @@ function GrokPriceAnalysis({ grokRequest }: Pick<PriceAnalysisProps, "grokReques
 }
 
 function JustTcgPriceAnalysis({
+  card,
   justTcgRequest,
-}: Pick<PriceAnalysisProps, "justTcgRequest">) {
+}: Pick<PriceAnalysisProps, "card" | "justTcgRequest">) {
   if (justTcgRequest.loading) {
     return <LoadingState>Fetching price history...</LoadingState>;
   }
@@ -206,7 +252,9 @@ function JustTcgPriceAnalysis({
     return null;
   }
 
-  return <JustTcgVariants response={justTcgRequest.response} />;
+  return (
+    <JustTcgVariants cardName={card.name} response={justTcgRequest.response} />
+  );
 }
 
 export function PriceAnalysis({
@@ -224,7 +272,7 @@ export function PriceAnalysis({
         reportLoading={reportLoading}
         reportAvailable={reportAvailable}
       />
-      <JustTcgPriceAnalysis justTcgRequest={justTcgRequest} />
+      <JustTcgPriceAnalysis card={card} justTcgRequest={justTcgRequest} />
       <SalesDataView cardName={card.name} grokRequest={salesDataRequest} />
       <GrokPriceAnalysis grokRequest={grokRequest} />
     </div>

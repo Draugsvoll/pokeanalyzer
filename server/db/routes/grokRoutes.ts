@@ -106,6 +106,53 @@ function logRawGrokResponseBeforeParsing(
   );
 }
 
+type CardAnalysisRetryDependencies = {
+  request: typeof chat;
+  save: typeof saveCardGrokResponse;
+};
+
+const cardAnalysisRetryDependencies: CardAnalysisRetryDependencies = {
+  request: chat,
+  save: saveCardGrokResponse,
+};
+
+export async function requestAndSaveCardAnalysis(
+  {
+    cardId,
+    feature,
+    grokOptions = {},
+    instructions,
+    signal,
+    storageKey,
+    userInput,
+  }: {
+    cardId: string;
+    feature: string;
+    grokOptions?: CardAnalysisGrokOptions;
+    instructions: string;
+    signal: AbortSignal;
+    storageKey: string;
+    userInput: string;
+  },
+  dependencies = cardAnalysisRetryDependencies,
+) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await dependencies.request(userInput, {
+      instructions,
+      signal,
+      ...grokOptions,
+    });
+    logRawGrokResponseBeforeParsing(feature, storageKey, response);
+
+    const savedResponse = await dependencies.save(cardId, storageKey, response);
+    if (savedResponse) return savedResponse;
+
+    if (attempt === 0) signal.throwIfAborted();
+  }
+
+  throw new CreditHttpError("AI returned invalid analysis JSON", 502);
+}
+
 async function resolveStoredCardAnalysis(
   cardId: string,
   storageKey: string,
@@ -122,19 +169,14 @@ async function resolveStoredCardAnalysis(
     };
   }
 
-  const response = await chat(userInput, {
+  const savedResponse = await requestAndSaveCardAnalysis({
+    cardId,
+    feature: storageKey,
     instructions,
     signal,
-  });
-  logRawGrokResponseBeforeParsing(storageKey, storageKey, response);
-  const savedResponse = await saveCardGrokResponse(
-    cardId,
     storageKey,
-    response,
-  );
-  if (!savedResponse) {
-    throw new GrokApiError("AI returned invalid analysis JSON", 502);
-  }
+    userInput,
+  });
 
   return {
     fromDatabase: false,
@@ -343,26 +385,23 @@ router.post("/", async (req: Request, res: Response) => {
       uid,
       feature,
       async () => {
-        const response = await chat(resolvedUserInput, {
+        if (!cardGrokTarget) {
+          return chat(resolvedUserInput, {
+            instructions,
+            signal,
+            ...grokOptions,
+          });
+        }
+
+        const storedResponse = await requestAndSaveCardAnalysis({
+          cardId: cardGrokTarget.cardId,
+          feature,
+          grokOptions,
           instructions,
           signal,
-          ...grokOptions,
+          storageKey: cardGrokTarget.storageKey,
+          userInput: resolvedUserInput,
         });
-        if (!cardGrokTarget) return response;
-
-        logRawGrokResponseBeforeParsing(
-          feature,
-          cardGrokTarget.storageKey,
-          response,
-        );
-        const storedResponse = await saveCardGrokResponse(
-          cardGrokTarget.cardId,
-          cardGrokTarget.storageKey,
-          response,
-        );
-        if (!storedResponse) {
-          throw new CreditHttpError("AI returned invalid analysis JSON", 502);
-        }
         return JSON.stringify(storedResponse);
       },
       signal,

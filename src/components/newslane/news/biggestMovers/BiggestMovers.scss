@@ -36,7 +36,8 @@
   cursor: default;
 
   background: var(--bg2);
-  border: 1px solid color-mix(in srgb, var(--trend-accent) 26%, rgba(71, 85, 105, 0.55));
+  border: 1px solid
+    color-mix(in srgb, var(--trend-accent) 26%, rgba(71, 85, 105, 0.55));
   border-radius: calc(var(--border-radius) + 0.25rem);
   box-shadow:
     0 1rem 2.5rem rgba(2, 6, 23, 0.18),
@@ -52,7 +53,8 @@
       color-mix(in srgb, var(--trend-accent) 72%, transparent),
       transparent
     );
-    box-shadow: 0 0 1rem color-mix(in srgb, var(--trend-accent) 28%, transparent);
+    box-shadow: 0 0 1rem
+      color-mix(in srgb, var(--trend-accent) 28%, transparent);
     content: "";
     height: 1px;
     left: 7%;
@@ -128,12 +130,19 @@
 }
 
 .biggest-gainers__link {
+  align-items: center;
   color: var(--trend-accent);
   display: inline-flex;
   font-size: var(--font-size-paragraph-sm);
   font-weight: var(--font-weight-semibold);
+  gap: 0.3rem;
   margin-top: 1rem;
   text-decoration: none;
+
+  svg {
+    height: 0.875rem;
+    width: 0.875rem;
+  }
 
   &:hover {
     text-decoration: underline;

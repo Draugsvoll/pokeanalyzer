@@ -13,6 +13,7 @@ import "./JustTcgVariants.scss";
 type JsonRecord = Record<string, unknown>;
 
 type JustTcgVariantsProps = {
+  cardName: string;
   response: unknown;
 };
 
@@ -130,7 +131,7 @@ function parseVariantGroups(response: unknown): JustTcgVariantGroup[] {
   });
 }
 
-export function JustTcgVariants({ response }: JustTcgVariantsProps) {
+export function JustTcgVariants({ cardName, response }: JustTcgVariantsProps) {
   const groups = parseVariantGroups(response);
 
   if (!groups.length) {
@@ -156,7 +157,7 @@ export function JustTcgVariants({ response }: JustTcgVariantsProps) {
 
   return (
     <div className="just-tcg-variants ui-render-fade">
-      <JustTcgPriceHistory groups={groups} />
+      <JustTcgPriceHistory cardName={cardName} groups={groups} />
       {latestUpdatedAt && (
         <p className="app-view-datestamp">
           Updated: {formatDateStamp(latestUpdatedAt)}

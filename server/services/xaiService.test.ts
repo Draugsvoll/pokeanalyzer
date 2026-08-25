@@ -96,3 +96,30 @@ test("chat applies custom instructions, model, reasoning, and interpreter", asyn
     text: { format: { type: "json_object" } },
   });
 });
+
+test("chat makes only one xAI attempt when the request fails", async (t) => {
+  const previousApiKey = process.env.XAI_API_KEY;
+  process.env.XAI_API_KEY = "test-api-key";
+  let requestCount = 0;
+
+  t.after(() => {
+    if (previousApiKey === undefined) {
+      delete process.env.XAI_API_KEY;
+    } else {
+      process.env.XAI_API_KEY = previousApiKey;
+    }
+  });
+  t.mock.method(console, "error", () => undefined);
+  t.mock.method(globalThis, "fetch", async () => {
+    requestCount += 1;
+    return new Response(JSON.stringify({ error: "temporary failure" }), {
+      status: 500,
+    });
+  });
+
+  await assert.rejects(() => chat("card details"), {
+    name: "GrokApiError",
+    statusCode: 500,
+  });
+  assert.equal(requestCount, 1);
+});

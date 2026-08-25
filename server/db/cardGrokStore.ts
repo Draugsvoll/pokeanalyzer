@@ -24,6 +24,173 @@ function parseJsonValue(value: string): unknown {
   }
 }
 
+function hasText(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasMeaningfulValue(value: unknown): boolean {
+  if (hasText(value) || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.some(hasMeaningfulValue);
+  if (isJsonObject(value)) {
+    return Object.values(value).some(hasMeaningfulValue);
+  }
+  return false;
+}
+
+function hasMeaningfulField(value: JsonObject, fields: string[]) {
+  return fields.some((field) => hasMeaningfulValue(value[field]));
+}
+
+function isDisplayableMarketData(value: unknown) {
+  if (!isJsonObject(value)) return false;
+
+  return hasMeaningfulField(value, [
+    "source",
+    "region",
+    "notes",
+    "url",
+    "market_price",
+    "lowest_listing",
+    "most_recent_sale",
+    "near_mint_listing",
+    "excellent_listing",
+    "lowest_playable_listing",
+    "recent_near_mint_sales",
+  ]);
+}
+
+function isDisplayableSalesVariant(value: unknown) {
+  if (!isJsonObject(value) || !hasText(value.variant)) return false;
+
+  return (
+    Array.isArray(value.market_prices) &&
+    value.market_prices.some(
+      (price) =>
+        isJsonObject(price) &&
+        hasMeaningfulField(price, ["grade", "price", "volume"]),
+    )
+  );
+}
+
+function isDisplayableSellVariant(value: unknown) {
+  if (!isJsonObject(value) || !hasText(value.variant)) return false;
+
+  const hasStep =
+    Array.isArray(value.steps) &&
+    value.steps.some(
+      (step) =>
+        isJsonObject(step) &&
+        ["substeps", "actions", "details", "recommendations"].some(
+          (field) =>
+            Array.isArray(step[field]) && step[field].some(hasMeaningfulValue),
+        ),
+    );
+  const hasNotes =
+    Array.isArray(value.notes) && value.notes.some(hasMeaningfulValue);
+
+  return hasStep || hasNotes;
+}
+
+function isDisplayableWorthGradingVariant(value: unknown) {
+  if (
+    !isJsonObject(value) ||
+    !isJsonObject(value.card) ||
+    !Array.isArray(value.graded_scenarios) ||
+    !isJsonObject(value.recommendation)
+  ) {
+    return false;
+  }
+
+  const hasScenario = value.graded_scenarios.some(
+    (scenario) =>
+      isJsonObject(scenario) &&
+      hasMeaningfulField(scenario, [
+        "expected_sale_price_usd",
+        "grading_tier",
+        "grading_tier_justification",
+        "psa_grading_fee_usd",
+        "shipping_and_insurance_usd",
+        "ebay_fees_usd",
+        "net_after_all_costs_usd",
+        "roi_vs_raw_net_percent",
+        "net_profit_vs_raw_usd",
+        "turnaround_time",
+        "psa_note",
+      ]),
+  );
+  const hasRecommendation = hasMeaningfulField(value.recommendation, [
+    "should_grade",
+    "summary",
+    "reasons",
+  ]);
+
+  return hasScenario || hasRecommendation;
+}
+
+export function isValidStoredFeatureResponse(
+  storageKey: string,
+  value: unknown,
+) {
+  if (!isJsonObject(value)) return false;
+
+  if (storageKey === "collectors_analysis") {
+    return (
+      Array.isArray(value.analyses) &&
+      value.analyses.some(
+        (analysis) =>
+          isJsonObject(analysis) &&
+          hasText(analysis.variant_name) &&
+          Array.isArray(analysis.categories) &&
+          analysis.categories.some(
+            (category) =>
+              isJsonObject(category) &&
+              hasMeaningfulField(category, ["name", "score", "text"]),
+          ),
+      )
+    );
+  }
+
+  if (storageKey === "price_analysis") {
+    return (
+      Array.isArray(value.market_data) &&
+      value.market_data.some(isDisplayableMarketData)
+    );
+  }
+
+  if (storageKey === "sales_data") {
+    return (
+      Array.isArray(value.variants) &&
+      value.variants.some(isDisplayableSalesVariant)
+    );
+  }
+
+  if (storageKey === "sell_price") {
+    return (
+      Array.isArray(value.variants) &&
+      value.variants.some(isDisplayableSellVariant)
+    );
+  }
+
+  if (storageKey === "worth_grading") {
+    return (
+      Array.isArray(value.variants) &&
+      value.variants.some(isDisplayableWorthGradingVariant)
+    );
+  }
+
+  if (storageKey === "ebay_sold") {
+    return (
+      isJsonObject(value.sold) &&
+      Array.isArray(value.sold.items) &&
+      isJsonObject(value.active) &&
+      Array.isArray(value.active.items)
+    );
+  }
+
+  return false;
+}
+
 async function readCard(cardId: string): Promise<JsonObject | null> {
   const row = await dbGet<{ raw_json: string }>(
     "SELECT raw_json FROM cards WHERE id = ?",
@@ -50,6 +217,7 @@ function getFreshFeatureResponse(
   if (!isJsonObject(response) || typeof response.timestamp !== "string") {
     return null;
   }
+  if (!isValidStoredFeatureResponse(storageKey, response)) return null;
 
   const timestamp = Date.parse(response.timestamp);
   const age = Date.now() - timestamp;
@@ -120,7 +288,12 @@ export async function saveCardGrokResponse(
       : isJsonObject(response)
         ? response
         : null;
-  if (!parsedResponse) return null;
+  if (
+    !parsedResponse ||
+    !isValidStoredFeatureResponse(storageKey, parsedResponse)
+  ) {
+    return null;
+  }
 
   const storedResponse = {
     ...parsedResponse,

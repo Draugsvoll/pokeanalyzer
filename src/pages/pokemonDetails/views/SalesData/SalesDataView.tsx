@@ -1,4 +1,4 @@
-import { Layers3 } from "lucide-react";
+import { ExternalLink, Layers3 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
@@ -22,6 +22,7 @@ type SalesVariant = {
   marketPrices: MarketPrice[];
   notes: string[];
   title: string;
+  url: string;
 };
 
 type RecentSale = {
@@ -43,6 +44,20 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function externalUrl(value: unknown) {
+  const candidate = text(value);
+  if (!candidate) return "";
+
+  try {
+    const url = new URL(candidate);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
 }
 
 function parseMarketPrices(value: unknown): MarketPrice[] {
@@ -81,6 +96,7 @@ function parseSalesData(response: string): SalesData | null {
             marketPrices: parseMarketPrices(variant.market_prices),
             notes: parseNotes(variant.notes),
             title: variantTitle,
+            url: externalUrl(variant.url),
           };
         })
         .filter(
@@ -94,7 +110,14 @@ function parseSalesData(response: string): SalesData | null {
     variants.length > 0
       ? variants
       : fallbackMarketPrices.length > 0
-        ? [{ marketPrices: fallbackMarketPrices, notes: [], title: "" }]
+        ? [
+            {
+              marketPrices: fallbackMarketPrices,
+              notes: [],
+              title: "",
+              url: externalUrl(parsed.url),
+            },
+          ]
         : [];
 
   const recentSold = Array.isArray(parsed.recent_sold)
@@ -219,6 +242,17 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                 )}
                 {activeVariant.notes.length > 0 && (
                   <Notes notes={activeVariant.notes} />
+                )}
+                {activeVariant.url && (
+                  <a
+                    className="sales-data-view__source-link"
+                    href={activeVariant.url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    View source
+                    <ExternalLink aria-hidden="true" />
+                  </a>
                 )}
               </section>
             )}

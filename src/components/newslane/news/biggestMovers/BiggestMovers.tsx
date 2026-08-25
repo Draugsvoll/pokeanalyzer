@@ -1,4 +1,5 @@
 import type React from "react";
+import { ExternalLink } from "lucide-react";
 import type { BiggestMoversPayload } from "../../../../types/news";
 import "./BiggestMovers.scss";
 
@@ -86,6 +87,7 @@ export function BiggestMovers({ payload }: BiggestMoversProps) {
                         rel="noopener noreferrer"
                       >
                         Read source
+                        <ExternalLink aria-hidden="true" />
                       </a>
                     )}
                   </div>

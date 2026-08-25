@@ -1,19 +1,19 @@
 export const CARD_GROK_FEATURES = {
   collector_analysis: {
     storageKey: "collectors_analysis",
-    reuseDays: 5,
+    reuseDays: -60,
   },
   price_analysis: {
     storageKey: "price_analysis",
-    reuseDays: 5,
+    reuseDays: 3,
   },
   ebay_sold: {
     storageKey: "ebay_sold",
-    reuseDays: 5,
+    reuseDays: 4,
   },
   worth_grading: {
     storageKey: "worth_grading",
-    reuseDays: 5,
+    reuseDays: 15,
   },
   sell_price: {
     storageKey: "sell_price",

@@ -4,7 +4,6 @@ type GrokReasoningEffort = "low" | "medium" | "high";
 
 const DEFAULT_GROK_MODEL: GrokModel = "grok-4.3";
 const DEFAULT_REASONING_EFFORT: GrokReasoningEffort = "medium";
-const MAX_GROK_ATTEMPTS = 2;
 const DEFAULT_INSTRUCTIONS = "Answer clearly";
 
 type GrokResponse = {
@@ -16,10 +15,12 @@ type GrokResponse = {
     }>;
     type?: string;
   }>;
-  error?: {
-    code?: string;
-    message?: string;
-  } | string;
+  error?:
+    | {
+        code?: string;
+        message?: string;
+      }
+    | string;
 };
 
 export type GrokChatOptions = {
@@ -68,9 +69,10 @@ export class GrokApiError extends Error {
 }
 
 function getXaiApiKey() {
-  const apiKey = process.env.XAI_API_KEY
-    ?.replace(/^(Bearer|Token)\s+/i, "")
-    .trim();
+  const apiKey = process.env.XAI_API_KEY?.replace(
+    /^(Bearer|Token)\s+/i,
+    "",
+  ).trim();
 
   if (!apiKey || apiKey === "your_xai_api_key_here") {
     throw new GrokApiError("AI API key is not configured", 500);
@@ -80,24 +82,30 @@ function getXaiApiKey() {
 }
 
 export async function chat(text: string, options: GrokChatOptions = {}) {
-  return requestGrokResponse([
-    {
-      role: "user",
-      content: text,
-    },
-  ], options);
+  return requestGrokResponse(
+    [
+      {
+        role: "user",
+        content: text,
+      },
+    ],
+    options,
+  );
 }
 
 export async function chatWithRawResponse(
   text: string,
   options: GrokChatOptions = {},
 ) {
-  return requestGrokResponseWithRaw([
-    {
-      role: "user",
-      content: text,
-    },
-  ], options);
+  return requestGrokResponseWithRaw(
+    [
+      {
+        role: "user",
+        content: text,
+      },
+    ],
+    options,
+  );
 }
 
 type GrokInputMessage = {
@@ -132,37 +140,7 @@ async function requestGrokResponseWithRaw(
   const apiKey = getXaiApiKey();
   const normalizedOptions = normalizeGrokChatOptions(options);
 
-  for (let attempt = 1; attempt <= MAX_GROK_ATTEMPTS; attempt += 1) {
-    try {
-      return await requestGrokResponseOnce(
-        input,
-        apiKey,
-        normalizedOptions,
-      );
-    } catch (error) {
-      const shouldRetry =
-        attempt < MAX_GROK_ATTEMPTS &&
-        !normalizedOptions.signal?.aborted &&
-        isRetryableGrokError(error);
-
-      if (!shouldRetry) throw error;
-      console.warn("AI request failed; retrying once");
-    }
-  }
-
-  throw new GrokApiError("AI query request failed");
-}
-
-function isRetryableGrokError(error: unknown) {
-  if (error instanceof GrokApiError) {
-    return error.statusCode === 408 || error.statusCode === 429 || error.statusCode >= 500;
-  }
-
-  return (
-    error instanceof TypeError ||
-    (error instanceof DOMException && error.name === "TimeoutError") ||
-    error instanceof SyntaxError
-  );
+  return requestGrokResponseOnce(input, apiKey, normalizedOptions);
 }
 
 async function requestGrokResponseOnce(
@@ -251,10 +229,7 @@ function buildGrokInput(
   input: GrokInputMessage[],
   instructions: string,
 ): GrokInputMessage[] {
-  return [
-    { role: "system", content: instructions },
-    ...input,
-  ];
+  return [{ role: "system", content: instructions }, ...input];
 }
 
 function buildGrokTools(useCodeInterpreter: boolean): GrokTool[] {
@@ -286,9 +261,7 @@ function getResponseText(data: GrokResponse) {
 function getGrokErrorDetail(data: GrokResponse) {
   if (typeof data.error === "string") return data.error;
 
-  return [data.error?.code, data.error?.message]
-    .filter(Boolean)
-    .join(": ");
+  return [data.error?.code, data.error?.message].filter(Boolean).join(": ");
 }
 
 function logGrokRequestDebug(payload: GrokRequestPayload) {

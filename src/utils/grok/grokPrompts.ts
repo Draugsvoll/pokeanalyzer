@@ -3,6 +3,12 @@ import type {
   GrokMultimodalMessage,
 } from "./grokPromptTypes";
 
+const extraToolsInstructions = `
+Complete all tool calls internally before producing the final response, no matter how easy the task is.
+Never mention web_search, code_interpreter, search queries, or any planning steps.
+Return only the final analysis as the required JSON object.
+`.trim();
+
 export const priceAnalysisInstructions: string = `
 If the data is available, please show today's market prices for the Pokemon card I provided.
 
@@ -116,6 +122,8 @@ I need this for every English variant of the card.
 Respond in the JSON format provided below. The JSON example below shows you formatting/structure, it doesn't contain real live data. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
 I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
 
+The "volume" field in our schema refers to the volume displayed for each grade on PriceCharting.
+
 If data is not available for a field, just leave the field empty.
 The root JSON value must be an object. Each item in the "variants" array is an English variant.
 Each variant entry must include the variant name in the "variant" field.
@@ -157,7 +165,8 @@ ${variantPrintNameInstructions}
           "price": "$6,000.25",
           "volume": "~1 sale / month"
         }
-      ]
+      ],
+      "url":"Direct link to where you fetched the prices from. Must be link for the specific card/variant"
     }
   ]
 }
@@ -438,6 +447,8 @@ Use exactly this structure example (field names and nesting must match):
 `.trim();
 
 export const collectorsAnalysisInstructions: string = `
+${extraToolsInstructions}
+
 You are an expert Pokémon TCG collectible analyst.
 
 Your task is to rate the provided card as a collectible for Pokémon collectors on a scale of 1-100.
@@ -510,6 +521,8 @@ Now analyze the card.
 `.trim();
 
 export const worthGradingInstructions: string = `
+  ${extraToolsInstructions}
+
   I own this card. Can it make sense to grade & sell it, instead of just selling it raw?
 
   I need to know this for every English variant of the card, as long as it has reliable data available. Don't include Japanese variants.

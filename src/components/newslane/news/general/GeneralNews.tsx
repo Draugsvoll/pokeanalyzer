@@ -1,4 +1,5 @@
 import React, { type CSSProperties } from "react";
+import { ExternalLink } from "lucide-react";
 import type { GeneralNewsPayload } from "../../../../types/news";
 import {
   getCustomColor,
@@ -93,6 +94,7 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
                       rel="noopener noreferrer"
                     >
                       Read source
+                      <ExternalLink aria-hidden="true" />
                     </a>
                   )}
                 </div>

@@ -331,6 +331,8 @@ function PokemonDetailsForCard() {
     usePortfolioCache();
 
   function scrollForEmbeddedSearch() {
+    if (window.scrollY > 0) return;
+
     window.scrollBy({
       behavior: "smooth",
       left: 0,
@@ -491,7 +493,13 @@ function PokemonDetailsForCard() {
   }
 
   async function handleGenerateFeature(aiFeature: AI_feature) {
-    if (!card || featureCooldown || !subscription || creditsRemaining < 1)
+    if (
+      !authUser ||
+      !card ||
+      featureCooldown ||
+      !subscription ||
+      creditsRemaining < 1
+    )
       return;
 
     setFeatureCooldown(true);
@@ -756,6 +764,7 @@ function PokemonDetailsForCard() {
         ? currentEbayReportAvailable
         : Boolean(currentGrokResponse);
   const activeFeatureActionDisabled =
+    !authUser ||
     featureCooldown ||
     loadingSubscription ||
     updatingCredits ||

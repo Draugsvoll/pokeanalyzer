@@ -59,8 +59,7 @@ export function JustTcgHistoryIntro() {
     <div className="just-tcg-history__intro">
       <h3 className="feature-section-heading">Ungraded Sales</h3>
       <p>
-        Aggregated sales •{" "}
-        <strong>JustTCG</strong>.
+        Aggregated sales/listings • <strong>JustTCG</strong>.
       </p>
     </div>
   );
@@ -372,8 +371,10 @@ function PriceHistoryChart({
 }
 
 export function JustTcgPriceHistory({
+  cardName,
   groups,
 }: {
+  cardName: string;
   groups: JustTcgVariantGroup[];
 }) {
   const controlId = useId().replaceAll(":", "");
@@ -409,14 +410,18 @@ export function JustTcgPriceHistory({
   }, [selectedVariant, selectedPeriod.days]);
   const multipleSets =
     new Set(groups.map((group) => group.setName).filter(Boolean)).size > 1;
+  const normalizedCardName = cardName.trim().toLocaleLowerCase();
   const duplicatedVariantLabels = useMemo(() => {
-    const labelCounts = groups.reduce<Record<string, number>>((counts, group) => {
-      const key = [group.printing, multipleSets ? group.setName : ""]
-        .filter(Boolean)
-        .join("|");
-      counts[key] = (counts[key] ?? 0) + 1;
-      return counts;
-    }, {});
+    const labelCounts = groups.reduce<Record<string, number>>(
+      (counts, group) => {
+        const key = [group.printing, multipleSets ? group.setName : ""]
+          .filter(Boolean)
+          .join("|");
+        counts[key] = (counts[key] ?? 0) + 1;
+        return counts;
+      },
+      {},
+    );
 
     return new Set(
       Object.entries(labelCounts)
@@ -430,8 +435,14 @@ export function JustTcgPriceHistory({
       .filter(Boolean)
       .join("|");
 
-    if (group.cardName && duplicatedVariantLabels.has(labelKey)) {
-      return group.cardName;
+    if (duplicatedVariantLabels.has(labelKey)) {
+      if (
+        group.cardName &&
+        group.cardName.trim().toLocaleLowerCase() !== normalizedCardName
+      ) {
+        return group.cardName;
+      }
+      return multipleSets ? group.setName : undefined;
     }
 
     return multipleSets ? group.setName : undefined;
@@ -472,24 +483,24 @@ export function JustTcgPriceHistory({
 
                 return (
                   <label key={group.id}>
-                  <input
-                    checked={selectedGroup.id === group.id}
-                    name={`${controlId}-variant`}
-                    type="radio"
-                    value={group.id}
-                    onChange={() => selectGroup(group.id)}
-                  />
-                  <span>
-                    <Layers3 aria-hidden="true" />
-                    <strong>{group.printing}</strong>
-                    {secondaryLabel && (
-                      <>
-                        <i aria-hidden="true">•</i>
-                        <small>{secondaryLabel}</small>
-                      </>
-                    )}
-                  </span>
-                </label>
+                    <input
+                      checked={selectedGroup.id === group.id}
+                      name={`${controlId}-variant`}
+                      type="radio"
+                      value={group.id}
+                      onChange={() => selectGroup(group.id)}
+                    />
+                    <span>
+                      <Layers3 aria-hidden="true" />
+                      <strong>{group.printing}</strong>
+                      {secondaryLabel && (
+                        <>
+                          <i aria-hidden="true">•</i>
+                          <small>{secondaryLabel}</small>
+                        </>
+                      )}
+                    </span>
+                  </label>
                 );
               })}
             </div>
@@ -540,7 +551,8 @@ export function JustTcgPriceHistory({
         className="just-tcg-history__content ui-render-fade"
         key={`${selectedVariant.id}-${selectedPeriod.id}`}
       >
-        {selectedVariant.priceHistory.length >= 2 && periodPoints.length >= 2 ? (
+        {selectedVariant.priceHistory.length >= 2 &&
+        periodPoints.length >= 2 ? (
           <PriceHistoryChart
             changeLabel={selectedPeriod.changeLabel}
             periodKey={`${selectedVariant.id}-${selectedPeriod.id}`}

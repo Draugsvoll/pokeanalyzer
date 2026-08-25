@@ -140,6 +140,26 @@
   }
 }
 
+.sales-data-view__source-link {
+  align-items: center;
+  color: var(--sales-data-accent);
+  display: inline-flex;
+  font-size: var(--font-size-paragraph-sm);
+  font-weight: var(--font-weight-semibold);
+  gap: 0.3rem;
+  justify-self: center;
+  text-decoration: none;
+
+  svg {
+    height: 0.875rem;
+    width: 0.875rem;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .sales-data-view > footer {
   color: var(--font-color-faint);
   font-size: var(--font-size-caption);
