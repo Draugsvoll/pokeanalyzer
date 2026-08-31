@@ -84,25 +84,6 @@ function isDisplayableSalesVariant(value: unknown) {
   );
 }
 
-function isDisplayableSellVariant(value: unknown) {
-  if (!isJsonObject(value) || !hasText(value.variant)) return false;
-
-  const hasStep =
-    Array.isArray(value.steps) &&
-    value.steps.some(
-      (step) =>
-        isJsonObject(step) &&
-        ["substeps", "actions", "details", "recommendations"].some(
-          (field) =>
-            Array.isArray(step[field]) && step[field].some(hasMeaningfulValue),
-        ),
-    );
-  const hasNotes =
-    Array.isArray(value.notes) && value.notes.some(hasMeaningfulValue);
-
-  return hasStep || hasNotes;
-}
-
 function isDisplayableWorthGradingScenario(value: unknown) {
   return (
     isJsonObject(value) &&
@@ -180,13 +161,6 @@ export function isValidStoredFeatureResponse(
     return (
       Array.isArray(value.variants) &&
       value.variants.some(isDisplayableSalesVariant)
-    );
-  }
-
-  if (storageKey === "sell_price") {
-    return (
-      Array.isArray(value.variants) &&
-      value.variants.some(isDisplayableSellVariant)
     );
   }
 

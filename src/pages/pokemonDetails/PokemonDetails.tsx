@@ -44,7 +44,6 @@ import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { PriceAnalysis } from "./views/priceAnalysis/PriceAnalysis";
-import { SellPriceView } from "./views/SellPrice/SellPriceView";
 import { FEATURE_ERROR_MESSAGE } from "./views/featureError";
 import {
   fetchJustTcgCard,
@@ -97,67 +96,20 @@ type ActiveView =
   | "collector_analysis"
   | "ebay_sold"
   | "prices"
-  | "sell_price"
   | "worth_grading";
 
-type AI_feature = {
-  view: Extract<
-    ActiveView,
-    | "prices"
-    | "collector_analysis"
-    | "ebay_sold"
-    | "sell_price"
-    | "worth_grading"
-  >;
+type FeatureView = Exclude<ActiveView, "empty_view">;
+type StoredGrokFeature = "collector_analysis" | "worth_grading";
+
+type AiFeature = {
+  view: FeatureView;
   title: string;
   description: string;
   icon: LucideIcon;
   color: CustomColors;
   featureKey: CreditUsageFeature;
+  onOpen: () => Promise<void>;
 };
-
-const AI_Features: AI_feature[] = [
-  {
-    view: "prices",
-    title: "Market analysis",
-    description: "TCGPlayer, Cardmarket & sales history",
-    icon: LineChart,
-    color: "orange",
-    featureKey: "price_analysis",
-  },
-  {
-    view: "collector_analysis",
-    title: "Collectors value",
-    description: "AI score for long-term collectibility",
-    icon: Gem,
-    color: "blue",
-    featureKey: "collector_analysis",
-  },
-  {
-    view: "ebay_sold",
-    title: "eBay sales",
-    description: "Recent comps from real sales",
-    icon: BadgeDollarSign,
-    color: "teal",
-    featureKey: "ebay_sold",
-  },
-  {
-    view: "worth_grading",
-    title: "Grading",
-    description: "PSA economics for this card",
-    icon: BadgeDollarSign,
-    color: "pink",
-    featureKey: "worth_grading",
-  },
-  {
-    view: "sell_price",
-    title: "Sell guide",
-    description: "Where and what to list for",
-    icon: BadgeDollarSign,
-    color: "yellow",
-    featureKey: "sell_price",
-  },
-];
 
 function formatReleaseDate(value: string | undefined) {
   if (!value) return value;
@@ -293,14 +245,12 @@ function PokemonDetailsForCard() {
   );
   const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [showCardSearch, setShowCardSearch] = useState(false);
-  const [grokResponse, setGrokResponse] = useState("");
-  const [grokResponseView, setGrokResponseView] = useState<ActiveView | null>(
-    null,
-  );
-  const [grokResponseCardId, setGrokResponseCardId] = useState<string | null>(
-    null,
-  );
-  const [grokError, setGrokError] = useState("");
+  const [grokResponses, setGrokResponses] = useState<
+    Partial<Record<CreditUsageFeature, string>>
+  >({});
+  const [grokErrors, setGrokErrors] = useState<
+    Partial<Record<CreditUsageFeature, string>>
+  >({});
   const [grokLoading, setGrokLoading] = useState(false);
   const [marketSalesResponse, setMarketSalesResponse] = useState("");
   const [marketSalesResponseCardId, setMarketSalesResponseCardId] = useState<
@@ -322,13 +272,20 @@ function PokemonDetailsForCard() {
   const [ebayReportAvailable, setEbayReportAvailable] = useState(false);
   const [ebayReportCardId, setEbayReportCardId] = useState<string | null>(null);
   const [featureCooldown, setFeatureCooldown] = useState(false);
-  const { abortActiveRequest, isCurrentRequest, startRequest } =
-    useAbortableRequest();
+  const { isCurrentRequest, startRequest } = useAbortableRequest();
   const { user: authUser } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } =
     usePokemonPortfolio();
   const { isCardSaved, loadingPortfolioReferences, portfolioReferencesError } =
     usePortfolioCache();
+
+  function updateGrokResponse(featureKey: CreditUsageFeature, value: string) {
+    setGrokResponses((current) => ({ ...current, [featureKey]: value }));
+  }
+
+  function updateGrokError(featureKey: CreditUsageFeature, value: string) {
+    setGrokErrors((current) => ({ ...current, [featureKey]: value }));
+  }
 
   function scrollForEmbeddedSearch() {
     if (window.scrollY > 0) return;
@@ -403,11 +360,9 @@ function PokemonDetailsForCard() {
     setGrokLoading(true);
     setMarketSalesLoading(true);
     setJustTcgError("");
-    setGrokError("");
+    updateGrokError("price_analysis", "");
     setMarketSalesError("");
-    setGrokResponseView("prices");
-    setGrokResponseCardId(card.id);
-    setGrokResponse("");
+    updateGrokResponse("price_analysis", "");
     setMarketSalesResponseCardId(card.id);
     setMarketSalesResponse("");
     setJustTcgResultCardId(null);
@@ -449,7 +404,7 @@ function PokemonDetailsForCard() {
       .then(async (result) => {
         if (signal.aborted) return false;
         if (!result.ok) {
-          setGrokError(FEATURE_ERROR_MESSAGE);
+          updateGrokError("price_analysis", FEATURE_ERROR_MESSAGE);
           setMarketSalesError(FEATURE_ERROR_MESSAGE);
           return false;
         }
@@ -457,8 +412,8 @@ function PokemonDetailsForCard() {
         const [priceSucceeded, salesSucceeded] = await Promise.all([
           applyAnalysisResult(
             result.priceAnalysis,
-            setGrokResponse,
-            setGrokError,
+            (value) => updateGrokResponse("price_analysis", value),
+            (value) => updateGrokError("price_analysis", value),
           ),
           applyAnalysisResult(
             result.salesData,
@@ -470,7 +425,7 @@ function PokemonDetailsForCard() {
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return false;
-        setGrokError(FEATURE_ERROR_MESSAGE);
+        updateGrokError("price_analysis", FEATURE_ERROR_MESSAGE);
         setMarketSalesError(FEATURE_ERROR_MESSAGE);
         return false;
       })
@@ -488,11 +443,10 @@ function PokemonDetailsForCard() {
     return justTcgSucceeded || grokSucceeded;
   }
 
-  function handleFeatureClick(aiFeature: AI_feature) {
-    setActiveView(aiFeature.view);
-  }
-
-  async function handleGenerateFeature(aiFeature: AI_feature) {
+  async function runPaidFeatureAction(
+    view: FeatureView,
+    action: () => void | Promise<void>,
+  ) {
     if (
       !authUser ||
       !card ||
@@ -503,75 +457,111 @@ function PokemonDetailsForCard() {
       return;
 
     setFeatureCooldown(true);
-    setActiveView(aiFeature.view);
+    setActiveView(view);
+    await action();
+  }
 
-    if (aiFeature.view === "ebay_sold") {
-      setEbayRunCardId(card.id);
-      setEbayReportAvailable(false);
-      setEbayReportCardId(null);
-      setEbayRunToken((current) => current + 1);
-      return;
-    }
-
-    if (aiFeature.view === "prices") {
-      abortActiveRequest();
-      await handlePriceAnalysis(startRequest());
-      return;
-    }
-
-    //safety guard, must qualify the features
-    if (
-      aiFeature.view !== "collector_analysis" &&
-      aiFeature.view !== "sell_price" &&
-      aiFeature.view !== "worth_grading"
-    ) {
-      return;
-    }
-
-    if (aiFeature.view === "sell_price") {
-      if (!card.number) {
-        setGrokError(FEATURE_ERROR_MESSAGE);
-        setGrokResponse("");
-        return;
-      }
-    }
+  async function requestStoredGrokAnalysis(featureKey: StoredGrokFeature) {
+    if (!card) return;
 
     setGrokLoading(true);
-    setGrokError("");
-    setGrokResponseView(aiFeature.view);
-    setGrokResponseCardId(card.id);
-    setGrokResponse("");
+    updateGrokError(featureKey, "");
+    updateGrokResponse(featureKey, "");
 
-    const usesStoredCardResponse =
-      aiFeature.view === "collector_analysis" ||
-      aiFeature.view === "worth_grading" ||
-      aiFeature.view === "sell_price";
     const signal = startRequest();
     try {
-      const result = await askGrok(aiFeature.featureKey, {
+      const result = await askGrok(featureKey, {
         signal,
-        cardId: usesStoredCardResponse ? card.id : undefined,
+        cardId: card.id,
       });
       if (signal.aborted) return;
 
       if (!result.ok) {
-        setGrokError(FEATURE_ERROR_MESSAGE);
+        updateGrokError(featureKey, FEATURE_ERROR_MESSAGE);
       } else {
         updateSubscription(result.subscription);
-        if (result.fromDatabase && usesStoredCardResponse) {
+        if (result.fromDatabase) {
           await waitForStoredResponse(signal);
         }
         if (signal.aborted) return;
-        setGrokResponse(result.text);
+        updateGrokResponse(featureKey, result.text);
       }
     } catch (error) {
       if (!isAbortError(error)) {
-        setGrokError(FEATURE_ERROR_MESSAGE);
+        updateGrokError(featureKey, FEATURE_ERROR_MESSAGE);
       }
     } finally {
       if (isCurrentRequest(signal)) setGrokLoading(false);
     }
   }
+
+  async function openMarketAnalysis() {
+    await runPaidFeatureAction("prices", async () => {
+      await handlePriceAnalysis(startRequest());
+    });
+  }
+
+  async function openCollectorAnalysis() {
+    await runPaidFeatureAction("collector_analysis", () =>
+      requestStoredGrokAnalysis("collector_analysis"),
+    );
+  }
+
+  async function openEbayAnalysis() {
+    await runPaidFeatureAction("ebay_sold", () => {
+      if (!card) return;
+
+      setEbayRunCardId(card.id);
+      setEbayReportAvailable(false);
+      setEbayReportCardId(null);
+      setEbayRunToken((current) => current + 1);
+    });
+  }
+
+  async function openWorthGradingAnalysis() {
+    await runPaidFeatureAction("worth_grading", () =>
+      requestStoredGrokAnalysis("worth_grading"),
+    );
+  }
+
+  const aiFeatures: AiFeature[] = [
+    {
+      view: "prices",
+      title: "Market analysis",
+      description: "TCGPlayer, Cardmarket & sales history",
+      icon: LineChart,
+      color: "orange",
+      featureKey: "price_analysis",
+      onOpen: openMarketAnalysis,
+    },
+    {
+      view: "collector_analysis",
+      title: "Collectors value",
+      description: "AI score for long-term collectibility",
+      icon: Gem,
+      color: "blue",
+      featureKey: "collector_analysis",
+      onOpen: openCollectorAnalysis,
+    },
+    {
+      view: "ebay_sold",
+      title: "eBay sales",
+      description: "Recent comps from real sales",
+      icon: BadgeDollarSign,
+      color: "teal",
+      featureKey: "ebay_sold",
+      onOpen: openEbayAnalysis,
+    },
+    {
+      view: "worth_grading",
+      title: "Grading",
+      description: "PSA economics for this card",
+      icon: BadgeDollarSign,
+      color: "pink",
+      featureKey: "worth_grading",
+      onOpen: openWorthGradingAnalysis,
+    },
+  ];
 
   useEffect(() => {
     const requestSequence = ++cardRequestSequenceRef.current;
@@ -731,13 +721,15 @@ function PokemonDetailsForCard() {
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
   const portfolioUnavailable =
     Boolean(authUser) && Boolean(portfolioReferencesError);
-  const activeFeature = AI_Features.find(
+  const activeFeature = aiFeatures.find(
     (feature) => feature.view === activeView,
   );
-  const currentGrokResponse =
-    grokResponseCardId === card.id && grokResponseView === activeView
-      ? grokResponse
-      : "";
+  const currentGrokResponse = activeFeature
+    ? (grokResponses[activeFeature.featureKey] ?? "")
+    : "";
+  const currentGrokError = activeFeature
+    ? (grokErrors[activeFeature.featureKey] ?? "")
+    : "";
   const currentMarketSalesResponse =
     marketSalesResponseCardId === card.id ? marketSalesResponse : "";
   const currentJustTcgResult =
@@ -747,7 +739,7 @@ function PokemonDetailsForCard() {
     ebayReportCardId === card.id && ebayReportAvailable;
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
-    error: grokError,
+    error: currentGrokError,
     response: currentGrokResponse,
   };
   const isActiveFeatureLoading =
@@ -1055,7 +1047,7 @@ function PokemonDetailsForCard() {
 
       <section className="card-view__analysis-panel">
         <div className="card-view__actions feature-buttons__row">
-          {AI_Features.map((aiFeature) => {
+          {aiFeatures.map((aiFeature) => {
             const Icon = aiFeature.icon;
             const isFeatureLoading =
               activeView === aiFeature.view &&
@@ -1072,7 +1064,7 @@ function PokemonDetailsForCard() {
                 }`}
                 style={getCustomColors(aiFeature.color)}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleFeatureClick(aiFeature)}
+                onClick={() => setActiveView(aiFeature.view)}
                 disabled={
                   loadingSubscription ||
                   updatingCredits ||
@@ -1128,7 +1120,7 @@ function PokemonDetailsForCard() {
                 actionLoading={isActiveFeatureLoading}
                 actionDisabled={activeFeatureActionDisabled}
                 actionHidden={activeFeatureHasResponse}
-                onAction={() => void handleGenerateFeature(activeFeature)}
+                onAction={() => void activeFeature.onOpen()}
               />
               <div className="card-view__active-body">
                 <div hidden={activeView !== "ebay_sold"}>
@@ -1166,9 +1158,6 @@ function PokemonDetailsForCard() {
                 )}
                 {activeView === "worth_grading" && (
                   <WorthGradingView grokRequest={grokRequest} />
-                )}
-                {activeView === "sell_price" && (
-                  <SellPriceView grokRequest={grokRequest} />
                 )}
                 {activeView === "collector_analysis" && (
                   <CollectorAnalysis grokRequest={grokRequest} />

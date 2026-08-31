@@ -32,17 +32,6 @@ test("stored feature validation accepts each current response shape", () => {
     true,
   );
   assert.equal(
-    isValidStoredFeatureResponse("sell_price", {
-      variants: [
-        {
-          variant: "Unlimited Holofoil",
-          steps: [{ substeps: [{ label: "Near Mint", price: "$100" }] }],
-        },
-      ],
-    }),
-    true,
-  );
-  assert.equal(
     isValidStoredFeatureResponse("worth_grading", {
       variants: [
         {
@@ -82,11 +71,6 @@ test("stored feature validation rejects missing or empty analysis content", () =
     [
       "sales_data",
       { variants: [{ variant: "Unlimited", market_prices: [{}] }] },
-    ],
-    ["sell_price", { variants: [{ variant: "Unlimited", steps: [] }] }],
-    [
-      "sell_price",
-      { variants: [{ variant: "Unlimited", steps: [{ substeps: [] }] }] },
     ],
     ["worth_grading", { variants: [] }],
     [

@@ -434,7 +434,8 @@
     box-sizing: border-box;
     display: grid;
     gap: 0;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     max-width: 100%;
     overflow-x: auto;
     padding: 0.25rem;
@@ -1139,7 +1140,7 @@
     }
 
     &__actions {
-      grid-template-columns: repeat(5, minmax(11rem, 1fr));
+      grid-auto-columns: minmax(11rem, 1fr);
     }
 
     &__detail-panel {

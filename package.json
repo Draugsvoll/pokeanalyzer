@@ -12,6 +12,7 @@
     "start:prod": "node server-prod.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:client": "vitest run",
     "preview": "vite preview",
     "db:init": "tsx server/db/init.ts",
     "db:check": "tsx server/scripts/checkDb.ts",
@@ -43,6 +44,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.0",
@@ -54,10 +57,12 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^30.0.1",
     "prettier": "3.9.6",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "uuid": "^11.1.1"

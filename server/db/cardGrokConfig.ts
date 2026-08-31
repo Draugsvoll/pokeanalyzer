@@ -15,10 +15,6 @@ export const CARD_GROK_FEATURES = {
     storageKey: "worth_grading",
     reuseDays: 15,
   },
-  sell_price: {
-    storageKey: "sell_price",
-    reuseDays: 5,
-  },
   sales_data: {
     storageKey: "sales_data",
     reuseDays: 5,

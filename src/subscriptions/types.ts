@@ -9,12 +9,7 @@ export type {
 } from "../../shared/subscriptions/plans";
 
 export type SubscriptionStatus =
-  | "active"
-  | "trialing"
-  | "past_due"
-  | "paused"
-  | "canceled"
-  | "expired";
+  "active" | "trialing" | "past_due" | "paused" | "canceled" | "expired";
 
 export type UserSubscription = {
   bonusCreditsRemaining: number;
@@ -35,7 +30,6 @@ export type UserSubscription = {
 
 export type CreditUsageFeature =
   | "price_analysis"
-  | "sell_price"
   | "collector_analysis"
   | "ebay_sold"
   | "worth_grading"

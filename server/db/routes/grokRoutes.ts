@@ -43,7 +43,6 @@ const ALLOWED_GROK_FEATURES = new Set([
   "market_news",
   "manual_test",
   "price_analysis",
-  "sell_price",
   "worth_grading",
 ]);
 

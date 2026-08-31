@@ -8,8 +8,7 @@ import Button from "../button/Button";
 import { useAuth } from "../../context/authContextValue";
 import { db } from "../../firebase";
 import { useInitials } from "../../hooks/useInitials";
-import { useMembershipSubscription } from "../../subscriptions/useMembershipSubscription";
-import { useCredits } from "../../subscriptions/useCredits";
+import { useCredits, useMembershipSubscription } from "../../subscriptions";
 
 function formatAccountName(value?: string | null) {
   const name = value?.trim();
@@ -37,7 +36,7 @@ export const Header: React.FC = () => {
   const savedFirstName =
     profileName?.uid === user?.uid ? (profileName?.firstName ?? "") : "";
   const accountInitial = useInitials(
-    savedFirstName || user?.displayName || user?.email
+    savedFirstName || user?.displayName || user?.email,
   );
   const accountLabel =
     formatAccountName(savedFirstName || user?.displayName) ||

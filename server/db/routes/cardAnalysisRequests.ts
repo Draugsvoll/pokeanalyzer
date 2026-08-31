@@ -4,8 +4,6 @@ import {
   collectorsAnalysisInstructions,
   priceAnalysisInput,
   priceAnalysisInstructions,
-  sellMyCardInput,
-  sellMyCardInstructions,
   worthGradingInput,
   worthGradingInstructions,
 } from "../../../src/utils/grok/grokPrompts.js";
@@ -24,7 +22,7 @@ type CardAnalysisGrokOptions = Pick<
 >;
 
 export type CardAnalysisFeature =
-  "collector_analysis" | "price_analysis" | "sell_price" | "worth_grading";
+  "collector_analysis" | "price_analysis" | "worth_grading";
 
 export type CardAnalysisRequest = {
   buildUserInput: (context: CardAnalysisContext) => string;
@@ -65,17 +63,6 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
         );
       },
       instructions: priceAnalysisInstructions,
-    },
-    sell_price: {
-      buildUserInput: (context) => {
-        requireSetAndNumber(context);
-        return sellMyCardInput(
-          context.cardName,
-          context.setName,
-          context.cardNumber,
-        );
-      },
-      instructions: sellMyCardInstructions,
     },
     worth_grading: {
       buildUserInput: (context) =>
