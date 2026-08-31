@@ -547,11 +547,10 @@ export const worthGradingInstructions: string = `
   shipping_and_insurance_usd is estimated shipping to PSA, return shipping and insurance.
 
   Give an overall recommendation all things considered. If it's not really recommended even though it's showing paper
-  profits, you must explain the reasons for that and how or why it affects the grading decision. A beginner should be able to easily understand
-  how or why every reason affects the grading decision on a practical level. Make everything clear and specific. I don't mean spoon feeding everything,
+  profits, you must explain why the profits are not worth it. A beginner should be able to understand everything in the recommendation and why or how it affects the grading decision on a practical level. Make things clear and specific. I don't mean spoon feeding everything,
   but the logic/reasoning must be obvious.
   You don't need to explain that chasing a PSA10 is gambling or unrealistic.
-  Write in clear, natural language.
+  Write in clear, natural language. Speak in full sentences, and preferably you avoid using truncation or semicolons. It must always be clear what you're trying to communicate.
   Adjust the strength of your wording proportionally to the size of the actual edge or risk.
   When mentioning probabilities or expected values, explain how you calculated them
   and what data or assumptions you used.
@@ -580,8 +579,16 @@ export const worthGradingInstructions: string = `
   "variant_name": ""
   },
   "assumptions": [
-    ""
+    {"title":"title for the assumption", "assumption":"describe the assumption"}
   ],
+  "confidence_level":{
+  "score":"Score 1-100 on how confident you are in the analysis itself. Must be a string containing only a number. For example '83'",
+   "reasoning":"Explain why you are feeling this level of confidence in your analysis as a whole. Make it concise and beginner friendly. Use conversational language with a professional tone. If the score is below 80, make it clear what's dragging it down."
+  },
+  "attractiveness_level": {
+  "score":"Score 1-100 on how attractive this card/variant is among pokemon cards for grading before knowing the result. Must be a string containing only a number, for example '65'",
+  "reasoning":"Justify the score concisely. Do not compare this variant with others in this field."
+  },
   "raw_sale_today": {
     "gross_sale_usd": null,
     "estimated_fees_usd": null,
@@ -597,6 +604,7 @@ export const worthGradingInstructions: string = `
     "psa_grading_fee_usd": null,
     "shipping_and_insurance_usd": null,
     "ebay_fees_usd": null,
+    "ebay_fee_model": "State which eBay fee model you used",
     "net_after_all_costs_usd": null,
     "roi_vs_raw_net_percent": null,
     "net_profit_vs_raw_usd": null,
@@ -611,6 +619,7 @@ export const worthGradingInstructions: string = `
     "psa_grading_fee_usd": null,
     "shipping_and_insurance_usd": null,
     "ebay_fees_usd": null,
+    "ebay_fee_model": "State which eBay fee model you used",
     "net_after_all_costs_usd": null,
     "roi_vs_raw_net_percent": null,
     "net_profit_vs_raw_usd": null,
@@ -620,11 +629,12 @@ export const worthGradingInstructions: string = `
   {
     "grade": "PSA 9",
     "expected_sale_price_usd": null,
-    "grading_tier": "Super Express",
+    "grading_tier": "",
     "grading_tier_justification": "",
     "psa_grading_fee_usd": null,
     "shipping_and_insurance_usd": null,
     "ebay_fees_usd": null,
+    "ebay_fee_model": "State which eBay fee model you used",
     "net_after_all_costs_usd": null,
     "roi_vs_raw_net_percent": null,
     "net_profit_vs_raw_usd": null,
@@ -639,6 +649,7 @@ export const worthGradingInstructions: string = `
     "psa_grading_fee_usd": null,
     "shipping_and_insurance_usd": null,
     "ebay_fees_usd": null,
+    "ebay_fee_model": "State which eBay fee model you used",
     "net_after_all_costs_usd": null,
     "roi_vs_raw_net_percent": null,
     "net_profit_vs_raw_usd": null,
@@ -656,41 +667,64 @@ export const worthGradingInstructions: string = `
   "psa_population_psa6": null
   },
   "recommendation": {
-  "should_grade": null,
-  "summary": "",
+  "potential": "",
+  "headline": "",
+  "bottom_line":"",
+  "notes":[""],
   "reasons": [
-  ""
+  {"title":"title for the reason", "reason":"describe the reason"}
   ]
   }
   }
   ]
   }
 
-  The field "Summary" is just a summarized headline for the recommendation. Maximum 65 words. If you mention gem-rate you don't need to explain if it's high or low, the numbers speak for themselves.
+The field "potential" describes how much net incremental gains are available if my card comes back as a perfect PSA10. Must choose exactly one of these labels "none", "very low", "marginal", "modest", "good", "high", "very high".
 
-  The fields in "reasons" should contain the reasoning behind the overall recommendation.
-  Do not restate calculations or numbers already shown elsewhere unless they are necessary.
-  This part already assumes all costs and fees are included.
-  When making any claims or assumptions in the "reasons" field, explain how you concluded that. What are you basing it on? Don't just say things like "expected outcome is PSA7" without making it clear how you conluded that. I always need to know what you are basing a statement/assumption on in this field.
-  If a PSA-grade shows paper profits after all costs and fees including selling,
-  but it's not really recommended to grade, it must be clear why it's not worth the paper profits on a practical level.
+label definitions:
+"none": $0 or a loss
+"very low": $1 to $75
+"marginal": $76 to $150
+"modest": $151 to $400
+"good": $401 to $1,000
+"high": $1,001 to $5,000
+"very high": more than $5,000
 
-  Always use the official PSA Population Report as the source for PSA population figures when available,
-  and ensure the population entry matches the set, card number, and variant. Use the actual official website
-  itself as the source https://www.psacard.com/. Provide the url to the exact page that displays the numbers.
-  Only use other reliable sources if you can't get the numbers from the official website itself.
-  Don't forget to populate "psa_population_psa6" when filling in psa_population data.
-  If you can't find psa population data from a reliable source then return null.
-  Never invent any of the numbers.
+The field "headline" is a one-line version of the recommendation. Maximum 25 words If you mention gem-rate you don't need to explain if it's high or low, the numbers speak for themselves. Don't compare to other variants in this field.
 
-  When calculating Profit vs Raw and ROI:
-  Calculate Raw Net = Raw sale price – selling fees on the raw sale.
-  Calculate Graded Net = Graded sale price – grading costs – selling fees on the graded sale.
-  Profit vs Raw = Graded Net – Raw Net
-  ROI = (Graded Net – Raw Net) / Raw Net × 100
-  In the assumptions field, you simply mention all of your assumptions. Each assumption you made is its own string entry.
-  Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
-  Never use the raw sale price directly as the baseline without subtracting its selling fees.
+The field "bottom_line" is a conclusive and bottom-line version of the analysis as a whole.
+Make it clear which grade starts showing paper profits (if it has one),
+but don't break down exact profits/numbers for each grade above that. Remember we don't have profit calculations for grades below 7, so if it has paper profits at PSA7 just state how much instead of saying it starts there.
+If a grade is showing hundreds of dollars in paper profits (or more) but you don't recommend it or deem that attractive, always clarify why. Don't compare to other variants in this field.
+
+The field "notes" is an optional field. If there are any important or valueable considerations for grading this exact card/variant that hasn't been mentioned already, put it in here. If everything important and valueable has already been adressed, leave it empty,
+
+The array "reasons" should contain the reasoning behind the overall recommendation.
+Do not restate calculations or numbers already shown elsewhere unless they are necessary.
+This part already assumes all costs and fees are included.
+When making any claims or assumptions in the "reasons" field, explain how you concluded that. What are you basing it on? Don't just say things like "expected outcome is PSA7" without making it clear how you conluded that. I always need to know what you are basing a statement/assumption on in this field.
+If a PSA-grade shows paper profits after all costs and fees including selling,
+but it's not really recommended to grade, it must be clear why it's not worth the paper profits on a practical level.
+
+Always use the official PSA Population Report as the source for PSA population figures when available,
+and ensure the population entry matches the set, card number, and variant. Use the actual official website
+itself as the source https://www.psacard.com/. Provide the url to the exact page that displays the numbers.
+The PSA population data is probably available from two different places: the public PSA Population Report and PSA’s login-    required Research/API tools. Always check and use the public Population Report first. If the Research/API route requires   login, do not conclude that PSA population data requires login, the same population data may still be publicly available   through the Population Report.
+Only use other reliable sources if you can't get the numbers from the official website itself.
+
+Don't forget to populate "psa_population_psa6" when filling in psa_population data.
+If you can't find psa population data from a reliable source then return null.
+Never invent any of the numbers.
+
+When calculating Profit vs Raw and ROI:
+Calculate Raw Net = Raw sale price – selling fees on the raw sale.
+Calculate Graded Net = Graded sale price – grading costs – selling fees on the graded sale.
+Profit vs Raw = Graded Net – Raw Net
+ROI = (Graded Net – Raw Net) / Raw Net × 100
+In the assumptions field, you simply mention all of your assumptions.
+Always show both the gross sale prices and the net figures so the comparison is apples-to-apples.
+Never use the raw sale price directly as the baseline without subtracting its selling fees.
+
 
 `.trim();
 

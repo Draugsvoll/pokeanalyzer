@@ -1,7 +1,7 @@
 export const CARD_GROK_FEATURES = {
   collector_analysis: {
     storageKey: "collectors_analysis",
-    reuseDays: -60,
+    reuseDays: 90,
   },
   price_analysis: {
     storageKey: "price_analysis",

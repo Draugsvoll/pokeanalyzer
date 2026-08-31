@@ -1,5 +1,5 @@
-import { Layers3 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { ChevronDown, Layers3, Scale } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -27,6 +27,7 @@ type RawSaleToday = {
 };
 
 type GradedScenario = {
+  ebay_fee_model?: string | null;
   ebay_fees_usd?: number | string | null;
   expected_sale_price_usd?: number | string | null;
   grade?: string | null;
@@ -48,18 +49,31 @@ type PsaPopulation = {
   psa_population_psa9?: number | string | null;
   psa_population_psa10?: number | string | null;
   psa_population_total?: number | string | null;
-  source?: string | null;
+};
+
+type ConfidenceLevel = {
+  reasoning?: string | null;
+  score?: string | null;
+};
+
+type AttractivenessLevel = {
+  reasoning?: string | null;
+  score?: string | null;
 };
 
 type Recommendation = {
+  bottom_line?: string | null;
+  headline?: string | null;
+  notes?: unknown;
+  potential?: string | null;
   reasons?: unknown;
-  should_grade?: boolean | null;
-  summary?: string | null;
 };
 
 type WorthGradingVariant = {
   assumptions?: unknown;
+  attractiveness_level?: AttractivenessLevel;
   card?: CardInfo;
+  confidence_level?: ConfidenceLevel;
   graded_scenarios?: unknown;
   psa_population?: PsaPopulation;
   raw_sale_today?: RawSaleToday;
@@ -72,13 +86,39 @@ type WorthGradingResponse = {
 
 const EMPTY_VALUE = "-";
 
+function formatPotentialLabel(potential: string) {
+  return potential
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getPotentialBadgeAccent(potential: string) {
+  switch (potential.trim().toLowerCase()) {
+    case "none":
+    case "very low":
+      return "red";
+    case "marginal":
+    case "modest":
+      return "yellow";
+    case "good":
+      return "teal";
+    case "high":
+    case "very high":
+      return "green";
+    default:
+      return "neutral";
+  }
+}
+
 function parseWorthGradingResponse(response: string) {
   const parsed = parseJsonText(response);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    return null;
   return parsed as WorthGradingResponse;
 }
 
-function asList(value: unknown) {
+function asStringList(value: unknown) {
   if (Array.isArray(value)) {
     return value.filter(
       (item): item is string =>
@@ -87,6 +127,29 @@ function asList(value: unknown) {
   }
 
   return typeof value === "string" && value.trim() ? [value] : [];
+}
+
+type TitledDetail = {
+  text: string;
+  title: string;
+};
+
+function asTitledDetails(
+  value: unknown,
+  textField: "assumption" | "reason",
+): TitledDetail[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+
+    const record = item as Record<string, unknown>;
+    const title = typeof record.title === "string" ? record.title.trim() : "";
+    const text =
+      typeof record[textField] === "string" ? record[textField].trim() : "";
+
+    return title && text ? [{ text, title }] : [];
+  });
 }
 
 function asNumber(value: unknown) {
@@ -203,18 +266,65 @@ function FieldCard({
   );
 }
 
+function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
+  const proceedsTone = getNumberTone(rawSale.net_proceeds_usd);
+  const costTone = "negative" as const;
+
+  return (
+    <section className="worth-grading-view__scenario worth-grading-view__scenario--static">
+      <div className="worth-grading-view__scenario-profit">
+        <h4>Raw</h4>
+        <div className="worth-grading-view__profit-value">
+          <strong
+            className={
+              proceedsTone
+                ? `worth-grading-view__field-value worth-grading-view__field-value--${proceedsTone}`
+                : "worth-grading-view__field-value"
+            }
+          >
+            {formatCurrency(rawSale.net_proceeds_usd)}
+          </strong>
+          <small>Net proceeds</small>
+        </div>
+      </div>
+      <div className="worth-grading-view__scenario-breakdown">
+        <div className="worth-grading-view__cost-group">
+          <CostRow label="Expected Sell Price">
+            {formatCurrency(rawSale.gross_sale_usd)}
+          </CostRow>
+        </div>
+        <div className="worth-grading-view__cost-group">
+          <CostRow label="eBay Fees" tone={costTone}>
+            {formatCost(rawSale.estimated_fees_usd)}
+          </CostRow>
+        </div>
+        <div className="worth-grading-view__cost-group">
+          <CostRow label="Net Proceeds" tone={proceedsTone}>
+            {formatCurrency(rawSale.net_proceeds_usd)}
+          </CostRow>
+        </div>
+      </div>
+      <div className="worth-grading-view__scenario-support">
+        <FieldCard label="eBay sell time">
+          {displayValue(rawSale.time_to_sell)}
+        </FieldCard>
+      </div>
+    </section>
+  );
+}
+
 function CostRow({
   children,
   label,
   tone,
 }: {
   children: ReactNode;
-  label: string;
+  label: ReactNode;
   tone?: "negative" | "positive";
 }) {
   return (
     <div className="worth-grading-view__cost-row">
-      <span>{label}</span>
+      <div className="worth-grading-view__cost-label">{label}</div>
       <strong
         className={
           tone
@@ -228,13 +338,19 @@ function CostRow({
   );
 }
 
-function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
+function ScenarioCard({
+  rawNetProceeds,
+  scenario,
+}: {
+  rawNetProceeds: unknown;
+  scenario: GradedScenario;
+}) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const profitTone = getNumberTone(scenario.net_profit_vs_raw_usd);
   const costTone = "negative" as const;
 
   return (
-    <section className="worth-grading-view__scenario default-container-inner">
+    <section className="worth-grading-view__scenario">
       <div className="worth-grading-view__scenario-profit">
         <h4>{displayValue(scenario.grade)}</h4>
         <div className="worth-grading-view__profit-value">
@@ -257,7 +373,6 @@ function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
             {formatRoi(scenario.roi_vs_raw_net_percent)}
           </small>
         </div>
-        <span>Grading vs. Selling raw</span>
         <button
           className="worth-grading-view__details-toggle"
           onClick={() => setDetailsOpen((open) => !open)}
@@ -271,9 +386,8 @@ function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
       {detailsOpen && (
         <>
           <div className="worth-grading-view__scenario-breakdown">
-            <h5>Breakdown</h5>
             <div className="worth-grading-view__cost-group">
-              <CostRow label="Expected Sale Price">
+              <CostRow label="Expected Sell Price">
                 {formatCurrency(scenario.expected_sale_price_usd)}
               </CostRow>
             </div>
@@ -284,37 +398,63 @@ function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
               <CostRow label="Shipping & Insurance" tone={costTone}>
                 {formatCost(scenario.shipping_and_insurance_usd)}
               </CostRow>
-              <CostRow label="eBay Fees" tone={costTone}>
+              <CostRow
+                label={
+                  scenario.ebay_fee_model?.trim() ? (
+                    <details className="worth-grading-view__fee-model">
+                      <summary>eBay Fees</summary>
+                      <p className="worth-grading-view__cost-note">
+                        {scenario.ebay_fee_model}
+                      </p>
+                    </details>
+                  ) : (
+                    "eBay Fees"
+                  )
+                }
+                tone={costTone}
+              >
                 {formatCost(scenario.ebay_fees_usd)}
+              </CostRow>
+              <CostRow
+                label={
+                  <>
+                    Raw net proceeds
+                    <p className="worth-grading-view__cost-note">
+                      Profits if you sold raw (incl. eBay fees)
+                    </p>
+                  </>
+                }
+                tone={costTone}
+              >
+                {formatCost(rawNetProceeds)}
               </CostRow>
             </div>
             <div className="worth-grading-view__cost-group">
-              <CostRow
-                label="Net profit (grading vs. selling raw)"
-                tone={profitTone}
-              >
+              <CostRow label="Net incremental gain" tone={profitTone}>
                 {formatProfit(scenario.net_profit_vs_raw_usd)}
               </CostRow>
             </div>
           </div>
 
-          <div className="worth-grading-view__scenario-meta">
-            <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
-              <span>grading_tier</span>
-              <div>
-                <strong>{displayValue(scenario.grading_tier)}</strong>
-                <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
+          <div className="worth-grading-view__scenario-support">
+            <div className="worth-grading-view__scenario-meta">
+              <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
+                <span>grading tier</span>
+                <div>
+                  <strong>{displayValue(scenario.grading_tier)}</strong>
+                  <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
+                </div>
               </div>
+              <FieldCard label="turnaround">
+                {displayValue(scenario.turnaround_time)}
+              </FieldCard>
             </div>
-            <FieldCard label="turnaround">
-              {displayValue(scenario.turnaround_time)}
-            </FieldCard>
+            {scenario.psa_note?.trim() && (
+              <p className="worth-grading-view__psa-note default-container-inner">
+                {scenario.psa_note}
+              </p>
+            )}
           </div>
-          {scenario.psa_note?.trim() && (
-            <p className="worth-grading-view__psa-note default-container-inner">
-              {scenario.psa_note}
-            </p>
-          )}
         </>
       )}
     </section>
@@ -322,54 +462,117 @@ function ScenarioCard({ scenario }: { scenario: GradedScenario }) {
 }
 
 function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
-  const gradeCounts = [
+  const totalPopulation = asNumber(population?.psa_population_total);
+  const reportedGradeCounts = [
     ["PSA 10", population?.psa_population_psa10],
     ["PSA 9", population?.psa_population_psa9],
     ["PSA 8", population?.psa_population_psa8],
     ["PSA 7", population?.psa_population_psa7],
     ["PSA 6", population?.psa_population_psa6],
   ] as const;
+  const reportedPopulation = reportedGradeCounts.reduce(
+    (sum, [, value]) => sum + (asNumber(value) ?? 0),
+    0,
+  );
+  const hasAllReportedCounts = reportedGradeCounts.every(
+    ([, value]) => asNumber(value) != null,
+  );
+  const belowPsa6Population =
+    totalPopulation == null || !hasAllReportedCounts
+      ? null
+      : Math.max(0, totalPopulation - reportedPopulation);
+  const gradeCounts = [
+    ...reportedGradeCounts,
+    ["< PSA 6", belowPsa6Population] as const,
+  ];
 
   return (
     <article className="worth-grading-view__population-card default-container-inner">
-      <div className="worth-grading-view__population-source">
-        <span>Source</span>
-        <strong>{displayValue(population?.source)}</strong>
-      </div>
       <div className="worth-grading-view__population-total">
         <span>Total Population</span>
         <strong>{formatNumber(population?.psa_population_total)}</strong>
       </div>
       <div className="worth-grading-view__population-grades">
-        {gradeCounts.map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{formatNumber(value)}</strong>
-          </div>
-        ))}
+        {gradeCounts.map(([label, value]) => {
+          const count = asNumber(value);
+          const hasPercentage =
+            count != null && totalPopulation != null && totalPopulation > 0;
+          const percentage = hasPercentage
+            ? Math.min(100, Math.max(0, (count / totalPopulation) * 100))
+            : null;
+
+          return (
+            <div className="worth-grading-view__population-grade" key={label}>
+              <div>
+                <span>{label}</span>
+                <strong>{formatNumber(value)}</strong>
+              </div>
+              <div
+                aria-label={
+                  hasPercentage
+                    ? `${label} population: ${formatNumber(value)} of ${formatNumber(population?.psa_population_total)}`
+                    : undefined
+                }
+                aria-valuemax={hasPercentage ? 100 : undefined}
+                aria-valuemin={hasPercentage ? 0 : undefined}
+                aria-valuenow={percentage ?? undefined}
+                className="worth-grading-view__population-track"
+                role={hasPercentage ? "progressbar" : undefined}
+              >
+                {percentage != null && (
+                  <span style={{ width: `${percentage}%` }} />
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </article>
   );
 }
 
-function TextList({
+function CollapsibleTitledDetailList({
   items,
+  notes = [],
   title,
 }: {
-  items: string[];
+  items: TitledDetail[];
+  notes?: string[];
   title: string;
 }) {
-  if (!items.length) return null;
+  if (!items.length && !notes.length) return null;
 
   return (
-    <section className="worth-grading-view__detail-section default-container-inner">
-      <h3>{title}</h3>
-      <ul>
-        {items.map((item, index) => (
-          <li key={`${item}-${index}`}>{item}</li>
-        ))}
-      </ul>
-    </section>
+    <details className="worth-grading-view__collapsible-details default-container">
+      <summary>
+        <h3>{title}</h3>
+        <ChevronDown aria-hidden="true" />
+      </summary>
+      <div className="worth-grading-view__collapsible-content">
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${item.title}-${index}`}>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </li>
+          ))}
+        </ul>
+        {notes.length > 0 && (
+          <section className="worth-grading-view__collapsible-notes">
+            <ul>
+              {notes.map((note, index) => (
+                <li
+                  className="default-container-inner"
+                  key={`${note}-${index}`}
+                >
+                  <p>{note}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -381,17 +584,20 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   });
 
   if (loading) return <LoadingState>Researching value...</LoadingState>;
-  if (error) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (error)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;
 
   const responseKey = response;
   const data = parseWorthGradingResponse(response);
-  if (!data) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (!data)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
   const variants = Array.isArray(data.variants)
     ? data.variants.filter(isVariant)
     : [];
-  if (!variants.length) return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  if (!variants.length)
+    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
   const selectedVariantIndex =
     selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
@@ -399,20 +605,37 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
     ? selectedVariantIndex
     : 0;
   const activeVariant = variants[activeVariantIndex];
-  const assumptions = asList(activeVariant.assumptions);
+  const assumptions = asTitledDetails(activeVariant.assumptions, "assumption");
   const scenarios = Array.isArray(activeVariant.graded_scenarios)
     ? activeVariant.graded_scenarios.filter(isScenario)
     : [];
   const recommendation = activeVariant.recommendation;
+  const reasons = asTitledDetails(recommendation?.reasons, "reason");
+  const notes = asStringList(recommendation?.notes);
+  const confidence = activeVariant.confidence_level;
+  const confidenceScoreValue = asNumber(confidence?.score);
+  const confidenceScore =
+    confidenceScoreValue == null
+      ? null
+      : Math.min(100, Math.max(0, confidenceScoreValue));
+  const attractiveness = activeVariant.attractiveness_level;
+  const attractivenessScoreValue = asNumber(attractiveness?.score);
+  const attractivenessScore =
+    attractivenessScoreValue == null
+      ? null
+      : Math.min(100, Math.max(0, attractivenessScoreValue));
+  const rawSale = activeVariant.raw_sale_today;
+  const hasRawSale = Boolean(
+    rawSale &&
+    Object.values(rawSale).some(
+      (value) => value != null && String(value).trim().length > 0,
+    ),
+  );
 
   return (
     <section className="worth-grading-view ui-render-fade">
-      <article className="worth-grading-view__card default-container">
-        <header className="default-container-header worth-grading-view__header">
-          <h2 className="feature-section-heading">Grading Recommendation</h2>
-        </header>
-
-        <div className="default-container-body worth-grading-view__body">
+      <article className="worth-grading-view__card">
+        <div className="worth-grading-view__body">
           <fieldset
             aria-label="Grading recommendation variant"
             className="worth-grading-view__variant-selector feature-variant-radio-group"
@@ -448,79 +671,140 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             </div>
           </fieldset>
 
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">Recommendation</h3>
-            <div className="worth-grading-view__badges">
-              {typeof recommendation?.should_grade === "boolean" && (
-                <Badge
-                  accent={recommendation.should_grade ? "green" : "red"}
-                  weight="strong"
-                >
-                  {recommendation.should_grade ? "Worth grading" : "Do not grade"}
-                </Badge>
+          {(recommendation?.potential?.trim() ||
+            recommendation?.headline?.trim() ||
+            attractiveness?.reasoning?.trim() ||
+            attractivenessScore != null) && (
+            <section className="feature-analysis-accent-container">
+              {attractivenessScore != null && (
+                <div className="feature-analysis-score-block">
+                  <div
+                    aria-label={`Grading attractiveness score: ${attractivenessScore} out of 100`}
+                    className="feature-analysis-score"
+                    role="img"
+                    style={
+                      {
+                        "--feature-analysis-score-value": attractivenessScore,
+                      } as CSSProperties
+                    }
+                  >
+                    <div>
+                      <strong>{attractivenessScore}</strong>
+                      <span>/100</span>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
-            <div className="worth-grading-view__detail-grid">
-              <TextList
-                items={asList(recommendation?.summary)}
-                title="Summary"
-              />
-              <TextList
-                items={asList(recommendation?.reasons)}
-                title="Reasons"
-              />
-            </div>
-          </section>
-
-          <TextList
-            items={assumptions}
-            title="Assumptions"
-          />
-
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">Raw Sale Today</h3>
-            <div className="worth-grading-view__summary-grid">
-              <FieldCard label="gross_sale_usd">
-                {formatCurrency(activeVariant.raw_sale_today?.gross_sale_usd)}
-              </FieldCard>
-              <FieldCard label="estimated_fees_usd">
-                {formatCurrency(activeVariant.raw_sale_today?.estimated_fees_usd)}
-              </FieldCard>
-              <FieldCard label="net_proceeds_usd">
-                {formatCurrency(activeVariant.raw_sale_today?.net_proceeds_usd)}
-              </FieldCard>
-              <FieldCard label="time_to_sell">
-                {displayValue(activeVariant.raw_sale_today?.time_to_sell)}
-              </FieldCard>
-            </div>
-          </section>
-
-          {scenarios.length > 0 && (
-            <section className="worth-grading-view__json-section">
+              <div className="feature-analysis-summary-content">
+                <div className="feature-analysis-summary-meta">
+                  <span className="feature-analysis-eyebrow">
+                    Overall Score
+                  </span>
+                  {recommendation?.potential?.trim() && (
+                    <Badge
+                      accent={getPotentialBadgeAccent(recommendation.potential)}
+                      weight="strong"
+                    >
+                      {formatPotentialLabel(recommendation.potential)} max
+                      profits
+                    </Badge>
+                  )}
+                </div>
+                {recommendation?.headline?.trim() && (
+                  <strong className="feature-analysis-headline feature-analysis-summary-headline">
+                    {recommendation.headline}
+                  </strong>
+                )}
+                {attractiveness?.reasoning?.trim() && (
+                  <h4 className="feature-analysis-summary feature-analysis-summary-text">
+                    {attractiveness.reasoning}
+                  </h4>
+                )}
+              </div>
+            </section>
+          )}
+          {(scenarios.length > 0 || hasRawSale) && (
+            <section className="worth-grading-view__json-section default-container">
               <h3 className="worth-grading-view__section-title">
-                Graded Scenarios
+                Calculations
               </h3>
               <div className="worth-grading-view__scenario-grid">
                 {scenarios.map((scenario, index) => (
                   <ScenarioCard
                     key={`${scenario.grade ?? "scenario"}-${index}`}
+                    rawNetProceeds={
+                      activeVariant.raw_sale_today?.net_proceeds_usd
+                    }
                     scenario={scenario}
                   />
                 ))}
+                {hasRawSale && rawSale && <RawSaleCard rawSale={rawSale} />}
+              </div>
+            </section>
+          )}
+          {(recommendation?.bottom_line?.trim() ||
+            confidenceScore != null ||
+            confidence?.reasoning?.trim()) && (
+            <section className="worth-grading-view__decision-summary default-container">
+              <h3 className="worth-grading-view__section-title">Summary</h3>
+              <div className="worth-grading-view__decision-summary-content">
+                {recommendation?.bottom_line?.trim() && (
+                  <section className="worth-grading-view__decision-summary-item default-container-inner">
+                    <div className="feature-analysis-card-header">
+                      <h4>
+                        <Scale aria-hidden="true" />
+                        Recommendation
+                      </h4>
+                    </div>
+                    <p>{recommendation.bottom_line}</p>
+                  </section>
+                )}
+                {(confidenceScore != null || confidence?.reasoning?.trim()) && (
+                  <section className="worth-grading-view__decision-summary-item default-container-inner">
+                    <div className="feature-analysis-card-header">
+                      {confidenceScore != null && (
+                        <div
+                          aria-label={`Confidence score: ${confidenceScore} out of 100`}
+                          className="feature-analysis-score feature-analysis-score--icon"
+                          role="img"
+                          style={
+                            {
+                              "--feature-analysis-score-value": confidenceScore,
+                            } as CSSProperties
+                          }
+                        >
+                          <div>
+                            <strong>{confidenceScore}</strong>
+                          </div>
+                        </div>
+                      )}
+                      <h4>Analysis confidence</h4>
+                    </div>
+                    {confidence?.reasoning?.trim() && (
+                      <p>{confidence.reasoning}</p>
+                    )}
+                  </section>
+                )}
               </div>
             </section>
           )}
 
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">PSA Population</h3>
-            <PsaPopulationCard population={activeVariant.psa_population} />
-          </section>
+          <CollapsibleTitledDetailList
+            items={reasons}
+            notes={notes}
+            title="Key Takeaways"
+          />
 
-          <section className="worth-grading-view__json-section">
-            <h3 className="worth-grading-view__section-title">Raw Response</h3>
-            <pre className="worth-grading-view__raw-response">
-              {JSON.stringify(data, null, 2)}
-            </pre>
+          <CollapsibleTitledDetailList
+            items={assumptions}
+            title="Assumptions"
+          />
+
+          <section className="worth-grading-view__json-section default-container">
+            <h3 className="worth-grading-view__section-title">
+              PSA Population
+            </h3>
+            <PsaPopulationCard population={activeVariant.psa_population} />
           </section>
         </div>
       </article>

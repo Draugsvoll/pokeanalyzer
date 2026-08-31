@@ -29,7 +29,7 @@
   padding-top: clamp(3.5rem, 7vw, 5.5rem);
   padding-bottom: var(--space-7);
   overflow: hidden;
-  margin-top:4rem;
+  margin-top: 4rem;
 
   @media (min-width: 90rem) {
     padding-top: var(--space-10);
@@ -167,7 +167,8 @@
   padding: 1.15rem;
   position: relative;
   isolation: isolate;
-  border: 1px solid color-mix(in srgb, var(--feature-accent) 16%, var(--border-color));
+  border: 1px solid
+    color-mix(in srgb, var(--feature-accent) 16%, var(--border-color));
   border-radius: var(--radius-md);
   background:
     linear-gradient(
@@ -175,7 +176,7 @@
       color-mix(in srgb, var(--feature-accent) 7%, transparent) 0%,
       transparent 54%
     ),
-    var(--feature-card-bg);
+    var(--bg2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
   color: var(--font-color-primary);
   font: inherit;
@@ -217,8 +218,12 @@
         color-mix(in srgb, var(--feature-accent) 10%, transparent) 0%,
         transparent 58%
       ),
-      var(--feature-card-bg);
-    border-color: color-mix(in srgb, var(--feature-accent) 28%, var(--border-color));
+      var(--bg2);
+    border-color: color-mix(
+      in srgb,
+      var(--feature-accent) 28%,
+      var(--border-color)
+    );
     box-shadow:
       0 1rem 2.2rem rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.035);
@@ -240,7 +245,8 @@
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--feature-accent) 18%, transparent);
   color: var(--feature-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--feature-accent) 28%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--feature-accent) 28%, transparent);
 }
 
 /* Same spin language as LoadingState; tinted with feature accent */
@@ -268,12 +274,11 @@
   width: 2.85rem;
   height: 2.85rem;
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--feature-accent) 24%, transparent),
-      color-mix(in srgb, var(--feature-accent) 10%, transparent)
-    );
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--feature-accent) 24%, transparent),
+    color-mix(in srgb, var(--feature-accent) 10%, transparent)
+  );
   color: var(--feature-accent);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--feature-accent) 32%, transparent),
@@ -350,7 +355,6 @@
   .feature-button__description {
     white-space: normal;
   }
-
 }
 
 @media (max-width: 40rem) {

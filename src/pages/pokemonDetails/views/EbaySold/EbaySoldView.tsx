@@ -769,7 +769,7 @@ export default function EbaySoldView({
           onChange={handleListingTypeChange}
           options={[
             { label: "Sold", value: "sold" },
-            { label: "Listings", value: "active" },
+            { label: "Listed", value: "active" },
           ]}
           value={listingTypeFilter}
         />

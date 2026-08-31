@@ -28,6 +28,17 @@ function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isScore(value: unknown) {
+  const score =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+
+  return Number.isFinite(score) && score >= 1 && score <= 100;
+}
+
 function hasMeaningfulValue(value: unknown): boolean {
   if (hasText(value) || typeof value === "boolean") return true;
   if (typeof value === "number") return Number.isFinite(value);
@@ -92,40 +103,47 @@ function isDisplayableSellVariant(value: unknown) {
   return hasStep || hasNotes;
 }
 
+function isDisplayableWorthGradingScenario(value: unknown) {
+  return (
+    isJsonObject(value) &&
+    hasText(value.grade) &&
+    hasMeaningfulField(value, [
+      "expected_sale_price_usd",
+      "net_profit_vs_raw_usd",
+      "roi_vs_raw_net_percent",
+    ])
+  );
+}
+
 function isDisplayableWorthGradingVariant(value: unknown) {
   if (
     !isJsonObject(value) ||
     !isJsonObject(value.card) ||
     !Array.isArray(value.graded_scenarios) ||
+    !isJsonObject(value.attractiveness_level) ||
     !isJsonObject(value.recommendation)
   ) {
     return false;
   }
 
   const hasScenario = value.graded_scenarios.some(
-    (scenario) =>
-      isJsonObject(scenario) &&
-      hasMeaningfulField(scenario, [
-        "expected_sale_price_usd",
-        "grading_tier",
-        "grading_tier_justification",
-        "psa_grading_fee_usd",
-        "shipping_and_insurance_usd",
-        "ebay_fees_usd",
-        "net_after_all_costs_usd",
-        "roi_vs_raw_net_percent",
-        "net_profit_vs_raw_usd",
-        "turnaround_time",
-        "psa_note",
-      ]),
+    isDisplayableWorthGradingScenario,
   );
-  const hasRecommendation = hasMeaningfulField(value.recommendation, [
-    "should_grade",
-    "summary",
-    "reasons",
-  ]);
+  const hasRecommendation =
+    hasMeaningfulField(value.recommendation, ["potential"]) &&
+    hasMeaningfulField(value.recommendation, ["headline"]) &&
+    hasMeaningfulField(value.recommendation, ["bottom_line"]);
+  const hasAttractivenessReasoning = hasText(
+    value.attractiveness_level.reasoning,
+  );
+  const hasAttractivenessScore = isScore(value.attractiveness_level.score);
 
-  return hasScenario || hasRecommendation;
+  return (
+    hasScenario &&
+    hasRecommendation &&
+    hasAttractivenessReasoning &&
+    hasAttractivenessScore
+  );
 }
 
 export function isValidStoredFeatureResponse(

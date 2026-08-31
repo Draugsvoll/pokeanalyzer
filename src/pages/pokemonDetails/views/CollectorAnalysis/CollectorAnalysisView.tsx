@@ -14,6 +14,7 @@ import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { Badge } from "../../../../components/ui/Badge";
 import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
@@ -63,7 +64,7 @@ function parseCollectorAnalysisEntry(
       name: String(category.name ?? "Category"),
       score: String(category.score ?? "0"),
       text: String(category.text ?? ""),
-  }));
+    }));
 
   const variantName =
     typeof data.variant_name === "string" ? data.variant_name.trim() : "";
@@ -79,14 +80,12 @@ function parseCollectorAnalysisEntry(
   };
 }
 
-function parseCollectorAnalysis(response: string): CollectorAnalysisData[] | null {
+function parseCollectorAnalysis(
+  response: string,
+): CollectorAnalysisData[] | null {
   const value = parseJsonText(response);
 
-  if (
-    !value ||
-    typeof value !== "object" ||
-    Array.isArray(value)
-  ) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
@@ -128,7 +127,9 @@ export default function CollectorAnalysis({
 
   const selectedVariantIndex =
     selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
-  const activeVariantIndex = analyses[selectedVariantIndex] ? selectedVariantIndex : 0;
+  const activeVariantIndex = analyses[selectedVariantIndex]
+    ? selectedVariantIndex
+    : 0;
   const analysis = analyses[activeVariantIndex];
   const totalScore = Math.min(
     100,
@@ -145,14 +146,14 @@ export default function CollectorAnalysis({
         <div>
           {analyses.map((variantAnalysis, variantIndex) => (
             <label key={`${variantAnalysis.variantName}-${variantIndex}`}>
-                <input
-                  checked={activeVariantIndex === variantIndex}
-                  name="collector-analysis-variant"
-                  onChange={() =>
-                    setSelectedVariant({ index: variantIndex, responseKey })
-                  }
-                  type="radio"
-                />
+              <input
+                checked={activeVariantIndex === variantIndex}
+                name="collector-analysis-variant"
+                onChange={() =>
+                  setSelectedVariant({ index: variantIndex, responseKey })
+                }
+                type="radio"
+              />
               <span>
                 <Layers3 aria-hidden="true" />
                 <strong>{variantAnalysis.variantName}</strong>
@@ -165,43 +166,56 @@ export default function CollectorAnalysis({
         className="collector-ranking__content ui-render-fade"
         key={`${responseKey}-${activeVariantIndex}`}
       >
-        <div className="collector-ranking__summary">
-          <div
-            className="collector-ranking__score"
-            style={{ "--score": totalScore } as CSSProperties}
-            role="img"
-            aria-label={`Overall collector score: ${totalScore} out of 100`}
-          >
-            <div>
-              <strong>{totalScore}</strong>
-              <span>/100</span>
+        <div className="feature-analysis-accent-container">
+          <div className="feature-analysis-score-block">
+            <div
+              className="feature-analysis-score"
+              style={
+                {
+                  "--feature-analysis-score-value": totalScore,
+                } as CSSProperties
+              }
+              role="img"
+              aria-label={`Overall collector score: ${totalScore} out of 100`}
+            >
+              <div>
+                <strong>{totalScore}</strong>
+                <span>/100</span>
+              </div>
             </div>
           </div>
-          <div className="collector-ranking__overview">
-            <div className="collector-ranking__meta">
-              <span>Overall score</span>
-              <strong>{scoreTone}</strong>
+          <div className="feature-analysis-summary-content">
+            <div className="feature-analysis-summary-meta">
+              <span className="feature-analysis-eyebrow">Overall score</span>
+              <Badge accent="blue" weight="strong">
+                {scoreTone}
+              </Badge>
             </div>
             {analysis.verdict && (
-              <strong className="collector-ranking__verdict">
+              <strong className="feature-analysis-headline feature-analysis-summary-headline">
                 {analysis.verdict}
               </strong>
             )}
-            <h4>{analysis.overview}</h4>
+            <h4 className="feature-analysis-summary feature-analysis-summary-text">
+              {analysis.overview}
+            </h4>
           </div>
         </div>
 
         <div className="collector-ranking__categories">
           {analysis.categories.map((category, index) => {
             const Icon = categoryIcons[index] ?? Gem;
-            const score = Math.min(100, Math.max(0, Number(category.score) || 0));
+            const score = Math.min(
+              100,
+              Math.max(0, Number(category.score) || 0),
+            );
 
             return (
               <article
                 key={`${category.name}-${index}`}
                 className="collector-ranking__category default-container"
               >
-                <div className="collector-ranking__category-title">
+                <div className="feature-analysis-card-header">
                   <h4>
                     <Icon size={19} aria-hidden="true" />
                     {category.name}
@@ -226,7 +240,7 @@ export default function CollectorAnalysis({
 
         {analysis.finalNote && (
           <section className="collector-ranking__conclusion collector-ranking__category default-container">
-            <div className="collector-ranking__category-title">
+            <div className="feature-analysis-card-header">
               <h4>
                 <FileText size={19} aria-hidden="true" />
                 Conclusion

@@ -161,8 +161,16 @@
   --font-size-card-title: 14px;
   --font-size-card-meta: 12px;
 
-  --hover-accent-bg: color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
-  --hover-accent-border: color-mix(in srgb, var(--custom-color-blue) 35%, transparent);
+  --hover-accent-bg: color-mix(
+    in srgb,
+    var(--custom-color-blue) 16%,
+    transparent
+  );
+  --hover-accent-border: color-mix(
+    in srgb,
+    var(--custom-color-blue) 35%,
+    transparent
+  );
   --hover-accent-text: color-mix(in srgb, var(--custom-color-blue) 45%, white);
 
   --dropdown-trigger-bg: var(--bg-input);
@@ -176,7 +184,11 @@
   --dropdown-trigger-height: var(--btn-height);
   --dropdown-option-radius: var(--radius-sm);
   --dropdown-option-hover-bg: var(--hover-accent-bg);
-  --dropdown-option-selected-bg: color-mix(in srgb, var(--custom-color-blue) 22%, transparent);
+  --dropdown-option-selected-bg: color-mix(
+    in srgb,
+    var(--custom-color-blue) 22%,
+    transparent
+  );
   --dropdown-focus-ring: 0 0 0 3px
     color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
   --dropdown-z-index: 120;
@@ -190,11 +202,13 @@
   --card-view-section-gap: var(--space-7);
   --card-view-header-gap: var(--space-2);
   --card-view-datestamp-gap: var(--space-1);
-  --feature-card-bg: var(--bg2);
-  --feature-card-border: var(--border);
-  --feature-card-radius: var(--border-radius);
-  --feature-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-  --feature-card-inner-bg: rgba(255, 255, 255, 0.035);
+  --default-container-padding: 1.5rem;
+  --default-container-inner-padding: 1.25rem;
+  --default-container-section-gap: 1rem;
+  --default-container-border: var(--border);
+  --default-container-radius: var(--border-radius);
+  --default-container-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --default-container-inner-bg: rgba(255, 255, 255, 0.035);
 
   /* Type */
   --font-family-base:
@@ -228,7 +242,7 @@
   --font-size-paragraph-sm: 13px;
   --font-size-label: 12px;
   --font-size-value: 14px;
-  --font-size-caption: 12px;
+  --font-size-caption: 11px;
   --font-size-badge: 10px;
   --font-size-overline: 11px;
   --font-size-nav: 13px;

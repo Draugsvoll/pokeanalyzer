@@ -2,13 +2,12 @@
   /* Follows feature button / header accent from page --feature-accent */
   --ebay-accent: var(--feature-accent, var(--custom-color-teal));
 
-  box-sizing: border-box;
   max-width: 100%;
   width: 100%;
 
   &__surface {
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-2);
     margin-bottom: var(--space-4);
   }
 

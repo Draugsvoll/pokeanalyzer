@@ -48,9 +48,20 @@ test("stored feature validation accepts each current response shape", () => {
         {
           card: {},
           graded_scenarios: [
-            { expected_sale_price_usd: null, grading_tier: "Value" },
+            {
+              grade: "PSA 7",
+              net_profit_vs_raw_usd: 0,
+            },
           ],
-          recommendation: {},
+          attractiveness_level: {
+            reasoning: "The card has a practical grading opportunity.",
+            score: "65",
+          },
+          recommendation: {
+            bottom_line: "Grade only clean copies.",
+            headline: "Grading offers meaningful upside.",
+            potential: "good",
+          },
         },
       ],
     }),
@@ -78,6 +89,111 @@ test("stored feature validation rejects missing or empty analysis content", () =
       { variants: [{ variant: "Unlimited", steps: [{ substeps: [] }] }] },
     ],
     ["worth_grading", { variants: [] }],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [{ grade: "PSA 7", net_profit_vs_raw_usd: 100 }],
+            recommendation: {
+              bottom_line: "Grade only clean copies.",
+              headline: "Grading offers meaningful upside.",
+              potential: "good",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [{ grade: "PSA 7", net_profit_vs_raw_usd: 100 }],
+            attractiveness_level: {
+              reasoning: "The card has a practical grading opportunity.",
+              score: "65",
+            },
+            recommendation: {
+              headline: "Grading offers meaningful upside.",
+              potential: "good",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [{ grade: "PSA 7", net_profit_vs_raw_usd: 100 }],
+            attractiveness_level: {
+              reasoning: "The card has a practical grading opportunity.",
+              score: "high",
+            },
+            recommendation: {
+              bottom_line: "Grade only clean copies.",
+              headline: "Grading offers meaningful upside.",
+              potential: "good",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [
+              {
+                grade: "PSA 7",
+                grading_tier_justification: "Value tier was selected.",
+              },
+            ],
+            recommendation: {
+              headline: "Grading offers meaningful upside.",
+              potential: "good",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [{ net_profit_vs_raw_usd: 100 }],
+            recommendation: {
+              headline: "Grading offers meaningful upside.",
+              potential: "good",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            card: {},
+            graded_scenarios: [{ grading_tier: "Value" }],
+            recommendation: {
+              should_grade: true,
+              summary: "Legacy recommendation",
+            },
+          },
+        ],
+      },
+    ],
     [
       "worth_grading",
       {

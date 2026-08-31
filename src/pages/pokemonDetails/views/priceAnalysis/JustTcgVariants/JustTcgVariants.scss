@@ -509,7 +509,7 @@
 @media (max-width: 46rem) {
   .just-tcg-variants {
     .just-tcg-history {
-      padding: 1rem;
+      --default-container-padding: 1rem;
 
       > header {
         align-items: flex-start;

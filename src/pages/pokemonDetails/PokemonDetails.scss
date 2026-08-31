@@ -316,10 +316,10 @@
   }
 
   &__detail-section {
-    background: var(--feature-card-inner-bg);
+    background: var(--default-container-inner-bg);
     border: var(--border);
-    border-radius: var(--feature-card-radius);
-    box-shadow: var(--feature-card-shadow);
+    border-radius: var(--default-container-radius);
+    box-shadow: var(--default-container-shadow);
     display: grid;
     gap: 0.55rem;
     min-width: 0;

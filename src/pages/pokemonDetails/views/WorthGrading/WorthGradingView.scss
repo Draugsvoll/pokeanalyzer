@@ -11,25 +11,6 @@
 
 .worth-grading-view__card {
   display: grid;
-  gap: 0;
-  overflow: hidden;
-}
-
-.worth-grading-view__header {
-  align-items: flex-start;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-
-  .feature-section-heading {
-    --feature-section-heading-accent: var(--worth-grading-accent);
-  }
-
-  p {
-    color: var(--font-color-muted);
-    font-size: var(--font-size-paragraph-sm);
-    margin: 0.45rem 0 0;
-  }
 }
 
 .worth-grading-view__body {
@@ -42,18 +23,6 @@
   gap: 0.85rem;
 }
 
-.worth-grading-view__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.worth-grading-view__summary-grid {
-  display: grid;
-  gap: 0.7rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
 .worth-grading-view__metric {
   align-content: start;
   display: grid;
@@ -61,7 +30,7 @@
   min-width: 0;
   padding: 0.9rem;
 
-  span {
+  > span {
     color: var(--font-color-muted);
     font-size: var(--font-size-overline);
     font-weight: var(--font-weight-semibold);
@@ -73,15 +42,13 @@
   strong {
     color: var(--font-color-primary);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-paragraph-lg);
+    font-size: var(--font-size-paragraph);
     font-variant-numeric: tabular-nums;
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-section-title);
     line-height: var(--font-leading-tight);
   }
 
   small {
-    color: var(--font-color-muted);
-    font-size: var(--font-size-caption);
     line-height: var(--font-leading-normal);
     min-width: 0;
   }
@@ -113,15 +80,19 @@
 }
 
 .worth-grading-view__scenario {
+  background: var(--default-container-inner-bg);
+  border-radius: var(--default-container-radius);
   display: grid;
   gap: 0;
   overflow: hidden;
-  padding: 0;
+  padding: 1rem;
 
-  .worth-grading-view__detail-section {
-    background: var(--surface-color-elevated);
-    border: var(--border);
-    margin: 0 0.95rem 0.95rem;
+  &--static {
+    &:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: calc((100% - 0.85rem) / 2);
+    }
   }
 }
 
@@ -129,9 +100,9 @@
   align-items: center;
   display: grid;
   justify-items: center;
-  padding: 0.3rem;
+  padding: var(--default-container-inner-padding);
   text-align: center;
-  gap:1.4rem;
+  gap: 1rem;
 
   h4 {
     color: var(--font-color-primary);
@@ -141,7 +112,7 @@
     line-height: var(--font-leading-snug);
   }
 
-  span {
+  > span {
     color: var(--font-color-secondary);
     font-size: var(--font-size-paragraph-sm);
     line-height: var(--font-leading-normal);
@@ -208,7 +179,7 @@
 .worth-grading-view__scenario-breakdown {
   display: grid;
   gap: 0;
-  padding: 0.95rem;
+  padding: var(--default-container-inner-padding);
 
   h5 {
     color: var(--font-color-secondary);
@@ -228,6 +199,10 @@
 
   &:first-of-type {
     padding-top: 0;
+
+    .worth-grading-view__cost-label {
+      font-weight: 600;
+    }
   }
 
   &:nth-of-type(2),
@@ -239,7 +214,7 @@
     padding-bottom: 0;
 
     .worth-grading-view__cost-row:last-child {
-      span,
+      .worth-grading-view__cost-label,
       strong {
         font-weight: var(--font-weight-bold);
       }
@@ -253,7 +228,7 @@
   gap: 1rem;
   justify-content: space-between;
 
-  span {
+  .worth-grading-view__cost-label {
     color: var(--font-color-primary);
     font-size: var(--font-size-paragraph);
     line-height: var(--font-leading-normal);
@@ -271,26 +246,73 @@
   }
 }
 
+.worth-grading-view__cost-note {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-leading-normal);
+  margin: var(--space-1) 0 0;
+}
+
+.worth-grading-view__fee-model {
+  summary {
+    align-items: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: inline-flex;
+    gap: var(--space-2);
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      border-bottom: 1.5px solid currentColor;
+      border-right: 1.5px solid currentColor;
+      content: "";
+      height: 0.35rem;
+      transform: rotate(-45deg);
+      width: 0.35rem;
+    }
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &[open] summary::after {
+    transform: rotate(45deg);
+  }
+}
+
+.worth-grading-view__scenario-support {
+  display: grid;
+  gap: var(--space-4);
+  margin-left: var(--default-container-inner-padding);
+  margin-right: var(--default-container-inner-padding);
+  padding-bottom: var(--default-container-inner-padding);
+}
+
 .worth-grading-view__scenario-meta {
   display: grid;
   gap: 0.7rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 0 0.95rem 0.95rem;
 }
 
 .worth-grading-view__tier-metric {
   div {
     align-items: baseline;
     display: flex;
-    gap: 0.75rem;
-    justify-content: space-between;
+    gap: 0.5rem;
     min-width: 0;
   }
 
   small {
     color: var(--font-color-secondary);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-caption);
+    font-size: var(--font-size-price);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-semibold);
     line-height: var(--font-leading-snug);
@@ -299,11 +321,23 @@
 }
 
 .worth-grading-view__psa-note {
+  align-items: center;
   color: var(--font-color-secondary);
+  display: flex;
   font-size: var(--font-size-paragraph-sm);
+  gap: var(--space-2);
   line-height: var(--font-leading-normal);
-  margin: 0 0.95rem 0.95rem;
-  padding: 0.95rem;
+  margin: 0;
+
+  &::before {
+    background: var(--worth-grading-accent);
+    border-radius: var(--border-radius-round);
+    content: "";
+    flex: none;
+    height: var(--glow-dot-size);
+    opacity: var(--glow-dot-opacity);
+    width: var(--glow-dot-size);
+  }
 }
 
 .worth-grading-view__population-card {
@@ -312,17 +346,14 @@
   padding: 1rem;
 }
 
-.worth-grading-view__population-source,
-.worth-grading-view__population-total,
-.worth-grading-view__population-grades > div {
+.worth-grading-view__population-total {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
 }
 
-.worth-grading-view__population-source span,
 .worth-grading-view__population-total span,
-.worth-grading-view__population-grades span {
+.worth-grading-view__population-grade span {
   color: var(--font-color-muted);
   font-size: var(--font-size-overline);
   font-weight: var(--font-weight-semibold);
@@ -331,9 +362,8 @@
   text-transform: uppercase;
 }
 
-.worth-grading-view__population-source strong,
 .worth-grading-view__population-total strong,
-.worth-grading-view__population-grades strong {
+.worth-grading-view__population-grade strong {
   color: var(--font-color-primary);
   font-family: var(--font-family-price);
   font-size: var(--font-size-paragraph-lg);
@@ -343,61 +373,135 @@
   overflow-wrap: anywhere;
 }
 
-.worth-grading-view__population-total {
-  border-top: var(--border);
-  padding-top: 1rem;
-}
-
 .worth-grading-view__population-grades {
   border-top: var(--border);
   display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
   padding-top: 1rem;
 }
 
-.worth-grading-view__detail-section {
+.worth-grading-view__population-grade {
   display: grid;
+  gap: var(--space-2);
+
+  > div:first-child {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+.worth-grading-view__population-track {
+  background: color-mix(in srgb, var(--font-color-primary) 7%, transparent);
+  border-radius: var(--border-radius-pill);
+  height: 0.45rem;
+  overflow: hidden;
+
+  > span {
+    background: var(--worth-grading-accent);
+    border-radius: inherit;
+    display: block;
+    height: 100%;
+  }
+}
+
+.worth-grading-view__collapsible-details {
+  summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    list-style: none;
+    position: relative;
+
+    &::before {
+      bottom: calc(-1 * var(--default-container-padding));
+      content: "";
+      left: calc(-1 * var(--default-container-padding));
+      position: absolute;
+      right: calc(-1 * var(--default-container-padding));
+      top: calc(-1 * var(--default-container-padding));
+    }
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    h3 {
+      margin: 0;
+    }
+
+    svg {
+      border-bottom: 1px solid transparent;
+      color: var(--font-color-muted);
+      height: 1.15rem;
+      transition: border-color var(--animation-duration-fast)
+        var(--animation-ease-standard);
+      width: 1.15rem;
+    }
+
+    &:hover svg {
+      border-bottom-color: currentColor;
+    }
+  }
+
+  &[open] summary::before {
+    bottom: 0;
+  }
+}
+
+.worth-grading-view__collapsible-content {
   align-content: start;
+  display: grid;
   gap: 0.75rem;
   min-width: 0;
-  padding: 0.95rem;
+  padding: var(--space-4) 0 0;
 
   h3 {
-    align-items: center;
     color: var(--font-color-primary);
-    display: flex;
-    font-size: var(--font-size-paragraph);
     font-weight: var(--font-weight-bold);
-    gap: 0.55rem;
     line-height: var(--font-leading-snug);
     margin: 0;
   }
 
   ul {
     display: grid;
-    gap: 0.6rem;
+    gap: var(--space-4) var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
   li {
+    align-content: start;
     color: var(--font-color-secondary);
+    display: grid;
     font-size: var(--font-size-paragraph-sm);
+    gap: 0.25rem var(--space-2);
+    grid-template-columns: auto minmax(0, 1fr);
     line-height: var(--font-leading-normal);
-    padding-left: 0.9rem;
-    position: relative;
+    padding: var(--default-container-inner-padding);
+
+    > strong {
+      color: var(--font-color-primary);
+      font-weight: var(--font-weight-semibold);
+      grid-column: 2;
+      font-size: var(--font-size-paragraph);
+    }
+
+    > p {
+      grid-column: 2;
+    }
 
     &::before {
-      background: color-mix(in srgb, var(--worth-grading-accent) 72%, white);
+      background: var(--worth-grading-accent);
       border-radius: var(--border-radius-round);
       content: "";
+      grid-row: 1 / span 2;
       height: var(--glow-dot-size);
-      left: 0;
+      margin-top: 0.65em;
       opacity: var(--glow-dot-opacity);
-      position: absolute;
-      top: 0.65em;
       width: var(--glow-dot-size);
     }
   }
@@ -406,29 +510,61 @@
     color: var(--font-color-secondary);
     font-size: var(--font-size-paragraph-sm);
     line-height: var(--font-leading-normal);
-    margin: 0;
   }
 }
 
-.worth-grading-view__detail-grid {
+.worth-grading-view__collapsible-notes {
   display: grid;
-  gap: 0.85rem;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+
+  ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  li {
+    display: block;
+    text-align: left;
+
+    &::before {
+      content: none;
+    }
+  }
+}
+
+.worth-grading-view__decision-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.worth-grading-view__decision-summary-content {
+  display: grid;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.worth-grading-view__raw-response {
-  background: var(--surface-color-elevated);
-  border: var(--border);
-  border-radius: var(--border-radius-md);
-  color: var(--font-color-secondary);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-caption);
-  line-height: var(--font-leading-normal);
-  margin: 0;
-  max-height: 32rem;
-  overflow: auto;
-  padding: 1rem;
-  white-space: pre-wrap;
+.worth-grading-view__decision-summary-item {
+  --feature-analysis-accent: var(--worth-grading-accent);
+  --feature-analysis-card-header-accent: var(--worth-grading-accent);
+
+  align-content: start;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+
+  .feature-analysis-card-header {
+    justify-content: center;
+  }
+
+  p {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    line-height: var(--font-leading-normal);
+  }
+
+  &:only-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 58rem) {
@@ -436,29 +572,16 @@
     grid-template-columns: 1fr;
   }
 
-  .worth-grading-view__detail-grid {
+  .worth-grading-view__scenario--static:last-child:nth-child(odd) {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  .worth-grading-view__decision-summary-content {
     grid-template-columns: 1fr;
   }
 
-  .worth-grading-view__summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .worth-grading-view__population-grades {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 36rem) {
-  .worth-grading-view__header {
-    display: grid;
-  }
-
-  .worth-grading-view__summary-grid {
+  .worth-grading-view__collapsible-notes ul {
     grid-template-columns: 1fr;
-  }
-
-  .worth-grading-view__population-grades {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

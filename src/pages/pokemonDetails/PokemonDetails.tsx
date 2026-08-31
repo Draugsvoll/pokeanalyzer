@@ -695,6 +695,7 @@ function PokemonDetailsForCard() {
   const infoFields = getCardSetInfoFields(card);
   const dossierFacts = getDossierFacts(card);
   const displaySubtype = getDisplaySubtype(card);
+  const displayRarity = card.rarity?.trim() || "N/A";
   const getFactValue = (label: string) =>
     dossierFacts.find((fact) => fact.label === label)?.value;
   const detailSections = [
@@ -894,19 +895,14 @@ function PokemonDetailsForCard() {
                           {card.set?.series && <span>({card.set.series})</span>}
                         </p>
                       )}
-                      {(card.rarity || displaySubtype) && (
-                        <div className="card-view__title-badges">
-                          {card.rarity && (
-                            <Badge
-                              accent={getRarityBadgeAccent(card.rarity)}
-                              weight="strong"
-                            >
-                              {card.rarity}
-                            </Badge>
-                          )}
-                          {displaySubtype && <Badge>{displaySubtype}</Badge>}
-                        </div>
-                      )}
+                      <div className="card-view__title-badges">
+                        <Badge
+                          accent={getRarityBadgeAccent(displayRarity)}
+                          weight="strong"
+                        >
+                          {displayRarity}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>

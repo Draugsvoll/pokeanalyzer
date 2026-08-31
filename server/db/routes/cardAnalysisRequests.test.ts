@@ -25,6 +25,7 @@ test("card features use the expected instructions and Grok options", () => {
   assert.deepEqual(collector.grokOptions, {
     model: "grok-4.5",
     reasoningEffort: "medium",
+    useCodeInterpreter: true,
   });
 
   assert.equal(price.instructions, priceAnalysisInstructions);
