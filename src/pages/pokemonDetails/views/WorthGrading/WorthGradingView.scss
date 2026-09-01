@@ -23,6 +23,46 @@
   gap: 0.85rem;
 }
 
+.worth-grading-view__overview {
+  --feature-analysis-accent: var(--worth-grading-accent);
+
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.worth-grading-view__overview-eyebrow {
+  color: var(--worth-grading-accent);
+  display: block;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+}
+
+.worth-grading-view__overview-badge {
+  display: block;
+}
+
+.worth-grading-view__overview-headline {
+  color: var(--font-color-primary);
+  display: block;
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-leading-snug);
+  max-width: 64rem;
+}
+
+.worth-grading-view__overview-reasoning {
+  color: var(--font-color-secondary);
+  display: block;
+  font-size: var(--font-size-paragraph);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-normal);
+  margin: 0;
+  max-width: 64rem;
+}
+
 .worth-grading-view__metric {
   align-content: start;
   display: grid;
@@ -107,7 +147,6 @@
   h4 {
     color: var(--font-color-primary);
     font-size: var(--font-size-h2);
-    font-weight: var(--font-weight-bold);
     justify-self: center;
     line-height: var(--font-leading-snug);
   }

@@ -8,13 +8,13 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { CSSProperties } from "react";
 import { useState } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
+import { FeatureAnalysisPanel } from "../../components/FeatureAnalysisPanel";
 import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
@@ -166,41 +166,18 @@ export default function CollectorAnalysis({
         className="collector-ranking__content ui-render-fade"
         key={`${responseKey}-${activeVariantIndex}`}
       >
-        <div className="feature-analysis-accent-container">
-          <div className="feature-analysis-score-block">
-            <div
-              className="feature-analysis-score"
-              style={
-                {
-                  "--feature-analysis-score-value": totalScore,
-                } as CSSProperties
-              }
-              role="img"
-              aria-label={`Overall collector score: ${totalScore} out of 100`}
-            >
-              <div>
-                <strong>{totalScore}</strong>
-                <span>/100</span>
-              </div>
-            </div>
-          </div>
-          <div className="feature-analysis-summary-content">
-            <div className="feature-analysis-summary-meta">
-              <span className="feature-analysis-eyebrow">Overall score</span>
-              <Badge accent="blue" weight="strong">
-                {scoreTone}
-              </Badge>
-            </div>
-            {analysis.verdict && (
-              <strong className="feature-analysis-headline feature-analysis-summary-headline">
-                {analysis.verdict}
-              </strong>
-            )}
-            <h4 className="feature-analysis-summary feature-analysis-summary-text">
-              {analysis.overview}
-            </h4>
-          </div>
-        </div>
+        <FeatureAnalysisPanel
+          badge={
+            <Badge accent="blue" weight="strong">
+              {scoreTone}
+            </Badge>
+          }
+          eyebrow="Overall score"
+          headline={analysis.verdict}
+          score={totalScore}
+          scoreLabel="Overall collector score"
+          summary={analysis.overview}
+        />
 
         <div className="collector-ranking__categories">
           {analysis.categories.map((category, index) => {

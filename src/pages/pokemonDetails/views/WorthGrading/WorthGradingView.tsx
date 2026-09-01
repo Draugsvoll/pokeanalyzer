@@ -1,7 +1,8 @@
 import { ChevronDown, Layers3, Scale } from "lucide-react";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
+import { FeatureAnalysisScoreMeter } from "../../components/FeatureAnalysisPanel";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -437,21 +438,16 @@ function ScenarioCard({
 
           <div className="worth-grading-view__scenario-support">
             <div className="worth-grading-view__scenario-meta">
+              <FieldCard label="turnaround">
+                {displayValue(scenario.turnaround_time)}
+              </FieldCard>
               <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
                 <span>grading tier</span>
                 <div>
                   <strong>{displayValue(scenario.grading_tier)}</strong>
                   <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
                 </div>
-                {scenario.grading_tier_justification?.trim() && (
-                  <p className="worth-grading-view__cost-note">
-                    {scenario.grading_tier_justification}
-                  </p>
-                )}
               </div>
-              <FieldCard label="turnaround">
-                {displayValue(scenario.turnaround_time)}
-              </FieldCard>
             </div>
             {scenario.psa_note?.trim() && (
               <p className="worth-grading-view__psa-note default-container-inner">
@@ -679,52 +675,39 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             recommendation?.headline?.trim() ||
             attractiveness?.reasoning?.trim() ||
             attractivenessScore != null) && (
-            <section className="feature-analysis-accent-container">
+            <section className="worth-grading-view__overview default-container">
+              <span className="worth-grading-view__overview-eyebrow">
+                Overall Score
+              </span>
               {attractivenessScore != null && (
                 <div className="feature-analysis-score-block">
-                  <div
-                    aria-label={`Grading attractiveness score: ${attractivenessScore} out of 100`}
-                    className="feature-analysis-score"
-                    role="img"
-                    style={
-                      {
-                        "--feature-analysis-score-value": attractivenessScore,
-                      } as CSSProperties
-                    }
-                  >
-                    <div>
-                      <strong>{attractivenessScore}</strong>
-                      <span>/100</span>
-                    </div>
-                  </div>
+                  <FeatureAnalysisScoreMeter
+                    label="Grading attractiveness score"
+                    score={attractivenessScore}
+                    size="small"
+                  />
                 </div>
               )}
-              <div className="feature-analysis-summary-content">
-                <div className="feature-analysis-summary-meta">
-                  <span className="feature-analysis-eyebrow">
-                    Overall Score
-                  </span>
-                  {recommendation?.potential?.trim() && (
-                    <Badge
-                      accent={getPotentialBadgeAccent(recommendation.potential)}
-                      weight="strong"
-                    >
-                      {formatPotentialLabel(recommendation.potential)} max
-                      profits
-                    </Badge>
-                  )}
+              {recommendation?.potential?.trim() && (
+                <div className="worth-grading-view__overview-badge">
+                  <Badge
+                    accent={getPotentialBadgeAccent(recommendation.potential)}
+                    weight="strong"
+                  >
+                    {formatPotentialLabel(recommendation.potential)} max profit
+                  </Badge>
                 </div>
-                {recommendation?.headline?.trim() && (
-                  <strong className="feature-analysis-headline feature-analysis-summary-headline">
-                    {recommendation.headline}
-                  </strong>
-                )}
-                {attractiveness?.reasoning?.trim() && (
-                  <h4 className="feature-analysis-summary feature-analysis-summary-text">
-                    {attractiveness.reasoning}
-                  </h4>
-                )}
-              </div>
+              )}
+              {recommendation?.headline?.trim() && (
+                <strong className="worth-grading-view__overview-headline">
+                  {recommendation.headline}
+                </strong>
+              )}
+              {attractiveness?.reasoning?.trim() && (
+                <p className="worth-grading-view__overview-reasoning">
+                  {attractiveness.reasoning}
+                </p>
+              )}
             </section>
           )}
           {(scenarios.length > 0 || hasRawSale) && (
@@ -767,20 +750,12 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                   <section className="worth-grading-view__decision-summary-item default-container-inner">
                     <div className="feature-analysis-card-header">
                       {confidenceScore != null && (
-                        <div
-                          aria-label={`Confidence score: ${confidenceScore} out of 100`}
-                          className="feature-analysis-score feature-analysis-score--icon"
-                          role="img"
-                          style={
-                            {
-                              "--feature-analysis-score-value": confidenceScore,
-                            } as CSSProperties
-                          }
-                        >
-                          <div>
-                            <strong>{confidenceScore}</strong>
-                          </div>
-                        </div>
+                        <FeatureAnalysisScoreMeter
+                          label="Confidence score"
+                          score={confidenceScore}
+                          showMaximum={false}
+                          size="icon"
+                        />
                       )}
                       <h4>Analysis confidence</h4>
                     </div>
