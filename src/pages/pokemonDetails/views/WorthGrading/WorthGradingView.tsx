@@ -33,7 +33,6 @@ type GradedScenario = {
   grade?: string | null;
   grading_tier?: string | null;
   grading_tier_justification?: string | null;
-  net_after_all_costs_usd?: number | string | null;
   net_profit_vs_raw_usd?: number | string | null;
   psa_grading_fee_usd?: number | string | null;
   psa_note?: string | null;
@@ -444,6 +443,11 @@ function ScenarioCard({
                   <strong>{displayValue(scenario.grading_tier)}</strong>
                   <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
                 </div>
+                {scenario.grading_tier_justification?.trim() && (
+                  <p className="worth-grading-view__cost-note">
+                    {scenario.grading_tier_justification}
+                  </p>
+                )}
               </div>
               <FieldCard label="turnaround">
                 {displayValue(scenario.turnaround_time)}
