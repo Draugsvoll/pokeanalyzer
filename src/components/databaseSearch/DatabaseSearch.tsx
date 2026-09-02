@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
+import { SEARCH_HERO_CONTENT } from "../../data/searchHeroContent";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { resolveCardPriceOption } from "../../utils/pokemonPricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
+import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
+import { Badge } from "../ui/Badge";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -37,10 +40,7 @@ type DatabaseSearchBarProps = {
 };
 
 type SearchSortDirection =
-  | "price-high-low"
-  | "price-low-high"
-  | "release-newest"
-  | "release-oldest";
+  "price-high-low" | "price-low-high" | "release-newest" | "release-oldest";
 
 const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
   { value: "price-high-low", label: "Price: high to low" },
@@ -82,8 +82,8 @@ export function DatabaseSearchBar({
         <label className="explore-search-field">
           <Search
             className="explore-search-field__icon"
-            size={18}
-            strokeWidth={1.5}
+            size={16}
+            strokeWidth={2}
             absoluteStrokeWidth
             aria-hidden="true"
           />
@@ -245,7 +245,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
 
       const res = await fetch(
-        `${API_URL}/api/cards/search?${params.toString()}`
+        `${API_URL}/api/cards/search?${params.toString()}`,
       );
 
       if (!res.ok) {
@@ -263,7 +263,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           trimmedSetSeries,
         ]
           .filter(Boolean)
-          .join(" · ")
+          .join(" · "),
       );
       setResultRenderKey((currentKey) => currentKey + 1);
     } catch (error) {
@@ -279,7 +279,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   }
 
   const handleSearchKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>
+    event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (event.key === "Enter") {
       submitSearch();
@@ -309,12 +309,14 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       <div className={embedded ? undefined : "explore-page__inner"}>
         {!embedded && showHero && (
           <header className="explore-hero">
-            <p className="explore-hero__eyebrow">
-              20,000+ cards · Global market data
-            </p>
-            <h2 className="explore-hero__title">Find your next card.</h2>
+            <span className="explore-hero__eyebrow">
+              <Badge accent="blue" size="sm" weight="strong">
+                {SEARCH_HERO_CONTENT.eyebrow}
+              </Badge>
+            </span>
+            <h2 className="explore-hero__title">{SEARCH_HERO_CONTENT.title}</h2>
             <p className="explore-hero__subtitle">
-              Search by Pokémon, set, series, artist or card number.
+              {SEARCH_HERO_CONTENT.subtitle}
             </p>
           </header>
         )}
@@ -353,10 +355,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                       {results.length} card
                       {results.length === 1 ? "" : "s"} matching
                       {activeQueryLabel ? (
-                        <>
-                          {" "}
-                          &ldquo;{activeQueryLabel}&rdquo;
-                        </>
+                        <> &ldquo;{activeQueryLabel}&rdquo;</>
                       ) : null}
                     </p>
                   </div>
@@ -375,17 +374,15 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                 </div>
               )}
               {results.length > 0 && (
-                <div
-                  className="explore-results explore-results--grid card-grid"
-                >
-                {sortedResults.map((card) => (
-                  <PokemonCardView
-                    key={card.id}
-                    card={card}
-                    showPriceSourcePicker
-                  />
-                ))}
-                </div>
+                <GridView className="explore-results explore-results--grid">
+                  {sortedResults.map((card) => (
+                    <PokemonCardView
+                      key={card.id}
+                      card={card}
+                      showPriceSourcePicker
+                    />
+                  ))}
+                </GridView>
               )}
             </div>
           );

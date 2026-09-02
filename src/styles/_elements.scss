@@ -45,7 +45,7 @@ h6 {
 /* ----- Body / inline ----- */
 /* Do not put default padding on `p` — it breaks centered UI (hero, forms, cards). */
 p {
-  font-size: var(--font-size-paragraph);
+  font-size: var(--font-size-paragraph-sm);
   font-weight: var(--font-weight-medium);
   margin: 0;
   padding: 0;
@@ -56,6 +56,7 @@ span {
   color: inherit;
   font-family: inherit;
   letter-spacing: inherit;
+  font-weight: 500;
 }
 
 small {
@@ -271,7 +272,7 @@ input[type="radio"] {
 
 .feature-analysis-summary {
   color: var(--font-color-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-paragraph-sm);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-normal);
 }
@@ -341,10 +342,6 @@ input[type="radio"] {
 
 .feature-analysis-score {
   --feature-analysis-score-progress: var(--feature-analysis-score-value);
-  --feature-analysis-score-size: 5.5rem;
-  --feature-analysis-score-inner-size: 4.4rem;
-  --feature-analysis-score-number-size: 2.25rem;
-  --feature-analysis-score-label-size: 0.55rem;
 
   animation: feature-analysis-score-ring-fill var(--animation-duration-emphasis)
     var(--animation-ease-standard) forwards;
@@ -370,10 +367,10 @@ input[type="radio"] {
   box-shadow: inset 0 0 0 1px
     color-mix(in srgb, var(--font-color-primary) 5%, transparent);
   display: grid;
-  flex: 0 0 var(--feature-analysis-score-size);
-  height: var(--feature-analysis-score-size);
+  flex: 0 0 5.5rem;
+  height: 5.5rem;
   place-items: center;
-  width: var(--feature-analysis-score-size);
+  width: 5.5rem;
 
   > div {
     align-items: center;
@@ -383,14 +380,14 @@ input[type="radio"] {
     border-radius: var(--border-radius-round);
     display: flex;
     flex-direction: column;
-    height: var(--feature-analysis-score-inner-size);
+    height: 4.4rem;
     justify-content: center;
-    width: var(--feature-analysis-score-inner-size);
+    width: 4.4rem;
   }
 
   strong {
     color: var(--font-color-primary);
-    font-size: var(--feature-analysis-score-number-size);
+    font-size: 2.25rem;
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
     line-height: 0.95;
@@ -398,28 +395,49 @@ input[type="radio"] {
 
   span {
     color: var(--font-color-muted);
-    font-size: var(--feature-analysis-score-label-size);
+    font-size: 0.55rem;
     margin-top: 0.12rem;
   }
 }
 
 .feature-analysis-score.feature-analysis-score--sm {
-  --feature-analysis-score-size: 5rem;
-  --feature-analysis-score-inner-size: 4rem;
-  --feature-analysis-score-number-size: 2.05rem;
+  flex-basis: 5rem;
+  height: 5rem;
+  width: 5rem;
+
+  > div {
+    height: 4rem;
+    width: 4rem;
+  }
+
+  strong {
+    font-size: 2.05rem;
+  }
+}
+
+.feature-analysis-score.feature-analysis-score--lg {
+  flex-basis: 6rem;
+  height: 6rem;
+  width: 6rem;
+
+  > div {
+    height: 4.85rem;
+    width: 4.85rem;
+  }
+
+  strong {
+    font-size: 2.45rem;
+  }
 }
 
 .feature-analysis-score.feature-analysis-score--icon {
-  --feature-analysis-score-icon-size: 1.75rem;
-  --feature-analysis-score-icon-inner-size: 1.3rem;
-
-  flex-basis: var(--feature-analysis-score-icon-size);
-  height: var(--feature-analysis-score-icon-size);
-  width: var(--feature-analysis-score-icon-size);
+  flex-basis: 1.75rem;
+  height: 1.75rem;
+  width: 1.75rem;
 
   > div {
-    height: var(--feature-analysis-score-icon-inner-size);
-    width: var(--feature-analysis-score-icon-inner-size);
+    height: 1.3rem;
+    width: 1.3rem;
   }
 
   strong {
@@ -536,9 +554,33 @@ input[type="radio"] {
   }
 
   .feature-analysis-score {
-    --feature-analysis-score-size: 5.35rem;
-    --feature-analysis-score-inner-size: 4.3rem;
-    --feature-analysis-score-number-size: var(--font-size-price-lg);
+    flex-basis: 5.35rem;
+    height: 5.35rem;
+    width: 5.35rem;
+
+    > div {
+      height: 4.3rem;
+      width: 4.3rem;
+    }
+
+    strong {
+      font-size: var(--font-size-price-lg);
+    }
+  }
+
+  .feature-analysis-score.feature-analysis-score--lg {
+    flex-basis: 5.35rem;
+    height: 5.35rem;
+    width: 5.35rem;
+
+    > div {
+      height: 4.3rem;
+      width: 4.3rem;
+    }
+
+    strong {
+      font-size: var(--font-size-price-lg);
+    }
   }
 }
 
@@ -589,13 +631,10 @@ input[type="radio"] {
   border-radius: var(--border-radius-pill);
   color: var(--font-color-muted);
   display: inline-flex;
-  font-size: var(--font-size-paragraph-sm);
   font-weight: var(--font-weight-medium);
   gap: 0.4rem;
   line-height: 1;
-  min-height: 2.45rem;
-  min-width: 7rem;
-  padding: 0.7rem 1.1rem;
+  padding: 0.6rem 0.9rem;
   transition:
     background var(--delay-short) ease,
     border-color var(--delay-short) ease,
@@ -889,11 +928,24 @@ input[type="radio"] {
   background: transparent;
   display: grid;
   gap: var(--card-gap);
+  width: 100%;
+  justify-content: center;
   grid-template-columns: repeat(
     auto-fill,
     minmax(min(100%, var(--pokemon-card-grid-column-width)), 1fr)
   );
-  width: 100%;
+}
+
+@media (max-width: 60rem) {
+  .card-grid {
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(
+        min(100%, var(--pokemon-card-grid-column-width)),
+        var(--pokemon-card-grid-column-width)
+      )
+    );
+  }
 }
 
 /*
@@ -921,8 +973,6 @@ input[type="radio"] {
   -webkit-user-select: none;
   align-items: center;
   background: color-mix(in srgb, var(--font-color-primary) 4%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
   color: var(--font-color-muted);

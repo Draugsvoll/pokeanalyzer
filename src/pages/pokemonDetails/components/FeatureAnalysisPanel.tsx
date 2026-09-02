@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-type FeatureAnalysisScoreMeterSize = "default" | "small" | "icon";
+type FeatureAnalysisScoreMeterSize = "default" | "small" | "large" | "icon";
 
 type FeatureAnalysisScoreMeterProps = {
   label: string;
@@ -24,10 +24,12 @@ export function FeatureAnalysisScoreMeter({
   showMaximum = true,
   size = "default",
 }: FeatureAnalysisScoreMeterProps) {
-  const sizeClassName =
-    size === "default"
-      ? ""
-      : ` feature-analysis-score--${size === "small" ? "sm" : "icon"}`;
+  const sizeClassName = {
+    default: "",
+    small: " feature-analysis-score--sm",
+    large: " feature-analysis-score--lg",
+    icon: " feature-analysis-score--icon",
+  }[size];
 
   return (
     <div

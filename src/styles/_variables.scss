@@ -13,7 +13,7 @@
   --border-color-strong: rgba(255, 255, 255, 0.11);
   --text: #f5f7fa;
   --secondary: #c2c8d3;
-  --muted: #6f7988;
+  --muted: #717b89;
   --blue: #4ea8ff;
   --blue-soft: rgba(78, 168, 255, 0.12);
   --ai: #a66cff;
@@ -119,12 +119,12 @@
    */
   --shell-max-width: 1220px;
   /* Search bar — sizings matched to mock left */
-  --search-max-width: 735px;
-  --search-height: 60px;
-  --search-pad: 10px;
+  --search-max-width: 663px;
+  --search-height: 53px;
+  --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
   --search-field-pad-x: 16px;
-  --search-btn-height: 42px;
+  --search-btn-height: 39px;
   --search-btn-min-width: 86px;
   --search-btn-pad-x: 18px;
   --search-icon-gap: 8px;
@@ -152,7 +152,7 @@
   --page-pad-y: 32px;
   --section-gap: 140px;
   --card-gap: 22px;
-  --card-pad: 17px;
+  --card-pad: 14px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
@@ -242,7 +242,7 @@
   --font-size-paragraph-sm: 13px;
   --font-size-label: 11px;
   --font-size-value: 14px;
-  --font-size-caption: 11px;
+  --font-size-caption: 12px;
   --font-size-badge: 10px;
   --font-size-overline: 11px;
   --font-size-nav: 13px;

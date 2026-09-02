@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./Header.scss";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { Search } from "lucide-react";
 import LoginModal from "../loginmodal/Loginmodal";
@@ -28,8 +28,6 @@ export const Header: React.FC = () => {
     firstName: string;
   } | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
-  const onCardDetail = location.pathname.startsWith("/card/");
   const { subscription } = useMembershipSubscription();
   const { creditsRemaining } = useCredits(subscription);
 
@@ -155,14 +153,6 @@ export const Header: React.FC = () => {
           >
             Portfolio
           </NavLink>
-          <span
-            className={`nav-links__item nav-links__item--static${
-              onCardDetail ? " nav-links__item--active" : ""
-            }`}
-            aria-current={onCardDetail ? "page" : undefined}
-          >
-            Card detail
-          </span>
         </nav>
 
         <div className="btn-container">
@@ -200,8 +190,12 @@ export const Header: React.FC = () => {
             </>
           ) : (
             <>
-              <Button onClick={() => navigate("/signup")}>Sign up</Button>
-              <Button onClick={() => setOpen(true)}>Log in</Button>
+              <Button fill="ghost" onClick={() => navigate("/signup")}>
+                Sign up
+              </Button>
+              <Button fill="ghost" onClick={() => setOpen(true)}>
+                Log in
+              </Button>
             </>
           )}
         </div>

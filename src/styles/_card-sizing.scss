@@ -1,16 +1,12 @@
-$pokemon-card-size-token: 1.0 !default;
+$pokemon-card-size-token: 1 !default;
 
 :root {
   /*
    * Pokemon card layout sizing.
    * Change $pokemon-card-size-token to scale card width, grid columns,
-   * and swimlane cards together while preserving the clamp proportions.
+   * and swimlane cards together.
    */
-  --pokemon-card-width: clamp(
-    #{12.5rem * $pokemon-card-size-token},
-    #{13vw * $pokemon-card-size-token},
-    #{13.5rem * $pokemon-card-size-token}
-  );
+  --pokemon-card-width: #{12.5rem * $pokemon-card-size-token};
   --pokemon-card-grid-column-width: var(--pokemon-card-width);
   --pokemon-card-swimlane-width: var(--pokemon-card-width);
 }

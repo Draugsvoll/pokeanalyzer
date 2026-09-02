@@ -3,8 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: var(--btn-height);
-  padding: 0 var(--space-4);
+  padding: 0.55rem var(--space-4);
   /* Mock: all app buttons use full-pill control radius */
   border-radius: var(--border-radius-control);
   font-size: var(--font-size-button);
@@ -23,6 +22,7 @@
   border: none;
   background: transparent;
   color: var(--font-color-primary);
+  min-width: 7rem;
 
   > svg {
     flex: 0 0 auto;
@@ -91,9 +91,6 @@
   --feature-accent: var(--custom-color-blue);
 
   border-radius: var(--border-radius-control);
-  min-height: var(--btn-height);
-  min-width: 6.5rem;
-  padding: 0 var(--space-4);
   filter: none;
 
   &:focus-visible {
@@ -202,7 +199,7 @@
 
 .app-btn--google {
   background: var(--surface2);
-  border: 1px solid var(--border-color-strong);
+  border: var(--border);
   color: var(--secondary);
   display: grid;
   font-weight: var(--font-weight-bold);
@@ -219,7 +216,6 @@
 
   &:hover:not(:disabled) {
     background: var(--surface3);
-    border-color: color-mix(in srgb, var(--border-color-strong) 70%, white);
   }
 }
 
@@ -335,8 +331,7 @@
 }
 
 .app-btn--large {
-  height: 3rem;
-  padding: 0.55rem 0.85rem;
+  padding: 0.8rem 1.15rem;
 }
 
 .app-btn--hero.app-btn--large {

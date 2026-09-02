@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
   BadgeDollarSign,
@@ -16,6 +16,7 @@ import {
   LineChart,
   Palette,
   Repeat2,
+  ScanSearch,
   Search,
   Star,
   type LucideIcon,
@@ -37,6 +38,7 @@ import {
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
+import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
 import EbaySoldView from "./views/EbaySold/EbaySoldView";
 import { getCustomColors, type CustomColors } from "../../utils/customStylings";
@@ -66,6 +68,7 @@ import {
 } from "./components/CardFeatureHeader";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import { signInWithGoogle } from "../../services/auth";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
@@ -109,6 +112,7 @@ type AiFeature = {
   color: CustomColors;
   featureKey: CreditUsageFeature;
   onOpen: () => Promise<void>;
+  actionCostLabel?: string;
 };
 
 function formatReleaseDate(value: string | undefined) {
@@ -215,6 +219,7 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
 
 function PokemonDetailsForCard() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] =
@@ -259,6 +264,7 @@ function PokemonDetailsForCard() {
   const [marketSalesError, setMarketSalesError] = useState("");
   const [marketSalesLoading, setMarketSalesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [googleAuthLoading, setGoogleAuthLoading] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [justTcgLoading, setJustTcgLoading] = useState(false);
   const [justTcgError, setJustTcgError] = useState("");
@@ -310,10 +316,28 @@ function PokemonDetailsForCard() {
 
     openEmbeddedSearch();
   }
-  const { loadingSubscription, subscription, updateSubscription } =
-    useMembershipSubscription();
+  const {
+    loadingSubscription,
+    refreshSubscription,
+    subscription,
+    updateSubscription,
+  } = useMembershipSubscription();
   const { creditMessage, creditsRemaining, updatingCredits } =
     useCredits(subscription);
+
+  async function handleGoogleAuth() {
+    if (googleAuthLoading) return;
+
+    setGoogleAuthLoading(true);
+    try {
+      await signInWithGoogle();
+      await refreshSubscription(true);
+    } catch (error) {
+      logClientError("Google sign-in failed", error);
+    } finally {
+      setGoogleAuthLoading(false);
+    }
+  }
 
   useLayoutEffect(() => {
     routeCardIdRef.current = id;
@@ -556,10 +580,11 @@ function PokemonDetailsForCard() {
       view: "worth_grading",
       title: "Grading",
       description: "PSA economics for this card",
-      icon: BadgeDollarSign,
+      icon: ScanSearch,
       color: "pink",
       featureKey: "worth_grading",
       onOpen: openWorthGradingAnalysis,
+      actionCostLabel: "(2 credits)",
     },
   ];
 
@@ -1117,10 +1142,42 @@ function PokemonDetailsForCard() {
                 icon={activeFeature.icon}
                 label={activeFeature.title}
                 actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
+                actionCostLabel={activeFeature.actionCostLabel}
                 actionLoading={isActiveFeatureLoading}
                 actionDisabled={activeFeatureActionDisabled}
                 actionHidden={activeFeatureHasResponse}
                 onAction={() => void activeFeature.onOpen()}
+                authActions={
+                  !authUser && !loadingSubscription ? (
+                    <>
+                      <div className="card-feature-header__auth-row">
+                        <Button
+                          fill="ghost"
+                          fitContent
+                          style={getCustomColors(activeFeature.color)}
+                          onClick={() => navigate("/signup")}
+                        >
+                          Sign up
+                        </Button>
+                        <Button
+                          fill="solid"
+                          fitContent
+                          style={getCustomColors(activeFeature.color)}
+                          onClick={() => setShowLoginModal(true)}
+                        >
+                          Log in
+                        </Button>
+                      </div>
+                      <span className="card-feature-header__auth-divider">
+                        or
+                      </span>
+                      <GoogleLoginButton
+                        disabled={googleAuthLoading}
+                        onClick={() => void handleGoogleAuth()}
+                      />
+                    </>
+                  ) : undefined
+                }
               />
               <div className="card-view__active-body">
                 <div hidden={activeView !== "ebay_sold"}>

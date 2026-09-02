@@ -1,13 +1,17 @@
-import React, { type CSSProperties } from "react";
+import React, { type ComponentProps, type CSSProperties } from "react";
 import { ExternalLink } from "lucide-react";
 import type { GeneralNewsPayload } from "../../../../types/news";
+import { Badge } from "../../../ui/Badge";
 import {
   getCustomColor,
   type CustomColors,
 } from "../../../../utils/customStylings";
 import "./GeneralNews.scss";
 
-const LABEL_COLORS: Record<string, CustomColors> = {
+type BadgeAccent = NonNullable<ComponentProps<typeof Badge>["accent"]>;
+type NewsLabelAccent = Extract<BadgeAccent, CustomColors>;
+
+const LABEL_COLORS: Record<string, NewsLabelAccent> = {
   competitive: "teal",
   grading: "teal",
   "high-value sale": "yellow",
@@ -28,13 +32,13 @@ const LABEL_COLOR_FALLBACKS = [
   "orange",
   "pink",
   "purple",
-] as const satisfies readonly CustomColors[];
+] as const satisfies readonly NewsLabelAccent[];
 
 function normalizeLabel(label: string) {
   return label.trim().toLowerCase();
 }
 
-function getFallbackLabelColor(label: string): CustomColors {
+function getFallbackLabelColor(label: string): NewsLabelAccent {
   let hash = 0;
   for (const character of label) {
     hash = (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0;
@@ -42,13 +46,16 @@ function getFallbackLabelColor(label: string): CustomColors {
   return LABEL_COLOR_FALLBACKS[hash % LABEL_COLOR_FALLBACKS.length];
 }
 
-function getLabelAccent(label: string): CSSProperties {
+function getLabelAccent(label: string): NewsLabelAccent {
   const normalizedLabel = normalizeLabel(label);
-  const color =
-    LABEL_COLORS[normalizedLabel] ?? getFallbackLabelColor(normalizedLabel);
+  return (
+    LABEL_COLORS[normalizedLabel] ?? getFallbackLabelColor(normalizedLabel)
+  );
+}
 
+function getTrendAccentStyle(accent: NewsLabelAccent): CSSProperties {
   return {
-    "--label-accent": getCustomColor(color),
+    "--trend-accent": getCustomColor(accent),
   } as CSSProperties;
 }
 
@@ -63,17 +70,22 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
         <div className="general-news__trends">
           {payload.items.map((item, index) => {
             const label = item.label?.trim() ?? "";
+            const accent = label ? getLabelAccent(label) : "blue";
 
             return (
               <article
-                className="general-news__trend surface-hover-lift"
+                className="general-news__trend"
                 key={item.headline ?? item.url ?? index}
-                style={label ? getLabelAccent(label) : undefined}
+                style={getTrendAccentStyle(accent)}
               >
                 <div className="general-news__trend-content">
                   <div className="general-news__trend-heading">
                     {item.headline && <h2>{item.headline}</h2>}
-                    {label && <span>{label}</span>}
+                    {label && (
+                      <Badge accent={accent} size="sm" weight="strong">
+                        {label}
+                      </Badge>
+                    )}
                   </div>
 
                   {item.summary && <p>{item.summary}</p>}
@@ -93,7 +105,7 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Read source
+                      Read more
                       <ExternalLink aria-hidden="true" />
                     </a>
                   )}

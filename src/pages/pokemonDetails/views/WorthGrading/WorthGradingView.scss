@@ -18,6 +18,11 @@
   gap: 1.15rem;
 }
 
+.worth-grading-view__variant-content {
+  display: grid;
+  gap: 1.15rem;
+}
+
 .worth-grading-view__json-section {
   display: grid;
   gap: 0.85rem;
@@ -50,16 +55,6 @@
   font-size: var(--font-size-h3);
   font-weight: var(--font-weight-bold);
   line-height: var(--font-leading-snug);
-  max-width: 64rem;
-}
-
-.worth-grading-view__overview-reasoning {
-  color: var(--font-color-secondary);
-  display: block;
-  font-size: var(--font-size-paragraph);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-normal);
-  margin: 0;
   max-width: 64rem;
 }
 
@@ -144,11 +139,8 @@
   text-align: center;
   gap: 1rem;
 
-  h4 {
+  h2 {
     color: var(--font-color-primary);
-    font-size: var(--font-size-h2);
-    justify-self: center;
-    line-height: var(--font-leading-snug);
   }
 
   > span {

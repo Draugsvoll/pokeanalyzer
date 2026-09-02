@@ -44,7 +44,4 @@ export function navigateToPokemonCard(
   navigate(`/card/${card.id}`, {
     state: { card },
   });
-  window.requestAnimationFrame(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  });
 }

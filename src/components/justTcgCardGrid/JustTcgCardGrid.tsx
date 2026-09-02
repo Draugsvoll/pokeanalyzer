@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   fetchJustTcgBiggestGainers,
   fetchJustTcgBiggestLosers,
@@ -56,10 +63,7 @@ function isJustTcgMovementPeriod(
   value: string,
 ): value is JustTcgMovementPeriod {
   return (
-    value === "24h" ||
-    value === "7d" ||
-    value === "30d" ||
-    value === "90d"
+    value === "24h" || value === "7d" || value === "30d" || value === "90d"
   );
 }
 
@@ -116,10 +120,12 @@ export function JustTcgCardGrid({
   );
   const moverTypesKey = moverTypes.join("|");
   const moverPeriodsKey = moverPeriods.join("|");
-  const [selectedType, setSelectedType] =
-    useState<JustTcgMoverType>(moverTypes[0]);
-  const [selectedPeriod, setSelectedPeriod] =
-    useState<JustTcgMovementPeriod>(moverPeriods[0]);
+  const [selectedType, setSelectedType] = useState<JustTcgMoverType>(
+    moverTypes[0],
+  );
+  const [selectedPeriod, setSelectedPeriod] = useState<JustTcgMovementPeriod>(
+    moverPeriods[0],
+  );
   const activeType = moverTypes.includes(selectedType)
     ? selectedType
     : moverTypes[0];
@@ -131,9 +137,7 @@ export function JustTcgCardGrid({
     Record<string, JustTcgMovementResult[]>
   >({});
   const [errorsByKey, setErrorsByKey] = useState<Record<string, string>>({});
-  const [loadingByKey, setLoadingByKey] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [loadingByKey, setLoadingByKey] = useState<Record<string, boolean>>({});
   const cards = resultsByKey[activeKey] ?? [];
   const error = errorsByKey[activeKey] ?? "";
   const loading = Boolean(loadingByKey[activeKey]);
@@ -281,24 +285,22 @@ export function JustTcgCardGrid({
 
       {showCards && (
         <CardLayout layout={layout} renderKey={`${activeKey}:cards`}>
-          {cards
-            .slice(0, DISPLAY_LIMIT)
-            .map(({ card, mover }, index) => (
-              <PokemonCardView
-                key={[
-                  card.id,
-                  mover.printing,
-                  mover.condition,
-                  mover.setName ?? "",
-                  index,
-                ].join("-")}
-                card={card}
-                priceChangeLabel={periodLabels[mover.period]}
-                priceChangePercent={mover.changePercent}
-                priceSource="justtcg"
-                showPriceSourcePicker={true}
-              />
-            ))}
+          {cards.slice(0, DISPLAY_LIMIT).map(({ card, mover }, index) => (
+            <PokemonCardView
+              key={[
+                card.id,
+                mover.printing,
+                mover.condition,
+                mover.setName ?? "",
+                index,
+              ].join("-")}
+              card={card}
+              priceChangeLabel={periodLabels[mover.period]}
+              priceChangePercent={mover.changePercent}
+              priceSource="justtcg"
+              showPriceSourcePicker={true}
+            />
+          ))}
         </CardLayout>
       )}
 

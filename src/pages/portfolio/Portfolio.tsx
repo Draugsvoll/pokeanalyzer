@@ -136,10 +136,8 @@ function PortfolioForCurrentUser() {
     useState<PortfolioChangePeriod>("24h");
   const [loadingJustTcgPrices, setLoadingJustTcgPrices] = useState(false);
   const [fillingMissingJustTcg, setFillingMissingJustTcg] = useState(false);
-  const [
-    portfolioJustTcgPricesFetchedAt,
-    setPortfolioJustTcgPricesFetchedAt,
-  ] = useState<string>();
+  const [portfolioJustTcgPricesFetchedAt, setPortfolioJustTcgPricesFetchedAt] =
+    useState<string>();
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -370,12 +368,7 @@ function PortfolioForCurrentUser() {
       resolvePortfolioCardPriceOption(card, "justtcg"),
     );
     if (!hasJustTcgPrices) return;
-    if (
-      !isRetryDue(
-        portfolioJustTcgPricesFetchedAt,
-        JUST_TCG_UPDATE_RETRY_MS,
-      )
-    )
+    if (!isRetryDue(portfolioJustTcgPricesFetchedAt, JUST_TCG_UPDATE_RETRY_MS))
       return;
 
     const key = `${user.uid}:${portfolioCardIdKey}:${portfolioJustTcgPricesFetchedAt ?? ""}`;
@@ -568,7 +561,7 @@ function PortfolioForCurrentUser() {
                     type="search"
                     value={nameFilter}
                     onChange={(event) => setNameFilter(event.target.value)}
-                    placeholder="Name, set, series, rarity"
+                    placeholder="Filter"
                     aria-label="Filter portfolio cards by name, set, series, or rarity"
                     autoComplete="off"
                   />
@@ -704,7 +697,6 @@ function PortfolioForCurrentUser() {
                     : undefined
                 }
                 priceSource={activeSource}
-                showRarityBadge
                 showPriceWarning={
                   activeSource !== "justtcg" &&
                   (card.priceReliability?.[activeSource]?.isFlagged ?? false)

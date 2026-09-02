@@ -21,7 +21,6 @@ import type {
 } from "../../types/portfolio";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
-import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
 import {
   getCardPriceSourceLabel,
@@ -53,7 +52,6 @@ export type PokemonCardViewProps = {
   confirmingPriceOption?: boolean;
   lockPriceSource?: boolean;
   showPriceSourcePicker?: boolean;
-  showRarityBadge?: boolean;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
   priceChangePercent?: number | null;
   priceChangeLabel?: string;
@@ -87,7 +85,6 @@ export function PokemonCardView({
   confirmingPriceOption = false,
   lockPriceSource = false,
   showPriceSourcePicker = false,
-  showRarityBadge = true,
   comparisonPriceSnapshot,
   priceChangePercent,
   priceChangeLabel,
@@ -168,21 +165,34 @@ export function PokemonCardView({
     if (!sourceOpen) return;
 
     const flyout = sourceFlyoutRef.current;
-    const anchor = pricingRef.current;
-    if (!flyout || !anchor) return;
+    if (!flyout) return;
 
     const updatePlacement = () => {
-      flyout.classList.remove("pokemon-card__source-flyout--flip-left");
+      flyout.style.removeProperty("--pokemon-card-source-offset-x");
 
       const flyoutRect = flyout.getBoundingClientRect();
-      const anchorRect = anchor.getBoundingClientRect();
+      const gridRect = flyout
+        .closest<HTMLElement>(".grid-view-container")
+        ?.getBoundingClientRect();
       const edgeGap = 8;
-      const overflowsRight = flyoutRect.right > window.innerWidth - edgeGap;
-      const fitsLeft = anchorRect.right - flyoutRect.width >= edgeGap;
+      const viewportLeft = edgeGap;
+      const viewportRight = window.innerWidth - edgeGap;
+      const gridCanContainFlyout =
+        gridRect && gridRect.width >= flyoutRect.width;
+      const availableLeft = gridCanContainFlyout
+        ? Math.max(viewportLeft, gridRect.left)
+        : viewportLeft;
+      const availableRight = gridCanContainFlyout
+        ? Math.min(viewportRight, gridRect.right)
+        : viewportRight;
+      const offsetX = Math.min(
+        Math.max(0, availableLeft - flyoutRect.left),
+        availableRight - flyoutRect.right,
+      );
 
-      flyout.classList.toggle(
-        "pokemon-card__source-flyout--flip-left",
-        overflowsRight && fitsLeft,
+      flyout.style.setProperty(
+        "--pokemon-card-source-offset-x",
+        `${offsetX}px`,
       );
     };
 
@@ -233,13 +243,6 @@ export function PokemonCardView({
       : "Price change");
   const currencySymbol =
     activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
-  const variantLabel =
-    activeOption?.source === "justtcg" && activeOption.groupKey
-      ? (activeOption.groupKey.split("|")[0] ?? activeOption.label)
-      : activeOption?.label;
-  const sourceLabel = activeOption
-    ? getCardPriceSourceLabel(activeOption.source)
-    : null;
   const printedCardNumber = formatCardNumber(card);
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
@@ -435,7 +438,11 @@ export function PokemonCardView({
   ) : null;
 
   return (
-    <div className="pokemon-card-view">
+    <div
+      className={`pokemon-card-view${
+        sourceOpen ? " pokemon-card-view--source-open" : ""
+      }`}
+    >
       <div
         className={[
           "pokemon-card-view__card",
@@ -505,127 +512,104 @@ export function PokemonCardView({
           <img src={card.images?.small} alt={card.name} />
         </div>
 
-        <div className="pokemon-card__identity">
-          <div className="pokemon-card__name-row">
-            <h2 className="pokemon-card__name" title={card.name}>
-              {card.name}
-            </h2>
-            {printedCardNumber && (
-              <span
-                className="pokemon-card__number"
-                title={`Card number ${printedCardNumber}`}
-              >
-                {printedCardNumber}
-              </span>
-            )}
-          </div>
-          <div className="pokemon-card__set-row">
-            <span className="pokemon-card__set" title={card.set?.name}>
-              {card.set?.name ?? "Unknown set"}
-            </span>
-            {card.set?.series && (
-              <span className="pokemon-card__series" title={card.set.series}>
-                <span aria-hidden="true">•</span>
-                <span className="pokemon-card__series-name">
-                  {card.set.series}
-                </span>
-              </span>
-            )}
-          </div>
-
-          {showRarityBadge || variantLabel?.trim() ? (
-            <div className="pokemon-card__metadata-row">
-              {showRarityBadge && (
-                <Badge
-                  accent={getRarityBadgeAccent(card.rarity)}
-                  size="sm"
-                  title={card.rarity ?? "Rarity unavailable"}
-                  weight="strong"
+        <div className="pokemon-card__content">
+          <div className="pokemon-card__identity">
+            <div className="pokemon-card__name-row">
+              <h2 className="pokemon-card__name" title={card.name}>
+                {card.name}
+              </h2>
+              {printedCardNumber && (
+                <span
+                  className="pokemon-card__number"
+                  title={`Card number ${printedCardNumber}`}
                 >
-                  {card.rarity ?? "N/A"}
-                </Badge>
-              )}
-              {variantLabel?.trim() && (
-                <Badge size="sm" title={variantLabel}>
-                  {variantLabel}
-                </Badge>
+                  {printedCardNumber}
+                </span>
               )}
             </div>
-          ) : null}
-        </div>
-
-        <div
-          ref={pricingRef}
-          className="pokemon-card__pricing"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <div className="pokemon-card__price">
-            <div className="pokemon-card__price-row">
-              <div className="pokemon-card__price-current">
-                <span className="pokemon-card__price-value">
-                  {displayedPrice != null
-                    ? `${currencySymbol}${money.format(displayedPrice)}`
-                    : "-"}
-                </span>
-                {showPriceWarning && (
-                  <span
-                    className="pokemon-card__price-warning"
-                    role="img"
-                    aria-label="Flagged as potentially inaccurate price-data. Verify with market analysis."
-                    data-tooltip="Flagged as potentially inaccurate price-data. Verify with market analysis."
-                  >
-                    <TriangleAlert aria-hidden="true" />
+            <div className="pokemon-card__set-row">
+              <span className="pokemon-card__set" title={card.set?.name}>
+                {card.set?.name ?? "Unknown set"}
+              </span>
+              {card.set?.series && (
+                <span className="pokemon-card__series" title={card.set.series}>
+                  <span aria-hidden="true">•</span>
+                  <span className="pokemon-card__series-name">
+                    {card.set.series}
                   </span>
-                )}
-                {showPriceChange &&
-                  (formattedPriceChange && priceChangeTone ? (
-                    <span
-                      className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
-                      title={priceChangeTitle}
-                      aria-label={`${formattedPriceChange} ${priceChangeTitle.toLowerCase()}`}
-                    >
-                      {formattedPriceChange}
-                    </span>
-                  ) : (
-                    <span
-                      className="pokemon-card__price-change pokemon-card__price-change--unavailable"
-                      title="Price change unavailable"
-                      aria-label="Price change unavailable"
-                    >
-                      -
-                    </span>
-                  ))}
-              </div>
-
-              {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
-                <div className="pokemon-card__source">
-                  <button
-                    type="button"
-                    className={`pokemon-card__source-toggle${
-                      sourceOpen ? " is-open" : ""
-                    }`}
-                    aria-expanded={sourceOpen}
-                    aria-controls={sourcePanelId}
-                    onClick={() => {
-                      if (sourceOpen) closeSource();
-                      else setSourceOpen(true);
-                    }}
-                  >
-                    {sourceLabel && (
-                      <span className="pokemon-card__source-name">
-                        {sourceLabel}
-                      </span>
-                    )}
-                    <ChevronDown
-                      className="pokemon-card__source-chevron"
-                      aria-hidden="true"
-                    />
-                  </button>
-
-                  {sourceFlyout}
-                </div>
+                </span>
               )}
+            </div>
+          </div>
+
+          <div
+            ref={pricingRef}
+            className="pokemon-card__pricing"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <div className="pokemon-card__price">
+              <div className="pokemon-card__price-row">
+                <div className="pokemon-card__price-current">
+                  <span className="pokemon-card__price-value">
+                    {displayedPrice != null
+                      ? `${currencySymbol}${money.format(displayedPrice)}`
+                      : "-"}
+                  </span>
+                  {showPriceWarning && (
+                    <span
+                      className="pokemon-card__price-warning"
+                      role="img"
+                      aria-label="Flagged as potentially inaccurate price-data. Verify with market analysis."
+                      data-tooltip="Flagged as potentially inaccurate price-data. Verify with market analysis."
+                    >
+                      <TriangleAlert aria-hidden="true" />
+                    </span>
+                  )}
+                  {showPriceChange &&
+                    (formattedPriceChange && priceChangeTone ? (
+                      <span
+                        className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
+                        title={priceChangeTitle}
+                        aria-label={`${formattedPriceChange} ${priceChangeTitle.toLowerCase()}`}
+                      >
+                        {formattedPriceChange}
+                      </span>
+                    ) : (
+                      <span
+                        className="pokemon-card__price-change pokemon-card__price-change--unavailable"
+                        title="Price change unavailable"
+                        aria-label="Price change unavailable"
+                      >
+                        -
+                      </span>
+                    ))}
+                </div>
+                {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
+                  <div className="pokemon-card__source">
+                    <button
+                      type="button"
+                      className={`pokemon-card__source-toggle${
+                        sourceOpen ? " is-open" : ""
+                      }`}
+                      aria-expanded={sourceOpen}
+                      aria-controls={sourcePanelId}
+                      onClick={() => {
+                        if (sourceOpen) closeSource();
+                        else setSourceOpen(true);
+                      }}
+                    >
+                      <span className="pokemon-card__source-name">Source</span>
+                      <ChevronDown
+                        className="pokemon-card__source-chevron"
+                        aria-hidden="true"
+                      />
+                    </button>
+
+                    {sourceFlyout}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

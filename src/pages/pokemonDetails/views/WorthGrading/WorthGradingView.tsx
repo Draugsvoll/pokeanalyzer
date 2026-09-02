@@ -273,7 +273,7 @@ function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
   return (
     <section className="worth-grading-view__scenario worth-grading-view__scenario--static">
       <div className="worth-grading-view__scenario-profit">
-        <h4>Raw</h4>
+        <h2>Raw</h2>
         <div className="worth-grading-view__profit-value">
           <strong
             className={
@@ -352,7 +352,7 @@ function ScenarioCard({
   return (
     <section className="worth-grading-view__scenario">
       <div className="worth-grading-view__scenario-profit">
-        <h4>{displayValue(scenario.grade)}</h4>
+        <h2>{displayValue(scenario.grade)}</h2>
         <div className="worth-grading-view__profit-value">
           <strong
             className={
@@ -671,120 +671,121 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             </div>
           </fieldset>
 
-          {(recommendation?.potential?.trim() ||
-            recommendation?.headline?.trim() ||
-            attractiveness?.reasoning?.trim() ||
-            attractivenessScore != null) && (
-            <section className="worth-grading-view__overview default-container">
-              <span className="worth-grading-view__overview-eyebrow">
-                Overall Score
-              </span>
-              {attractivenessScore != null && (
-                <div className="feature-analysis-score-block">
-                  <FeatureAnalysisScoreMeter
-                    label="Grading attractiveness score"
-                    score={attractivenessScore}
-                    size="small"
-                  />
+          <div
+            className="worth-grading-view__variant-content ui-render-fade"
+            key={`${responseKey}-${activeVariantIndex}`}
+          >
+            {(recommendation?.potential?.trim() ||
+              recommendation?.headline?.trim() ||
+              attractivenessScore != null) && (
+              <section className="worth-grading-view__overview default-container">
+                <span className="worth-grading-view__overview-eyebrow">
+                  Overall Score
+                </span>
+                {attractivenessScore != null && (
+                  <div className="feature-analysis-score-block">
+                    <FeatureAnalysisScoreMeter
+                      label="Grading attractiveness score"
+                      score={attractivenessScore}
+                      size="large"
+                    />
+                  </div>
+                )}
+                {recommendation?.potential?.trim() && (
+                  <div className="worth-grading-view__overview-badge">
+                    <Badge
+                      accent={getPotentialBadgeAccent(recommendation.potential)}
+                      weight="strong"
+                    >
+                      {formatPotentialLabel(recommendation.potential)} max
+                      profit
+                    </Badge>
+                  </div>
+                )}
+                {recommendation?.headline?.trim() && (
+                  <strong className="worth-grading-view__overview-headline">
+                    {recommendation.headline}
+                  </strong>
+                )}
+              </section>
+            )}
+            {(scenarios.length > 0 || hasRawSale) && (
+              <section className="worth-grading-view__json-section default-container">
+                <h3 className="worth-grading-view__section-title">
+                  Calculations
+                </h3>
+                <div className="worth-grading-view__scenario-grid">
+                  {scenarios.map((scenario, index) => (
+                    <ScenarioCard
+                      key={`${scenario.grade ?? "scenario"}-${index}`}
+                      rawNetProceeds={
+                        activeVariant.raw_sale_today?.net_proceeds_usd
+                      }
+                      scenario={scenario}
+                    />
+                  ))}
+                  {hasRawSale && rawSale && <RawSaleCard rawSale={rawSale} />}
                 </div>
-              )}
-              {recommendation?.potential?.trim() && (
-                <div className="worth-grading-view__overview-badge">
-                  <Badge
-                    accent={getPotentialBadgeAccent(recommendation.potential)}
-                    weight="strong"
-                  >
-                    {formatPotentialLabel(recommendation.potential)} max profit
-                  </Badge>
+              </section>
+            )}
+            {(recommendation?.bottom_line?.trim() ||
+              confidenceScore != null ||
+              confidence?.reasoning?.trim()) && (
+              <section className="worth-grading-view__decision-summary default-container">
+                <h3 className="worth-grading-view__section-title">Summary</h3>
+                <div className="worth-grading-view__decision-summary-content">
+                  {recommendation?.bottom_line?.trim() && (
+                    <section className="worth-grading-view__decision-summary-item default-container-inner">
+                      <div className="feature-analysis-card-header">
+                        <h4>
+                          <Scale aria-hidden="true" />
+                          Recommendation
+                        </h4>
+                      </div>
+                      <p>{recommendation.bottom_line}</p>
+                    </section>
+                  )}
+                  {(confidenceScore != null ||
+                    confidence?.reasoning?.trim()) && (
+                    <section className="worth-grading-view__decision-summary-item default-container-inner">
+                      <div className="feature-analysis-card-header">
+                        {confidenceScore != null && (
+                          <FeatureAnalysisScoreMeter
+                            label="Confidence score"
+                            score={confidenceScore}
+                            showMaximum={false}
+                            size="icon"
+                          />
+                        )}
+                        <h4>Analysis confidence</h4>
+                      </div>
+                      {confidence?.reasoning?.trim() && (
+                        <p>{confidence.reasoning}</p>
+                      )}
+                    </section>
+                  )}
                 </div>
-              )}
-              {recommendation?.headline?.trim() && (
-                <strong className="worth-grading-view__overview-headline">
-                  {recommendation.headline}
-                </strong>
-              )}
-              {attractiveness?.reasoning?.trim() && (
-                <p className="worth-grading-view__overview-reasoning">
-                  {attractiveness.reasoning}
-                </p>
-              )}
-            </section>
-          )}
-          {(scenarios.length > 0 || hasRawSale) && (
+              </section>
+            )}
+
+            <CollapsibleTitledDetailList
+              items={reasons}
+              notes={notes}
+              title="Key Takeaways"
+            />
+
+            <CollapsibleTitledDetailList
+              items={assumptions}
+              title="Assumptions"
+            />
+
             <section className="worth-grading-view__json-section default-container">
               <h3 className="worth-grading-view__section-title">
-                Calculations
+                PSA Population
               </h3>
-              <div className="worth-grading-view__scenario-grid">
-                {scenarios.map((scenario, index) => (
-                  <ScenarioCard
-                    key={`${scenario.grade ?? "scenario"}-${index}`}
-                    rawNetProceeds={
-                      activeVariant.raw_sale_today?.net_proceeds_usd
-                    }
-                    scenario={scenario}
-                  />
-                ))}
-                {hasRawSale && rawSale && <RawSaleCard rawSale={rawSale} />}
-              </div>
+              <PsaPopulationCard population={activeVariant.psa_population} />
             </section>
-          )}
-          {(recommendation?.bottom_line?.trim() ||
-            confidenceScore != null ||
-            confidence?.reasoning?.trim()) && (
-            <section className="worth-grading-view__decision-summary default-container">
-              <h3 className="worth-grading-view__section-title">Summary</h3>
-              <div className="worth-grading-view__decision-summary-content">
-                {recommendation?.bottom_line?.trim() && (
-                  <section className="worth-grading-view__decision-summary-item default-container-inner">
-                    <div className="feature-analysis-card-header">
-                      <h4>
-                        <Scale aria-hidden="true" />
-                        Recommendation
-                      </h4>
-                    </div>
-                    <p>{recommendation.bottom_line}</p>
-                  </section>
-                )}
-                {(confidenceScore != null || confidence?.reasoning?.trim()) && (
-                  <section className="worth-grading-view__decision-summary-item default-container-inner">
-                    <div className="feature-analysis-card-header">
-                      {confidenceScore != null && (
-                        <FeatureAnalysisScoreMeter
-                          label="Confidence score"
-                          score={confidenceScore}
-                          showMaximum={false}
-                          size="icon"
-                        />
-                      )}
-                      <h4>Analysis confidence</h4>
-                    </div>
-                    {confidence?.reasoning?.trim() && (
-                      <p>{confidence.reasoning}</p>
-                    )}
-                  </section>
-                )}
-              </div>
-            </section>
-          )}
-
-          <CollapsibleTitledDetailList
-            items={reasons}
-            notes={notes}
-            title="Key Takeaways"
-          />
-
-          <CollapsibleTitledDetailList
-            items={assumptions}
-            title="Assumptions"
-          />
-
-          <section className="worth-grading-view__json-section default-container">
-            <h3 className="worth-grading-view__section-title">
-              PSA Population
-            </h3>
-            <PsaPopulationCard population={activeVariant.psa_population} />
-          </section>
+          </div>
         </div>
       </article>
     </section>

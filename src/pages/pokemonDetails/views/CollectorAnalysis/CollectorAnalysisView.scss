@@ -38,6 +38,10 @@
     min-width: 0;
     -webkit-backdrop-filter: blur(16px) saturate(115%);
 
+    > .feature-analysis-card-header {
+      justify-content: space-between;
+    }
+
     &:last-child:nth-child(odd) {
       grid-column: 1 / -1;
     }
