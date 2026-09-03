@@ -199,7 +199,7 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
           <div className="sales-data-view__variants default-container-body">
             <fieldset
               aria-label="Graded sales variant"
-              className="sales-data-view__variant-selector feature-variant-radio-group"
+              className="sales-data-view__variant-selector radio-group variant-badge-group"
             >
               <div>
                 {data.variants.map((variant, variantIndex) => (

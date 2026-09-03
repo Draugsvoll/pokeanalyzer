@@ -72,6 +72,10 @@
   margin: 0;
 }
 
+.general-news__trend-heading .app-badge {
+  text-transform: capitalize;
+}
+
 .general-news__trend-content > p {
   color: var(--font-color-secondary);
   font-size: var(--font-size-paragraph);

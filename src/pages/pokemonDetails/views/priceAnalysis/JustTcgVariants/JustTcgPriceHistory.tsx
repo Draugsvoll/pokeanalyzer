@@ -475,7 +475,7 @@ export function JustTcgPriceHistory({
         <div className="just-tcg-history__controls">
           <fieldset
             aria-label="Variant"
-            className="just-tcg-history__radio-group just-tcg-history__radio-group--variant feature-variant-radio-group"
+            className="just-tcg-history__radio-group just-tcg-history__radio-group--variant radio-group variant-badge-group"
           >
             <div>
               {groups.map((group) => {

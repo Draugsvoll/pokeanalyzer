@@ -775,7 +775,7 @@ export default function EbaySoldView({
         />
         <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__filter-groups">
-            <fieldset className="ebay-sold-view__filters feature-variant-radio-group">
+            <fieldset className="ebay-sold-view__filters radio-group">
               <legend>Grade</legend>
               <div>
                 {GRADE_FILTERS.map((filter) => (
@@ -793,7 +793,7 @@ export default function EbaySoldView({
               </div>
             </fieldset>
             {availableVariantFilters.length > 1 && (
-              <fieldset className="ebay-sold-view__filters feature-variant-radio-group">
+              <fieldset className="ebay-sold-view__filters radio-group">
                 <legend>Variant</legend>
                 <div>
                   <label>

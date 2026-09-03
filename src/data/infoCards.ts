@@ -1,10 +1,7 @@
 import {
   Gem,
   BadgeDollarSign,
-  LineChart,
-  Newspaper,
   ScanSearch,
-  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 import type { CustomColors } from "../utils/customStylings";
@@ -35,7 +32,7 @@ export const INFO_CARDS: InfoCard[] = [
   // },
   {
     id: "collectorsanalysis",
-    title: "Collectors Analysis",
+    title: "Collector's Analysis",
     description: "Learn all you need to know about the card as a collectable.",
     icon: Gem,
     color: "blue",

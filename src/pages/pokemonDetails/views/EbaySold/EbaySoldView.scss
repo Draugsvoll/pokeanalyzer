@@ -117,9 +117,7 @@
     }
   }
 
-  &__filters.feature-variant-radio-group.feature-variant-radio-group
-    label
-    > span {
+  &__filters.radio-group.radio-group label > span {
     min-width: 4rem;
   }
 

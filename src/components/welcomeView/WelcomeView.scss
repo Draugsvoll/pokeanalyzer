@@ -149,6 +149,7 @@
   position: relative;
   isolation: isolate;
   border-radius: var(--radius-md);
+  border: var(--border);
   background:
     linear-gradient(
       145deg,

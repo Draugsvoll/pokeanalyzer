@@ -222,7 +222,7 @@
       padding-inline: 0.45rem;
     }
 
-    &__radio-group:not(.feature-variant-radio-group) label > span {
+    &__radio-group:not(.variant-badge-group) label > span {
       align-items: center;
       border: 0;
       color: var(--font-color-muted);
@@ -238,36 +238,31 @@
         color var(--delay-short) ease;
     }
 
-    &__radio-group:not(.feature-variant-radio-group) label:hover > span {
+    &__radio-group:not(.variant-badge-group) label:hover > span {
       background: color-mix(in srgb, var(--radio-accent) 6%, transparent);
       color: var(--font-color-primary);
     }
 
-    &__radio-group:not(.feature-variant-radio-group) input:checked + span {
+    &__radio-group:not(.variant-badge-group) input:checked + span {
       background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
       color: var(--radio-accent);
     }
 
-    &__radio-group:not(.feature-variant-radio-group)
-      input:focus-visible
-      + span {
+    &__radio-group:not(.variant-badge-group) input:focus-visible + span {
       outline: 2px solid var(--radio-accent);
       outline-offset: -2px;
     }
 
-    &__radio-group:not(.feature-variant-radio-group) strong {
+    &__radio-group:not(.variant-badge-group) strong {
       color: var(--font-color-secondary);
       font-weight: var(--font-weight-bold);
     }
 
-    &__radio-group:not(.feature-variant-radio-group)
-      input:checked
-      + span
-      strong {
+    &__radio-group:not(.variant-badge-group) input:checked + span strong {
       color: var(--radio-accent);
     }
 
-    &__radio-group:not(.feature-variant-radio-group) small {
+    &__radio-group:not(.variant-badge-group) small {
       color: var(--font-color-muted);
       font-size: 0.9em;
       font-weight: var(--font-weight-regular);
@@ -275,13 +270,13 @@
       line-height: var(--font-leading-snug);
     }
 
-    &__radio-group:not(.feature-variant-radio-group) i {
+    &__radio-group:not(.variant-badge-group) i {
       color: var(--font-color-faint);
       font-size: 0.8em;
       font-style: normal;
     }
 
-    &__radio-group:not(.feature-variant-radio-group) svg {
+    &__radio-group:not(.variant-badge-group) svg {
       color: currentColor;
       height: 0.85rem;
       width: 0.85rem;

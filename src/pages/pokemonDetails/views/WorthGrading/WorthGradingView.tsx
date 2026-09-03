@@ -638,7 +638,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
         <div className="worth-grading-view__body">
           <fieldset
             aria-label="Grading recommendation variant"
-            className="worth-grading-view__variant-selector feature-variant-radio-group"
+            className="worth-grading-view__variant-selector radio-group variant-badge-group"
           >
             <div>
               {variants.map((variant, variantIndex) => {

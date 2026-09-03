@@ -173,11 +173,6 @@
   text-align: left;
   width: 100%;
 
-  &::placeholder {
-    color: var(--muted);
-    opacity: 0.8;
-  }
-
   &--number {
     font-variant-numeric: tabular-nums;
   }

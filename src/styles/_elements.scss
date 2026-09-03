@@ -98,6 +98,12 @@ textarea {
   letter-spacing: var(--font-tracking-normal);
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--font-color-faint) 70%, transparent);
+  font-weight: 500;
+}
+
 /*
  * Mock control chrome: rounded-square (12px), not full pills.
  */
@@ -584,7 +590,7 @@ input[type="radio"] {
   }
 }
 
-.feature-variant-radio-group.feature-variant-radio-group {
+.radio-group.radio-group {
   --radio-accent: var(--feature-accent, var(--custom-color-orange));
 
   border: 0;
@@ -593,7 +599,7 @@ input[type="radio"] {
   padding: 0;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group > div {
+.radio-group.radio-group > div {
   align-items: center;
   border: 0;
   border-radius: 0;
@@ -605,17 +611,17 @@ input[type="radio"] {
   width: fit-content;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group label {
+.radio-group.radio-group label {
   cursor: pointer;
   display: inline-flex;
   flex: 0 1 auto;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group label + label {
+.radio-group.radio-group label + label {
   border-left: 0;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group input {
+.radio-group.radio-group input {
   height: 1px;
   opacity: 0;
   pointer-events: none;
@@ -623,7 +629,7 @@ input[type="radio"] {
   width: 1px;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group label > span {
+.radio-group.radio-group label > span {
   justify-content: center;
   align-items: center;
   background: transparent;
@@ -642,44 +648,39 @@ input[type="radio"] {
   white-space: nowrap;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group label:hover > span {
+.radio-group.radio-group label:hover > span {
   border-color: color-mix(in srgb, var(--radio-accent) 35%, transparent);
   color: var(--font-color-primary);
 }
 
-.feature-variant-radio-group.feature-variant-radio-group input:checked + span {
+.radio-group.radio-group input:checked + span {
   background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
   border-color: color-mix(in srgb, var(--radio-accent) 28%, transparent);
   color: var(--radio-accent);
 }
 
-.feature-variant-radio-group.feature-variant-radio-group
-  input:focus-visible
-  + span {
+.radio-group.radio-group input:focus-visible + span {
   outline: 2px solid var(--radio-accent);
   outline-offset: 3px;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group svg {
+.radio-group.radio-group svg {
   color: var(--radio-accent);
   flex: 0 0 auto;
   height: 1rem;
   width: 1rem;
 }
 
-.feature-variant-radio-group.feature-variant-radio-group strong {
+.radio-group.radio-group strong {
   color: var(--font-color-secondary);
   font-weight: var(--font-weight-bold);
 }
 
-.feature-variant-radio-group.feature-variant-radio-group
-  input:checked
-  + span
-  strong {
+.radio-group.radio-group input:checked + span strong {
   color: var(--radio-accent);
 }
 
-.feature-variant-radio-group.feature-variant-radio-group small {
+.radio-group.radio-group small {
   color: var(--font-color-muted);
   font-size: 0.9em;
   font-weight: var(--font-weight-regular);
@@ -687,10 +688,17 @@ input[type="radio"] {
   line-height: var(--font-leading-snug);
 }
 
-.feature-variant-radio-group.feature-variant-radio-group i {
+.radio-group.radio-group i {
   color: var(--font-color-faint);
   font-size: 0.8em;
   font-style: normal;
+}
+
+.variant-badge-group.variant-badge-group label > span {
+  font-size: var(--font-size-paragraph-sm);
+  min-height: 2.45rem;
+  min-width: 7rem;
+  padding: 0.7rem 1.1rem;
 }
 
 .app-loading-spinner {

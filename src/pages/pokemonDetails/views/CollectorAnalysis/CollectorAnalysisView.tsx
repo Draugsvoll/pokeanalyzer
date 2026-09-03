@@ -141,7 +141,7 @@ export default function CollectorAnalysis({
     <div className="collector-ranking ui-render-fade">
       <fieldset
         aria-label="Collector analysis variant"
-        className="collector-ranking__variant-selector feature-variant-radio-group"
+        className="collector-ranking__variant-selector radio-group variant-badge-group"
       >
         <div>
           {analyses.map((variantAnalysis, variantIndex) => (

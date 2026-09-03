@@ -6,11 +6,15 @@ import type { GrokRequestState } from "../../utils/grok/grokClient";
 import PokemonDetails from "./PokemonDetails";
 
 const mocks = vi.hoisted(() => ({
+  authLoading: false,
+  authUser: { uid: "user-1" } as { uid: string } | null,
   askGrok: vi.fn(),
   askMarketPrices: vi.fn(),
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
   fetchJustTcgCard: vi.fn(),
+  hasSubscription: true,
+  loadingSubscription: false,
   updateSubscription: vi.fn(),
   verifyJustTcgCard: vi.fn(),
 }));
@@ -70,9 +74,9 @@ vi.mock("../../utils/selectedPokemonCache", () => ({
 
 vi.mock("../../context/authContextValue", () => ({
   useAuth: () => ({
-    loading: false,
+    loading: mocks.authLoading,
     logout: vi.fn(),
-    user: { uid: "user-1" },
+    user: mocks.authUser,
   }),
 }));
 
@@ -83,8 +87,8 @@ vi.mock("../../subscriptions", () => ({
     updatingCredits: false,
   }),
   useMembershipSubscription: () => ({
-    loadingSubscription: false,
-    subscription,
+    loadingSubscription: mocks.loadingSubscription,
+    subscription: mocks.hasSubscription ? subscription : null,
     updateSubscription: mocks.updateSubscription,
   }),
 }));
@@ -134,9 +138,10 @@ vi.mock("./components/CardFeatureHeader", () => ({
         <button
           type="button"
           disabled={actionDisabled || actionLoading}
+          aria-busy={actionLoading}
           onClick={onAction}
         >
-          Open {label}
+          {actionLoading ? `Loading ${label}` : `Open ${label}`}
         </button>
       )}
     </header>
@@ -246,11 +251,15 @@ function TestRoutes() {
 }
 
 beforeEach(() => {
+  mocks.authLoading = false;
+  mocks.authUser = { uid: "user-1" };
   mocks.askGrok.mockReset();
   mocks.askMarketPrices.mockReset();
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
   mocks.fetchJustTcgCard.mockReset();
+  mocks.hasSubscription = true;
+  mocks.loadingSubscription = false;
   mocks.updateSubscription.mockReset();
   mocks.verifyJustTcgCard.mockReset();
 
@@ -283,6 +292,47 @@ beforeEach(() => {
   mocks.verifyJustTcgCard.mockReturnValue({ verified: true });
 });
 
+test("enables feature actions after authentication and subscription loading", async () => {
+  mocks.authLoading = true;
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  mocks.loadingSubscription = true;
+
+  const renderView = () => (
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>
+  );
+  const { rerender } = render(renderView());
+
+  await screen.findByRole("heading", { name: "Pikachu" });
+  let actionButton = screen.getByRole("button", {
+    name: "Loading Market Analysis",
+  });
+
+  expect(actionButton).toBeDisabled();
+  expect(actionButton).toHaveAttribute("aria-busy", "true");
+
+  mocks.authLoading = false;
+  mocks.authUser = { uid: "user-1" };
+  rerender(renderView());
+
+  actionButton = screen.getByRole("button", {
+    name: "Loading Market Analysis",
+  });
+  expect(actionButton).toBeDisabled();
+
+  mocks.hasSubscription = true;
+  mocks.loadingSubscription = false;
+  rerender(renderView());
+
+  actionButton = screen.getByRole("button", {
+    name: "Open Market Analysis",
+  });
+  expect(actionButton).toBeEnabled();
+  expect(actionButton).toHaveAttribute("aria-busy", "false");
+});
+
 test("Market Analysis data survives feature view switches", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
@@ -291,7 +341,7 @@ test("Market Analysis data survives feature view switches", async () => {
   );
 
   await screen.findByRole("heading", { name: "Pikachu" });
-  fireEvent.click(screen.getByRole("button", { name: "Open Market analysis" }));
+  fireEvent.click(screen.getByRole("button", { name: "Open Market Analysis" }));
 
   await waitFor(() => {
     expect(screen.getByTestId("market-price-response")).toHaveTextContent(
@@ -305,8 +355,8 @@ test("Market Analysis data survives feature view switches", async () => {
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collectors value/ }));
-  fireEvent.click(screen.getByRole("button", { name: /Market analysis/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Market Analysis/ }));
 
   expect(screen.getByTestId("market-price-response")).toHaveTextContent(
     "market price response",
@@ -329,8 +379,8 @@ test("eBay data survives feature switches and clears for a new card", async () =
   );
 
   await screen.findByRole("heading", { name: "Pikachu" });
-  fireEvent.click(screen.getByRole("button", { name: /eBay sales/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Open eBay sales" }));
+  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Open eBay Comps" }));
 
   await waitFor(() => {
     expect(screen.getByTestId("ebay-response")).toHaveTextContent(
@@ -338,8 +388,8 @@ test("eBay data survives feature switches and clears for a new card", async () =
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collectors value/ }));
-  fireEvent.click(screen.getByRole("button", { name: /eBay sales/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
     "eBay response 1",
   );
@@ -347,7 +397,7 @@ test("eBay data survives feature switches and clears for a new card", async () =
 
   fireEvent.click(screen.getByRole("button", { name: "Open next card" }));
   await screen.findByRole("heading", { name: "Raichu" });
-  fireEvent.click(screen.getByRole("button", { name: /eBay sales/ }));
+  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
 
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
     "No eBay response",
@@ -364,9 +414,9 @@ test("feature responses survive view switches and clear for a new card", async (
 
   await screen.findByRole("heading", { name: "Pikachu" });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collectors value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
   fireEvent.click(
-    screen.getByRole("button", { name: "Open Collectors value" }),
+    screen.getByRole("button", { name: "Open Collector's Value" }),
   );
   await waitFor(() => {
     expect(screen.getByTestId("collector-response")).toHaveTextContent(
@@ -388,7 +438,7 @@ test("feature responses survive view switches and clear for a new card", async (
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collectors value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
   expect(screen.getByTestId("collector-response")).toHaveTextContent(
     "collector_analysis response",
   );
@@ -396,7 +446,7 @@ test("feature responses survive view switches and clear for a new card", async (
 
   fireEvent.click(screen.getByRole("button", { name: "Open next card" }));
   await screen.findByRole("heading", { name: "Raichu" });
-  fireEvent.click(screen.getByRole("button", { name: /Collectors value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
 
   await waitFor(() => {
     expect(screen.getByTestId("collector-response")).toHaveTextContent(
@@ -404,7 +454,7 @@ test("feature responses survive view switches and clear for a new card", async (
     );
   });
   expect(
-    screen.getByRole("button", { name: "Open Collectors value" }),
+    screen.getByRole("button", { name: "Open Collector's Value" }),
   ).toBeEnabled();
   expect(mocks.askGrok).toHaveBeenCalledTimes(2);
 });

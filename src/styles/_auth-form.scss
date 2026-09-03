@@ -89,10 +89,6 @@
       box-shadow var(--delay-short) ease;
     width: 100%;
 
-    &::placeholder {
-      color: var(--font-color-faint);
-    }
-
     &:focus {
       background: rgba(10, 10, 16, 0.78);
       border-color: var(--custom-color-blue);

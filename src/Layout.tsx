@@ -9,12 +9,12 @@ export default function Layout() {
 
   useLayoutEffect(() => {
     const previousPath = previousPathRef.current;
-    const openedCardRoute =
+    const openedDifferentCard =
       location.pathname.startsWith("/card/") &&
-      !previousPath?.startsWith("/card/");
+      location.pathname !== previousPath;
 
-    if (openedCardRoute) {
-      window.scrollTo({ behavior: "auto", left: 0, top: 0 });
+    if (openedDifferentCard) {
+      window.scrollTo({ behavior: "instant", left: 0, top: 0 });
     }
 
     previousPathRef.current = location.pathname;

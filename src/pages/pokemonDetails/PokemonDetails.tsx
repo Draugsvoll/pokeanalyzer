@@ -279,7 +279,7 @@ function PokemonDetailsForCard() {
   const [ebayReportCardId, setEbayReportCardId] = useState<string | null>(null);
   const [featureCooldown, setFeatureCooldown] = useState(false);
   const { isCurrentRequest, startRequest } = useAbortableRequest();
-  const { user: authUser } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } =
     usePokemonPortfolio();
   const { isCardSaved, loadingPortfolioReferences, portfolioReferencesError } =
@@ -318,7 +318,6 @@ function PokemonDetailsForCard() {
   }
   const {
     loadingSubscription,
-    refreshSubscription,
     subscription,
     updateSubscription,
   } = useMembershipSubscription();
@@ -331,7 +330,6 @@ function PokemonDetailsForCard() {
     setGoogleAuthLoading(true);
     try {
       await signInWithGoogle();
-      await refreshSubscription(true);
     } catch (error) {
       logClientError("Google sign-in failed", error);
     } finally {
@@ -551,7 +549,7 @@ function PokemonDetailsForCard() {
   const aiFeatures: AiFeature[] = [
     {
       view: "prices",
-      title: "Market analysis",
+      title: "Market Analysis",
       description: "TCGPlayer, Cardmarket & sales history",
       icon: LineChart,
       color: "orange",
@@ -560,7 +558,7 @@ function PokemonDetailsForCard() {
     },
     {
       view: "collector_analysis",
-      title: "Collectors value",
+      title: "Collector's Value",
       description: "AI score for long-term collectibility",
       icon: Gem,
       color: "blue",
@@ -569,7 +567,7 @@ function PokemonDetailsForCard() {
     },
     {
       view: "ebay_sold",
-      title: "eBay sales",
+      title: "eBay Comps",
       description: "Recent comps from real sales",
       icon: BadgeDollarSign,
       color: "teal",
@@ -1143,12 +1141,14 @@ function PokemonDetailsForCard() {
                 label={activeFeature.title}
                 actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
                 actionCostLabel={activeFeature.actionCostLabel}
-                actionLoading={isActiveFeatureLoading}
+                actionLoading={
+                  authLoading || loadingSubscription || isActiveFeatureLoading
+                }
                 actionDisabled={activeFeatureActionDisabled}
                 actionHidden={activeFeatureHasResponse}
                 onAction={() => void activeFeature.onOpen()}
                 authActions={
-                  !authUser && !loadingSubscription ? (
+                  !authUser && !authLoading && !loadingSubscription ? (
                     <>
                       <div className="card-feature-header__auth-row">
                         <Button
