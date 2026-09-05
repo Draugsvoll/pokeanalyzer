@@ -42,6 +42,7 @@ import {
   JUST_TCG_CATEGORIES,
   type JustTcgCategory,
 } from "./db/justTcgCategoryStore.js";
+import { acceptsGzip, getCardCatalog } from "./db/cardCatalog.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -307,6 +308,25 @@ app.get("/api/cards", async (_req, res) => {
   } catch (err) {
     logError("Failed to fetch cards", err);
     res.status(500).json({ error: "Failed to fetch cards" });
+  }
+});
+
+app.get("/api/cards/catalog", async (req, res) => {
+  try {
+    const catalog = await getCardCatalog();
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.vary("Accept-Encoding");
+
+    if (acceptsGzip(req.header("Accept-Encoding"))) {
+      res.setHeader("Content-Encoding", "gzip");
+      res.send(catalog.gzip);
+      return;
+    }
+
+    res.send(catalog.json);
+  } catch (error) {
+    logError("Failed to fetch card catalog", error);
+    res.status(500).json({ error: "Failed to fetch card catalog" });
   }
 });
 

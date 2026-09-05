@@ -10,6 +10,12 @@ import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { Badge } from "../ui/Badge";
+import {
+  disableCardCatalogForSession,
+  getAvailableCardCatalog,
+  initializeCardCatalog,
+  searchCardCatalog,
+} from "../../services/cardCatalog";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -169,6 +175,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const [sortDirection, setSortDirection] =
     useState<SearchSortDirection>("price-high-low");
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
+  useEffect(() => {
+    void initializeCardCatalog();
+  }, []);
   const sortedResults = useMemo(() => {
     return [...results].sort((a, b) => {
       if (
@@ -237,23 +246,49 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setCanSearch(false);
 
     try {
-      const params = new URLSearchParams();
+      const searchApi = async (): Promise<PokemonCardType[] | null> => {
+        const params = new URLSearchParams();
 
-      if (trimmedPokemonName) params.set("pokemonName", trimmedPokemonName);
-      if (trimmedSetName) params.set("setName", trimmedSetName);
-      if (trimmedSetSeries) params.set("setSeries", trimmedSetSeries);
-      if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
+        if (trimmedPokemonName) params.set("pokemonName", trimmedPokemonName);
+        if (trimmedSetName) params.set("setName", trimmedSetName);
+        if (trimmedSetSeries) params.set("setSeries", trimmedSetSeries);
+        if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
 
-      const res = await fetch(
-        `${API_URL}/api/cards/search?${params.toString()}`,
-      );
+        const res = await fetch(
+          `${API_URL}/api/cards/search?${params.toString()}`,
+        );
 
-      if (!res.ok) {
+        if (!res.ok) return null;
+        return res.json();
+      };
+
+      let data: PokemonCardType[] | null;
+      const catalog = getAvailableCardCatalog();
+      if (catalog) {
+        try {
+          data = searchCardCatalog(catalog, {
+            pokemonName: trimmedPokemonName,
+            setName: trimmedSetName,
+            setSeries: trimmedSetSeries,
+            cardNumber: trimmedCardNumber,
+          });
+        } catch (localError) {
+          disableCardCatalogForSession();
+          logClientError(
+            "Local card search failed; using API fallback",
+            localError,
+          );
+          data = await searchApi();
+        }
+      } else {
+        void initializeCardCatalog();
+        data = await searchApi();
+      }
+
+      if (!data) {
         setResults([]);
         return;
       }
-
-      const data = await res.json();
       setResults(data);
       setActiveQueryLabel(
         [
