@@ -12,10 +12,8 @@ import { useInitials } from "../../hooks/useInitials";
 import { formatTimestampDate } from "../../utils/timestamp";
 import { BadgeCheck, Coins, Crown, Leaf, LogOut, Sparkles } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
-import {
-  useCredits,
-  useMembershipSubscription,
-} from "../../subscriptions";
+import { getCustomColors, type CustomColors } from "../../utils/customStylings";
+import { useCredits, useMembershipSubscription } from "../../subscriptions";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -50,19 +48,23 @@ export default function Profile() {
   const canManageBilling = Boolean(
     subscription?.stripeSubscriptionId &&
     subscription.status !== "canceled" &&
-    subscription.status !== "expired"
+    subscription.status !== "expired",
   );
   const canUseMembership =
     subscription?.status === "active" || subscription?.status === "trialing";
-  const profileInitial = useInitials(profile?.firstName?.trim() || profile?.email);
+  const profileInitial = useInitials(
+    profile?.firstName?.trim() || profile?.email,
+  );
   const profileName = profile?.firstName?.trim() || profile?.username?.trim();
   const profileHeading = profileName || profile?.email;
   const planOptions = membershipPlans.filter(
-    (plan) => plan.id === "free" || plan.id === "collector" || plan.id === "pro"
+    (plan) =>
+      plan.id === "free" || plan.id === "collector" || plan.id === "pro",
   );
-  const creditPercentage = creditsTotal > 0
-    ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
-    : 0;
+  const creditPercentage =
+    creditsTotal > 0
+      ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
+      : 0;
 
   const handleLogout = async () => {
     await logout();
@@ -88,7 +90,7 @@ export default function Profile() {
           const parsedProfile = JSON.parse(cachedProfile);
           if (parsedProfile.createdAt?.seconds) {
             parsedProfile.createdAt = Timestamp.fromMillis(
-              parsedProfile.createdAt.seconds * 1000
+              parsedProfile.createdAt.seconds * 1000,
             );
           }
           setProfile(parsedProfile);
@@ -149,16 +151,22 @@ export default function Profile() {
 
   return (
     <div className="profile">
-      <h1>My Profile</h1>
+      <header className="profile__page-heading">
+        <h1>My Account</h1>
+      </header>
 
-      <div className="profile__card">
+      <div className="profile__card default-container">
         <header className="profile__identity">
           <div className="profile__identity-main">
             {profile.avatar?.trim() ? (
               <img
                 className="profile__avatar"
                 src={profile.avatar.trim()}
-                alt={profileName ? `${profileName}'s profile avatar` : "Profile avatar"}
+                alt={
+                  profileName
+                    ? `${profileName}'s profile avatar`
+                    : "Profile avatar"
+                }
               />
             ) : (
               <div className="avatar-initials profile__avatar profile__avatar--fallback">
@@ -166,7 +174,7 @@ export default function Profile() {
               </div>
             )}
             <div className="profile__identity-copy">
-              <span className="profile__eyebrow">Account</span>
+              <span className="profile__eyebrow">Personal details</span>
               <div className="profile__identity-title">
                 <h2>{profileHeading}</h2>
                 {authUser.emailVerified && (
@@ -175,10 +183,11 @@ export default function Profile() {
                   </Badge>
                 )}
               </div>
-              {profileName && <p>{profile.email}</p>}
-              <div className="profile__identity-meta">
-                <span>
-                  Member since: <strong> {formatTimestampDate(profile.createdAt)}</strong>
+              <div className="profile__identity-details">
+                {profileName && <p>{profile.email}</p>}
+                <span className="profile__joined">
+                  Joined{" "}
+                  <strong>{formatTimestampDate(profile.createdAt)}</strong>
                 </span>
               </div>
             </div>
@@ -198,9 +207,11 @@ export default function Profile() {
               aria-busy={loadingSubscription}
             >
               <div className="profile__section-heading">
-                <span className="profile__eyebrow">Current plan</span>
+                <span className="profile__eyebrow">Current Plan</span>
                 {subscription && (
-                  <span className={`profile__status profile__status--${canUseMembership ? "active" : "inactive"}`}>
+                  <span
+                    className={`profile__status profile__status--${canUseMembership ? "active" : "inactive"}`}
+                  >
                     <i aria-hidden="true" />
                     {subscription.status.replace("_", " ")}
                   </span>
@@ -209,19 +220,21 @@ export default function Profile() {
               {loadingSubscription && (
                 <div className="profile__summary-loading">
                   <span
-                    className="profile__purchase-spinner profile__summary-spinner"
+                    className="app-btn__spinner profile__summary-spinner"
                     role="status"
                     aria-label="Loading current plan"
                   />
                 </div>
               )}
               <div className="profile__plan-title">
-                <span className="profile__plan-icon" aria-hidden="true"><Crown /></span>
+                <span className="profile__plan-icon" aria-hidden="true">
+                  <Crown />
+                </span>
                 <div>
                   <h3>
                     {loadingSubscription
                       ? "Loading..."
-                      : subscription?.planName ?? "No membership"}
+                      : (subscription?.planName ?? "No membership")}
                   </h3>
                   <p>
                     {subscription?.planId === "free"
@@ -232,12 +245,21 @@ export default function Profile() {
                   </p>
                 </div>
               </div>
-              {(subscription?.currentPeriodEnd || (subscription && subscription.planId !== "free" && subscription.stripeSubscriptionId)) && (
+              {(subscription?.currentPeriodEnd ||
+                (subscription &&
+                  subscription.planId !== "free" &&
+                  subscription.stripeSubscriptionId)) && (
                 <div className="profile__period-row">
                   {subscription?.currentPeriodEnd && (
                     <small className="profile__period">
-                      {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing date"}{" "}
-                      <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong>
+                      {subscription.cancelAtPeriodEnd
+                        ? "Access until"
+                        : "Next billing date"}{" "}
+                      <strong>
+                        {new Date(
+                          subscription.currentPeriodEnd,
+                        ).toLocaleDateString()}
+                      </strong>
                       {subscription.cancelAtPeriodEnd && " · Cancelling"}
                     </small>
                   )}
@@ -253,7 +275,7 @@ export default function Profile() {
                       >
                         {updatingSubscription ? (
                           <span
-                            className="profile__purchase-spinner"
+                            className="app-btn__spinner"
                             aria-label="Opening billing portal"
                           />
                         ) : (
@@ -271,12 +293,14 @@ export default function Profile() {
             >
               <div className="profile__section-heading">
                 <span className="profile__eyebrow">Credit balance</span>
-                <span className="profile__credits-icon" aria-hidden="true"><Coins /></span>
+                <span className="profile__credits-icon" aria-hidden="true">
+                  <Coins />
+                </span>
               </div>
               {loadingSubscription && (
                 <div className="profile__summary-loading">
                   <span
-                    className="profile__purchase-spinner profile__summary-spinner"
+                    className="app-btn__spinner profile__summary-spinner"
                     role="status"
                     aria-label="Loading credit balance"
                   />
@@ -297,8 +321,15 @@ export default function Profile() {
                 <span style={{ width: `${creditPercentage}%` }} />
               </div>
               <div className="profile__credit-breakdown">
-                <span>Monthly credits <strong>{membershipCreditsRemaining}/{membershipCreditsTotal}</strong></span>
-                <span>Extra credits <strong>{bonusCreditsRemaining}</strong></span>
+                <span>
+                  Monthly credits{" "}
+                  <strong>
+                    {membershipCreditsRemaining}/{membershipCreditsTotal}
+                  </strong>
+                </span>
+                <span>
+                  Extra credits <strong>{bonusCreditsRemaining}</strong>
+                </span>
               </div>
             </article>
           </div>
@@ -316,10 +347,10 @@ export default function Profile() {
 
             {(subscriptionMessage || creditMessage) && (
               <div className="profile__billing-notices" aria-live="polite">
-                {subscriptionMessage && (
-                  <small>{subscriptionMessage}</small>
+                {subscriptionMessage && <small>{subscriptionMessage}</small>}
+                {creditMessage && (
+                  <small className="is-warning">{creditMessage}</small>
                 )}
-                {creditMessage && <small className="is-warning">{creditMessage}</small>}
               </div>
             )}
 
@@ -330,16 +361,23 @@ export default function Profile() {
                 const switchToFreeIsScheduled = Boolean(
                   isFreePlan &&
                   subscription?.planId !== "free" &&
-                  subscription?.cancelAtPeriodEnd
+                  subscription?.cancelAtPeriodEnd,
                 );
                 const useBillingPortal = Boolean(
-                  !isFreePlan && !canStartMembershipCheckout && canManageBilling
+                  !isFreePlan &&
+                  !canStartMembershipCheckout &&
+                  canManageBilling,
                 );
                 const PlanIcon = isFreePlan
                   ? Leaf
                   : plan.id === "pro"
                     ? Sparkles
                     : Crown;
+                const planAccent: CustomColors = isFreePlan
+                  ? "teal"
+                  : plan.id === "pro"
+                    ? "purple"
+                    : "blue";
                 const planAction = () => {
                   if (isFreePlan) {
                     return openBillingPortal();
@@ -353,26 +391,22 @@ export default function Profile() {
                     key={plan.id}
                     className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : plan.id === "collector" ? " profile__purchase-card--collector" : plan.id === "pro" ? " profile__purchase-card--pro" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
                   >
-                    {planIsCurrent && (
-                      <div className="profile__current-plan-anchor">
-                        <Badge accent="green" size="sm" weight="strong">
-                          Active
-                        </Badge>
-                      </div>
-                    )}
                     <span className="profile__purchase-icon" aria-hidden="true">
                       <PlanIcon />
                     </span>
                     <span className="profile__purchase-name">{plan.name}</span>
-                    <strong>{isFreePlan ? "Free forever" : `${plan.credits} credits`}</strong>
+                    <strong>
+                      {isFreePlan ? "Free forever" : `${plan.credits} credits`}
+                    </strong>
                     <small>
                       {isFreePlan
                         ? "No monthly fee · No subscription"
                         : `${plan.price} ${plan.currency} / month`}
                     </small>
-                    <button
-                      type="button"
-                      className="profile__purchase-cta"
+                    <Button
+                      fill="solid"
+                      fitContent
+                      style={getCustomColors(planAccent)}
                       disabled={
                         planIsCurrent ||
                         switchToFreeIsScheduled ||
@@ -382,27 +416,33 @@ export default function Profile() {
                           : !canStartMembershipCheckout && !canManageBilling)
                       }
                       onClick={() => void planAction()}
-                      aria-busy={updatingSubscription && !planIsCurrent && !switchToFreeIsScheduled}
+                      aria-busy={
+                        updatingSubscription &&
+                        !planIsCurrent &&
+                        !switchToFreeIsScheduled
+                      }
                     >
-                      {planIsCurrent
-                        ? "Current plan"
-                        : switchToFreeIsScheduled
-                          ? subscription?.currentPeriodEnd
-                            ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                            : "Switch scheduled"
-                        : updatingSubscription
-                          ? (
-                            <span
-                              className="profile__purchase-spinner"
-                              aria-label="Opening checkout"
-                            />
-                          )
-                          : isFreePlan
-                            ? "Switch to Free"
-                          : useBillingPortal
-                            ? "Switch plan"
-                            : `Choose ${plan.name}`}
-                    </button>
+                      {planIsCurrent ? (
+                        "Current Plan"
+                      ) : switchToFreeIsScheduled ? (
+                        subscription?.currentPeriodEnd ? (
+                          `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                        ) : (
+                          "Switch scheduled"
+                        )
+                      ) : updatingSubscription ? (
+                        <span
+                          className="app-btn__spinner"
+                          aria-label="Opening checkout"
+                        />
+                      ) : isFreePlan ? (
+                        "Switch to Free"
+                      ) : useBillingPortal ? (
+                        "Switch plan"
+                      ) : (
+                        `Choose ${plan.name}`
+                      )}
+                    </Button>
                   </article>
                 );
               })}
@@ -418,28 +458,31 @@ export default function Profile() {
 
             <div className="profile__top-up-row">
               <article className="profile__purchase-card profile__purchase-card--top-up">
-                <span className="profile__purchase-icon" aria-hidden="true"><Coins /></span>
+                <span className="profile__purchase-icon" aria-hidden="true">
+                  <Coins />
+                </span>
                 <div className="profile__top-up-copy">
                   <span className="profile__purchase-name">Credit top-up</span>
                   <strong>100 extra credits</strong>
                   <small>One-time payment · No subscription</small>
                 </div>
-                <button
-                  type="button"
-                  className="profile__purchase-cta"
+                <Button
+                  fill="solid"
+                  fitContent
+                  style={getCustomColors("orange")}
                   disabled={!canUseMembership || updatingCredits}
                   onClick={() => void topUpCredits()}
                   aria-busy={updatingCredits}
                 >
                   {updatingCredits ? (
                     <span
-                      className="profile__purchase-spinner"
+                      className="app-btn__spinner"
                       aria-label="Opening checkout"
                     />
                   ) : (
-                    "Buy extra credits"
+                    "Buy Credits"
                   )}
-                </button>
+                </Button>
               </article>
             </div>
 
@@ -448,21 +491,19 @@ export default function Profile() {
               subscription.planId !== "free" &&
               subscription.stripeSubscriptionId &&
               !subscription.cancelAtPeriodEnd && (
-              <div className="profile__billing-tools">
-                <Button
-                  variant="danger"
-                  disabled={updatingSubscription}
-                  onClick={() => void openBillingPortal()}
-                >
-                  Cancel subscription
-                </Button>
-              </div>
-            )}
-
+                <div className="profile__billing-tools">
+                  <Button
+                    variant="danger"
+                    disabled={updatingSubscription}
+                    onClick={() => void openBillingPortal()}
+                  >
+                    Cancel subscription
+                  </Button>
+                </div>
+              )}
           </div>
         </section>
       </div>
-
     </div>
   );
 }

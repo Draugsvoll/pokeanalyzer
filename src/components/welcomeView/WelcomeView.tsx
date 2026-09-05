@@ -1,26 +1,13 @@
 import React from "react";
 import "./WelcomeView.scss";
 import { INFO_CARDS } from "../../data/infoCards";
-import { SEARCH_HERO_CONTENT } from "../../data/searchHeroContent";
 import { getCustomColors } from "../../utils/customStylings";
 import { DatabaseSearch } from "../databaseSearch/DatabaseSearch";
-import { Badge } from "../ui/Badge";
 
 export const WelcomeView: React.FC = () => {
   return (
     <div className="welcome-view">
-      <section className="hero">
-        <span className="hero__eyebrow">
-          <Badge accent="blue" size="sm" weight="strong">
-            {SEARCH_HERO_CONTENT.eyebrow}
-          </Badge>
-        </span>
-        <h1>{SEARCH_HERO_CONTENT.title}</h1>
-        <p className="hero__lead">{SEARCH_HERO_CONTENT.subtitle}</p>
-        <div className="hero__search">
-          <DatabaseSearch showHero={false} />
-        </div>
-      </section>
+      <DatabaseSearch />
 
       <section className="info-cards">
         <div className="info-cards__row">

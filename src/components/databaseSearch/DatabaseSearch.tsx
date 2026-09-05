@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
-import { SEARCH_HERO_CONTENT } from "../../data/searchHeroContent";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { resolveCardPriceOption } from "../../utils/pokemonPricing";
 import "./DatabaseSearch.scss";
@@ -9,7 +8,7 @@ import { logClientError } from "../../utils/logClientError";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
-import { Badge } from "../ui/Badge";
+import { SearchHero } from "../searchHero/SearchHero";
 import {
   disableCardCatalogForSession,
   getAvailableCardCatalog,
@@ -24,7 +23,6 @@ type DatabaseSearchProps = {
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
   onSearchStart?: () => void;
-  showHero?: boolean;
   /** When set, results render into this element (e.g. below the card shell) */
   resultsPortalEl?: HTMLElement | null;
 };
@@ -161,7 +159,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
   onSearchStart,
-  showHero = true,
   resultsPortalEl = null,
 }) => {
   const [pokemonName, setPokemonName] = useState("");
@@ -336,41 +333,32 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
 
     handleSearch();
   }
+
+  const searchBar = (
+    <DatabaseSearchBar
+      autoFocusName={autoFocusName}
+      canSearch={canSearch}
+      cardNumber={cardNumber}
+      isSearching={isSearching}
+      onCardNumberChange={setCardNumber}
+      onPokemonNameChange={setPokemonName}
+      onSearch={submitSearch}
+      onSearchKeyDown={handleSearchKeyDown}
+      onSetNameChange={setSetName}
+      onSetSeriesChange={setSetSeries}
+      pokemonName={pokemonName}
+      setName={setName}
+      setSeries={setSeries}
+    />
+  );
+
   return (
     <section
       className={`database-preview explore-page${embedded ? " database-preview--embedded" : ""}`}
       id="database-search"
     >
       <div className={embedded ? undefined : "explore-page__inner"}>
-        {!embedded && showHero && (
-          <header className="explore-hero">
-            <span className="explore-hero__eyebrow">
-              <Badge accent="blue" size="sm" weight="strong">
-                {SEARCH_HERO_CONTENT.eyebrow}
-              </Badge>
-            </span>
-            <h2 className="explore-hero__title">{SEARCH_HERO_CONTENT.title}</h2>
-            <p className="explore-hero__subtitle">
-              {SEARCH_HERO_CONTENT.subtitle}
-            </p>
-          </header>
-        )}
-
-        <DatabaseSearchBar
-          autoFocusName={autoFocusName}
-          canSearch={canSearch}
-          cardNumber={cardNumber}
-          isSearching={isSearching}
-          onCardNumberChange={setCardNumber}
-          onPokemonNameChange={setPokemonName}
-          onSearch={submitSearch}
-          onSearchKeyDown={handleSearchKeyDown}
-          onSetNameChange={setSetName}
-          onSetSeriesChange={setSetSeries}
-          pokemonName={pokemonName}
-          setName={setName}
-          setSeries={setSeries}
-        />
+        {embedded ? searchBar : <SearchHero>{searchBar}</SearchHero>}
         {(() => {
           if (results.length === 0) return null;
 

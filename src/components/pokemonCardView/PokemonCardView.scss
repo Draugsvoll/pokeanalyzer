@@ -45,7 +45,6 @@
   }
 
   img {
-    border-radius: var(--radius-md);
     height: auto;
     object-fit: contain;
     width: 100%;
@@ -545,19 +544,34 @@
 }
 
 .pokemon-card__image {
+  background: linear-gradient(145deg, var(--surface2), var(--surface));
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--border-color) 35%, transparent);
   aspect-ratio: 245 / 342;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 0;
+  overflow: hidden;
   position: relative;
   width: 100%;
+}
+
+.pokemon-card__image::before {
+  background: color-mix(in srgb, var(--custom-color-blue) 11%, transparent);
+  border-radius: 50%;
+  content: "";
+  filter: blur(2rem);
+  inset: 22% 18%;
+  position: absolute;
 }
 
 .pokemon-card__image > img {
   display: block;
   height: 100%;
   object-fit: contain;
+  position: relative;
   width: 100%;
 }
 
