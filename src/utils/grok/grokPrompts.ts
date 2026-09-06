@@ -404,11 +404,7 @@ export const worthGradingInstructions: string = `
 
   I need to know this for every English variant of the card, as long as it has reliable data available. Don't include Japanese variants.
 
-  Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected
-  NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade.
-  Default/primary source for price data should be PriceCharting, but you can use others if you have a strong
-  reason to. Mention which source you used in "assumptions", if you didn't use PriceCharting explain why.
-  Use reliable sources for all data.
+  Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Default/primary source for price data should be PriceCharting, but you can use others if you have a strong reason to. Mention which source you used in "assumptions", if you didn't use PriceCharting explain why. Use reliable sources for all data.
 
   Remember ebay can have different fee structure/model for high prices, account for that in calculations.
 
@@ -453,7 +449,7 @@ export const worthGradingInstructions: string = `
   },
   "attractiveness_level": {
   "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. Must be a string containing only a number, for example '65'",
-  "reasoning":["Justify the score. We are interested in WHY the card is attractive or not, not just the paper profit numbers. I should have a basic understanding of why it didn't score higher or lower. Do not contradict paper profit calculations. Break it down into paragraphs"]
+  "reasoning":["Justify the score you gave, explain its attractiveness for submitting outside of just the paper profit numbers. I should have a basic understanding of why it didn't score higher or lower. Be clear and straightforward, don't shorten or truncate the answers. Do not contradict the paper profit calculations. Break it down into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,
@@ -560,13 +556,11 @@ label definitions:
 "high": $1,001 to $5,000
 "very high": more than $5,000
 
-The field "headline" is a headline version of "reasoning" inside attractiveness_level. Maximum 25 words.
+The field "headline" is a headline version of explaining its attractiveness outside of just looking at paper profit numbers. Maximum 25 words.
 
-The field "bottom_line" is an overall recommendation/guide with all things considered. Do not break down calculations/costs/fees as we already have a field doing that. If grading isn't recommended/attractive even though it's showing over 100usd paper profits then you should justify that. A beginner should be able to understand why or how something affects the grading decision on a practical level. Make things clear and straightforward. Don't explain that aiming for a PSA10 is gambling or unrealistic, that's self-explanatory.
+The field "bottom_line" is an overall recommendation/guide with all things considered. You don't need to break down numbers since we already have a field with all calculations. Make things clear and don't shorten or truncate. Don't explain that aiming for a PSA10 is gambling or unrealistic, that's self-explanatory.
 Adjust the strength of your wording proportionally to the size of the actual edge or risk.
-When mentioning probabilities or expected values, explain how you calculated them
-and what data or assumptions you used.
-Don't claim a probability-weighted expected value without justifying how you concluded that.
+When mentioning probabilities or expected values, justify how you concluded them.
 
 The field "notes" is an optional field. If there are any important or valueable considerations for grading this exact card/variant that hasn't been mentioned already, put it in here. If everything important and valueable has already been adressed, leave it empty,
 
