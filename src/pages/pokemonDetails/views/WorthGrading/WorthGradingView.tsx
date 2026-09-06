@@ -43,6 +43,7 @@ type GradedScenario = {
 };
 
 type PsaPopulation = {
+  source?: string | null;
   psa_population_psa6?: number | string | null;
   psa_population_psa7?: number | string | null;
   psa_population_psa8?: number | string | null;
@@ -57,16 +58,15 @@ type ConfidenceLevel = {
 };
 
 type AttractivenessLevel = {
-  reasoning?: string | null;
+  reasoning?: string[] | null;
   score?: string | null;
 };
 
 type Recommendation = {
   bottom_line?: string | null;
   headline?: string | null;
-  notes?: unknown;
+  notes?: string[] | null;
   potential?: string | null;
-  reasons?: unknown;
 };
 
 type WorthGradingVariant = {
@@ -95,6 +95,7 @@ function formatPotentialLabel(potential: string) {
 
 function getPotentialBadgeAccent(potential: string) {
   switch (potential.trim().toLowerCase()) {
+    case "negative":
     case "none":
     case "very low":
       return "red";
@@ -119,14 +120,24 @@ function parseWorthGradingResponse(response: string) {
 }
 
 function asStringList(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.filter(
-      (item): item is string =>
-        typeof item === "string" && item.trim().length > 0,
-    );
-  }
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0,
+  );
+}
 
-  return typeof value === "string" && value.trim() ? [value] : [];
+function getSafeExternalUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 type TitledDetail = {
@@ -449,6 +460,12 @@ function ScenarioCard({
                 </div>
               </div>
             </div>
+            {scenario.grading_tier_justification?.trim() && (
+              <div className="worth-grading-view__tier-justification default-container-inner">
+                <span>Why this grading tier</span>
+                <p>{scenario.grading_tier_justification}</p>
+              </div>
+            )}
             {scenario.psa_note?.trim() && (
               <p className="worth-grading-view__psa-note default-container-inner">
                 {scenario.psa_note}
@@ -462,6 +479,7 @@ function ScenarioCard({
 }
 
 function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
+  const sourceUrl = getSafeExternalUrl(population?.source);
   const totalPopulation = asNumber(population?.psa_population_total);
   const reportedGradeCounts = [
     ["PSA 10", population?.psa_population_psa10],
@@ -527,16 +545,26 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
           );
         })}
       </div>
+      {sourceUrl && (
+        <a
+          className="worth-grading-view__population-source"
+          href={sourceUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          View PSA Population Report
+        </a>
+      )}
     </article>
   );
 }
 
 function CollapsibleTitledDetailList({
-  items,
+  items = [],
   notes = [],
   title,
 }: {
-  items: TitledDetail[];
+  items?: TitledDetail[];
   notes?: string[];
   title: string;
 }) {
@@ -610,7 +638,6 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
     ? activeVariant.graded_scenarios.filter(isScenario)
     : [];
   const recommendation = activeVariant.recommendation;
-  const reasons = asTitledDetails(recommendation?.reasons, "reason");
   const notes = asStringList(recommendation?.notes);
   const confidence = activeVariant.confidence_level;
   const confidenceScoreValue = asNumber(confidence?.score);
@@ -619,6 +646,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
       ? null
       : Math.min(100, Math.max(0, confidenceScoreValue));
   const attractiveness = activeVariant.attractiveness_level;
+  const attractivenessReasoning = asStringList(attractiveness?.reasoning);
   const attractivenessScoreValue = asNumber(attractiveness?.score);
   const attractivenessScore =
     attractivenessScoreValue == null
@@ -677,6 +705,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
           >
             {(recommendation?.potential?.trim() ||
               recommendation?.headline?.trim() ||
+              attractivenessReasoning.length > 0 ||
               attractivenessScore != null) && (
               <section className="worth-grading-view__overview default-container">
                 <span className="worth-grading-view__overview-eyebrow">
@@ -706,6 +735,13 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                   <strong className="worth-grading-view__overview-headline">
                     {recommendation.headline}
                   </strong>
+                )}
+                {attractivenessReasoning.length > 0 && (
+                  <div className="worth-grading-view__overview-reasoning">
+                    {attractivenessReasoning.map((paragraph, index) => (
+                      <p key={`${paragraph}-${index}`}>{paragraph}</p>
+                    ))}
+                  </div>
                 )}
               </section>
             )}
@@ -769,9 +805,8 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             )}
 
             <CollapsibleTitledDetailList
-              items={reasons}
               notes={notes}
-              title="Key Takeaways"
+              title="Additional considerations"
             />
 
             <CollapsibleTitledDetailList

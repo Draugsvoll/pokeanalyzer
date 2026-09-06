@@ -58,6 +58,19 @@
   max-width: 64rem;
 }
 
+.worth-grading-view__overview-reasoning {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 64rem;
+
+  p {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    line-height: var(--font-leading-relaxed);
+    margin: 0;
+  }
+}
+
 .worth-grading-view__metric {
   align-content: start;
   display: grid;
@@ -351,6 +364,26 @@
   }
 }
 
+.worth-grading-view__tier-justification {
+  display: grid;
+  gap: var(--space-2);
+
+  span {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  p {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    line-height: var(--font-leading-normal);
+    margin: 0;
+  }
+}
+
 .worth-grading-view__psa-note {
   align-items: center;
   color: var(--font-color-secondary);
@@ -434,6 +467,13 @@
     display: block;
     height: 100%;
   }
+}
+
+.worth-grading-view__population-source {
+  color: var(--worth-grading-accent);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  justify-self: start;
 }
 
 .worth-grading-view__collapsible-details {

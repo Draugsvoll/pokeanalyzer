@@ -28,6 +28,10 @@ function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function hasTextList(value: unknown) {
+  return Array.isArray(value) && value.some(hasText);
+}
+
 function isScore(value: unknown) {
   const score =
     typeof value === "number"
@@ -114,7 +118,7 @@ function isDisplayableWorthGradingVariant(value: unknown) {
     hasMeaningfulField(value.recommendation, ["potential"]) &&
     hasMeaningfulField(value.recommendation, ["headline"]) &&
     hasMeaningfulField(value.recommendation, ["bottom_line"]);
-  const hasAttractivenessReasoning = hasText(
+  const hasAttractivenessReasoning = hasTextList(
     value.attractiveness_level.reasoning,
   );
   const hasAttractivenessScore = isScore(value.attractiveness_level.score);

@@ -43,7 +43,7 @@ test("stored feature validation accepts each current response shape", () => {
             },
           ],
           attractiveness_level: {
-            reasoning: "The card has a practical grading opportunity.",
+            reasoning: ["The card has a practical grading opportunity."],
             score: "65",
           },
           recommendation: {
@@ -97,7 +97,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
             card: {},
             graded_scenarios: [{ grade: "PSA 7", net_profit_vs_raw_usd: 100 }],
             attractiveness_level: {
-              reasoning: "The card has a practical grading opportunity.",
+              reasoning: ["The card has a practical grading opportunity."],
               score: "65",
             },
             recommendation: {
@@ -116,7 +116,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
             card: {},
             graded_scenarios: [{ grade: "PSA 7", net_profit_vs_raw_usd: 100 }],
             attractiveness_level: {
-              reasoning: "The card has a practical grading opportunity.",
+              reasoning: ["The card has a practical grading opportunity."],
               score: "high",
             },
             recommendation: {

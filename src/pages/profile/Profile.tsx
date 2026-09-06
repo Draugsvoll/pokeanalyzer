@@ -337,7 +337,7 @@ export default function Profile() {
           <div className="profile__plan-actions">
             <div className="profile__upgrade-copy">
               <span className="profile__eyebrow">Plans and credits</span>
-              <h3>Choose how you want to add credits</h3>
+              <h3>Choose your membership</h3>
             </div>
 
             <div className="profile__purchase-group-heading">
@@ -406,6 +406,7 @@ export default function Profile() {
                     <Button
                       fill="solid"
                       fitContent
+                      size="small"
                       style={getCustomColors(planAccent)}
                       disabled={
                         planIsCurrent ||
@@ -469,6 +470,7 @@ export default function Profile() {
                 <Button
                   fill="solid"
                   fitContent
+                  size="small"
                   style={getCustomColors("orange")}
                   disabled={!canUseMembership || updatingCredits}
                   onClick={() => void topUpCredits()}

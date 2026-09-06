@@ -404,7 +404,12 @@ export const worthGradingInstructions: string = `
 
   I need to know this for every English variant of the card, as long as it has reliable data available. Don't include Japanese variants.
 
-  Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Use reliable sources for all data.
+  Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected
+  NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade.
+  Default/primary source for price data should be PriceCharting, but you can use others if you have a strong
+  reason to. Mention which source you used in "assumptions", if you didn't use PriceCharting explain why.
+  Use reliable sources for all data.
+
   Remember ebay can have different fee structure/model for high prices, account for that in calculations.
 
   In each individual calculation, you have to justify the PSA grading tier/fee you chose.
@@ -425,9 +430,6 @@ export const worthGradingInstructions: string = `
   The field "shipping_and_insurance_usd" is simply an estimation. Make sure each PSA-grade individually uses a reasonable shipping and insurance estimation.
 
   Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
-  I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
-
-  Your job is to fit your analysis into this JSON schema. Do not add any extra fields or change the structure of the JSON schema.
 
   Always include every English variant where you can find data from reliable sources.
   in variant_name field give the proper and official variant name.
@@ -450,8 +452,8 @@ export const worthGradingInstructions: string = `
    "reasoning":"Explain why you are feeling this level of confidence in your analysis as a whole. Make it concise and beginner friendly. Use conversational language with a professional tone. If the score is below 80, make it clear what's dragging it down."
   },
   "attractiveness_level": {
-  "score":"Score 1-100 on how attractive this variant is to submit compared to other cards in general. Must be a string containing only a number, for example '65'",
-  "reasoning":"Justify the score concisely."
+  "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. Must be a string containing only a number, for example '65'",
+  "reasoning":["Justify the score. We are interested in WHY the card is attractive or not, not just the paper profit numbers. I should have a basic understanding of why it didn't score higher or lower. Do not contradict paper profit calculations. Break it down into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,
@@ -530,52 +532,53 @@ export const worthGradingInstructions: string = `
   "potential": "",
   "headline": "",
   "bottom_line":"",
-  "notes":[""],
-  "reasons": [
-  {"title":"title for the reason", "reason":"describe the reason"}
-  ]
+  "notes":[""]
   }
   }
   ]
   }
 
-The field "potential" describes how much net incremental gains are available if my card comes back as a perfect PSA10. Must choose exactly one of these labels "none", "very low", "marginal", "modest", "good", "high", "very high".
+Writing rules for the following text fields ("title", "headline", "bottom_line", "notes", "reasoning"):
+- Write like a collector explaining the card to another collector. The tone and language should sound professional.
+- Avoid truncation and semicolons.
+- Titles must be plain labels, not slogans.
+- Always say PSA 7, PSA 8, PSA 9, and PSA 10. Never say "a seven", "an 8", "a nine", "a ten"
+- Do not omit "PSA" in titles.
+- Do not use telegraphic titles such as "Ten pricing is soft" or "An 8 still works".
+- Good title examples: "PSA 8 is the lowest grade that still beats selling raw", "PSA 10 sold data for this print is thin".
+- Bad title examples: "An 8 still works", "Ten pricing is soft"
+- Spell out dollar amounts as $1,475 not "1475 dollar".
+
+The field "potential" describes how much net incremental gains are available if my card comes back as a perfect PSA10. Must choose exactly one of these labels "negative", "very low", "marginal", "modest", "good", "high", "very high".
 
 label definitions:
-"none": $0 or a loss
-"very low": $1 to $75
+"negative": below 0$
+"very low": $0 to $75
 "marginal": $76 to $150
 "modest": $151 to $400
 "good": $401 to $1,000
 "high": $1,001 to $5,000
 "very high": more than $5,000
 
-The field "headline" is a one-line version recommendation/summary. Maximum 25 words If you mention gem-rate you don't need to explain if it's high or low, the numbers speak for themselves. Don't compare to other variants in this field.
+The field "headline" is a headline version of "reasoning" inside attractiveness_level. Maximum 25 words.
 
-The field "bottom_line" is an overall recommendation/guide with all things considered. Do not break down calculations/costs/fees as we already have a field doing that. If grading isn't recommended/attractive even though it's showing over 100usd paper profits then you should justify that. A beginner should be able to understand and why or how something affects the grading decision on a practical level. Make things clear and straightforward. Don't explain that aiming for a PSA10 is gambling or unrealistic, that's self-explanatory.
-Write in clear, natural language. Preferably you avoid using truncation or semicolons.
+The field "bottom_line" is an overall recommendation/guide with all things considered. Do not break down calculations/costs/fees as we already have a field doing that. If grading isn't recommended/attractive even though it's showing over 100usd paper profits then you should justify that. A beginner should be able to understand why or how something affects the grading decision on a practical level. Make things clear and straightforward. Don't explain that aiming for a PSA10 is gambling or unrealistic, that's self-explanatory.
 Adjust the strength of your wording proportionally to the size of the actual edge or risk.
 When mentioning probabilities or expected values, explain how you calculated them
 and what data or assumptions you used.
-Never claim a probability-weighted expected value unless you provide evidence or data.
+Don't claim a probability-weighted expected value without justifying how you concluded that.
 
 The field "notes" is an optional field. If there are any important or valueable considerations for grading this exact card/variant that hasn't been mentioned already, put it in here. If everything important and valueable has already been adressed, leave it empty,
 
-The array "reasons" contains your reasoning used to set the score number inside attractiveness_level. After reading this I should understand why it didn't score higher or lower. When refering to the score only use the word "score", never call it "attractiveness score".
-Do not restate prices or calculations/costs/fees if they are already displayed elsewhere, we care about the logic and reasoning.
-When making any claims or assumptions in "reasons", explain how you concluded that. Don't make claims or assumptions without justifying them.
-
 In the field "assumptions" mention your assumptions.
 
-Always use the official PSA Population Report as the source for PSA population figures when available,
-and ensure the population entry matches the set, card number, and variant. Use the actual official website
-itself as the source https://www.psacard.com/. Provide the url to the exact page that displays the numbers.
-The PSA population data is probably available from two different places: the public PSA Population Report and PSA's login-required Research/API tools. Always check and use the public Population Report first. If the Research/API route requires login, do not conclude that PSA population data requires login; the same population data may still be publicly available through the Population Report.
-Only use other reliable sources if you can't get the numbers from the official website itself.
+PSA Population:
+Use the public PSA Population Report on psacard.com first. Make sure you have the correct card (set, card number and variant).
+PSA also has login-only Research/API tools. If those require login, do not assume the data is private. Check the public Population Report.
+If a public PSA page redirects to sign-in, try another public PSA page for the same card. Only if no public PSA page shows the counts do you use other reliable sources. Provide the url to the exact page that displays the numbers.
+If you can't find psa population data from a reliable source then return null (don't invent numbers).
 
 Don't forget to populate "psa_population_psa6" when filling in psa_population data.
-If you can't find psa population data from a reliable source then return null.
-Never invent any of the numbers.
 
 When calculating Profit vs Raw and ROI:
 Calculate Raw Net = Raw sale price - selling fees on the raw sale.
