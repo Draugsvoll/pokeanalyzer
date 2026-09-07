@@ -127,7 +127,7 @@ function SourceCard({
 }: SourceCardProps) {
   const buyLink = url ? (
     <a
-      className="stored-prices__link"
+      className="app-link stored-prices__link"
       href={url}
       target="_blank"
       rel="noopener noreferrer"
@@ -220,7 +220,10 @@ function SourceCard({
       {isPriceFlagged && (
         <div className="stored-prices__warning" role="status">
           <TriangleAlert aria-hidden="true" />
-          <span>Unreliable price data detected - Use market analysis to verify prices.</span>
+          <span>
+            Unreliable price data detected - Use market analysis to verify
+            prices.
+          </span>
         </div>
       )}
 
@@ -306,68 +309,70 @@ export function StoredPrices({
       }`}
     >
       {hasStoredPriceSource && (
-      <div className="stored-prices__grid">
-        {hasTcgplayerSource && (
-          <div className="stored-prices__source-stack">
+        <div className="stored-prices__grid">
+          {hasTcgplayerSource && (
+            <div className="stored-prices__source-stack">
+              <SourceCard
+                accent="tcgplayer"
+                title="TCGPlayer"
+                region="US Market"
+                url={tcgplayerUrl}
+                heroPrice={
+                  tcgDefaultPrice
+                    ? formatPrice(tcgDefaultPrice.price, "USD")
+                    : "—"
+                }
+                groups={tcgGroups}
+                currency="USD"
+                highlight={/market/i}
+                hasPrices={tcgFields.length > 0}
+                cardName={card.name}
+                showDetails={showTcgplayerDetails}
+                onToggleDetails={() =>
+                  setShowTcgplayerDetails((current) => !current)
+                }
+                isPriceFlagged={
+                  card.priceReliability?.tcgplayer?.isFlagged ?? false
+                }
+                legend={
+                  [
+                    // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
+                  ]
+                }
+              />
+            </div>
+          )}
+          {hasCardmarketSource && (
             <SourceCard
-            accent="tcgplayer"
-            title="TCGPlayer"
-            region="US Market"
-            url={tcgplayerUrl}
-            heroPrice={
-              tcgDefaultPrice ? formatPrice(tcgDefaultPrice.price, "USD") : "—"
-            }
-            groups={tcgGroups}
-            currency="USD"
-            highlight={/market/i}
-            hasPrices={tcgFields.length > 0}
-            cardName={card.name}
-            showDetails={showTcgplayerDetails}
-            onToggleDetails={() =>
-              setShowTcgplayerDetails((current) => !current)
-            }
-            isPriceFlagged={
-              card.priceReliability?.tcgplayer?.isFlagged ?? false
-            }
-            legend={
-              [
-                // { term: "Low/Mid/High", text: "Current listing range (not sales)" },
-              ]
-            }
+              accent="cardmarket"
+              title="Cardmarket"
+              region="EU Market"
+              url={cardmarketUrl}
+              heroPrice={
+                cardmarketDefaultPrice
+                  ? formatPrice(cardmarketDefaultPrice.price, "EUR")
+                  : "—"
+              }
+              groups={cardmarketGroups}
+              currency="EUR"
+              highlight={/trend/i}
+              hasPrices={cardmarketFields.length > 0}
+              cardName={card.name}
+              showDetails={showCardmarketDetails}
+              onToggleDetails={() =>
+                setShowCardmarketDetails((current) => !current)
+              }
+              isPriceFlagged={
+                card.priceReliability?.cardmarket?.isFlagged ?? false
+              }
+              legend={
+                [
+                  // { term: "Trend Price", text: "Algorithmic market value." },
+                ]
+              }
             />
-          </div>
-        )}
-        {hasCardmarketSource && (
-          <SourceCard
-            accent="cardmarket"
-            title="Cardmarket"
-            region="EU Market"
-            url={cardmarketUrl}
-            heroPrice={
-              cardmarketDefaultPrice
-                ? formatPrice(cardmarketDefaultPrice.price, "EUR")
-                : "—"
-            }
-            groups={cardmarketGroups}
-            currency="EUR"
-            highlight={/trend/i}
-            hasPrices={cardmarketFields.length > 0}
-            cardName={card.name}
-            showDetails={showCardmarketDetails}
-            onToggleDetails={() =>
-              setShowCardmarketDetails((current) => !current)
-            }
-            isPriceFlagged={
-              card.priceReliability?.cardmarket?.isFlagged ?? false
-            }
-            legend={
-              [
-                // { term: "Trend Price", text: "Algorithmic market value." },
-              ]
-            }
-          />
-        )}
-      </div>
+          )}
+        </div>
       )}
     </div>
   );

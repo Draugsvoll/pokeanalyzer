@@ -11,9 +11,10 @@
 }
 
 .grok-price-analysis {
+  --price-analysis-accent: var(--feature-accent, var(--custom-color-orange));
+
   color: var(--font-color-body);
   display: grid;
-  margin: 0;
   max-width: 100%;
   row-gap: var(--card-view-datestamp-gap);
   width: 100%;
@@ -23,31 +24,30 @@
     row-gap: var(--card-view-header-gap);
   }
 
-  &__markets {
-    column-gap: 1.25rem;
+  &__sources {
+    align-items: start;
     display: grid;
+    gap: var(--card-view-section-gap);
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: var(--card-view-section-gap);
   }
-  &__market {
-    --source-color: var(--custom-color-teal);
-    --source-bg: color-mix(in srgb, var(--source-color) 12%, transparent);
-    display: flex;
-    flex-direction: column;
-    transition: transform var(--delay-short) ease;
 
-    &:hover {
-      transform: translateY(-0.08rem);
-    }
+  &__source-card {
+    --source-icon-color: var(--custom-color-blue);
+    --source-icon-bg: color-mix(
+      in srgb,
+      var(--source-icon-color) 12%,
+      transparent
+    );
 
-    &--orange {
-      --source-color: var(--custom-color-orange);
-    }
+    display: grid;
+    gap: var(--default-container-section-gap);
+
     &--green {
-      --source-color: var(--custom-color-teal);
+      --source-icon-color: var(--custom-color-teal);
     }
+
     &--violet {
-      --source-color: var(--custom-color-blue);
+      --source-icon-color: var(--custom-color-purple);
     }
   }
 
@@ -55,132 +55,88 @@
     align-items: center;
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 1.25rem;
   }
+
   &__source > span {
     align-items: center;
-    background: var(--source-bg);
+    background: var(--source-icon-bg);
     border-radius: var(--border-radius);
-    color: var(--source-color);
+    color: var(--source-icon-color);
     display: flex;
     height: 2rem;
     justify-content: center;
     width: 2rem;
   }
+
   &__source svg {
     height: 1rem;
     width: 1rem;
   }
+
   &__source h3 {
-    color: var(--font-color-primary);
-    font-size: var(--font-size-h3);
     margin: 0;
   }
-  &__source small {
-    color: var(--source-color);
+
+  &__source-content {
+    display: grid;
+    gap: var(--space-3);
   }
 
-  &__price-details {
+  &__variant {
+    background: var(--bg-card);
     display: grid;
-    gap: 0.9rem;
-    padding-bottom: 0.75rem;
+    gap: var(--space-3);
   }
-  &__price-details > :empty {
-    display: none;
+
+  &__variant h4 {
+    color: var(--price-analysis-accent);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
   }
+
+  &__variant-content {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  &__variant-content .app-link {
+    --app-link-color: var(--font-color-secondary);
+  }
+
   &__prices {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
   }
-  &__price > span,
-  &__range > span,
-  &__sales > span {
+
+  &__price > span {
     color: var(--font-color-faint);
     display: block;
     font-size: var(--font-size-overline);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-wide);
     line-height: 1;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-1);
     text-transform: uppercase;
   }
-  &__price strong,
-  &__range strong {
+
+  &__price strong {
+    color: var(--font-color-primary);
     display: block;
     font-family: var(--font-family-price);
+    font-size: var(--font-size-price-md);
     font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-tight);
     line-height: 1.1;
   }
-  &__price strong {
-    color: var(--font-color-primary);
-    font-size: 1.65rem;
-    font-weight: var(--font-weight-bold);
-  }
-  &__price small {
-    color: var(--font-color-warning);
-    display: block;
-    font-size: var(--font-size-badge);
-    margin-top: 0.15rem;
-  }
-  &__range strong {
-    color: var(--font-color-success);
-    font-size: var(--font-size-price-md);
-    font-weight: var(--font-weight-bold);
-  }
-  &__sales > div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0.75rem 0 0;
-  }
-  &__sales strong {
-    background: rgba(52, 211, 153, 0.1);
-    border-radius: var(--border-radius-pill);
-    color: var(--font-color-success);
-    font-family: var(--font-family-price);
-    font-size: var(--font-size-label);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: var(--font-tracking-tight);
-    padding: 0.3rem 0.75rem;
-  }
-  &__notes {
-    border-top: 1px solid var(--border-divider);
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--font-leading-normal);
-    margin: 1rem 0 0;
-    padding-top: 1rem;
-  }
-  &__market > a {
-    align-items: center;
-    background: color-mix(in srgb, var(--source-color) 75%, transparent);
-    border-radius: var(--border-radius-pill);
-    color: var(--button-font-color);
-    display: flex;
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-bold);
-    gap: 0.5rem;
-    justify-content: center;
-    margin-top: 1.25rem;
-    padding: 0.7rem 1rem;
-    text-decoration: none;
-  }
-  &__market > a:hover {
-    color: var(--button-font-color);
-  }
-  &__market > a svg {
-    height: 0.8rem;
-    width: 0.8rem;
-  }
 }
 
-@media (max-width: 46rem) {
-  .grok-price-analysis {
-    &__markets {
-      grid-template-columns: 1fr;
-    }
+@media (max-width: 40rem) {
+  .grok-price-analysis__sources {
+    grid-template-columns: 1fr;
   }
 }

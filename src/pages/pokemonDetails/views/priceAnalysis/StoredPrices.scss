@@ -99,36 +99,10 @@
   }
 
   &__link {
-    align-items: center;
-    color: var(--source-accent);
-    display: inline-flex;
-    font-size: var(--font-size-badge);
+    --app-link-color: var(--source-accent);
+
     margin-top: 0.15rem;
-    font-weight: var(--font-weight-semibold);
-    gap: 0.25rem;
-    line-height: 1;
     padding: 0;
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-    transition: text-decoration-color var(--animation-duration-fast)
-      var(--animation-ease-standard);
-
-    &:hover {
-      text-decoration-color: currentColor;
-    }
-
-    &:focus-visible {
-      outline: 2px solid
-        color-mix(in srgb, var(--source-accent) 55%, transparent);
-      outline-offset: 2px;
-    }
-
-    svg {
-      height: 0.8rem;
-      width: 0.8rem;
-    }
   }
 
   &__hero {

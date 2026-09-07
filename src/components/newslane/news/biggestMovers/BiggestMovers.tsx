@@ -81,7 +81,7 @@ export function BiggestMovers({ payload }: BiggestMoversProps) {
 
                     {reportLink && (
                       <a
-                        className="biggest-gainers__link"
+                        className="app-link biggest-gainers__link"
                         href={reportLink}
                         target="_blank"
                         rel="noopener noreferrer"

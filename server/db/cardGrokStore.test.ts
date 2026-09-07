@@ -2,6 +2,31 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isValidStoredFeatureResponse } from "./cardGrokStore.js";
 
+const priceAnalysisResponse = {
+  sources: [
+    {
+      found: true,
+      source: "cardmarket",
+      variants: [
+        {
+          url: "https://www.cardmarket.com/example",
+          variant_name: "Unlimited",
+        },
+      ],
+    },
+    {
+      found: true,
+      source: "pokedata",
+      variants: [
+        {
+          url: "https://www.pokedata.io/example",
+          variant_name: "Unlimited",
+        },
+      ],
+    },
+  ],
+};
+
 test("stored feature validation accepts each current response shape", () => {
   assert.equal(
     isValidStoredFeatureResponse("collectors_analysis", {
@@ -15,9 +40,7 @@ test("stored feature validation accepts each current response shape", () => {
     true,
   );
   assert.equal(
-    isValidStoredFeatureResponse("price_analysis", {
-      market_data: [{ source: "PriceCharting" }],
-    }),
+    isValidStoredFeatureResponse("price_analysis", priceAnalysisResponse),
     true,
   );
   assert.equal(
@@ -65,8 +88,60 @@ test("stored feature validation rejects missing or empty analysis content", () =
       "collectors_analysis",
       { analyses: [{ variant_name: "Unlimited", categories: [{}] }] },
     ],
-    ["price_analysis", { market_data: [] }],
-    ["price_analysis", { market_data: [{}] }],
+    ["price_analysis", { ...priceAnalysisResponse, sources: [] }],
+    [
+      "price_analysis",
+      {
+        ...priceAnalysisResponse,
+        sources: priceAnalysisResponse.sources.slice(0, 1),
+      },
+    ],
+    [
+      "price_analysis",
+      {
+        ...priceAnalysisResponse,
+        sources: [
+          priceAnalysisResponse.sources[0],
+          { found: false, source: "pokedata", variants: [] },
+        ],
+      },
+    ],
+    [
+      "price_analysis",
+      {
+        ...priceAnalysisResponse,
+        sources: [
+          priceAnalysisResponse.sources[0],
+          priceAnalysisResponse.sources[0],
+        ],
+      },
+    ],
+    ["price_analysis", { market_data: [{ source: "PriceCharting" }] }],
+    [
+      "price_analysis",
+      {
+        ...priceAnalysisResponse,
+        sources: priceAnalysisResponse.sources.map((source) =>
+          source.source === "cardmarket"
+            ? {
+                ...source,
+                variants: [{ url: "https://www.cardmarket.com/example" }],
+              }
+            : source,
+        ),
+      },
+    ],
+    [
+      "price_analysis",
+      {
+        ...priceAnalysisResponse,
+        sources: priceAnalysisResponse.sources.map((source) =>
+          source.source === "cardmarket"
+            ? { ...source, variants: [{ variant_name: "Unlimited" }] }
+            : source,
+        ),
+      },
+    ],
     ["sales_data", { variants: [{ variant: "Unlimited", market_prices: [] }] }],
     [
       "sales_data",

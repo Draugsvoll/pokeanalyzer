@@ -100,7 +100,7 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
 
                   {item.url && (
                     <a
-                      className="general-news__link"
+                      className="app-link general-news__link"
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"

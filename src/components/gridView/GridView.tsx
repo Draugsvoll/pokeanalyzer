@@ -3,17 +3,11 @@ import "./GridView.scss";
 
 type GridViewProps = {
   children: React.ReactNode;
-  className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
 };
 
-export function GridView({
-  children,
-  className = "",
-  subtitle,
-  title,
-}: GridViewProps) {
+export function GridView({ children, subtitle, title }: GridViewProps) {
   return (
     <div className="grid-view">
       {(title || subtitle) && (
@@ -26,11 +20,7 @@ export function GridView({
           )}
         </header>
       )}
-      <div
-        className={`card-grid grid-view-container${className ? ` ${className}` : ""}`}
-      >
-        {children}
-      </div>
+      <div className="card-grid">{children}</div>
     </div>
   );
 }

@@ -10,104 +10,137 @@ Return only the final analysis as the required JSON object.
 `.trim();
 
 export const priceAnalysisInstructions: string = `
-If the data is available, please show today's market prices for the Pokemon card I provided.
+TASK
+Look up live market prices for the Pokemon card I provided. Cover every English print/variant you can find on Cardmarket.com, pokedata.io, and pokeinvest.io.
 
-Only use sources outside of tcgplayer and cardmarket. Only use sources that are reliable.
-Make sure to include the source "PriceCharting" if it has available data.
-When using PriceCharting, make sure to include the most recent sales data for the card, and include the range of prices for the most recent sales, if it's available.
-If you can't find any reliable sources outside of tcgplayer and cardmarket, leave it empty.
+SOURCE RULES
+1. Cardmarket (cardmarket.com/en, Pokemon Singles)
+   Open the product page (english version) for each English variant. Never apply any language filters, we want all languages unselected.
+   Pull only the following live market fields that the product page actually shows:
+   - From
+   - Price Trend
 
-In market_data field, you can add different types of market price data, as long as its
-relevant and valuable to the reader. Make sure the market_price field actually reflects the
-current realistic price of today.
+   If any field is missing or lacking return null, never invent numbers.
+   Currency is EUR.
 
-notes field should be concise and user-friendly to read. Its a summary.
+2. pokedata.io
+   Use the English card page for each variant (example: https://www.pokedata.io/card/{Set}/{Name}+{Number}).
+   Pull only the following live price fields the page actually shows:
+   - PSA eBay prices for grades 10 down to 7 when present
+   - CGC 10 price when shown
+   Do not invent prices/grades the page does not show.
+   Language must be ENGLISH.
 
-Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
-I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+3. pokeinvest.io
+   Use the English card page for each variant (example: https://www.pokeinvest.io/card/{set-slug}/{card-slug}).
+   Pull only live market-value fields the page actually shows:
+   - Raw
+   - PSA 10
+   - BGS 10 when shown
+   Do not invent prices/grades the page does not show.
 
-All fields are optional, and shall only be filled if you have reliable data.
+VARIANT RULES
+Treat each distinct English print as its own variant object inside the source that lists it.
+Record the exact page URL used for extracting data,
+meaning when i click the link i will see the same data as you returned.
+
+MISSING DATA
+If a field is not on the page or its missing data, set it to null. Never invent a price.
+If a source has no variant found, set "found" value to false (Boolean).
+
+OUTPUT
+Return only a valid JSON object. Never add text before or after it.
+Schema contains a "sources" array; each source contains an array of the variants found on that source.
 
 {
-  "card": {
-    "name": "Golem",
-    "set": "EX Dragon",
-    "number": "5/97",
-    "rarity": "Holo Rare"
+  "query": {
+    "name": "",
+    "set": "",
+    "number": ""
   },
-  "market_data": [
+  "retrieved_at": "",
+  "sources": [
     {
-      "source": "source",
-      "market_price": {
-        "value": 42.21,
-        "currency": "USD"
-      },
-      "lowest_listing": {
-        "value": 12.24,
-        "currency": "USD",
-        "condition": "Unknown (likely lower than Near Mint)"
-      },
-      "most_recent_sale": {
-        "value": 20.48,
-        "currency": "USD"
-      },
-      "notes": "Current Market Price. Lowest listing appears to be a lower-condition copy rather than Near Mint.",
-      "url": "https://www.tcgplayer.com/product/85826/pokemon-dragon-golem"
+      "source": "cardmarket",
+      "found": true,
+      "currency": "EUR",
+      "variants": [
+        {
+          "variant_name": "",
+          "set": "",
+          "number": "",
+          "finish": "",
+          "url": "",
+          "from_eur": null,
+          "price_trend_eur": null,
+          "avg_30d_eur": null,
+          "avg_7d_eur": null,
+          "avg_1d_eur": null,
+          "available_items": null
+        }
+      ]
     },
     {
-      "source": "CardMarket",
-      "near_mint_listing": {
-        "value": 30.00,
-        "currency": "EUR"
-      },
-      "excellent_listing": {
-        "value": 32.00,
-        "currency": "EUR",
-        "condition": "EX"
-      },
-      "lowest_playable_listing": {
-        "value": 9.99,
-        "currency": "EUR",
-        "condition": "GD"
-      },
-      "notes": "Multiple Near Mint sellers currently asking €30.00.",
-      "url": "https://www.cardmarket.com/en/Pokemon/Products/Singles/EX-Dragon/Golem-DR5"
+      "source": "pokedata",
+      "found": true,
+      "currency_usd": "USD",
+      "variants": [
+        {
+          "variant_name": "",
+          "set": "",
+          "number": "",
+          "finish": "",
+          "url": "",
+          "raw_ebay_usd": null,
+          "raw_tcgplayer_usd": null,
+          "raw_cardmarket_eur": null,
+          "psa_ebay_usd": {
+            "psa_10": null,
+            "psa_9": null,
+            "psa_8": null,
+            "psa_7": null,
+            "psa_6": null,
+            "psa_5": null,
+            "psa_4": null,
+            "psa_3": null,
+            "psa_2": null,
+            "psa_1": null
+          },
+          "cgc_usd": {
+            "cgc_10": null,
+            "cgc_9_5": null,
+            "cgc_9": null
+          }
+        }
+      ]
     },
     {
-      "source": "PriceCharting",
-      "recent_near_mint_sales": {
-        "currency": "USD",
-        "range": {
-          "min": 35.00,
-          "max": 47.50
-        },
-        "sales": [
-          35.00,
-          40.00,
-          41.92,
-          47.50,
-          57.64
-        ]
-      },
-      "notes": "Tracks completed sales rather than active listings. The $57.64 sale is considered a premium example.",
-      "url": "https://www.pricecharting.com/game/pokemon-dragon/golem-5"
-    },
-    {
-      "source": "PokeScope",
-      "market_price": {
-        "value": 42.21,
-        "currency": "USD"
-      },
-      "notes": "",
-      "url": "https://pokescope.app/card/ex3-5/"
+      "source": "pokeinvest",
+      "found": true,
+      "currency": "USD",
+      "variants": [
+        {
+          "variant_name": "",
+          "set": "",
+          "number": "",
+          "finish": "",
+          "url": "",
+          "raw_usd": null,
+          "psa_7_usd": null,
+          "psa_8_usd": null,
+          "psa_9_usd": null,
+          "psa_9_5_usd": null,
+          "psa_10_usd": null,
+          "bgs_10_usd": null,
+          "cgc_10_usd": null,
+          "sgc_10_usd": null
+        }
+      ]
     }
-  ],
-  "last_updated": "2026-07-13",
-  "currency_reference": {
-    "primary": "USD",
-    "secondary": "EUR"
-  }
+  ]
 }
+
+If an entire source cannot be found, keep the source object, set "found": false, and use "variants": [].
 `.trim();
 
 const variantPrintNameInstructions = `

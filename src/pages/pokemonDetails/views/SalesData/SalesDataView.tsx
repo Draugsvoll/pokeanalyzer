@@ -1,4 +1,4 @@
-import { ExternalLink, Layers3 } from "lucide-react";
+import { Layers3 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
@@ -22,7 +22,6 @@ type SalesVariant = {
   marketPrices: MarketPrice[];
   notes: string[];
   title: string;
-  url: string;
 };
 
 type RecentSale = {
@@ -44,20 +43,6 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function externalUrl(value: unknown) {
-  const candidate = text(value);
-  if (!candidate) return "";
-
-  try {
-    const url = new URL(candidate);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.href
-      : "";
-  } catch {
-    return "";
-  }
 }
 
 function parseMarketPrices(value: unknown): MarketPrice[] {
@@ -96,7 +81,6 @@ function parseSalesData(response: string): SalesData | null {
             marketPrices: parseMarketPrices(variant.market_prices),
             notes: parseNotes(variant.notes),
             title: variantTitle,
-            url: externalUrl(variant.url),
           };
         })
         .filter(
@@ -115,7 +99,6 @@ function parseSalesData(response: string): SalesData | null {
               marketPrices: fallbackMarketPrices,
               notes: [],
               title: "",
-              url: externalUrl(parsed.url),
             },
           ]
         : [];
@@ -190,7 +173,7 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
     <section className="sales-data-view ui-render-fade">
       {data.variants.length > 0 && (
         <section className="sales-data-view__panel sales-data-view__market default-container">
-          <header className="sales-data-view__market-heading default-container-header">
+          <header className="default-container-header">
             <h3 className="feature-section-heading">Graded Sales</h3>
             <p>
               Mostly eBay sales • <strong>PriceCharting</strong>
@@ -242,17 +225,6 @@ export function SalesDataView({ cardName, grokRequest }: SalesDataViewProps) {
                 )}
                 {activeVariant.notes.length > 0 && (
                   <Notes notes={activeVariant.notes} />
-                )}
-                {activeVariant.url && (
-                  <a
-                    className="sales-data-view__source-link"
-                    href={activeVariant.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    View source
-                    <ExternalLink aria-hidden="true" />
-                  </a>
                 )}
               </section>
             )}

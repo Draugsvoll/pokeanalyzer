@@ -315,24 +315,9 @@
   }
 
   &__sale-link {
-    align-items: center;
-    color: var(--font-color-secondary);
-    cursor: pointer;
-    display: inline-flex;
-    font-size: var(--font-size-label);
-    font-weight: var(--font-weight-semibold);
-    gap: 0.4rem;
-    text-decoration: none;
+    --app-link-color: var(--font-color-secondary);
+
     white-space: nowrap;
-
-    svg {
-      height: 0.75rem;
-      width: 0.75rem;
-    }
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 
   &__price {

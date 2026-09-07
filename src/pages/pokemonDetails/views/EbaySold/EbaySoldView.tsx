@@ -233,7 +233,7 @@ function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
             </div>
             {hasListingUrl && (
               <a
-                className="ebay-sold-view__sale-link"
+                className="app-link ebay-sold-view__sale-link"
                 href={url}
                 onClick={(event) => event.stopPropagation()}
                 target="_blank"

@@ -128,23 +128,9 @@
 }
 
 .biggest-gainers__link {
-  align-items: center;
-  color: var(--trend-accent);
-  display: inline-flex;
-  font-size: var(--font-size-paragraph-sm);
-  font-weight: var(--font-weight-semibold);
-  gap: 0.3rem;
+  --app-link-color: color-mix(in srgb, var(--trend-accent) 82%, white);
+
   margin-top: 1rem;
-  text-decoration: none;
-
-  svg {
-    height: 0.875rem;
-    width: 0.875rem;
-  }
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 @media (max-width: 58rem) {

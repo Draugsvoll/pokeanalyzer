@@ -397,7 +397,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                 </div>
               )}
               {results.length > 0 && (
-                <GridView className="explore-results explore-results--grid">
+                <GridView>
                   {sortedResults.map((card) => (
                     <PokemonCardView
                       key={card.id}

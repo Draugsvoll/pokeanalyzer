@@ -547,7 +547,7 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
       </div>
       {sourceUrl && (
         <a
-          className="worth-grading-view__population-source"
+          className="app-link worth-grading-view__population-source"
           href={sourceUrl}
           rel="noreferrer"
           target="_blank"

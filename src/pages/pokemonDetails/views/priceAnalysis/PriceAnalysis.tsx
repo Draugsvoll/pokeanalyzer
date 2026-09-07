@@ -1,13 +1,13 @@
-import { ChartLine, ExternalLink, Globe2, Search, Store } from "lucide-react";
-import type { GrokRequestState } from "../../../../utils/grok/grokClient";
-import { FEATURE_ERROR_MESSAGE } from "../featureError";
-import { parseJsonText } from "../../../../utils/parseJsonText";
+import { ChartLine, ExternalLink, Globe2, Search } from "lucide-react";
+import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { PokemonCard } from "../../../../types/pokemon";
+import { formatDateStamp } from "../../../../utils/formatDateStamp";
+import type { GrokRequestState } from "../../../../utils/grok/grokClient";
+import { parseJsonText } from "../../../../utils/parseJsonText";
+import { FEATURE_ERROR_MESSAGE } from "../featureError";
+import { SalesDataView } from "../SalesData/SalesDataView";
 import { JustTcgVariants } from "./JustTcgVariants/JustTcgVariants";
 import { StoredPrices } from "./StoredPrices";
-import { LoadingState } from "../../../../components/loadingState/LoadingState";
-import { formatDateStamp } from "../../../../utils/formatDateStamp";
-import { SalesDataView } from "../SalesData/SalesDataView";
 import "./PriceAnalysis.scss";
 
 type PriceAnalysisProps = {
@@ -24,6 +24,63 @@ type PriceAnalysisProps = {
 };
 
 type JsonRecord = Record<string, unknown>;
+type PriceSourceName = "cardmarket" | "pokedata" | "pokeinvest";
+
+type PriceFieldDefinition = {
+  currency?: "EUR" | "USD";
+  label: string;
+  path: string[];
+};
+
+const SOURCE_DETAILS: Record<
+  PriceSourceName,
+  {
+    fields: PriceFieldDefinition[];
+    icon: typeof Globe2 | string;
+    label: string;
+    tone: string;
+  }
+> = {
+  cardmarket: {
+    fields: [
+      { currency: "EUR", label: "From", path: ["from_eur"] },
+      {
+        currency: "EUR",
+        label: "Price trend",
+        path: ["price_trend_eur"],
+      },
+    ],
+    icon: "€",
+    label: "Cardmarket",
+    tone: "green",
+  },
+  pokedata: {
+    fields: [
+      { currency: "USD", label: "PSA 7", path: ["psa_ebay_usd", "psa_7"] },
+      { currency: "USD", label: "PSA 10", path: ["psa_ebay_usd", "psa_10"] },
+    ],
+    icon: Search,
+    label: "Pokedata",
+    tone: "blue",
+  },
+  pokeinvest: {
+    fields: [
+      { currency: "USD", label: "Raw", path: ["raw_usd"] },
+      { currency: "USD", label: "PSA 10", path: ["psa_10_usd"] },
+      { currency: "USD", label: "BGS 10", path: ["bgs_10_usd"] },
+    ],
+    icon: ChartLine,
+    label: "PokeInvest",
+    tone: "violet",
+  },
+};
+
+function PriceSourceIcon({ icon }: { icon: typeof Globe2 | string }) {
+  if (typeof icon === "string") return icon;
+
+  const Icon = icon;
+  return <Icon aria-hidden="true" />;
+}
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -31,6 +88,20 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function externalUrl(value: unknown) {
+  const candidate = text(value);
+  if (!candidate) return null;
+
+  try {
+    const url = new URL(candidate);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function number(value: unknown): number | null {
@@ -51,29 +122,126 @@ function formatAmount(amount: number, currency: string | null): string {
   }
 }
 
-function getMoney(
-  value: unknown,
-): { amount: string; condition: string | null } | null {
-  if (!isRecord(value)) return null;
-
-  const amount = number(value.value);
-  if (amount === null) return null;
-
-  const currency = text(value.currency);
-  const condition = text(value.condition);
-  return { amount: formatAmount(amount, currency), condition };
+function isPriceSourceName(value: string): value is PriceSourceName {
+  return value in SOURCE_DETAILS;
 }
 
-function PriceField({ label, value }: { label: string; value: unknown }) {
-  const money = getMoney(value);
-  if (!money) return null;
+function readPath(value: JsonRecord, path: string[]) {
+  let current: unknown = value;
+  for (const key of path) {
+    if (!isRecord(current)) return null;
+    current = current[key];
+  }
+  return number(current);
+}
+
+function getVariantFields(source: PriceSourceName, variant: JsonRecord) {
+  return SOURCE_DETAILS[source].fields.flatMap((definition) => {
+    const value = readPath(variant, definition.path);
+    return value === null ? [] : [{ definition, value }];
+  });
+}
+
+function PriceField({
+  definition,
+  value,
+}: {
+  definition: PriceFieldDefinition;
+  value: number;
+}) {
+  const displayValue = formatAmount(value, definition.currency ?? null);
 
   return (
     <div className="grok-price-analysis__price">
-      <span>{label}</span>
-      <strong>{money.amount}</strong>
-      {money.condition && <small>{money.condition}</small>}
+      <span>{definition.label}</span>
+      <strong>{displayValue}</strong>
     </div>
+  );
+}
+
+function VariantPrices({
+  source,
+  variant,
+}: {
+  source: PriceSourceName;
+  variant: JsonRecord;
+}) {
+  const fields = getVariantFields(source, variant);
+
+  if (fields.length === 0) return null;
+
+  return (
+    <div className="grok-price-analysis__prices">
+      {fields.map(({ definition, value }) => (
+        <PriceField
+          definition={definition}
+          key={definition.path.join(".")}
+          value={value}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PriceVariant({
+  source,
+  variant,
+}: {
+  source: PriceSourceName;
+  variant: JsonRecord;
+}) {
+  const sourceUrl = externalUrl(variant.url);
+
+  return (
+    <article className="grok-price-analysis__variant default-container-inner">
+      <h4>{text(variant.variant_name)}</h4>
+      <div className="grok-price-analysis__variant-content">
+        <VariantPrices source={source} variant={variant} />
+        {sourceUrl && (
+          <a
+            className="app-link"
+            href={sourceUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            See All
+            <ExternalLink aria-hidden="true" />
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function PriceSourceCard({
+  source,
+  variants,
+}: {
+  source: PriceSourceName;
+  variants: JsonRecord[];
+}) {
+  const details = SOURCE_DETAILS[source];
+
+  return (
+    <article
+      className={`grok-price-analysis__source-card grok-price-analysis__source-card--${details.tone} default-container`}
+    >
+      <div className="grok-price-analysis__source">
+        <span aria-hidden="true">
+          <PriceSourceIcon icon={details.icon} />
+        </span>
+        <h3>{details.label}</h3>
+      </div>
+      <div className="grok-price-analysis__source-content">
+        {variants.map((variant, index) => (
+          <PriceVariant
+            key={`${text(variant.variant_name)}-${index}`}
+            source={source}
+            variant={variant}
+          />
+        ))}
+      </div>
+    </article>
   );
 }
 
@@ -88,148 +256,55 @@ function GrokPriceAnalysis({
   if (!response) return null;
 
   const parsed = parseJsonText(response);
-  if (!isRecord(parsed)) {
+  if (!isRecord(parsed) || !Array.isArray(parsed.sources)) {
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   }
 
-  const marketData = Array.isArray(parsed.market_data)
-    ? parsed.market_data.filter(isRecord)
-    : [];
-  const lastUpdated = text(parsed.last_updated);
+  const sources = parsed.sources.flatMap((value) => {
+    if (!isRecord(value)) return [];
+    const source = text(value.source)?.toLowerCase();
+    if (!source || !isPriceSourceName(source)) return [];
+    if (typeof value.found !== "boolean" || !Array.isArray(value.variants)) {
+      return [];
+    }
+    return [
+      {
+        found: value.found,
+        source,
+        variants: value.variants.filter(isRecord),
+      },
+    ];
+  });
+  const displaySources = sources.flatMap(({ found, source, variants }) => {
+    if (!found) return [];
+
+    const displayVariants = variants.filter(
+      (variant) =>
+        Boolean(text(variant.variant_name)) &&
+        getVariantFields(source, variant).length > 0,
+    );
+    return displayVariants.length > 0
+      ? [{ source, variants: displayVariants }]
+      : [];
+  });
+  const retrievedAt = text(parsed.timestamp) ?? text(parsed.retrieved_at);
+
+  if (displaySources.length === 0) return null;
 
   return (
     <section className="grok-price-analysis ui-render-fade">
-      {marketData.length > 0 && (
-        <div>
-          <h2 className="app-subheader">Other</h2>
-          <div className="grok-price-analysis__markets">
-            {marketData.map((market, index) => {
-              const source = text(market.source);
-              const region = text(market.region);
-              const notes = text(market.notes);
-              const url = text(market.url);
-              const recentSales = isRecord(market.recent_near_mint_sales)
-                ? market.recent_near_mint_sales
-                : null;
-              const range =
-                recentSales && isRecord(recentSales.range)
-                  ? recentSales.range
-                  : null;
-              const sales =
-                recentSales && Array.isArray(recentSales.sales)
-                  ? recentSales.sales.filter(
-                      (sale): sale is number => number(sale) !== null,
-                    )
-                  : [];
-              const salesCurrency = recentSales
-                ? text(recentSales.currency)
-                : null;
-              const rangeMin = range ? number(range.min) : null;
-              const rangeMax = range ? number(range.max) : null;
-              const sourceKey = source?.toLowerCase() ?? "";
-              const tone = sourceKey.includes("tcgplayer")
-                ? "orange"
-                : sourceKey.includes("cardmarket")
-                  ? "green"
-                  : sourceKey.includes("pricecharting")
-                    ? "violet"
-                    : "blue";
-              const SourceIcon = sourceKey.includes("tcgplayer")
-                ? Store
-                : sourceKey.includes("cardmarket")
-                  ? Globe2
-                  : sourceKey.includes("pricecharting")
-                    ? ChartLine
-                    : Search;
-
-              return (
-                <article
-                  className={`grok-price-analysis__market grok-price-analysis__market--${tone} default-container`}
-                  key={`${source ?? "source"}-${index}`}
-                >
-                  {(source || region) && (
-                    <div className="grok-price-analysis__source">
-                      <span>
-                        <SourceIcon aria-hidden="true" />
-                      </span>
-                      <div>
-                        {source && <h3>{source}</h3>}
-                        {region && <small>{region}</small>}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grok-price-analysis__price-details">
-                    <div className="grok-price-analysis__prices">
-                      <PriceField
-                        label="Market price"
-                        value={market.market_price}
-                      />
-                      <PriceField
-                        label="Lowest listing"
-                        value={market.lowest_listing}
-                      />
-                      <PriceField
-                        label="Most recent sale"
-                        value={market.most_recent_sale}
-                      />
-                      <PriceField
-                        label="Near Mint listing"
-                        value={market.near_mint_listing}
-                      />
-                      <PriceField
-                        label="Excellent listing"
-                        value={market.excellent_listing}
-                      />
-                      <PriceField
-                        label="Lowest playable listing"
-                        value={market.lowest_playable_listing}
-                      />
-                    </div>
-
-                    {rangeMin !== null && rangeMax !== null && (
-                      <div className="grok-price-analysis__range">
-                        <span>Recent Near Mint sales range</span>
-                        <strong>
-                          {formatAmount(rangeMin, salesCurrency)} –{" "}
-                          {formatAmount(rangeMax, salesCurrency)}
-                        </strong>
-                      </div>
-                    )}
-
-                    {sales.length > 0 && (
-                      <div className="grok-price-analysis__sales">
-                        <span>Recent sales</span>
-                        <div>
-                          {sales.map((sale, saleIndex) => (
-                            <strong key={`${sale}-${saleIndex}`}>
-                              {formatAmount(sale, salesCurrency)}
-                            </strong>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {notes && (
-                    <p className="grok-price-analysis__notes">{notes}</p>
-                  )}
-                  {url && (
-                    <a href={url} target="_blank" rel="noreferrer">
-                      View on {source ?? "source"}
-                      <ExternalLink aria-hidden="true" />
-                    </a>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+      <div>
+        <h2 className="app-subheader">Other sources</h2>
+        <div className="grok-price-analysis__sources">
+          {displaySources.map(({ source, variants }) => (
+            <PriceSourceCard key={source} source={source} variants={variants} />
+          ))}
         </div>
-      )}
+      </div>
 
-      {lastUpdated && (
+      {retrievedAt && (
         <p className="app-view-datestamp">
-          Updated: {formatDateStamp(lastUpdated)}
+          Updated: {formatDateStamp(retrievedAt)}
         </p>
       )}
     </section>

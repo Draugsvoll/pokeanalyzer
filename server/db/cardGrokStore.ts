@@ -28,6 +28,17 @@ function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function hasHttpUrl(value: unknown) {
+  if (!hasText(value)) return false;
+
+  try {
+    const url = new URL(value as string);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function hasTextList(value: unknown) {
   return Array.isArray(value) && value.some(hasText);
 }
@@ -57,22 +68,38 @@ function hasMeaningfulField(value: JsonObject, fields: string[]) {
   return fields.some((field) => hasMeaningfulValue(value[field]));
 }
 
-function isDisplayableMarketData(value: unknown) {
-  if (!isJsonObject(value)) return false;
+const PRICE_ANALYSIS_SOURCES = new Set([
+  "cardmarket",
+  "pokedata",
+  "pokeinvest",
+]);
 
-  return hasMeaningfulField(value, [
-    "source",
-    "region",
-    "notes",
-    "url",
-    "market_price",
-    "lowest_listing",
-    "most_recent_sale",
-    "near_mint_listing",
-    "excellent_listing",
-    "lowest_playable_listing",
-    "recent_near_mint_sales",
-  ]);
+function isPriceAnalysisSource(value: string) {
+  return PRICE_ANALYSIS_SOURCES.has(value);
+}
+
+function isValidPriceVariant(value: unknown) {
+  return (
+    isJsonObject(value) && hasText(value.variant_name) && hasHttpUrl(value.url)
+  );
+}
+
+function isValidPriceSource(value: unknown) {
+  if (
+    !isJsonObject(value) ||
+    typeof value.source !== "string" ||
+    !value.source.trim() ||
+    typeof value.found !== "boolean" ||
+    !Array.isArray(value.variants)
+  ) {
+    return false;
+  }
+
+  const source = value.source.trim().toLowerCase();
+  if (!isPriceAnalysisSource(source)) return false;
+  if (!value.found) return value.variants.length === 0;
+
+  return value.variants.length > 0 && value.variants.every(isValidPriceVariant);
 }
 
 function isDisplayableSalesVariant(value: unknown) {
@@ -155,9 +182,25 @@ export function isValidStoredFeatureResponse(
   }
 
   if (storageKey === "price_analysis") {
+    if (
+      !Array.isArray(value.sources) ||
+      value.sources.length < 2 ||
+      !value.sources.every(isValidPriceSource)
+    ) {
+      return false;
+    }
+
+    const sourceNames = value.sources.map((source) =>
+      String((source as JsonObject).source)
+        .trim()
+        .toLowerCase(),
+    );
+    const foundSourceCount = value.sources.filter(
+      (source) => (source as JsonObject).found === true,
+    ).length;
+
     return (
-      Array.isArray(value.market_data) &&
-      value.market_data.some(isDisplayableMarketData)
+      foundSourceCount >= 2 && new Set(sourceNames).size === sourceNames.length
     );
   }
 

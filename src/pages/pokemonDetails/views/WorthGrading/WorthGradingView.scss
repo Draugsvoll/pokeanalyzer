@@ -466,9 +466,8 @@
 }
 
 .worth-grading-view__population-source {
-  color: var(--worth-grading-accent);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
+  --app-link-color: var(--worth-grading-accent);
+
   justify-self: start;
 }
 
