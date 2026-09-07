@@ -10,17 +10,20 @@
   width: 100%;
 }
 
-.auth-card__google { margin-bottom: 1rem; }
+.auth-card__google {
+  margin-bottom: 1rem;
+}
 
 .auth-card__header {
   margin-bottom: 1.4rem;
   text-align: center;
 
+  h1 {
+    font-size: var(--font-size-h2);
+  }
+
   h1,
   h2 {
-    color: var(--font-color-primary);
-    font-size: var(--font-size-h2);
-    line-height: var(--font-leading-tight);
     margin: 0.3rem 0 0.4rem;
   }
 
@@ -92,11 +95,8 @@
     &:focus {
       background: rgba(10, 10, 16, 0.78);
       border-color: var(--custom-color-blue);
-      box-shadow: 0 0 0 3px color-mix(
-        in srgb,
-        var(--custom-color-blue) 14%,
-        transparent
-      );
+      box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--custom-color-blue) 14%, transparent);
     }
   }
 }

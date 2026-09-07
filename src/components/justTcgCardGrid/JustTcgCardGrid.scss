@@ -6,24 +6,9 @@
   width: 100%;
 }
 
-.justtcg-card-grid__header {
-  align-items: center;
-  border-bottom: 1px solid var(--border-divider);
+.justtcg-card-grid__header.grid-header {
   display: grid;
-  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) auto auto;
-  padding-bottom: var(--space-3);
-
-  h2 {
-    margin: 0;
-  }
-
-  h2 {
-    color: var(--font-color-primary);
-    font-size: var(--font-size-h2);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--font-leading-snug);
-  }
 }
 
 .justtcg-card-grid__period-control .segmented-radio-group__option {
@@ -42,7 +27,7 @@
 }
 
 @media (max-width: 48rem) {
-  .justtcg-card-grid__header {
+  .justtcg-card-grid__header.grid-header {
     align-items: start;
     grid-template-columns: 1fr;
   }

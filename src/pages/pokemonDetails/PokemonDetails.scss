@@ -216,9 +216,7 @@
   }
 
   &__title {
-    margin: 0;
     font-size: clamp(2.2rem, 3.2vw, 2.45rem);
-    font-weight: var(--font-weight-bold);
     text-transform: capitalize;
     line-height: 0.95;
     color: var(--font-color-primary);

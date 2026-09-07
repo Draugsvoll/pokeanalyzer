@@ -260,7 +260,7 @@ export function JustTcgCardGrid({
       className="justtcg-card-grid ui-render-fade"
       aria-labelledby={titleId}
     >
-      <header className="justtcg-card-grid__header">
+      <header className="justtcg-card-grid__header grid-header">
         <h2 id={titleId}>{title}</h2>
         {hasMultiplePeriods && (
           <SegmentedRadioGroup

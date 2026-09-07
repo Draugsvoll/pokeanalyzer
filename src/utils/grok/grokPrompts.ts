@@ -115,12 +115,13 @@ The variant field must contain the official and commonly used variant name for t
 `.trim();
 
 export const salesDataInstructions: string = `
-Can you fetch sold data based on grading for this card at PriceCharting website?
+Can you fetch price data for this card at PriceCharting website?
 
 I need this for every English variant of the card.
 
-Respond in the JSON format provided below. The JSON example below shows you formatting/structure, it doesn't contain real live data. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
-I repeat because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
+Respond in the JSON format provided below. The JSON example below shows you formatting/structure, it doesn't contain real live data. Never use the example data below as actual data.
+Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
+I repeat myself because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
 
 The "volume" field in our schema refers to the volume displayed for each grade on PriceCharting.
 

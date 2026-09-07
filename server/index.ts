@@ -43,6 +43,7 @@ import {
   type JustTcgCategory,
 } from "./db/justTcgCategoryStore.js";
 import { acceptsGzip, getCardCatalog } from "./db/cardCatalog.js";
+import { getMostExpensiveNewReleases } from "./db/cardDiscovery.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -327,6 +328,15 @@ app.get("/api/cards/catalog", async (req, res) => {
   } catch (error) {
     logError("Failed to fetch card catalog", error);
     res.status(500).json({ error: "Failed to fetch card catalog" });
+  }
+});
+
+app.get("/api/cards/most-expensive-new-releases", async (_req, res) => {
+  try {
+    res.json({ cards: await getMostExpensiveNewReleases() });
+  } catch (error) {
+    logError("Failed to fetch most expensive new releases", error);
+    res.status(500).json({ error: "Failed to fetch new releases" });
   }
 });
 

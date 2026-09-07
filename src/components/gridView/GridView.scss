@@ -1,1 +1,8 @@
 /* Layout: shared .card-grid in styles/_elements.scss. */
+
+.grid-view {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  width: 100%;
+}

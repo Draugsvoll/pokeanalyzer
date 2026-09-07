@@ -1,27 +1,16 @@
 .news-lane {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-4);
   margin: 0 auto;
   width: 100%;
 }
 
 .news-lane__header {
-  align-items: center;
-  border-bottom: 1px solid var(--border-divider);
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  padding-bottom: 1.25rem;
   text-align: left;
 }
 
 .news-lane__title {
-  color: var(--font-color-primary);
   flex: 1 1 auto;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--font-tracking-tight);
-  line-height: 1.1;
-  margin: 0;
   min-width: 0;
 }
 

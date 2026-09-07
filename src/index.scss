@@ -143,7 +143,7 @@ body {
 }
 
 /* The standalone Explore page handles its own vertical rhythm. */
-.main-content:has(> .explore-page) {
+.main-content:has(> .search-page) {
   padding-top: 0;
   padding-bottom: 0;
 }

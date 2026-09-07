@@ -76,8 +76,8 @@ label {
 
 strong,
 b {
-  color: var(--font-color-primary);
-  font-weight: var(--font-weight-semibold);
+  color: var(--font-color-muted);
+  font-weight: var(--font-weight-medium);
 }
 
 em,
@@ -225,6 +225,15 @@ input[type="radio"] {
   display: grid;
   gap: 1rem;
   padding: 0;
+}
+
+.grid-header {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border-divider);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
 }
 
 .default-note-container {
