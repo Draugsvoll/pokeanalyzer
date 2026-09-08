@@ -274,20 +274,6 @@ beforeEach(() => {
     subscription,
     text: `${feature} response`,
   }));
-  mocks.askMarketPrices.mockResolvedValue({
-    ok: true,
-    priceAnalysis: {
-      fromDatabase: false,
-      ok: true,
-      text: "market price response",
-    },
-    salesData: {
-      fromDatabase: false,
-      ok: true,
-      text: "sales data response",
-    },
-    subscription,
-  });
   mocks.fetchJustTcgCard.mockResolvedValue({ cards: [] });
   mocks.verifyJustTcgCard.mockReturnValue({ verified: true });
 });
@@ -333,7 +319,7 @@ test("enables feature actions after authentication and subscription loading", as
   expect(actionButton).toHaveAttribute("aria-busy", "false");
 });
 
-test("Market Analysis data survives feature view switches", async () => {
+test("Market Analysis temporarily fetches JustTCG only", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
       <TestRoutes />
@@ -344,30 +330,11 @@ test("Market Analysis data survives feature view switches", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Open Market Analysis" }));
 
   await waitFor(() => {
-    expect(screen.getByTestId("market-price-response")).toHaveTextContent(
-      "market price response",
-    );
-    expect(screen.getByTestId("market-sales-response")).toHaveTextContent(
-      "sales data response",
-    );
     expect(screen.getByTestId("justtcg-response")).toHaveTextContent(
       "JustTCG response",
     );
   });
-
-  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
-  fireEvent.click(screen.getByRole("button", { name: /Market Analysis/ }));
-
-  expect(screen.getByTestId("market-price-response")).toHaveTextContent(
-    "market price response",
-  );
-  expect(screen.getByTestId("market-sales-response")).toHaveTextContent(
-    "sales data response",
-  );
-  expect(screen.getByTestId("justtcg-response")).toHaveTextContent(
-    "JustTCG response",
-  );
-  expect(mocks.askMarketPrices).toHaveBeenCalledTimes(1);
+  expect(mocks.askMarketPrices).not.toHaveBeenCalled();
   expect(mocks.fetchJustTcgCard).toHaveBeenCalledTimes(1);
 });
 

@@ -31,9 +31,7 @@ import {
 } from "../../utils/selectedPokemonCache";
 import {
   askGrok,
-  askMarketPrices,
   type GrokRequestState,
-  type IndependentAnalysisResult,
 } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
@@ -379,8 +377,8 @@ function PokemonDetailsForCard() {
     const cardNumber = card.number;
 
     setJustTcgLoading(true);
-    setGrokLoading(true);
-    setMarketSalesLoading(true);
+    setGrokLoading(false);
+    setMarketSalesLoading(false);
     setJustTcgError("");
     updateGrokError("price_analysis", "");
     setMarketSalesError("");
@@ -405,64 +403,7 @@ function PokemonDetailsForCard() {
         if (isCurrentRequest(signal)) setJustTcgLoading(false);
       });
 
-    async function applyAnalysisResult(
-      result: IndependentAnalysisResult,
-      setResponse: (value: string) => void,
-      setError: (value: string) => void,
-    ) {
-      if (!result.ok) {
-        setError(FEATURE_ERROR_MESSAGE);
-        return false;
-      }
-      if (result.fromDatabase) {
-        await waitForStoredResponse(signal);
-      }
-      if (signal.aborted) return false;
-      setResponse(result.text);
-      return true;
-    }
-
-    const grokRequest = askMarketPrices(card.id, signal)
-      .then(async (result) => {
-        if (signal.aborted) return false;
-        if (!result.ok) {
-          updateGrokError("price_analysis", FEATURE_ERROR_MESSAGE);
-          setMarketSalesError(FEATURE_ERROR_MESSAGE);
-          return false;
-        }
-        updateSubscription(result.subscription);
-        const [priceSucceeded, salesSucceeded] = await Promise.all([
-          applyAnalysisResult(
-            result.priceAnalysis,
-            (value) => updateGrokResponse("price_analysis", value),
-            (value) => updateGrokError("price_analysis", value),
-          ),
-          applyAnalysisResult(
-            result.salesData,
-            setMarketSalesResponse,
-            setMarketSalesError,
-          ),
-        ]);
-        return priceSucceeded || salesSucceeded;
-      })
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return false;
-        updateGrokError("price_analysis", FEATURE_ERROR_MESSAGE);
-        setMarketSalesError(FEATURE_ERROR_MESSAGE);
-        return false;
-      })
-      .finally(() => {
-        if (isCurrentRequest(signal)) {
-          setGrokLoading(false);
-          setMarketSalesLoading(false);
-        }
-      });
-
-    const [justTcgSucceeded, grokSucceeded] = await Promise.all([
-      justTcgRequest,
-      grokRequest,
-    ]);
-    return justTcgSucceeded || grokSucceeded;
+    return justTcgRequest;
   }
 
   async function runPaidFeatureAction(

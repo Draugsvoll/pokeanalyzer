@@ -140,6 +140,12 @@
   }
 }
 
+.sales-data-view__source-link {
+  --app-link-color: var(--sales-data-accent);
+
+  justify-self: center;
+}
+
 .sales-data-view > footer {
   color: var(--font-color-faint);
   font-size: var(--font-size-caption);
