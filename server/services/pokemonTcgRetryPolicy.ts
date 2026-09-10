@@ -2,20 +2,9 @@ export const API_MAX_RETRIES = 10;
 export const API_REQUEST_DELAY_MS = 5000;
 export const API_REQUEST_TIMEOUT_MS = 60_000;
 
-const BASE_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_AFTER_MS = 5 * 60_000;
-const JITTER_RATIO = 0.2;
-const RETRY_DELAY_SCHEDULE_MS = [
-  5_000,
-  10_000,
-  20_000,
-  40_000,
-  90_000,
-  150_000,
-  210_000,
-  270_000,
-  300_000,
-] as const;
+const RETRY_DELAY_STEP_MS = 40_000;
+const RETRY_JITTER_MS = 5_000;
 
 export type ApiFailureKind = {
   isTransportFailure: boolean;
@@ -66,13 +55,13 @@ export function retryDelayMs(
     throw new Error("Retry attempt must be a positive integer");
   }
   const boundedRandom = Math.min(1, Math.max(0, randomValue));
-  const scheduledDelay =
-    RETRY_DELAY_SCHEDULE_MS[failedAttempt - 1] ??
-    BASE_RETRY_DELAY_MS * 2 ** (failedAttempt - 1);
-  const jitterMultiplier =
-    1 - JITTER_RATIO + boundedRandom * JITTER_RATIO * 2;
-  const jitteredDelay = Math.round(
-    scheduledDelay * jitterMultiplier,
+  const jitterMs = Math.round(
+    (boundedRandom * 2 - 1) * RETRY_JITTER_MS,
   );
-  return Math.max(jitteredDelay, retryAfterMs ?? 0);
+  const baseDelay = Math.min(
+    failedAttempt * RETRY_DELAY_STEP_MS,
+    MAX_RETRY_AFTER_MS,
+  );
+  const scheduledDelay = baseDelay + jitterMs;
+  return Math.max(scheduledDelay, retryAfterMs ?? 0);
 }

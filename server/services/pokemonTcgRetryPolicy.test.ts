@@ -56,15 +56,16 @@ test("retry policy immediately rejects non-retryable HTTP and validation failure
   );
 });
 
-test("retry delay is exponential, capped, jittered, and honors Retry-After", () => {
-  assert.equal(retryDelayMs(1, null, 0.5), 5000);
-  assert.equal(retryDelayMs(2, null, 0.5), 10_000);
-  assert.equal(retryDelayMs(5, null, 0.5), 90_000);
-  assert.equal(retryDelayMs(8, null, 0.5), 270_000);
-  assert.equal(retryDelayMs(9, null, 0.5), 300_000);
+test("retry delay increases by 40 seconds, jitters a five-minute base cap, and honors Retry-After", () => {
+  assert.equal(retryDelayMs(1, null, 0), 35_000);
+  assert.equal(retryDelayMs(1, null, 0.5), 40_000);
+  assert.equal(retryDelayMs(1, null, 1), 45_000);
+  assert.equal(retryDelayMs(2, null, 0.5), 80_000);
+  assert.equal(retryDelayMs(5, null, 0.5), 200_000);
+  assert.equal(retryDelayMs(8, null, 0), 295_000);
+  assert.equal(retryDelayMs(8, null, 1), 305_000);
+  assert.equal(retryDelayMs(10, null, 0.5), 300_000);
   assert.equal(retryDelayMs(1, 120_000, 0.5), 120_000);
-  assert.equal(retryDelayMs(1, null, 0), 4000);
-  assert.equal(retryDelayMs(1, null, 1), 6000);
 });
 
 test("Retry-After supports seconds and HTTP dates", () => {
