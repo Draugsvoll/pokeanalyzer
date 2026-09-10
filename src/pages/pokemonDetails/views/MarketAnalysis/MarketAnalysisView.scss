@@ -1,0 +1,138 @@
+.market-analysis-report {
+  display: grid;
+  gap: var(--card-view-section-gap);
+  width: 100%;
+
+  article {
+    display: grid;
+    gap: var(--default-container-section-gap);
+  }
+
+  article > p {
+    color: var(--font-color-secondary);
+    line-height: var(--font-leading-relaxed);
+  }
+
+  &__overview-content {
+    display: grid;
+    width: 100%;
+  }
+
+  &__signals {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    width: 100%;
+    padding: var(--default-container-padding);
+
+    > section {
+      display: grid;
+      gap: var(--space-2);
+
+      > .app-badge {
+        justify-self: center;
+      }
+    }
+  }
+
+  &__signal-reasoning {
+    color: var(--font-color-secondary);
+    line-height: var(--font-leading-relaxed);
+    margin: 0;
+    font-weight: 400;
+  }
+
+  &__summary-grid {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &__summary-section {
+    display: grid;
+    gap: var(--default-container-section-gap);
+
+    > h3 {
+      margin: 0;
+    }
+  }
+
+  &__summary-grid article {
+    gap: var(--space-2);
+  }
+
+  &__drivers {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &__summary-grid h4,
+  &__drivers h4 {
+    margin: 0;
+  }
+
+  &__summary-heading {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    flex-direction: column;
+
+    h4 {
+      margin: 0;
+    }
+  }
+
+  &__outlook-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+  }
+
+  &__outlook-summary {
+    display: grid;
+    gap: var(--space-3);
+
+    p {
+      color: var(--font-color-secondary);
+      line-height: var(--font-leading-relaxed);
+      margin: 0;
+      max-width: var(--max-text-width);
+      justify-self: center;
+      text-align: center;
+    }
+  }
+
+  &__drivers section {
+    display: grid;
+    gap: var(--space-3);
+
+    li {
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-paragraph-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--font-leading-relaxed);
+    }
+  }
+
+  ul {
+    color: var(--font-color-secondary);
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .market-analysis-report {
+    &__signals,
+    &__summary-grid,
+    &__drivers {
+      grid-template-columns: 1fr;
+    }
+  }
+}

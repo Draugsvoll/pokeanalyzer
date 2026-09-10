@@ -2,8 +2,8 @@ import type { GrokChatOptions } from "../../services/xaiService.js";
 import {
   collectorsAnalysisInput,
   collectorsAnalysisInstructions,
-  priceAnalysisInput,
-  priceAnalysisInstructions,
+  marketAnalysisInput,
+  marketAnalysisInstructions,
   worthGradingInput,
   worthGradingInstructions,
 } from "../../../src/utils/grok/grokPrompts.js";
@@ -22,7 +22,7 @@ type CardAnalysisGrokOptions = Pick<
 >;
 
 export type CardAnalysisFeature =
-  "collector_analysis" | "price_analysis" | "worth_grading";
+  "collector_analysis" | "market_analysis" | "worth_grading";
 
 export type CardAnalysisRequest = {
   buildUserInput: (context: CardAnalysisContext) => string;
@@ -53,16 +53,16 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       },
       instructions: collectorsAnalysisInstructions,
     },
-    price_analysis: {
+    market_analysis: {
       buildUserInput: (context) => {
         requireSetAndNumber(context);
-        return priceAnalysisInput(
+        return marketAnalysisInput(
           context.cardName,
           context.setName,
           context.cardNumber,
         );
       },
-      instructions: priceAnalysisInstructions,
+      instructions: marketAnalysisInstructions,
     },
     worth_grading: {
       buildUserInput: (context) =>

@@ -3,9 +3,9 @@ export const CARD_GROK_FEATURES = {
     storageKey: "collectors_analysis",
     reuseDays: 90,
   },
-  price_analysis: {
-    storageKey: "price_analysis",
-    reuseDays: 3,
+  market_analysis: {
+    storageKey: "market_analysis",
+    reuseDays: 8,
   },
   ebay_sold: {
     storageKey: "ebay_sold",
@@ -14,10 +14,6 @@ export const CARD_GROK_FEATURES = {
   worth_grading: {
     storageKey: "worth_grading",
     reuseDays: 15,
-  },
-  sales_data: {
-    storageKey: "sales_data",
-    reuseDays: 5,
   },
 } as const;
 

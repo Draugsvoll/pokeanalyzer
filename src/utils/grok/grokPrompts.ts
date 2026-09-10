@@ -9,201 +9,111 @@ Never mention web_search, code_interpreter, search queries, or any planning step
 Return only the final analysis as the required JSON object.
 `.trim();
 
-export const priceAnalysisInstructions: string = `
-TASK
-Look up live market prices for the Pokemon card I provided. Cover every English print/variant you can find on Cardmarket.com, pokedata.io, and pokeinvest.io.
+export const marketAnalysisInstructions: string = `
+You are writing a concise Market Report about this card for a collectible trading card webapp.
 
-SOURCE RULES
-1. Cardmarket (cardmarket.com/en, Pokemon Singles)
-   Open the product page (english version) for each English variant. Never apply any language filters, we want all languages unselected.
-   Pull only the following live market fields that the product page actually shows:
-   - From
-   - Price Trend
+The app already has separate Collector Insight and Grading Advice sections, so DO NOT repeat:
 
-   If any field is missing or lacking return null, never invent numbers.
-   Currency is EUR.
+why the card is historically important or desirable
+general collector background
+grading tips, condition advice, or submission recommendations
 
-2. pokedata.io
-   Use the English card page for each variant (example: https://www.pokedata.io/card/{Set}/{Name}+{Number}).
-   Pull only the following live price fields the page actually shows:
-   - PSA eBay prices for grades 10 down to 7 when present
-   - CGC 10 price when shown
-   Do not invent prices/grades the page does not show.
-   Language must be ENGLISH.
+Focus only on:
 
-3. pokeinvest.io
-   Use the English card page for each variant (example: https://www.pokeinvest.io/card/{set-slug}/{card-slug}).
-   Pull only live market-value fields the page actually shows:
-   - Raw
-   - PSA 10
-   - BGS 10 when shown
-   Do not invent prices/grades the page does not show.
+Market activity for the past 6-12 months
+strength of buyer demand
+liquidity / ease of selling
+price direction or momentum, if supported by evidence
+which grades or versions appear strongest or weakest
+supply vs demand balance
+near-term and longer-term market outlook
+upside drivers and risks
 
-VARIANT RULES
-Treat each distinct English print as its own variant object inside the source that lists it.
-Record the exact page URL used for extracting data,
-meaning when i click the link i will see the same data as you returned.
+Be objective and honest, do not invent statistics or claims without evidence.
+Do not call a card bullish simply because it is popular.
+Low activity can still be stable rather than bearish.
+Be open and honest about the data and its quality behind your reportings.
+Don't try to be colorful or add metaphors, simply state your findings. Avoid financial-advice language such as "buy", "sell", "undervalued", or guaranteed appreciation.
 
-MISSING DATA
-If a field is not on the page or its missing data, set it to null. Never invent a price.
-If a source has no variant found, set "found" value to false (Boolean).
+Use realized marketplaces sales as primary evidence. Treat price guides, tracker averages, and active listings only as secondary context, never as proof of market direction.
 
-OUTPUT
-Return only a valid JSON object. Never add text before or after it.
-Schema contains a "sources" array; each source contains an array of the variants found on that source.
+Your evidence hierarchy should look like this:
+realized sales > marketplaces inventory/listings > population data > tracker/guide summaries > model interpretation
+
+Your entire response must be in the JSON schema shown below. Do not add any text before or after.
 
 {
-  "query": {
-    "name": "",
-    "set": "",
-    "number": ""
+  "card": {
+    "name": "string",
+    "set": "string",
+    "number": "string",
+    "variant": "string"
   },
-  "retrieved_at": "",
-  "sources": [
-    {
-      "source": "cardmarket",
-      "found": true,
-      "currency": "EUR",
-      "variants": [
-        {
-          "variant_name": "",
-          "set": "",
-          "number": "",
-          "finish": "",
-          "url": "",
-          "from_eur": null,
-          "price_trend_eur": null,
-          "avg_30d_eur": null,
-          "avg_7d_eur": null,
-          "avg_1d_eur": null,
-          "available_items": null
-        }
-      ]
-    },
-    {
-      "source": "pokedata",
-      "found": true,
-      "currency_usd": "USD",
-      "variants": [
-        {
-          "variant_name": "",
-          "set": "",
-          "number": "",
-          "finish": "",
-          "url": "",
-          "raw_ebay_usd": null,
-          "raw_tcgplayer_usd": null,
-          "raw_cardmarket_eur": null,
-          "psa_ebay_usd": {
-            "psa_10": null,
-            "psa_9": null,
-            "psa_8": null,
-            "psa_7": null,
-            "psa_6": null,
-            "psa_5": null,
-            "psa_4": null,
-            "psa_3": null,
-            "psa_2": null,
-            "psa_1": null
-          },
-          "cgc_usd": {
-            "cgc_10": null,
-            "cgc_9_5": null,
-            "cgc_9": null
-          }
-        }
-      ]
-    },
-    {
-      "source": "pokeinvest",
-      "found": true,
-      "currency": "USD",
-      "variants": [
-        {
-          "variant_name": "",
-          "set": "",
-          "number": "",
-          "finish": "",
-          "url": "",
-          "raw_usd": null,
-          "psa_7_usd": null,
-          "psa_8_usd": null,
-          "psa_9_usd": null,
-          "psa_9_5_usd": null,
-          "psa_10_usd": null,
-          "bgs_10_usd": null,
-          "cgc_10_usd": null,
-          "sgc_10_usd": null
-        }
-      ]
-    }
-  ]
+  "market_sentiment": {
+    "label": "very_bearish | bearish | neutral | bullish | very_bullish",
+    "score": "Give a score from 1-100 for how healthy and functional the current market is for this exact card/variant relative to other Pokemon cards. This is purely about the market and not collectibility, historical importance, popularity, or grading potential. Return a string containing only a number, for example '63'.",
+    "summary": "One sentence explaining why it was given that score using only market evidence, for example demand, liquidity, momentum, volatility, realized sales, listings, or buyer/seller balance. Do not discuss the card's collectibility, historical importance, popularity, or grading potential."
+  },
+  "market_signals": {
+    "demand":{
+	"label":"very_low | low | moderate | high | very_high",
+	"reasoning":"explain how you chose the label that you ended up choosing."
+	},
+    "liquidity":{
+	"label":"very_low | low | moderate | high | very_high",
+	"reasoning":"explain how you chose the label that you ended up choosing."
+	},
+    "momentum":{
+	"label":"very_low | low | moderate | high | very_high",
+	"reasoning":"explain how you chose the label that you ended up choosing."
+	},
+    "volatility":{
+	"label":"very_low | low | moderate | high | very_high",
+	"reasoning":"explain how you chose the label that you ended up choosing."
+	}
+  },
+  "market_pulse": "Describe what buyers and sellers appear to be doing right now. Be objective and honest.",
+  "strongest_segment": {
+    "label": "string",
+    "reason": "Explain which version appears to have the healthiest market. Is it Graded or raw? explain which grade or condition and how you concluded that."
+  },
+  "market_balance": {
+    "state": "buyer_favored | balanced | seller_favored | unclear",
+    "reason": "Concisely justify the chosen state based on supply, sale frequency, bidding activity, or price behavior."
+  },
+  "outlook": {
+    "near_term": "negative | cautious | stable | positive | strong",
+    "long_term": "weak | balanced | constructive | strong",
+    "summary": "Concisely justify both near_term and long_term labels you chose.",
+    "upside_drivers": [
+      "string"
+    ],
+    "risks": [
+      "string"
+    ]
+  },
+  "evidence_quality": {
+    "confidence": "low | moderate | high",
+    "reason": "Explain why this level of confidence."
+  }
 }
 
-If an entire source cannot be found, keep the source object, set "found": false, and use "variants": [].
-`.trim();
+All fields are about the specific card, not the market in general.
 
-const variantPrintNameInstructions = `
-The variant field must contain the official and commonly used variant name for the card. For example, "Unlimited Holofoil", "1st Edition Shadowless Holofoil", "Reverse Holofoil", etc.
-`.trim();
+The "label" field inside "market_sentiment" describes the market sentiment for this card/variant relative to other pokemon cards. In the "reasoning" fields inside "market_sentiment" Try to refer to multiple sources (as long as the data is reliable enough to do so).
 
-export const salesDataInstructions: string = `
-Can you fetch price data for this card at PriceCharting website?
+#WRITING RULES
+- Write in clear english. Just give me the facts and findings directly, be monotone.
+- Don't cram multiple ideas or claims in one sentence.
+- Avoid metaphors, slogans, or stacked phrases.
+- Do not write like market commentary or sales copy.
+-Say what the sales show. Do not dress it up.
+- We don't beed a bunch of specific sales with specific dollar amounts. We want it a little more generic.
+For example "Raw has few sales at around $320-$475 level".
+- When making claims include how you concluded them.
+- Remember to not get into condition advice, if necessary briefly mention condition is important if that's the case.
 
-I need this for every English variant of the card.
-
-Respond in the JSON format provided below. The JSON example below shows you formatting/structure, it doesn't contain real live data. Never use the example data below as actual data.
-Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
-I repeat myself because this is important, your entire response can ONLY be a valid JSON object, never add any text/characters/symbols before or after the JSON object.
-
-The "volume" field in our schema refers to the volume displayed for each grade on PriceCharting.
-
-If data is not available for a field, just leave the field empty.
-The root JSON value must be an object. Each item in the "variants" array is an English variant.
-Each variant entry must include the variant name in the "variant" field.
-
-${variantPrintNameInstructions}
-
-{
-  "variants": [
-    {
-      "variant": "Unlimited Holofoil",
-      "market_prices": [
-        {
-          "grade": "Ungraded",
-          "price": "$272.83",
-          "volume": "~1 sale / week"
-        },
-        {
-          "grade": "Grade 7",
-          "price": "$568.23",
-          "volume": "~2 sales / week"
-        },
-        {
-          "grade": "Grade 8",
-          "price": "$830.00",
-          "volume": "~3 sales / week"
-        },
-        {
-          "grade": "Grade 9",
-          "price": "$1,173.92",
-          "volume": "~3 sales / week"
-        },
-        {
-          "grade": "Grade 9.5",
-          "price": "$1,290.02",
-          "volume": "~6 sales / year"
-        },
-        {
-          "grade": "PSA 10",
-          "price": "$6,000.25",
-          "volume": "~1 sale / month"
-        }
-      ],
-      "url":"Direct link to where you fetched the prices from. Must be link for the specific card/variant"
-    }
-  ]
-}
+The overall purpose is to get an objective and quick overview over the market for this card. I should get a sense of is it active? Where is the market healthiest? Is momentum going up/down/stable? Who has leverage? What does the future look like? But only use facts and evidence. Be open about the data/evidence used for answering.
 
 `.trim();
 
@@ -694,6 +604,15 @@ export function collectorsAnalysisInput(cardNameAndSet: string): string {
   return cardNameAndSet;
 }
 
+export function marketAnalysisInput(
+  cardName: string,
+  setName: string,
+  cardNumber: string | number,
+): string {
+  const primaryCardNumber = String(cardNumber).split("/")[0].trim();
+  return `Name: ${cardName} set: ${setName} number:${primaryCardNumber}`;
+}
+
 export function identifyCardPrompt(
   frontImageBase64: string,
 ): GrokMultimodalMessage {
@@ -704,27 +623,6 @@ export function identifyCardPrompt(
       { type: "input_image", image_url: frontImageBase64 },
     ],
   };
-}
-
-export function priceAnalysisInput(
-  name: string,
-  setName: string,
-  number: string | number,
-): string {
-  return `"name": ${JSON.stringify(name)},
-          "set": ${JSON.stringify(setName)},
-          "number": ${JSON.stringify(String(number))},`;
-}
-
-export function salesDataInput(
-  cardName: string,
-  setName: string,
-  cardNumber: string | number,
-): string {
-  return `Card details:
-"card-name": ${JSON.stringify(cardName)}
-"set-name": ${JSON.stringify(setName)}
-"card-number": ${JSON.stringify(String(cardNumber))}`;
 }
 
 export function PsaGradingPrompt(

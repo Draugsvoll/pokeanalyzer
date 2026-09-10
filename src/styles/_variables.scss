@@ -117,7 +117,7 @@
    * Single content column — ONLY place that caps app width (main + header).
    * All page content should be width: 100% and inherit this.
    */
-  --shell-max-width: 1150px;
+  --shell-max-width: 1170px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 650px;
   --search-height: 53px;
@@ -199,6 +199,7 @@
   --content-width: 100%;
   /* Card detail panel only — centered compact shell (exception to full shell width) */
   --card-view-max-width: 76rem;
+  --max-text-width: 53rem;
   --card-view-section-gap: var(--space-7);
   --card-view-header-gap: var(--space-2);
   --card-view-datestamp-gap: var(--space-1);

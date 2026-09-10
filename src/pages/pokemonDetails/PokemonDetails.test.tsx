@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   authLoading: false,
   authUser: { uid: "user-1" } as { uid: string } | null,
   askGrok: vi.fn(),
-  askMarketPrices: vi.fn(),
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
   fetchJustTcgCard: vi.fn(),
@@ -59,7 +58,6 @@ vi.mock("../../utils/grok/grokClient", async (importOriginal) => {
   return {
     ...original,
     askGrok: mocks.askGrok,
-    askMarketPrices: mocks.askMarketPrices,
   };
 });
 
@@ -184,18 +182,13 @@ vi.mock("./views/priceAnalysis/PriceAnalysis", () => ({
   PriceAnalysis: ({
     grokRequest,
     justTcgRequest,
-    salesDataRequest,
   }: {
     grokRequest: GrokRequestState;
     justTcgRequest: { response: unknown };
-    salesDataRequest: GrokRequestState;
   }) => (
     <div>
       <span data-testid="market-price-response">
         {grokRequest.response || "No market price response"}
-      </span>
-      <span data-testid="market-sales-response">
-        {salesDataRequest.response || "No sales response"}
       </span>
       <span data-testid="justtcg-response">
         {justTcgRequest.response ? "JustTCG response" : "No JustTCG response"}
@@ -254,7 +247,6 @@ beforeEach(() => {
   mocks.authLoading = false;
   mocks.authUser = { uid: "user-1" };
   mocks.askGrok.mockReset();
-  mocks.askMarketPrices.mockReset();
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
   mocks.fetchJustTcgCard.mockReset();
@@ -319,7 +311,7 @@ test("enables feature actions after authentication and subscription loading", as
   expect(actionButton).toHaveAttribute("aria-busy", "false");
 });
 
-test("Market Analysis temporarily fetches JustTCG only", async () => {
+test("Market Analysis fetches JustTCG and the stored market report", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
       <TestRoutes />
@@ -330,11 +322,17 @@ test("Market Analysis temporarily fetches JustTCG only", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Open Market Analysis" }));
 
   await waitFor(() => {
+    expect(screen.getByTestId("market-price-response")).toHaveTextContent(
+      "market_analysis response",
+    );
     expect(screen.getByTestId("justtcg-response")).toHaveTextContent(
       "JustTCG response",
     );
   });
-  expect(mocks.askMarketPrices).not.toHaveBeenCalled();
+  expect(mocks.askGrok).toHaveBeenCalledWith(
+    "market_analysis",
+    expect.objectContaining({ cardId: "card-a" }),
+  );
   expect(mocks.fetchJustTcgCard).toHaveBeenCalledTimes(1);
 });
 

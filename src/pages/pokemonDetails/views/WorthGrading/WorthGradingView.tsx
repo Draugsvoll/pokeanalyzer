@@ -2,7 +2,10 @@ import { ChevronDown, Layers3, Scale } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
-import { FeatureAnalysisScoreMeter } from "../../components/FeatureAnalysisPanel";
+import {
+  FeatureAnalysisHero,
+  FeatureAnalysisScoreMeter,
+} from "../../components/FeatureAnalysisPanel";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -125,19 +128,6 @@ function asStringList(value: unknown) {
     (item): item is string =>
       typeof item === "string" && item.trim().length > 0,
   );
-}
-
-function getSafeExternalUrl(value: unknown) {
-  if (typeof value !== "string" || !value.trim()) return null;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 type TitledDetail = {
@@ -479,7 +469,6 @@ function ScenarioCard({
 }
 
 function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
-  const sourceUrl = getSafeExternalUrl(population?.source);
   const totalPopulation = asNumber(population?.psa_population_total);
   const reportedGradeCounts = [
     ["PSA 10", population?.psa_population_psa10],
@@ -545,16 +534,6 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
           );
         })}
       </div>
-      {sourceUrl && (
-        <a
-          className="app-link worth-grading-view__population-source"
-          href={sourceUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          View PSA Population Report
-        </a>
-      )}
     </article>
   );
 }
@@ -707,21 +686,9 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
               recommendation?.headline?.trim() ||
               attractivenessReasoning.length > 0 ||
               attractivenessScore != null) && (
-              <section className="worth-grading-view__overview default-container">
-                <span className="worth-grading-view__overview-eyebrow">
-                  Overall Score
-                </span>
-                {attractivenessScore != null && (
-                  <div className="feature-analysis-score-block">
-                    <FeatureAnalysisScoreMeter
-                      label="Grading attractiveness score"
-                      score={attractivenessScore}
-                      size="large"
-                    />
-                  </div>
-                )}
-                {recommendation?.potential?.trim() && (
-                  <div className="worth-grading-view__overview-badge">
+              <FeatureAnalysisHero
+                badge={
+                  recommendation?.potential?.trim() ? (
                     <Badge
                       accent={getPotentialBadgeAccent(recommendation.potential)}
                       weight="strong"
@@ -729,13 +696,13 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                       {formatPotentialLabel(recommendation.potential)} max
                       profit
                     </Badge>
-                  </div>
-                )}
-                {recommendation?.headline?.trim() && (
-                  <strong className="worth-grading-view__overview-headline">
-                    {recommendation.headline}
-                  </strong>
-                )}
+                  ) : undefined
+                }
+                eyebrow="Overall Score"
+                headline={recommendation?.headline?.trim() || undefined}
+                score={attractivenessScore}
+                scoreLabel="Grading attractiveness score"
+              >
                 {attractivenessReasoning.length > 0 && (
                   <div className="worth-grading-view__overview-reasoning">
                     {attractivenessReasoning.map((paragraph, index) => (
@@ -743,7 +710,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                     ))}
                   </div>
                 )}
-              </section>
+              </FeatureAnalysisHero>
             )}
             {(scenarios.length > 0 || hasRawSale) && (
               <section className="worth-grading-view__json-section default-container">

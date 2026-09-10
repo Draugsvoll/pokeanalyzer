@@ -2,29 +2,56 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isValidStoredFeatureResponse } from "./cardGrokStore.js";
 
-const priceAnalysisResponse = {
-  sources: [
-    {
-      found: true,
-      source: "cardmarket",
-      variants: [
-        {
-          url: "https://www.cardmarket.com/example",
-          variant_name: "Unlimited",
-        },
-      ],
+const marketAnalysisResponse = {
+  card: {
+    name: "Pikachu",
+    number: "58/102",
+    set: "Base Set",
+    variant: "Unlimited",
+  },
+  evidence_quality: {
+    confidence: "moderate",
+    reason: "Several recent sales were available.",
+  },
+  market_balance: {
+    reason: "Available supply and buyer activity are balanced.",
+    state: "balanced",
+  },
+  market_pulse: "Buyers remain active at established price levels.",
+  market_sentiment: {
+    label: "neutral",
+    score: "63",
+    summary: "Prices and sales activity are broadly stable.",
+  },
+  market_signals: {
+    demand: {
+      label: "moderate",
+      reasoning: "Recent sales show steady buyer interest.",
     },
-    {
-      found: true,
-      source: "pokedata",
-      variants: [
-        {
-          url: "https://www.pokedata.io/example",
-          variant_name: "Unlimited",
-        },
-      ],
+    liquidity: {
+      label: "high",
+      reasoning: "Listings turn over regularly.",
     },
-  ],
+    momentum: {
+      label: "moderate",
+      reasoning: "Prices have remained broadly stable.",
+    },
+    volatility: {
+      label: "moderate",
+      reasoning: "Sale prices remain within a consistent range.",
+    },
+  },
+  outlook: {
+    long_term: "constructive",
+    near_term: "stable",
+    risks: ["A rapid increase in supply could pressure prices."],
+    summary: "The market appears stable with balanced longer-term support.",
+    upside_drivers: ["Consistent collector demand."],
+  },
+  strongest_segment: {
+    label: "PSA 9",
+    reason: "It has the healthiest balance of price and sale frequency.",
+  },
 };
 
 test("stored feature validation accepts each current response shape", () => {
@@ -40,17 +67,16 @@ test("stored feature validation accepts each current response shape", () => {
     true,
   );
   assert.equal(
-    isValidStoredFeatureResponse("price_analysis", priceAnalysisResponse),
+    isValidStoredFeatureResponse("market_analysis", marketAnalysisResponse),
     true,
   );
   assert.equal(
-    isValidStoredFeatureResponse("sales_data", {
-      variants: [
-        {
-          variant: "Unlimited Holofoil",
-          market_prices: [{ grade: "Ungraded", price: null }],
-        },
-      ],
+    isValidStoredFeatureResponse("market_analysis", {
+      ...marketAnalysisResponse,
+      market_sentiment: {
+        ...marketAnalysisResponse.market_sentiment,
+        score: 63,
+      },
     }),
     true,
   );
@@ -85,67 +111,38 @@ test("stored feature validation rejects missing or empty analysis content", () =
   for (const [storageKey, value] of [
     ["collectors_analysis", { analyses: [] }],
     [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        market_sentiment: {
+          ...marketAnalysisResponse.market_sentiment,
+          label: "unknown",
+        },
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        market_signals: {
+          ...marketAnalysisResponse.market_signals,
+          demand: "moderate",
+        },
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        market_sentiment: {
+          ...marketAnalysisResponse.market_sentiment,
+          score: "0",
+        },
+      },
+    ],
+    [
       "collectors_analysis",
       { analyses: [{ variant_name: "Unlimited", categories: [{}] }] },
-    ],
-    ["price_analysis", { ...priceAnalysisResponse, sources: [] }],
-    [
-      "price_analysis",
-      {
-        ...priceAnalysisResponse,
-        sources: priceAnalysisResponse.sources.slice(0, 1),
-      },
-    ],
-    [
-      "price_analysis",
-      {
-        ...priceAnalysisResponse,
-        sources: [
-          priceAnalysisResponse.sources[0],
-          { found: false, source: "pokedata", variants: [] },
-        ],
-      },
-    ],
-    [
-      "price_analysis",
-      {
-        ...priceAnalysisResponse,
-        sources: [
-          priceAnalysisResponse.sources[0],
-          priceAnalysisResponse.sources[0],
-        ],
-      },
-    ],
-    ["price_analysis", { market_data: [{ source: "PriceCharting" }] }],
-    [
-      "price_analysis",
-      {
-        ...priceAnalysisResponse,
-        sources: priceAnalysisResponse.sources.map((source) =>
-          source.source === "cardmarket"
-            ? {
-                ...source,
-                variants: [{ url: "https://www.cardmarket.com/example" }],
-              }
-            : source,
-        ),
-      },
-    ],
-    [
-      "price_analysis",
-      {
-        ...priceAnalysisResponse,
-        sources: priceAnalysisResponse.sources.map((source) =>
-          source.source === "cardmarket"
-            ? { ...source, variants: [{ variant_name: "Unlimited" }] }
-            : source,
-        ),
-      },
-    ],
-    ["sales_data", { variants: [{ variant: "Unlimited", market_prices: [] }] }],
-    [
-      "sales_data",
-      { variants: [{ variant: "Unlimited", market_prices: [{}] }] },
     ],
     ["worth_grading", { variants: [] }],
     [

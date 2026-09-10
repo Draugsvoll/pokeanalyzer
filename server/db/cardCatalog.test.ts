@@ -18,7 +18,7 @@ test("catalog card includes overview and TCGPlayer data only", () => {
         tcgplayer: { prices: { holofoil: { market: 300 } } },
         cardmarket: { prices: { trendPrice: 250 } },
         justtcg: { prices: { variant: { market: 275 } } },
-        grok: { price_analysis: { private: true } },
+        grok: { market_analysis: { private: true } },
         justtcgLookup: { ids: ["private-id"] },
       }),
     ),

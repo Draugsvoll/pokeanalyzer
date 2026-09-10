@@ -31,7 +31,7 @@ export type PokemonCard = {
   justtcg?: JustTcg;
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };
-    price_analysis?: Record<string, unknown> & { timestamp: string };
+    market_analysis?: Record<string, unknown> & { timestamp: string };
     ebay_sold?: Record<string, unknown> & { timestamp: string };
     worth_grading?: Record<string, unknown> & { timestamp: string };
   };

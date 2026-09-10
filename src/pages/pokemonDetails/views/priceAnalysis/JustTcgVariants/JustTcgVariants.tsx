@@ -1,4 +1,3 @@
-import { formatDateStamp } from "../../../../../utils/formatDateStamp";
 import {
   JustTcgHistoryIntro,
   JustTcgPriceHistory,
@@ -150,19 +149,9 @@ export function JustTcgVariants({ cardName, response }: JustTcgVariantsProps) {
     );
   }
 
-  const latestUpdatedAt = groups
-    .map((group) => group.updatedAt)
-    .filter((value): value is string => Boolean(value))
-    .sort((first, second) => Date.parse(second) - Date.parse(first))[0];
-
   return (
     <div className="just-tcg-variants ui-render-fade">
       <JustTcgPriceHistory cardName={cardName} groups={groups} />
-      {latestUpdatedAt && (
-        <p className="app-view-datestamp">
-          Updated: {formatDateStamp(latestUpdatedAt)}
-        </p>
-      )}
     </div>
   );
 }

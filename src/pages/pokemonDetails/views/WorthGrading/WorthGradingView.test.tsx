@@ -99,12 +99,6 @@ describe("WorthGradingView", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: "View PSA Population Report" }),
-    ).toHaveAttribute(
-      "href",
-      "https://www.psacard.com/pop/tcg-cards/1999/pokemon-game/57801",
-    );
-    expect(
       screen.getByText("Check the holofoil carefully for scratches."),
     ).toBeInTheDocument();
   });

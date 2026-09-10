@@ -1054,6 +1054,10 @@
     width: 100%;
     margin-top: var(--space-4);
 
+    .default-container > :is(h2, h3) {
+      text-align: center;
+    }
+
     > * {
       max-width: 100%;
       min-width: 0;

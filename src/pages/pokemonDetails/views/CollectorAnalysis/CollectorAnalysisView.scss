@@ -87,6 +87,10 @@
 
   &__conclusion {
     display: grid;
+
+    p {
+      max-width: var(--max-text-width);
+    }
   }
 }
 

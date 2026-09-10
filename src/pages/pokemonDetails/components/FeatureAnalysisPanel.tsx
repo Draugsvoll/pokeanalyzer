@@ -18,6 +18,15 @@ type FeatureAnalysisPanelProps = {
   summary?: string;
 };
 
+type FeatureAnalysisHeroProps = {
+  badge?: ReactNode;
+  children?: ReactNode;
+  eyebrow: string;
+  headline?: string;
+  score?: number | null;
+  scoreLabel: string;
+};
+
 export function FeatureAnalysisScoreMeter({
   label,
   score,
@@ -47,6 +56,37 @@ export function FeatureAnalysisScoreMeter({
         {showMaximum && <span>/100</span>}
       </div>
     </div>
+  );
+}
+
+export function FeatureAnalysisHero({
+  badge,
+  children,
+  eyebrow,
+  headline,
+  score,
+  scoreLabel,
+}: FeatureAnalysisHeroProps) {
+  return (
+    <section className="feature-analysis-hero default-container">
+      <span className="feature-analysis-hero__eyebrow">{eyebrow}</span>
+      {score != null && (
+        <div className="feature-analysis-score-block">
+          <FeatureAnalysisScoreMeter
+            label={scoreLabel}
+            score={score}
+            size="large"
+          />
+        </div>
+      )}
+      {badge && <div className="feature-analysis-hero__badge">{badge}</div>}
+      {headline && (
+        <strong className="feature-analysis-hero__headline">{headline}</strong>
+      )}
+      {children && (
+        <div className="feature-analysis-hero__content">{children}</div>
+      )}
+    </section>
   );
 }
 

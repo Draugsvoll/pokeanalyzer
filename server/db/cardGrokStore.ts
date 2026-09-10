@@ -28,19 +28,24 @@ function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function hasHttpUrl(value: unknown) {
-  if (!hasText(value)) return false;
-
-  try {
-    const url = new URL(value as string);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 function hasTextList(value: unknown) {
   return Array.isArray(value) && value.some(hasText);
+}
+
+function hasOnlyTextItems(value: unknown) {
+  return Array.isArray(value) && value.every(hasText);
+}
+
+function isAllowedText(value: unknown, allowed: ReadonlySet<string>) {
+  return typeof value === "string" && allowed.has(value);
+}
+
+function isMarketSentimentScore(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value >= 1 && value <= 100;
+  }
+
+  return typeof value === "string" && /^(?:[1-9]\d?|100)$/.test(value);
 }
 
 function isScore(value: unknown) {
@@ -68,50 +73,99 @@ function hasMeaningfulField(value: JsonObject, fields: string[]) {
   return fields.some((field) => hasMeaningfulValue(value[field]));
 }
 
-const PRICE_ANALYSIS_SOURCES = new Set([
-  "cardmarket",
-  "pokedata",
-  "pokeinvest",
+const MARKET_SENTIMENT_LABELS = new Set([
+  "very_bearish",
+  "bearish",
+  "neutral",
+  "bullish",
+  "very_bullish",
 ]);
+const MARKET_SIGNAL_LEVELS = new Set([
+  "very_low",
+  "low",
+  "moderate",
+  "high",
+  "very_high",
+]);
+const MARKET_BALANCE_LABELS = new Set([
+  "buyer_favored",
+  "balanced",
+  "seller_favored",
+  "unclear",
+]);
+const MARKET_NEAR_TERM_LABELS = new Set([
+  "negative",
+  "cautious",
+  "stable",
+  "positive",
+  "strong",
+]);
+const MARKET_LONG_TERM_LABELS = new Set([
+  "weak",
+  "balanced",
+  "constructive",
+  "strong",
+]);
+const MARKET_CONFIDENCE_LABELS = new Set(["low", "moderate", "high"]);
 
-function isPriceAnalysisSource(value: string) {
-  return PRICE_ANALYSIS_SOURCES.has(value);
-}
-
-function isValidPriceVariant(value: unknown) {
+function isValidMarketSignal(value: unknown) {
   return (
-    isJsonObject(value) && hasText(value.variant_name) && hasHttpUrl(value.url)
+    isJsonObject(value) &&
+    isAllowedText(value.label, MARKET_SIGNAL_LEVELS) &&
+    hasText(value.reasoning)
   );
 }
 
-function isValidPriceSource(value: unknown) {
-  if (
-    !isJsonObject(value) ||
-    typeof value.source !== "string" ||
-    !value.source.trim() ||
-    typeof value.found !== "boolean" ||
-    !Array.isArray(value.variants)
-  ) {
-    return false;
-  }
+function isValidMarketAnalysis(value: JsonObject) {
+  const card = isJsonObject(value.card) ? value.card : null;
+  const sentiment = isJsonObject(value.market_sentiment)
+    ? value.market_sentiment
+    : null;
+  const signals = isJsonObject(value.market_signals)
+    ? value.market_signals
+    : null;
+  const strongestSegment = isJsonObject(value.strongest_segment)
+    ? value.strongest_segment
+    : null;
+  const balance = isJsonObject(value.market_balance)
+    ? value.market_balance
+    : null;
+  const outlook = isJsonObject(value.outlook) ? value.outlook : null;
+  const evidenceQuality = isJsonObject(value.evidence_quality)
+    ? value.evidence_quality
+    : null;
 
-  const source = value.source.trim().toLowerCase();
-  if (!isPriceAnalysisSource(source)) return false;
-  if (!value.found) return value.variants.length === 0;
-
-  return value.variants.length > 0 && value.variants.every(isValidPriceVariant);
-}
-
-function isDisplayableSalesVariant(value: unknown) {
-  if (!isJsonObject(value) || !hasText(value.variant)) return false;
-
-  return (
-    Array.isArray(value.market_prices) &&
-    value.market_prices.some(
-      (price) =>
-        isJsonObject(price) &&
-        hasMeaningfulField(price, ["grade", "price", "volume"]),
-    )
+  return Boolean(
+    card &&
+    hasText(card.name) &&
+    hasText(card.set) &&
+    hasText(card.number) &&
+    hasText(card.variant) &&
+    sentiment &&
+    isAllowedText(sentiment.label, MARKET_SENTIMENT_LABELS) &&
+    isMarketSentimentScore(sentiment.score) &&
+    hasText(sentiment.summary) &&
+    signals &&
+    isValidMarketSignal(signals.demand) &&
+    isValidMarketSignal(signals.liquidity) &&
+    isValidMarketSignal(signals.momentum) &&
+    isValidMarketSignal(signals.volatility) &&
+    hasText(value.market_pulse) &&
+    strongestSegment &&
+    hasText(strongestSegment.label) &&
+    hasText(strongestSegment.reason) &&
+    balance &&
+    isAllowedText(balance.state, MARKET_BALANCE_LABELS) &&
+    hasText(balance.reason) &&
+    outlook &&
+    isAllowedText(outlook.near_term, MARKET_NEAR_TERM_LABELS) &&
+    isAllowedText(outlook.long_term, MARKET_LONG_TERM_LABELS) &&
+    hasText(outlook.summary) &&
+    hasOnlyTextItems(outlook.upside_drivers) &&
+    hasOnlyTextItems(outlook.risks) &&
+    evidenceQuality &&
+    isAllowedText(evidenceQuality.confidence, MARKET_CONFIDENCE_LABELS) &&
+    hasText(evidenceQuality.reason),
   );
 }
 
@@ -181,34 +235,8 @@ export function isValidStoredFeatureResponse(
     );
   }
 
-  if (storageKey === "price_analysis") {
-    if (
-      !Array.isArray(value.sources) ||
-      value.sources.length < 2 ||
-      !value.sources.every(isValidPriceSource)
-    ) {
-      return false;
-    }
-
-    const sourceNames = value.sources.map((source) =>
-      String((source as JsonObject).source)
-        .trim()
-        .toLowerCase(),
-    );
-    const foundSourceCount = value.sources.filter(
-      (source) => (source as JsonObject).found === true,
-    ).length;
-
-    return (
-      foundSourceCount >= 2 && new Set(sourceNames).size === sourceNames.length
-    );
-  }
-
-  if (storageKey === "sales_data") {
-    return (
-      Array.isArray(value.variants) &&
-      value.variants.some(isDisplayableSalesVariant)
-    );
+  if (storageKey === "market_analysis") {
+    return isValidMarketAnalysis(value);
   }
 
   if (storageKey === "worth_grading") {

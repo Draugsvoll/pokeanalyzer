@@ -7,7 +7,7 @@ test("parsePublicStoredCard removes application-owned card data", () => {
     id: "base1-1",
     name: "Alakazam",
     grok: {
-      price_analysis: {
+      market_analysis: {
         timestamp: "2026-07-26T00:00:00.000Z",
         summary: "stored analysis",
       },

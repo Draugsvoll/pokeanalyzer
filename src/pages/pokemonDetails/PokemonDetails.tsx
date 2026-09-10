@@ -29,10 +29,7 @@ import {
   getSelectedPokemonFromCache,
   setSelectedPokemonCache,
 } from "../../utils/selectedPokemonCache";
-import {
-  askGrok,
-  type GrokRequestState,
-} from "../../utils/grok/grokClient";
+import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
@@ -100,7 +97,8 @@ type ActiveView =
   | "worth_grading";
 
 type FeatureView = Exclude<ActiveView, "empty_view">;
-type StoredGrokFeature = "collector_analysis" | "worth_grading";
+type StoredGrokFeature =
+  "collector_analysis" | "market_analysis" | "worth_grading";
 
 type AiFeature = {
   view: FeatureView;
@@ -110,7 +108,6 @@ type AiFeature = {
   color: CustomColors;
   featureKey: CreditUsageFeature;
   onOpen: () => Promise<void>;
-  actionCostLabel?: string;
 };
 
 function formatReleaseDate(value: string | undefined) {
@@ -255,12 +252,6 @@ function PokemonDetailsForCard() {
     Partial<Record<CreditUsageFeature, string>>
   >({});
   const [grokLoading, setGrokLoading] = useState(false);
-  const [marketSalesResponse, setMarketSalesResponse] = useState("");
-  const [marketSalesResponseCardId, setMarketSalesResponseCardId] = useState<
-    string | null
-  >(null);
-  const [marketSalesError, setMarketSalesError] = useState("");
-  const [marketSalesLoading, setMarketSalesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [googleAuthLoading, setGoogleAuthLoading] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
@@ -314,11 +305,8 @@ function PokemonDetailsForCard() {
 
     openEmbeddedSearch();
   }
-  const {
-    loadingSubscription,
-    subscription,
-    updateSubscription,
-  } = useMembershipSubscription();
+  const { loadingSubscription, subscription, updateSubscription } =
+    useMembershipSubscription();
   const { creditMessage, creditsRemaining, updatingCredits } =
     useCredits(subscription);
 
@@ -377,14 +365,9 @@ function PokemonDetailsForCard() {
     const cardNumber = card.number;
 
     setJustTcgLoading(true);
-    setGrokLoading(false);
-    setMarketSalesLoading(false);
     setJustTcgError("");
-    updateGrokError("price_analysis", "");
-    setMarketSalesError("");
-    updateGrokResponse("price_analysis", "");
-    setMarketSalesResponseCardId(card.id);
-    setMarketSalesResponse("");
+    updateGrokError("market_analysis", "");
+    updateGrokResponse("market_analysis", "");
     setJustTcgResultCardId(null);
     setJustTcgResult(null);
 
@@ -403,7 +386,11 @@ function PokemonDetailsForCard() {
         if (isCurrentRequest(signal)) setJustTcgLoading(false);
       });
 
-    return justTcgRequest;
+    const [justTcgSucceeded, marketAnalysisSucceeded] = await Promise.all([
+      justTcgRequest,
+      requestStoredGrokAnalysis("market_analysis", signal),
+    ]);
+    return justTcgSucceeded || marketAnalysisSucceeded;
   }
 
   async function runPaidFeatureAction(
@@ -424,35 +411,41 @@ function PokemonDetailsForCard() {
     await action();
   }
 
-  async function requestStoredGrokAnalysis(featureKey: StoredGrokFeature) {
-    if (!card) return;
+  async function requestStoredGrokAnalysis(
+    featureKey: StoredGrokFeature,
+    requestSignal?: AbortSignal,
+  ) {
+    if (!card) return false;
 
     setGrokLoading(true);
     updateGrokError(featureKey, "");
     updateGrokResponse(featureKey, "");
 
-    const signal = startRequest();
+    const signal = requestSignal ?? startRequest();
     try {
       const result = await askGrok(featureKey, {
         signal,
         cardId: card.id,
       });
-      if (signal.aborted) return;
+      if (signal.aborted) return false;
 
       if (!result.ok) {
         updateGrokError(featureKey, FEATURE_ERROR_MESSAGE);
+        return false;
       } else {
         updateSubscription(result.subscription);
         if (result.fromDatabase) {
           await waitForStoredResponse(signal);
         }
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
         updateGrokResponse(featureKey, result.text);
+        return true;
       }
     } catch (error) {
       if (!isAbortError(error)) {
         updateGrokError(featureKey, FEATURE_ERROR_MESSAGE);
       }
+      return false;
     } finally {
       if (isCurrentRequest(signal)) setGrokLoading(false);
     }
@@ -465,9 +458,9 @@ function PokemonDetailsForCard() {
   }
 
   async function openCollectorAnalysis() {
-    await runPaidFeatureAction("collector_analysis", () =>
-      requestStoredGrokAnalysis("collector_analysis"),
-    );
+    await runPaidFeatureAction("collector_analysis", async () => {
+      await requestStoredGrokAnalysis("collector_analysis");
+    });
   }
 
   async function openEbayAnalysis() {
@@ -482,9 +475,9 @@ function PokemonDetailsForCard() {
   }
 
   async function openWorthGradingAnalysis() {
-    await runPaidFeatureAction("worth_grading", () =>
-      requestStoredGrokAnalysis("worth_grading"),
-    );
+    await runPaidFeatureAction("worth_grading", async () => {
+      await requestStoredGrokAnalysis("worth_grading");
+    });
   }
 
   const aiFeatures: AiFeature[] = [
@@ -494,7 +487,7 @@ function PokemonDetailsForCard() {
       description: "TCGPlayer, Cardmarket & sales history",
       icon: LineChart,
       color: "orange",
-      featureKey: "price_analysis",
+      featureKey: "market_analysis",
       onOpen: openMarketAnalysis,
     },
     {
@@ -523,7 +516,6 @@ function PokemonDetailsForCard() {
       color: "pink",
       featureKey: "worth_grading",
       onOpen: openWorthGradingAnalysis,
-      actionCostLabel: "(2 credits)",
     },
   ];
 
@@ -694,8 +686,6 @@ function PokemonDetailsForCard() {
   const currentGrokError = activeFeature
     ? (grokErrors[activeFeature.featureKey] ?? "")
     : "";
-  const currentMarketSalesResponse =
-    marketSalesResponseCardId === card.id ? marketSalesResponse : "";
   const currentJustTcgResult =
     justTcgResultCardId === card.id ? justTcgResult : null;
   const currentEbayRunToken = ebayRunCardId === card.id ? ebayRunToken : 0;
@@ -708,15 +698,11 @@ function PokemonDetailsForCard() {
   };
   const isActiveFeatureLoading =
     grokLoading ||
-    (activeView === "prices" && (justTcgLoading || marketSalesLoading)) ||
+    (activeView === "prices" && justTcgLoading) ||
     (activeView === "ebay_sold" && ebayLoading);
   const activeFeatureHasResponse =
     activeView === "prices"
-      ? Boolean(
-          currentGrokResponse &&
-          currentJustTcgResult &&
-          currentMarketSalesResponse,
-        )
+      ? Boolean(currentGrokResponse || currentJustTcgResult)
       : activeView === "ebay_sold"
         ? currentEbayReportAvailable
         : Boolean(currentGrokResponse);
@@ -1034,8 +1020,7 @@ function PokemonDetailsForCard() {
                   updatingCredits ||
                   grokLoading ||
                   justTcgLoading ||
-                  ebayLoading ||
-                  marketSalesLoading
+                  ebayLoading
                 }
                 aria-pressed={activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}
@@ -1081,7 +1066,6 @@ function PokemonDetailsForCard() {
                 icon={activeFeature.icon}
                 label={activeFeature.title}
                 actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
-                actionCostLabel={activeFeature.actionCostLabel}
                 actionLoading={
                   authLoading || loadingSubscription || isActiveFeatureLoading
                 }
@@ -1134,19 +1118,10 @@ function PokemonDetailsForCard() {
                   <PriceAnalysis
                     card={card}
                     grokRequest={grokRequest}
-                    reportLoading={
-                      grokLoading || justTcgLoading || marketSalesLoading
-                    }
+                    reportLoading={grokLoading || justTcgLoading}
                     reportAvailable={Boolean(
-                      currentGrokResponse ||
-                      currentJustTcgResult ||
-                      currentMarketSalesResponse,
+                      currentGrokResponse || currentJustTcgResult,
                     )}
-                    salesDataRequest={{
-                      loading: marketSalesLoading,
-                      error: marketSalesError,
-                      response: currentMarketSalesResponse,
-                    }}
                     justTcgRequest={{
                       loading: justTcgLoading,
                       error: justTcgError,

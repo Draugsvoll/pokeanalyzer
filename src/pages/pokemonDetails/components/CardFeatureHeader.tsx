@@ -18,7 +18,6 @@ type CardFeatureHeaderProps = {
   icon: LucideIcon;
   label: string;
   actionLabel?: string;
-  actionCostLabel?: string;
   actionLoading?: boolean;
   actionDisabled?: boolean;
   actionHidden?: boolean;
@@ -33,7 +32,6 @@ export function CardFeatureHeader({
   icon: Icon,
   label,
   actionLabel,
-  actionCostLabel = "(1 credit)",
   actionLoading,
   actionDisabled,
   actionHidden,
@@ -93,9 +91,6 @@ export function CardFeatureHeader({
                 (actionLabel ?? label)
               )}
             </Button>
-            <span className="card-feature-header__action-cost">
-              {actionCostLabel}
-            </span>
           </div>
         )
       )}

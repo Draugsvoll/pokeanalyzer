@@ -172,7 +172,7 @@ export function PokemonCardView({
 
       const flyoutRect = flyout.getBoundingClientRect();
       const gridRect = flyout
-        .closest<HTMLElement>(".grid-view-container")
+        .closest<HTMLElement>(".card-grid")
         ?.getBoundingClientRect();
       const edgeGap = 8;
       const viewportLeft = edgeGap;
