@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { WorthGradingView } from "./WorthGradingView";
 
 describe("WorthGradingView", () => {
-  it("renders every current worth-grading text field", () => {
+  it("renders the current worth-grading analysis", () => {
     const response = JSON.stringify({
       variants: [
         {
@@ -67,7 +67,6 @@ describe("WorthGradingView", () => {
             potential: "negative",
             headline: "Grade only copies with a strong chance at PSA 9.",
             bottom_line: "Sell visibly worn copies raw.",
-            notes: ["Check the holofoil carefully for scratches."],
           },
         },
       ],
@@ -90,16 +89,5 @@ describe("WorthGradingView", () => {
     expect(screen.getByText("Negative max profit")).toHaveClass(
       "app-badge--accent-red",
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "Show details" }));
-    expect(
-      screen.getByText(
-        "The estimated card value remains within the Value tier limit.",
-      ),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText("Check the holofoil carefully for scratches."),
-    ).toBeInTheDocument();
   });
 });

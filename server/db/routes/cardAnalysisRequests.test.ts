@@ -32,7 +32,7 @@ test("card features use the expected instructions and Grok options", () => {
   assert.equal(worthGrading.instructions, worthGradingInstructions);
   assert.deepEqual(worthGrading.grokOptions, {
     model: "grok-4.5",
-    reasoningEffort: "low",
+    reasoningEffort: "medium",
     useCodeInterpreter: true,
   });
 });

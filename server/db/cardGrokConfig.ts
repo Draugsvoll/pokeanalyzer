@@ -13,7 +13,7 @@ export const CARD_GROK_FEATURES = {
   },
   worth_grading: {
     storageKey: "worth_grading",
-    reuseDays: 15,
+    reuseDays: -15,
   },
 } as const;
 

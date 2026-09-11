@@ -69,7 +69,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
         worthGradingInput(context.cardPromptIdentity),
       grokOptions: {
         model: "grok-4.5",
-        reasoningEffort: "low",
+        reasoningEffort: "medium",
         useCodeInterpreter: true,
       },
       instructions: worthGradingInstructions,

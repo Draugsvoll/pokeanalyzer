@@ -341,12 +341,12 @@ export const worthGradingInstructions: string = `
     {"title":"title for the assumption", "assumption":"describe the assumption"}
   ],
   "confidence_level":{
-  "score":"Score 1-100 on how confident you are in the analysis itself. Must be a string containing only a number. For example '83'",
-   "reasoning":"Explain why you are feeling this level of confidence in your analysis as a whole. Make it concise and beginner friendly. Use conversational language with a professional tone. If the score is below 80, make it clear what's dragging it down."
+  "score":"Score 1-100 on how confident you feel about this analysis. Must be a string containing only a number. For example '83'",
+   "reasoning":"Explain why you are feeling this level of confidence in your analysis as a whole. Use neutral language in a neutral tone. If the score is below 80, make it clear what's dragging it down."
   },
   "attractiveness_level": {
   "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. Must be a string containing only a number, for example '65'",
-  "reasoning":["Fully explain why it deserved the score you gave it. Explain it outside of just the paper profit numbers. I should have a basic sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone and avoid financial jargon, phrases or slogans. Don't shorten or truncate the text. Do not contradict the paper profit calculations. Structure it into paragraphs"]
+  "reasoning":["Explain why it deserved the score you gave it. Explain it outside of just the paper profit numbers, and don't contradict the paper profit calculations. I should have a basic sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. Structure it into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,

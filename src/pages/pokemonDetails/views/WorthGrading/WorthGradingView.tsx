@@ -380,7 +380,7 @@ function ScenarioCard({
           data-open={detailsOpen}
           type="button"
         >
-          {detailsOpen ? "Hide details" : "Show details"}
+          {detailsOpen ? "Hide details" : "Calculations"}
         </button>
       </div>
 
@@ -450,14 +450,8 @@ function ScenarioCard({
                 </div>
               </div>
             </div>
-            {scenario.grading_tier_justification?.trim() && (
-              <div className="worth-grading-view__tier-justification default-container-inner">
-                <span>Why this grading tier</span>
-                <p>{scenario.grading_tier_justification}</p>
-              </div>
-            )}
             {scenario.psa_note?.trim() && (
-              <p className="worth-grading-view__psa-note default-container-inner">
+              <p className="worth-grading-view__accent-note default-container-inner">
                 {scenario.psa_note}
               </p>
             )}
@@ -540,14 +534,12 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
 
 function CollapsibleTitledDetailList({
   items = [],
-  notes = [],
   title,
 }: {
   items?: TitledDetail[];
-  notes?: string[];
   title: string;
 }) {
-  if (!items.length && !notes.length) return null;
+  if (!items.length) return null;
 
   return (
     <details className="worth-grading-view__collapsible-details default-container">
@@ -564,20 +556,6 @@ function CollapsibleTitledDetailList({
             </li>
           ))}
         </ul>
-        {notes.length > 0 && (
-          <section className="worth-grading-view__collapsible-notes">
-            <ul>
-              {notes.map((note, index) => (
-                <li
-                  className="default-container-inner"
-                  key={`${note}-${index}`}
-                >
-                  <p>{note}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     </details>
   );
@@ -771,10 +749,21 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
               </section>
             )}
 
-            <CollapsibleTitledDetailList
-              notes={notes}
-              title="Additional considerations"
-            />
+            {notes.length > 0 && (
+              <section className="worth-grading-view__notes default-container">
+                <h3 className="worth-grading-view__section-title">Notes</h3>
+                <div className="worth-grading-view__notes-grid">
+                  {notes.map((note, index) => (
+                    <p
+                      className="worth-grading-view__accent-note default-container-inner"
+                      key={`${note}-${index}`}
+                    >
+                      {note}
+                    </p>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <CollapsibleTitledDetailList
               items={assumptions}

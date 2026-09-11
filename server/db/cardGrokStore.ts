@@ -28,10 +28,6 @@ function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function hasTextList(value: unknown) {
-  return Array.isArray(value) && value.some(hasText);
-}
-
 function hasOnlyTextItems(value: unknown) {
   return Array.isArray(value) && value.every(hasText);
 }
@@ -46,17 +42,6 @@ function isMarketScore(value: unknown) {
   }
 
   return typeof value === "string" && /^(?:[1-9]\d?|100)$/.test(value);
-}
-
-function isScore(value: unknown) {
-  const score =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value.trim()
-        ? Number(value)
-        : Number.NaN;
-
-  return Number.isFinite(score) && score >= 1 && score <= 100;
 }
 
 function hasMeaningfulValue(value: unknown): boolean {
@@ -134,46 +119,21 @@ function isValidMarketAnalysis(value: JsonObject) {
   );
 }
 
-function isDisplayableWorthGradingScenario(value: unknown) {
+function isValidWorthGradingVariant(value: unknown) {
   return (
     isJsonObject(value) &&
-    hasText(value.grade) &&
-    hasMeaningfulField(value, [
-      "expected_sale_price_usd",
-      "net_profit_vs_raw_usd",
-      "roi_vs_raw_net_percent",
-    ])
+    (isJsonObject(value.card) ||
+      Array.isArray(value.graded_scenarios) ||
+      isJsonObject(value.recommendation) ||
+      isJsonObject(value.attractiveness_level))
   );
 }
 
-function isDisplayableWorthGradingVariant(value: unknown) {
-  if (
-    !isJsonObject(value) ||
-    !isJsonObject(value.card) ||
-    !Array.isArray(value.graded_scenarios) ||
-    !isJsonObject(value.attractiveness_level) ||
-    !isJsonObject(value.recommendation)
-  ) {
-    return false;
-  }
-
-  const hasScenario = value.graded_scenarios.some(
-    isDisplayableWorthGradingScenario,
-  );
-  const hasRecommendation =
-    hasMeaningfulField(value.recommendation, ["potential"]) &&
-    hasMeaningfulField(value.recommendation, ["headline"]) &&
-    hasMeaningfulField(value.recommendation, ["bottom_line"]);
-  const hasAttractivenessReasoning = hasTextList(
-    value.attractiveness_level.reasoning,
-  );
-  const hasAttractivenessScore = isScore(value.attractiveness_level.score);
-
+function isValidWorthGrading(value: JsonObject) {
   return (
-    hasScenario &&
-    hasRecommendation &&
-    hasAttractivenessReasoning &&
-    hasAttractivenessScore
+    Array.isArray(value.variants) &&
+    value.variants.length > 0 &&
+    value.variants.every(isValidWorthGradingVariant)
   );
 }
 
@@ -205,10 +165,7 @@ export function isValidStoredFeatureResponse(
   }
 
   if (storageKey === "worth_grading") {
-    return (
-      Array.isArray(value.variants) &&
-      value.variants.some(isDisplayableWorthGradingVariant)
-    );
+    return isValidWorthGrading(value);
   }
 
   if (storageKey === "ebay_sold") {
@@ -249,7 +206,9 @@ function getFreshFeatureResponse(
   if (!isJsonObject(response) || typeof response.timestamp !== "string") {
     return null;
   }
-  if (!isValidStoredFeatureResponse(storageKey, response)) return null;
+  if (!isValidStoredFeatureResponse(storageKey, response)) {
+    return null;
+  }
 
   const timestamp = Date.parse(response.timestamp);
   const age = Date.now() - timestamp;
