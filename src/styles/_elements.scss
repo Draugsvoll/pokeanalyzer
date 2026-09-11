@@ -221,6 +221,12 @@ input[type="radio"] {
   padding: var(--default-container-padding);
 }
 
+.default-container-inner--centered {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
 .default-container-header {
   align-items: center;
   display: flex;

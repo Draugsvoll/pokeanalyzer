@@ -15,7 +15,17 @@
 
   &__overview-content {
     display: grid;
+    gap: var(--default-container-section-gap);
     width: 100%;
+  }
+
+  &__explanation {
+    color: var(--font-color-secondary);
+    justify-self: center;
+    line-height: var(--font-leading-relaxed);
+    margin: 0;
+    max-width: var(--max-text-width);
+    text-align: center;
   }
 
   &__signals {
@@ -27,16 +37,11 @@
     padding: var(--default-container-padding);
 
     > section {
-      display: grid;
       gap: var(--space-2);
-
-      > .app-badge {
-        justify-self: center;
-      }
     }
   }
 
-  &__signal-reasoning {
+  &__signal-explanation {
     color: var(--font-color-secondary);
     line-height: var(--font-leading-relaxed);
     margin: 0;
@@ -62,14 +67,23 @@
     gap: var(--space-2);
   }
 
-  &__drivers {
+  &__confidence {
+    --feature-analysis-accent: var(
+      --feature-accent,
+      var(--custom-color-orange)
+    );
+
+    grid-column: 1 / -1;
+  }
+
+  &__outlook-grid {
     display: grid;
     gap: var(--space-3);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   &__summary-grid h4,
-  &__drivers h4 {
+  &__outlook-grid h4 {
     margin: 0;
   }
 
@@ -85,29 +99,7 @@
     }
   }
 
-  &__outlook-labels {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    justify-content: center;
-  }
-
-  &__outlook-summary {
-    display: grid;
-    gap: var(--space-3);
-
-    p {
-      color: var(--font-color-secondary);
-      line-height: var(--font-leading-relaxed);
-      margin: 0;
-      max-width: var(--max-text-width);
-      justify-self: center;
-      text-align: center;
-    }
-  }
-
-  &__drivers section {
-    display: grid;
+  &__outlook-grid section {
     gap: var(--space-3);
 
     li {
@@ -115,6 +107,24 @@
       font-size: var(--font-size-paragraph-sm);
       font-weight: var(--font-weight-medium);
       line-height: var(--font-leading-relaxed);
+      text-align: left;
+
+      &::marker {
+        color: var(--feature-accent, var(--custom-color-orange));
+      }
+    }
+
+    > p {
+      color: var(--font-color-secondary);
+      line-height: var(--font-leading-relaxed);
+      margin: 0;
+    }
+
+    > ul {
+      justify-self: center;
+      max-width: 100%;
+      padding-left: 1.1rem;
+      width: fit-content;
     }
   }
 
@@ -131,7 +141,7 @@
   .market-analysis-report {
     &__signals,
     &__summary-grid,
-    &__drivers {
+    &__outlook-grid {
       grid-template-columns: 1fr;
     }
   }

@@ -2,27 +2,31 @@ import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
-import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
+import {
+  FeatureAnalysisHero,
+  FeatureAnalysisScoreMeter,
+} from "../../components/FeatureAnalysisPanel";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./MarketAnalysisView.scss";
 
 type JsonRecord = Record<string, unknown>;
-type MarketSignal = { label: string; reasoning: string; title: string };
+type MarketSignal = { explanation: string; score: number; title: string };
+type MarketOutlook = { explanation: string; label: string };
 
 type MarketAnalysisData = {
-  balance: { reason: string; state: string };
-  evidenceQuality: { confidence: string; reason: string };
-  marketPulse: string;
+  evidenceQuality: { reason: string; score: number };
+  explanation: string;
+  headline: string;
+  marketBalance: string;
   outlook: {
-    longTerm: string;
-    nearTerm: string;
+    longTerm: MarketOutlook;
+    nearTerm: MarketOutlook;
     risks: string[];
-    summary: string;
     upsideDrivers: string[];
   };
-  sentiment: { label: string; score: number; summary: string };
+  score: number;
   signals: MarketSignal[];
-  strongestSegment: { label: string; reason: string };
+  strongestSegment: string;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -41,12 +45,12 @@ function displayLabel(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function displaySignalLabel(value: string) {
+function displayLabelCapitalized(value: string) {
   const label = displayLabel(value);
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function parseMarketSentimentScore(value: unknown) {
+function parseMarketScore(value: unknown) {
   if (typeof value === "number") {
     return Number.isInteger(value) && value >= 1 && value <= 100 ? value : null;
   }
@@ -59,99 +63,103 @@ function parseMarketSentimentScore(value: unknown) {
 function parseMarketSignal(title: string, value: unknown) {
   if (!isRecord(value)) return null;
 
-  const label = text(value.label);
-  const reasoning = text(value.reasoning);
-  return label && reasoning ? { label, reasoning, title } : null;
+  const explanation = text(value.explanation);
+  const score = parseMarketScore(value.score);
+  return explanation && score !== null ? { explanation, score, title } : null;
 }
 
 function isMarketSignal(value: MarketSignal | null): value is MarketSignal {
   return value !== null;
 }
 
+function parseMarketOutlook(value: unknown): MarketOutlook | null {
+  if (!isRecord(value)) return null;
+
+  const explanation = text(value.explanation);
+  const label = text(value.label);
+  return explanation && label ? { explanation, label } : null;
+}
+
 function parseMarketAnalysis(response: string): MarketAnalysisData | null {
   const parsed = parseJsonText(response);
   if (!isRecord(parsed)) return null;
 
-  const sentiment = isRecord(parsed.market_sentiment)
-    ? parsed.market_sentiment
-    : null;
   const signals = isRecord(parsed.market_signals)
     ? parsed.market_signals
-    : null;
-  const strongestSegment = isRecord(parsed.strongest_segment)
-    ? parsed.strongest_segment
-    : null;
-  const balance = isRecord(parsed.market_balance)
-    ? parsed.market_balance
     : null;
   const outlook = isRecord(parsed.outlook) ? parsed.outlook : null;
   const evidenceQuality = isRecord(parsed.evidence_quality)
     ? parsed.evidence_quality
     : null;
-  const card = isRecord(parsed.card) ? parsed.card : null;
-  const score = parseMarketSentimentScore(sentiment?.score);
+  const score = parseMarketScore(parsed.score);
+  const evidenceScore = parseMarketScore(evidenceQuality?.score);
+  const nearTerm = parseMarketOutlook(outlook?.near_term);
+  const longTerm = parseMarketOutlook(outlook?.long_term);
   const signalsToRender = [
     parseMarketSignal("Demand", signals?.demand),
     parseMarketSignal("Liquidity", signals?.liquidity),
     parseMarketSignal("Momentum", signals?.momentum),
-    parseMarketSignal("Volatility", signals?.volatility),
+    parseMarketSignal("Stability", signals?.stability),
   ];
   const parsedSignals = signalsToRender.filter(isMarketSignal);
 
   if (
-    !card ||
-    !text(card.name) ||
-    !text(card.set) ||
-    !text(card.number) ||
-    !text(card.variant) ||
-    !sentiment ||
     !signals ||
-    !strongestSegment ||
-    !balance ||
     !outlook ||
     !evidenceQuality ||
     score === null ||
+    evidenceScore === null ||
+    !nearTerm ||
+    !longTerm ||
     parsedSignals.length !== 4
   ) {
     return null;
   }
 
   const data: MarketAnalysisData = {
-    balance: {
-      reason: text(balance.reason),
-      state: text(balance.state),
-    },
     evidenceQuality: {
-      confidence: text(evidenceQuality.confidence),
       reason: text(evidenceQuality.reason),
+      score: evidenceScore,
     },
-    marketPulse: text(parsed.market_pulse),
+    explanation: text(parsed.explanation),
+    headline: text(parsed.headline),
+    marketBalance: text(parsed.market_balance),
     outlook: {
-      longTerm: text(outlook.long_term),
-      nearTerm: text(outlook.near_term),
+      longTerm,
+      nearTerm,
       risks: textList(outlook.risks),
-      summary: text(outlook.summary),
       upsideDrivers: textList(outlook.upside_drivers),
     },
-    sentiment: {
-      label: text(sentiment.label),
-      score,
-      summary: text(sentiment.summary),
-    },
+    score,
     signals: parsedSignals,
-    strongestSegment: {
-      label: text(strongestSegment.label),
-      reason: text(strongestSegment.reason),
-    },
+    strongestSegment: text(parsed.strongest_segment),
   };
 
-  return data.sentiment.label && data.marketPulse ? data : null;
+  return data.explanation &&
+    data.headline &&
+    data.marketBalance &&
+    data.strongestSegment &&
+    data.evidenceQuality.reason
+    ? data
+    : null;
 }
 
-function signalAccent(label: string) {
-  if (label.includes("low")) return "red" as const;
-  if (label.includes("high")) return "green" as const;
+function scoreAccent(score: number) {
+  if (score <= 39) return "red" as const;
+  if (score >= 70) return "green" as const;
   return "yellow" as const;
+}
+
+function outlookAccent(label: string) {
+  if (label.includes("negative")) return "red" as const;
+  if (label.includes("positive")) return "green" as const;
+  return "yellow" as const;
+}
+
+function balanceAccent(balance: string) {
+  if (balance === "balanced") return "green" as const;
+  if (balance === "unclear") return "yellow" as const;
+  return "orange" as const;
 }
 
 function TextList({ items }: { items: string[] }) {
@@ -187,19 +195,25 @@ export function MarketAnalysisView({
     <section className="market-analysis-report ui-render-fade">
       <FeatureAnalysisHero
         eyebrow="Market Health"
-        headline={data.sentiment.summary}
-        score={data.sentiment.score}
-        scoreLabel="Market sentiment score"
+        headline={data.headline}
+        score={data.score}
+        scoreLabel="Market health score"
       >
         <div className="market-analysis-report__overview-content">
+          <p className="market-analysis-report__explanation">
+            {data.explanation}
+          </p>
           <div className="market-analysis-report__signals">
             {data.signals.map((signal) => (
-              <section className="default-container-inner" key={signal.title}>
-                <Badge accent={signalAccent(signal.label)} weight="strong">
-                  {displaySignalLabel(signal.label)} {signal.title}
+              <section
+                className="default-container-inner default-container-inner--centered"
+                key={signal.title}
+              >
+                <Badge accent={scoreAccent(signal.score)} weight="strong">
+                  {signal.title}: {signal.score}
                 </Badge>
-                <p className="market-analysis-report__signal-reasoning">
-                  {signal.reasoning}
+                <p className="market-analysis-report__signal-explanation">
+                  {signal.explanation}
                 </p>
               </section>
             ))}
@@ -208,35 +222,33 @@ export function MarketAnalysisView({
       </FeatureAnalysisHero>
 
       <section className="market-analysis-report__summary-section default-container">
-        <h3>Summary</h3>
+        <h3>Market summary</h3>
         <div className="market-analysis-report__summary-grid">
-          <article className="default-container-inner">
+          <article className="default-container-inner default-container-inner--centered">
             <header className="market-analysis-report__summary-heading">
               <h4>Strongest segment</h4>
               <Badge accent="orange" weight="strong">
-                {data.strongestSegment.label}
+                {data.strongestSegment}
               </Badge>
             </header>
-            <p>{data.strongestSegment.reason}</p>
           </article>
-          <article className="default-container-inner">
+          <article className="default-container-inner default-container-inner--centered">
             <header className="market-analysis-report__summary-heading">
               <h4>Buyer vs Seller</h4>
-              <Badge accent="orange" weight="strong">
-                {displaySignalLabel(data.balance.state)}
+              <Badge accent={balanceAccent(data.marketBalance)} weight="strong">
+                {displayLabelCapitalized(data.marketBalance)}
               </Badge>
             </header>
-            <p>{data.balance.reason}</p>
           </article>
-          <article className="default-container-inner">
-            <header className="market-analysis-report__summary-heading">
-              <h4>Market behaviour</h4>
-            </header>
-            <p>{data.marketPulse}</p>
-          </article>
-          <article className="default-container-inner">
-            <header className="market-analysis-report__summary-heading">
-              <h4>Analysis quality</h4>
+          <article className="market-analysis-report__confidence default-container-inner default-container-inner--centered">
+            <header className="feature-analysis-card-header">
+              <FeatureAnalysisScoreMeter
+                label="Analysis confidence score"
+                score={data.evidenceQuality.score}
+                showMaximum={false}
+                size="icon"
+              />
+              <h4>Analysis confidence</h4>
             </header>
             <p>{data.evidenceQuality.reason}</p>
           </article>
@@ -245,19 +257,36 @@ export function MarketAnalysisView({
 
       <article className="market-analysis-report__outlook default-container">
         <h3>Outlook</h3>
-        <div className="market-analysis-report__outlook-summary">
-          <div className="market-analysis-report__outlook-labels">
-            <Badge>Near term: {displayLabel(data.outlook.nearTerm)}</Badge>
-            <Badge>Long term: {displayLabel(data.outlook.longTerm)}</Badge>
-          </div>
-          <p>{data.outlook.summary}</p>
-        </div>
-        <div className="market-analysis-report__drivers">
-          <section className="default-container-inner">
+        <div className="market-analysis-report__outlook-grid">
+          <section className="default-container-inner default-container-inner--centered">
+            <header className="market-analysis-report__summary-heading">
+              <h4>Near term</h4>
+              <Badge
+                accent={outlookAccent(data.outlook.nearTerm.label)}
+                weight="strong"
+              >
+                {displayLabelCapitalized(data.outlook.nearTerm.label)}
+              </Badge>
+            </header>
+            <p>{data.outlook.nearTerm.explanation}</p>
+          </section>
+          <section className="default-container-inner default-container-inner--centered">
+            <header className="market-analysis-report__summary-heading">
+              <h4>Long term</h4>
+              <Badge
+                accent={outlookAccent(data.outlook.longTerm.label)}
+                weight="strong"
+              >
+                {displayLabelCapitalized(data.outlook.longTerm.label)}
+              </Badge>
+            </header>
+            <p>{data.outlook.longTerm.explanation}</p>
+          </section>
+          <section className="default-container-inner default-container-inner--centered">
             <h4>Upside drivers</h4>
             <TextList items={data.outlook.upsideDrivers} />
           </section>
-          <section className="default-container-inner">
+          <section className="default-container-inner default-container-inner--centered">
             <h4>Risks</h4>
             <TextList items={data.outlook.risks} />
           </section>

@@ -40,7 +40,7 @@ function isAllowedText(value: unknown, allowed: ReadonlySet<string>) {
   return typeof value === "string" && allowed.has(value);
 }
 
-function isMarketSentimentScore(value: unknown) {
+function isMarketScore(value: unknown) {
   if (typeof value === "number") {
     return Number.isInteger(value) && value >= 1 && value <= 100;
   }
@@ -73,62 +73,39 @@ function hasMeaningfulField(value: JsonObject, fields: string[]) {
   return fields.some((field) => hasMeaningfulValue(value[field]));
 }
 
-const MARKET_SENTIMENT_LABELS = new Set([
-  "very_bearish",
-  "bearish",
-  "neutral",
-  "bullish",
-  "very_bullish",
-]);
-const MARKET_SIGNAL_LEVELS = new Set([
-  "very_low",
-  "low",
-  "moderate",
-  "high",
-  "very_high",
-]);
 const MARKET_BALANCE_LABELS = new Set([
   "buyer_favored",
   "balanced",
   "seller_favored",
   "unclear",
 ]);
-const MARKET_NEAR_TERM_LABELS = new Set([
+const MARKET_OUTLOOK_LABELS = new Set([
+  "very negative",
   "negative",
-  "cautious",
   "stable",
   "positive",
-  "strong",
+  "very positive",
 ]);
-const MARKET_LONG_TERM_LABELS = new Set([
-  "weak",
-  "balanced",
-  "constructive",
-  "strong",
-]);
-const MARKET_CONFIDENCE_LABELS = new Set(["low", "moderate", "high"]);
 
 function isValidMarketSignal(value: unknown) {
   return (
     isJsonObject(value) &&
-    isAllowedText(value.label, MARKET_SIGNAL_LEVELS) &&
-    hasText(value.reasoning)
+    isMarketScore(value.score) &&
+    hasText(value.explanation)
+  );
+}
+
+function isValidMarketOutlook(value: unknown) {
+  return (
+    isJsonObject(value) &&
+    isAllowedText(value.label, MARKET_OUTLOOK_LABELS) &&
+    hasText(value.explanation)
   );
 }
 
 function isValidMarketAnalysis(value: JsonObject) {
-  const card = isJsonObject(value.card) ? value.card : null;
-  const sentiment = isJsonObject(value.market_sentiment)
-    ? value.market_sentiment
-    : null;
   const signals = isJsonObject(value.market_signals)
     ? value.market_signals
-    : null;
-  const strongestSegment = isJsonObject(value.strongest_segment)
-    ? value.strongest_segment
-    : null;
-  const balance = isJsonObject(value.market_balance)
-    ? value.market_balance
     : null;
   const outlook = isJsonObject(value.outlook) ? value.outlook : null;
   const evidenceQuality = isJsonObject(value.evidence_quality)
@@ -136,35 +113,23 @@ function isValidMarketAnalysis(value: JsonObject) {
     : null;
 
   return Boolean(
-    card &&
-    hasText(card.name) &&
-    hasText(card.set) &&
-    hasText(card.number) &&
-    hasText(card.variant) &&
-    sentiment &&
-    isAllowedText(sentiment.label, MARKET_SENTIMENT_LABELS) &&
-    isMarketSentimentScore(sentiment.score) &&
-    hasText(sentiment.summary) &&
+    isMarketScore(value.score) &&
+    hasText(value.explanation) &&
+    hasText(value.headline) &&
     signals &&
     isValidMarketSignal(signals.demand) &&
     isValidMarketSignal(signals.liquidity) &&
     isValidMarketSignal(signals.momentum) &&
-    isValidMarketSignal(signals.volatility) &&
-    hasText(value.market_pulse) &&
-    strongestSegment &&
-    hasText(strongestSegment.label) &&
-    hasText(strongestSegment.reason) &&
-    balance &&
-    isAllowedText(balance.state, MARKET_BALANCE_LABELS) &&
-    hasText(balance.reason) &&
+    isValidMarketSignal(signals.stability) &&
+    hasText(value.strongest_segment) &&
+    isAllowedText(value.market_balance, MARKET_BALANCE_LABELS) &&
     outlook &&
-    isAllowedText(outlook.near_term, MARKET_NEAR_TERM_LABELS) &&
-    isAllowedText(outlook.long_term, MARKET_LONG_TERM_LABELS) &&
-    hasText(outlook.summary) &&
+    isValidMarketOutlook(outlook.near_term) &&
+    isValidMarketOutlook(outlook.long_term) &&
     hasOnlyTextItems(outlook.upside_drivers) &&
     hasOnlyTextItems(outlook.risks) &&
     evidenceQuality &&
-    isAllowedText(evidenceQuality.confidence, MARKET_CONFIDENCE_LABELS) &&
+    isMarketScore(evidenceQuality.score) &&
     hasText(evidenceQuality.reason),
   );
 }

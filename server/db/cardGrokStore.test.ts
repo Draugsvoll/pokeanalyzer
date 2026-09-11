@@ -3,55 +3,45 @@ import test from "node:test";
 import { isValidStoredFeatureResponse } from "./cardGrokStore.js";
 
 const marketAnalysisResponse = {
-  card: {
-    name: "Pikachu",
-    number: "58/102",
-    set: "Base Set",
-    variant: "Unlimited",
-  },
+  score: 63,
+  explanation: "Steady demand and liquidity support a functional market.",
+  headline: "Prices and sales activity are broadly stable.",
   evidence_quality: {
-    confidence: "moderate",
+    score: 72,
     reason: "Several recent sales were available.",
   },
-  market_balance: {
-    reason: "Available supply and buyer activity are balanced.",
-    state: "balanced",
-  },
-  market_pulse: "Buyers remain active at established price levels.",
-  market_sentiment: {
-    label: "neutral",
-    score: "63",
-    summary: "Prices and sales activity are broadly stable.",
-  },
+  market_balance: "balanced",
   market_signals: {
     demand: {
-      label: "moderate",
-      reasoning: "Recent sales show steady buyer interest.",
+      score: 61,
+      explanation: "Recent sales show steady buyer interest.",
     },
     liquidity: {
-      label: "high",
-      reasoning: "Listings turn over regularly.",
+      score: 74,
+      explanation: "Listings turn over regularly.",
     },
     momentum: {
-      label: "moderate",
-      reasoning: "Prices have remained broadly stable.",
+      score: 55,
+      explanation: "Prices have remained broadly stable.",
     },
-    volatility: {
-      label: "moderate",
-      reasoning: "Sale prices remain within a consistent range.",
+    stability: {
+      score: 42,
+      explanation: "Sale prices remain within a consistent range.",
     },
   },
   outlook: {
-    long_term: "constructive",
-    near_term: "stable",
+    long_term: {
+      label: "positive",
+      explanation: "Established demand supports the longer term.",
+    },
+    near_term: {
+      label: "stable",
+      explanation: "Recent activity points to stable conditions.",
+    },
     risks: ["A rapid increase in supply could pressure prices."],
-    summary: "The market appears stable with balanced longer-term support.",
     upside_drivers: ["Consistent collector demand."],
   },
-  strongest_segment: {
-    label: "PSA 9",
-    reason: "It has the healthiest balance of price and sale frequency.",
-  },
+  strongest_segment: "PSA 9",
 };
 
 test("stored feature validation accepts each current response shape", () => {
@@ -73,10 +63,7 @@ test("stored feature validation accepts each current response shape", () => {
   assert.equal(
     isValidStoredFeatureResponse("market_analysis", {
       ...marketAnalysisResponse,
-      market_sentiment: {
-        ...marketAnalysisResponse.market_sentiment,
-        score: 63,
-      },
+      score: "63",
     }),
     true,
   );
@@ -114,10 +101,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
       "market_analysis",
       {
         ...marketAnalysisResponse,
-        market_sentiment: {
-          ...marketAnalysisResponse.market_sentiment,
-          label: "unknown",
-        },
+        market_balance: "unknown",
       },
     ],
     [
@@ -126,7 +110,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
         ...marketAnalysisResponse,
         market_signals: {
           ...marketAnalysisResponse.market_signals,
-          demand: "moderate",
+          demand: "61",
         },
       },
     ],
@@ -134,10 +118,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
       "market_analysis",
       {
         ...marketAnalysisResponse,
-        market_sentiment: {
-          ...marketAnalysisResponse.market_sentiment,
-          score: "0",
-        },
+        score: "0",
       },
     ],
     [

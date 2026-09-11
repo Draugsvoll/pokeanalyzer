@@ -10,110 +10,63 @@ Return only the final analysis as the required JSON object.
 `.trim();
 
 export const marketAnalysisInstructions: string = `
-You are writing a concise Market Report about this card for a collectible trading card webapp.
+# TASK
+Give a score 1-100 on how healthy and functional the markets are for this card relative to other pokemon cards. Explain how you concluded your score.
 
-The app already has separate Collector Insight and Grading Advice sections, so DO NOT repeat:
-
-why the card is historically important or desirable
-general collector background
-grading tips, condition advice, or submission recommendations
-
-Focus only on:
-
-Market activity for the past 6-12 months
-strength of buyer demand
-liquidity / ease of selling
-price direction or momentum, if supported by evidence
-which grades or versions appear strongest or weakest
-supply vs demand balance
-near-term and longer-term market outlook
-upside drivers and risks
-
-Be objective and honest, do not invent statistics or claims without evidence.
-Do not call a card bullish simply because it is popular.
-Low activity can still be stable rather than bearish.
-Be open and honest about the data and its quality behind your reportings.
-Don't try to be colorful or add metaphors, simply state your findings. Avoid financial-advice language such as "buy", "sell", "undervalued", or guaranteed appreciation.
-
-Use realized marketplaces sales as primary evidence. Treat price guides, tracker averages, and active listings only as secondary context, never as proof of market direction.
-
-Your evidence hierarchy should look like this:
-realized sales > marketplaces inventory/listings > population data > tracker/guide summaries > model interpretation
-
-Your entire response must be in the JSON schema shown below. Do not add any text before or after.
+# OUTPUT
+Output must be purely market focused, do not mention its position as a collectable or as a grading candidate.
+Answer only in the following JSON schema. No text added before or after the JSON object.
 
 {
-  "card": {
-    "name": "string",
-    "set": "string",
-    "number": "string",
-    "variant": "string"
-  },
-  "market_sentiment": {
-    "label": "very_bearish | bearish | neutral | bullish | very_bullish",
-    "score": "Give a score from 1-100 for how healthy and functional the current market is for this exact card/variant relative to other Pokemon cards. This is purely about the market and not collectibility, historical importance, popularity, or grading potential. Return a string containing only a number, for example '63'.",
-    "summary": "One sentence explaining why it was given that score using only market evidence, for example demand, liquidity, momentum, volatility, realized sales, listings, or buyer/seller balance. Do not discuss the card's collectibility, historical importance, popularity, or grading potential."
-  },
-  "market_signals": {
-    "demand":{
-	"label":"very_low | low | moderate | high | very_high",
-	"reasoning":"explain how you chose the label that you ended up choosing."
+"score":"score 1-100. Only return an Integer",
+"explanation":"Fully explain why it deserved the score you gave it. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans.",
+"headline":"One sentence summary which serves as a headline to let me know it's position in the market",
+"market_signals":{
+	"demand":{
+		"score":"score 1-100. Only return an Integer",
+		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
 	},
-    "liquidity":{
-	"label":"very_low | low | moderate | high | very_high",
-	"reasoning":"explain how you chose the label that you ended up choosing."
+	"liquidity":{
+		"score":"score 1-100. Only return an Integer",
+		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
 	},
-    "momentum":{
-	"label":"very_low | low | moderate | high | very_high",
-	"reasoning":"explain how you chose the label that you ended up choosing."
+	"stability":{
+		"score":"score 1-100. Only return an Integer",
+		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
 	},
-    "volatility":{
-	"label":"very_low | low | moderate | high | very_high",
-	"reasoning":"explain how you chose the label that you ended up choosing."
+	"momentum":{
+		"score":"score 1-100. Only return an Integer",
+		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
 	}
-  },
-  "market_pulse": "Describe what buyers and sellers appear to be doing right now. Be objective and honest.",
-  "strongest_segment": {
-    "label": "string",
-    "reason": "Explain which version appears to have the healthiest market. Is it Graded or raw? explain which grade or condition and how you concluded that."
-  },
-  "market_balance": {
-    "state": "buyer_favored | balanced | seller_favored | unclear",
-    "reason": "Concisely justify the chosen state based on supply, sale frequency, bidding activity, or price behavior."
-  },
-  "outlook": {
-    "near_term": "negative | cautious | stable | positive | strong",
-    "long_term": "weak | balanced | constructive | strong",
-    "summary": "Concisely justify both near_term and long_term labels you chose.",
-    "upside_drivers": [
-      "string"
-    ],
-    "risks": [
-      "string"
-    ]
-  },
-  "evidence_quality": {
-    "confidence": "low | moderate | high",
-    "reason": "Explain why this level of confidence."
-  }
+},
+"strongest_segment":"Concisely state which grade or condition appears to perform best in the market",
+"market_balance":"buyer_favored | balanced | seller_favored | unclear",
+"outlook": {
+"near_term": {
+	"label": "very negative | negative | stable | positive | very positive",
+	"explanation": "Explain why it deserved the label you gave it."
+},
+"long_term": {
+	"label": "very negative | negative | stable | positive | very positive",
+	"explanation": "Explain why it deserved the label you gave it."
+},
+"upside_drivers": [
+	"string"
+],
+"risks": [
+	"string"
+]
+},
+"evidence_quality": {
+"score":"score 1-100. Only return an Integer",
+"reason": "Explain why it deserved the score you gave."
+},
+"notes":["If there is anything important or valueable a collector must know that hasn't been adressed yet, add it in here. Must be market focused. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans."]
 }
 
-All fields are about the specific card, not the market in general.
+All "score" fields must be whole integers from 1 through 100. Return them as JSON numbers, not strings.
 
-The "label" field inside "market_sentiment" describes the market sentiment for this card/variant relative to other pokemon cards. In the "reasoning" fields inside "market_sentiment" Try to refer to multiple sources (as long as the data is reliable enough to do so).
-
-#WRITING RULES
-- Write in clear english. Just give me the facts and findings directly, be monotone.
-- Don't cram multiple ideas or claims in one sentence.
-- Avoid metaphors, slogans, or stacked phrases.
-- Do not write like market commentary or sales copy.
--Say what the sales show. Do not dress it up.
-- We don't beed a bunch of specific sales with specific dollar amounts. We want it a little more generic.
-For example "Raw has few sales at around $320-$475 level".
-- When making claims include how you concluded them.
-- Remember to not get into condition advice, if necessary briefly mention condition is important if that's the case.
-
-The overall purpose is to get an objective and quick overview over the market for this card. I should get a sense of is it active? Where is the market healthiest? Is momentum going up/down/stable? Who has leverage? What does the future look like? But only use facts and evidence. Be open about the data/evidence used for answering.
+In "explanation" you don't need to list out specific sales and prices, this is more on a generic level. You don't need to mention that it's relative to other pokemon cards. It should give me a basic sense of what dragged the score down, and what pulled it up. You don't need to explicitly state it, as long as it's somewhat obvious in the text.
 
 `.trim();
 
@@ -393,7 +346,7 @@ export const worthGradingInstructions: string = `
   },
   "attractiveness_level": {
   "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. Must be a string containing only a number, for example '65'",
-  "reasoning":["Justify the score you gave, explain its attractiveness for submitting outside of just the paper profit numbers. I should have a basic understanding of why it didn't score higher or lower. Be clear and straightforward, don't shorten or truncate the answers. Do not contradict the paper profit calculations. Break it down into paragraphs"]
+  "reasoning":["Fully explain why it deserved the score you gave it. Explain it outside of just the paper profit numbers. I should have a basic sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone and avoid financial jargon, phrases or slogans. Don't shorten or truncate the text. Do not contradict the paper profit calculations. Structure it into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,
