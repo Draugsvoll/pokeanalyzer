@@ -1,7 +1,8 @@
+import { ChartNoAxesCombined } from "lucide-react";
+import { isScoreNumber } from "../../../../../shared/analysisScores";
 import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
-import { parseJsonText } from "../../../../utils/parseJsonText";
 import {
   FeatureAnalysisHero,
   FeatureAnalysisScoreMeter,
@@ -15,9 +16,9 @@ type MarketOutlook = { explanation: string; label: string };
 
 type MarketAnalysisData = {
   evidenceQuality: { reason: string; score: number };
-  explanation: string;
+  explanation: string[];
   headline: string;
-  marketBalance: string;
+  marketBalance: { explanation: string; label: string };
   outlook: {
     longTerm: MarketOutlook;
     nearTerm: MarketOutlook;
@@ -26,7 +27,7 @@ type MarketAnalysisData = {
   };
   score: number;
   signals: MarketSignal[];
-  strongestSegment: string;
+  healthiestSegment: { explanation: string; label: string };
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -37,8 +38,11 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function textList(value: unknown) {
-  return Array.isArray(value) ? value.map(text).filter(Boolean) : [];
+function parseTextList(value: unknown): string[] | null {
+  if (!Array.isArray(value) || !value.every((item) => text(item))) {
+    return null;
+  }
+  return value.map(text);
 }
 
 function displayLabel(value: string) {
@@ -51,13 +55,7 @@ function displayLabelCapitalized(value: string) {
 }
 
 function parseMarketScore(value: unknown) {
-  if (typeof value === "number") {
-    return Number.isInteger(value) && value >= 1 && value <= 100 ? value : null;
-  }
-
-  return typeof value === "string" && /^(?:[1-9]\d?|100)$/.test(value)
-    ? Number(value)
-    : null;
+  return isScoreNumber(value) ? value : null;
 }
 
 function parseMarketSignal(title: string, value: unknown) {
@@ -80,8 +78,21 @@ function parseMarketOutlook(value: unknown): MarketOutlook | null {
   return explanation && label ? { explanation, label } : null;
 }
 
+function parseLabelExplanation(value: unknown) {
+  if (!isRecord(value)) return null;
+
+  const label = text(value.label);
+  const explanation = text(value.explanation);
+  return label && explanation ? { explanation, label } : null;
+}
+
 function parseMarketAnalysis(response: string): MarketAnalysisData | null {
-  const parsed = parseJsonText(response);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(response);
+  } catch {
+    return null;
+  }
   if (!isRecord(parsed)) return null;
 
   const signals = isRecord(parsed.market_signals)
@@ -93,13 +104,18 @@ function parseMarketAnalysis(response: string): MarketAnalysisData | null {
     : null;
   const score = parseMarketScore(parsed.score);
   const evidenceScore = parseMarketScore(evidenceQuality?.score);
+  const explanation = parseTextList(parsed.explanation);
+  const healthiestSegment = parseLabelExplanation(parsed.healthiest_segment);
+  const marketBalance = parseLabelExplanation(parsed.market_balance);
   const nearTerm = parseMarketOutlook(outlook?.near_term);
   const longTerm = parseMarketOutlook(outlook?.long_term);
+  const risks = parseTextList(outlook?.risks);
+  const upsideDrivers = parseTextList(outlook?.upside_drivers);
   const signalsToRender = [
     parseMarketSignal("Demand", signals?.demand),
     parseMarketSignal("Liquidity", signals?.liquidity),
-    parseMarketSignal("Momentum", signals?.momentum),
     parseMarketSignal("Stability", signals?.stability),
+    parseMarketSignal("Momentum", signals?.momentum),
   ];
   const parsedSignals = signalsToRender.filter(isMarketSignal);
 
@@ -109,8 +125,13 @@ function parseMarketAnalysis(response: string): MarketAnalysisData | null {
     !evidenceQuality ||
     score === null ||
     evidenceScore === null ||
+    !explanation?.length ||
+    !healthiestSegment ||
+    !marketBalance ||
     !nearTerm ||
     !longTerm ||
+    risks === null ||
+    upsideDrivers === null ||
     parsedSignals.length !== 4
   ) {
     return null;
@@ -121,33 +142,21 @@ function parseMarketAnalysis(response: string): MarketAnalysisData | null {
       reason: text(evidenceQuality.reason),
       score: evidenceScore,
     },
-    explanation: text(parsed.explanation),
+    explanation,
     headline: text(parsed.headline),
-    marketBalance: text(parsed.market_balance),
+    marketBalance,
     outlook: {
       longTerm,
       nearTerm,
-      risks: textList(outlook.risks),
-      upsideDrivers: textList(outlook.upside_drivers),
+      risks,
+      upsideDrivers,
     },
     score,
     signals: parsedSignals,
-    strongestSegment: text(parsed.strongest_segment),
+    healthiestSegment,
   };
 
-  return data.explanation &&
-    data.headline &&
-    data.marketBalance &&
-    data.strongestSegment &&
-    data.evidenceQuality.reason
-    ? data
-    : null;
-}
-
-function scoreAccent(score: number) {
-  if (score <= 39) return "red" as const;
-  if (score >= 70) return "green" as const;
-  return "yellow" as const;
+  return data.headline && data.evidenceQuality.reason ? data : null;
 }
 
 function outlookAccent(label: string) {
@@ -200,18 +209,21 @@ export function MarketAnalysisView({
         scoreLabel="Market health score"
       >
         <div className="market-analysis-report__overview-content">
-          <p className="market-analysis-report__explanation">
-            {data.explanation}
-          </p>
           <div className="market-analysis-report__signals">
             {data.signals.map((signal) => (
               <section
                 className="default-container-inner default-container-inner--centered"
                 key={signal.title}
               >
-                <Badge accent={scoreAccent(signal.score)} weight="strong">
-                  {signal.title}: {signal.score}
-                </Badge>
+                <header className="market-analysis-report__signal-heading">
+                  <FeatureAnalysisScoreMeter
+                    label={`${signal.title} score`}
+                    score={signal.score}
+                    showMaximum={false}
+                    size="icon"
+                  />
+                  <h4>{signal.title}</h4>
+                </header>
                 <p className="market-analysis-report__signal-explanation">
                   {signal.explanation}
                 </p>
@@ -221,25 +233,20 @@ export function MarketAnalysisView({
         </div>
       </FeatureAnalysisHero>
 
-      <section className="market-analysis-report__summary-section default-container">
-        <h3>Market summary</h3>
-        <div className="market-analysis-report__summary-grid">
-          <article className="default-container-inner default-container-inner--centered">
-            <header className="market-analysis-report__summary-heading">
-              <h4>Strongest segment</h4>
-              <Badge accent="orange" weight="strong">
-                {data.strongestSegment}
-              </Badge>
+      <div className="market-analysis-report__details default-container">
+        <section className="market-analysis-report__summary-section">
+          <h2>Summary</h2>
+          <div className="market-analysis-report__overview-explanation default-container-inner">
+            <header className="feature-analysis-card-header">
+              <h4>
+                <ChartNoAxesCombined aria-hidden="true" />
+                Position in the market
+              </h4>
             </header>
-          </article>
-          <article className="default-container-inner default-container-inner--centered">
-            <header className="market-analysis-report__summary-heading">
-              <h4>Buyer vs Seller</h4>
-              <Badge accent={balanceAccent(data.marketBalance)} weight="strong">
-                {displayLabelCapitalized(data.marketBalance)}
-              </Badge>
-            </header>
-          </article>
+            {data.explanation.map((paragraph, index) => (
+              <p key={`${paragraph}-${index}`}>{paragraph}</p>
+            ))}
+          </div>
           <article className="market-analysis-report__confidence default-container-inner default-container-inner--centered">
             <header className="feature-analysis-card-header">
               <FeatureAnalysisScoreMeter
@@ -252,11 +259,35 @@ export function MarketAnalysisView({
             </header>
             <p>{data.evidenceQuality.reason}</p>
           </article>
+        </section>
+
+        <div className="market-analysis-report__summary-grid">
+          <article className="default-container-inner default-container-inner--centered">
+            <header className="market-analysis-report__summary-heading">
+              <h4>Healthiest segment</h4>
+              <Badge accent="orange" weight="strong">
+                {data.healthiestSegment.label}
+              </Badge>
+            </header>
+            <p>{data.healthiestSegment.explanation}</p>
+          </article>
+          <article className="default-container-inner default-container-inner--centered">
+            <header className="market-analysis-report__summary-heading">
+              <h4>Market balance</h4>
+              <Badge
+                accent={balanceAccent(data.marketBalance.label)}
+                weight="strong"
+              >
+                {displayLabelCapitalized(data.marketBalance.label)}
+              </Badge>
+            </header>
+            <p>{data.marketBalance.explanation}</p>
+          </article>
         </div>
-      </section>
+      </div>
 
       <article className="market-analysis-report__outlook default-container">
-        <h3>Outlook</h3>
+        <h2>Outlook</h2>
         <div className="market-analysis-report__outlook-grid">
           <section className="default-container-inner default-container-inner--centered">
             <header className="market-analysis-report__summary-heading">

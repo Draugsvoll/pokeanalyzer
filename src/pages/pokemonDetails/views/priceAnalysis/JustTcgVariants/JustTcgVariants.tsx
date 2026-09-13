@@ -1,7 +1,4 @@
-import {
-  JustTcgHistoryIntro,
-  JustTcgPriceHistory,
-} from "./JustTcgPriceHistory";
+import { JustTcgPriceHistory } from "./JustTcgPriceHistory";
 import type {
   JustTcgPricePoint,
   JustTcgVariant,
@@ -137,9 +134,6 @@ export function JustTcgVariants({ cardName, response }: JustTcgVariantsProps) {
     return (
       <div className="just-tcg-variants ui-render-fade">
         <section className="just-tcg-history just-tcg-history--empty">
-          <header>
-            <JustTcgHistoryIntro />
-          </header>
           <div className="just-tcg-variants__empty">
             <strong>Price data unavailable</strong>
             <span>JustTCG did not return usable pricing for this card.</span>

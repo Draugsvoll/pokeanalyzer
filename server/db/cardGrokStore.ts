@@ -3,6 +3,11 @@ import {
   formatCardNumber,
   formatUnpaddedCardNumber,
 } from "../../shared/formatCardNumber.js";
+import { isValidWorthGradingResponse } from "../../shared/validateWorthGrading.js";
+import {
+  isScoreNumber,
+  parseScoreString,
+} from "../../shared/analysisScores.js";
 
 type JsonObject = Record<string, unknown>;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,59 +37,47 @@ function hasOnlyTextItems(value: unknown) {
   return Array.isArray(value) && value.every(hasText);
 }
 
-function isAllowedText(value: unknown, allowed: ReadonlySet<string>) {
-  return typeof value === "string" && allowed.has(value);
+function hasNonEmptyTextItems(value: unknown) {
+  return Array.isArray(value) && value.length > 0 && value.every(hasText);
 }
 
-function isMarketScore(value: unknown) {
-  if (typeof value === "number") {
-    return Number.isInteger(value) && value >= 1 && value <= 100;
-  }
-
-  return typeof value === "string" && /^(?:[1-9]\d?|100)$/.test(value);
+function isValidCollectorAnalysis(value: unknown) {
+  if (!isJsonObject(value) || !Array.isArray(value.categories)) return false;
+  const categories = value.categories;
+  return (
+    hasText(value.variant_name) &&
+    parseScoreString(value.totalScore) !== null &&
+    hasText(value.verdict) &&
+    hasText(value.overview) &&
+    hasNonEmptyTextItems(value.finalNote) &&
+    categories.length > 0 &&
+    categories.every(
+      (category) =>
+        isJsonObject(category) &&
+        hasText(category.name) &&
+        parseScoreString(category.score) !== null &&
+        hasText(category.text),
+    )
+  );
 }
-
-function hasMeaningfulValue(value: unknown): boolean {
-  if (hasText(value) || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (Array.isArray(value)) return value.some(hasMeaningfulValue);
-  if (isJsonObject(value)) {
-    return Object.values(value).some(hasMeaningfulValue);
-  }
-  return false;
-}
-
-function hasMeaningfulField(value: JsonObject, fields: string[]) {
-  return fields.some((field) => hasMeaningfulValue(value[field]));
-}
-
-const MARKET_BALANCE_LABELS = new Set([
-  "buyer_favored",
-  "balanced",
-  "seller_favored",
-  "unclear",
-]);
-const MARKET_OUTLOOK_LABELS = new Set([
-  "very negative",
-  "negative",
-  "stable",
-  "positive",
-  "very positive",
-]);
 
 function isValidMarketSignal(value: unknown) {
   return (
     isJsonObject(value) &&
-    isMarketScore(value.score) &&
+    isScoreNumber(value.score) &&
     hasText(value.explanation)
   );
 }
 
 function isValidMarketOutlook(value: unknown) {
   return (
-    isJsonObject(value) &&
-    isAllowedText(value.label, MARKET_OUTLOOK_LABELS) &&
-    hasText(value.explanation)
+    isJsonObject(value) && hasText(value.label) && hasText(value.explanation)
+  );
+}
+
+function isValidMarketLabelExplanation(value: unknown) {
+  return (
+    isJsonObject(value) && hasText(value.label) && hasText(value.explanation)
   );
 }
 
@@ -98,42 +91,24 @@ function isValidMarketAnalysis(value: JsonObject) {
     : null;
 
   return Boolean(
-    isMarketScore(value.score) &&
-    hasText(value.explanation) &&
+    isScoreNumber(value.score) &&
+    hasNonEmptyTextItems(value.explanation) &&
     hasText(value.headline) &&
     signals &&
     isValidMarketSignal(signals.demand) &&
     isValidMarketSignal(signals.liquidity) &&
     isValidMarketSignal(signals.momentum) &&
     isValidMarketSignal(signals.stability) &&
-    hasText(value.strongest_segment) &&
-    isAllowedText(value.market_balance, MARKET_BALANCE_LABELS) &&
+    isValidMarketLabelExplanation(value.healthiest_segment) &&
+    isValidMarketLabelExplanation(value.market_balance) &&
     outlook &&
     isValidMarketOutlook(outlook.near_term) &&
     isValidMarketOutlook(outlook.long_term) &&
     hasOnlyTextItems(outlook.upside_drivers) &&
     hasOnlyTextItems(outlook.risks) &&
     evidenceQuality &&
-    isMarketScore(evidenceQuality.score) &&
+    isScoreNumber(evidenceQuality.score) &&
     hasText(evidenceQuality.reason),
-  );
-}
-
-function isValidWorthGradingVariant(value: unknown) {
-  return (
-    isJsonObject(value) &&
-    (isJsonObject(value.card) ||
-      Array.isArray(value.graded_scenarios) ||
-      isJsonObject(value.recommendation) ||
-      isJsonObject(value.attractiveness_level))
-  );
-}
-
-function isValidWorthGrading(value: JsonObject) {
-  return (
-    Array.isArray(value.variants) &&
-    value.variants.length > 0 &&
-    value.variants.every(isValidWorthGradingVariant)
   );
 }
 
@@ -146,17 +121,8 @@ export function isValidStoredFeatureResponse(
   if (storageKey === "collectors_analysis") {
     return (
       Array.isArray(value.analyses) &&
-      value.analyses.some(
-        (analysis) =>
-          isJsonObject(analysis) &&
-          hasText(analysis.variant_name) &&
-          Array.isArray(analysis.categories) &&
-          analysis.categories.some(
-            (category) =>
-              isJsonObject(category) &&
-              hasMeaningfulField(category, ["name", "score", "text"]),
-          ),
-      )
+      value.analyses.length > 0 &&
+      value.analyses.every(isValidCollectorAnalysis)
     );
   }
 
@@ -165,7 +131,7 @@ export function isValidStoredFeatureResponse(
   }
 
   if (storageKey === "worth_grading") {
-    return isValidWorthGrading(value);
+    return isValidWorthGradingResponse(value);
   }
 
   if (storageKey === "ebay_sold") {

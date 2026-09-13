@@ -49,7 +49,6 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       grokOptions: {
         model: "grok-4.5",
         reasoningEffort: "medium",
-        useCodeInterpreter: true,
       },
       instructions: collectorsAnalysisInstructions,
     },
@@ -62,6 +61,10 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
           context.cardNumber,
         );
       },
+      grokOptions: {
+        model: "grok-4.5",
+        reasoningEffort: "medium",
+      },
       instructions: marketAnalysisInstructions,
     },
     worth_grading: {
@@ -69,7 +72,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
         worthGradingInput(context.cardPromptIdentity),
       grokOptions: {
         model: "grok-4.5",
-        reasoningEffort: "medium",
+        reasoningEffort: "high",
         useCodeInterpreter: true,
       },
       instructions: worthGradingInstructions,

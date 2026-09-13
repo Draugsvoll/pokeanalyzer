@@ -27,16 +27,16 @@ export type GrokChatOptions = {
   instructions?: string;
   model?: GrokModel;
   reasoningEffort?: GrokReasoningEffort;
-  signal?: AbortSignal;
   useCodeInterpreter?: boolean;
+  signal?: AbortSignal;
 };
 
 type NormalizedGrokChatOptions = {
   instructions: string;
   model: GrokModel;
   reasoningEffort: GrokReasoningEffort;
-  signal?: AbortSignal;
   useCodeInterpreter: boolean;
+  signal?: AbortSignal;
 };
 
 type GrokTool = { type: "web_search" | "code_interpreter" };
@@ -200,8 +200,8 @@ function normalizeGrokChatOptions(
     instructions: options.instructions ?? DEFAULT_INSTRUCTIONS,
     model: options.model ?? DEFAULT_GROK_MODEL,
     reasoningEffort: options.reasoningEffort ?? DEFAULT_REASONING_EFFORT,
-    signal: options.signal,
     useCodeInterpreter: options.useCodeInterpreter ?? false,
+    signal: options.signal,
   };
 }
 
@@ -216,7 +216,12 @@ function buildGrokRequestPayload(
       effort: options.reasoningEffort,
     },
     input: buildGrokInput(input, options.instructions),
-    tools: buildGrokTools(options.useCodeInterpreter),
+    tools: [
+      { type: "web_search" },
+      ...(options.useCodeInterpreter
+        ? [{ type: "code_interpreter" } as const]
+        : []),
+    ],
     text: {
       format: {
         type: "json_object",
@@ -230,13 +235,6 @@ function buildGrokInput(
   instructions: string,
 ): GrokInputMessage[] {
   return [{ role: "system", content: instructions }, ...input];
-}
-
-function buildGrokTools(useCodeInterpreter: boolean): GrokTool[] {
-  return [
-    { type: "web_search" },
-    ...(useCodeInterpreter ? [{ type: "code_interpreter" } as const] : []),
-  ];
 }
 
 function getResponseText(data: GrokResponse) {

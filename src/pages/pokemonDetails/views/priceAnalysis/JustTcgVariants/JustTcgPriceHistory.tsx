@@ -1,4 +1,10 @@
-import { useId, useMemo, useState, type PointerEvent } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { Layers3 } from "lucide-react";
 import type {
   JustTcgPricePoint,
@@ -52,17 +58,6 @@ function filterHistoryByPeriod(
   }
 
   return filtered;
-}
-
-export function JustTcgHistoryIntro() {
-  return (
-    <div className="just-tcg-history__intro">
-      <h3 className="feature-section-heading">Ungraded Sales</h3>
-      <p>
-        Aggregated sales/listings • <strong>JustTCG</strong>.
-      </p>
-    </div>
-  );
 }
 
 const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -172,11 +167,13 @@ function PriceHistoryChart({
   points,
   changeLabel,
   periodKey,
+  controls,
 }: {
   variant: JustTcgVariant;
   points: JustTcgPricePoint[];
   changeLabel: string;
   periodKey: string;
+  controls: ReactNode;
 }) {
   const gradientId = useId().replaceAll(":", "");
   const [hoveredPointState, setHoveredPointState] = useState<{
@@ -265,6 +262,8 @@ function PriceHistoryChart({
           )}
         </div>
       </div>
+
+      {controls}
 
       <div className="just-tcg-history__chart-wrap" key={periodKey}>
         <svg
@@ -460,18 +459,57 @@ export function JustTcgPriceHistory({
   if (!selectedGroup || !selectedVariant) {
     return (
       <section className="just-tcg-history just-tcg-history--empty default-container ui-render-fade">
-        <header>
-          <JustTcgHistoryIntro />
-        </header>
         <p>Historical pricing is unavailable for this card.</p>
       </section>
     );
   }
 
+  const segmentControls = (
+    <div className="just-tcg-history__segment-row">
+      <fieldset
+        aria-label="Condition"
+        className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--condition"
+      >
+        <div>
+          {selectedGroup.variants.map((variant) => (
+            <label key={variant.id}>
+              <input
+                checked={selectedVariant.condition === variant.condition}
+                name={`${controlId}-condition`}
+                type="radio"
+                value={variant.condition}
+                onChange={() => setSelectedCondition(variant.condition)}
+              />
+              <span>{variant.condition}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset
+        aria-label="Time period"
+        className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--period"
+      >
+        <div>
+          {HISTORY_PERIODS.map((period) => (
+            <label key={period.id}>
+              <input
+                checked={selectedPeriodId === period.id}
+                name={`${controlId}-period`}
+                type="radio"
+                value={period.id}
+                onChange={() => setSelectedPeriodId(period.id)}
+              />
+              <span>{period.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </div>
+  );
+
   return (
     <section className="just-tcg-history default-container ui-render-fade">
       <header>
-        <JustTcgHistoryIntro />
         <div className="just-tcg-history__controls">
           <fieldset
             aria-label="Variant"
@@ -505,69 +543,30 @@ export function JustTcgPriceHistory({
               })}
             </div>
           </fieldset>
-          <div className="just-tcg-history__segment-row">
-            <fieldset
-              aria-label="Condition"
-              className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--condition"
-            >
-              <div>
-                {selectedGroup.variants.map((variant) => (
-                  <label key={variant.id}>
-                    <input
-                      checked={selectedVariant.condition === variant.condition}
-                      name={`${controlId}-condition`}
-                      type="radio"
-                      value={variant.condition}
-                      onChange={() => setSelectedCondition(variant.condition)}
-                    />
-                    <span>{variant.condition}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <fieldset
-              aria-label="Time period"
-              className="just-tcg-history__radio-group just-tcg-history__radio-group--segment just-tcg-history__radio-group--period"
-            >
-              <div>
-                {HISTORY_PERIODS.map((period) => (
-                  <label key={period.id}>
-                    <input
-                      checked={selectedPeriodId === period.id}
-                      name={`${controlId}-period`}
-                      type="radio"
-                      value={period.id}
-                      onChange={() => setSelectedPeriodId(period.id)}
-                    />
-                    <span>{period.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </div>
         </div>
       </header>
-      <div
-        className="just-tcg-history__content ui-render-fade"
-        key={`${selectedVariant.id}-${selectedPeriod.id}`}
-      >
+      <div className="just-tcg-history__content ui-render-fade">
         {selectedVariant.priceHistory.length >= 2 &&
         periodPoints.length >= 2 ? (
           <PriceHistoryChart
             changeLabel={selectedPeriod.changeLabel}
+            controls={segmentControls}
             periodKey={`${selectedVariant.id}-${selectedPeriod.id}`}
             points={periodPoints}
             variant={selectedVariant}
           />
         ) : (
-          <div className="just-tcg-history__chart-empty" role="status">
-            <strong>Historical pricing unavailable</strong>
-            <span>
-              {selectedVariant.priceHistory.length < 2
-                ? `No price history was returned for ${selectedVariant.condition}.`
-                : `Not enough data points for the ${selectedPeriod.label} window.`}
-            </span>
-          </div>
+          <>
+            {segmentControls}
+            <div className="just-tcg-history__chart-empty" role="status">
+              <strong>Historical pricing unavailable</strong>
+              <span>
+                {selectedVariant.priceHistory.length < 2
+                  ? `No price history was returned for ${selectedVariant.condition}.`
+                  : `Not enough data points for the ${selectedPeriod.label} window.`}
+              </span>
+            </div>
+          </>
         )}
       </div>
     </section>

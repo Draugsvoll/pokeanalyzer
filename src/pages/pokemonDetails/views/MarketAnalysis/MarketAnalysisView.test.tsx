@@ -4,13 +4,19 @@ import { MarketAnalysisView } from "./MarketAnalysisView";
 
 const response = JSON.stringify({
   score: 63,
-  explanation: "Steady demand and liquidity support a functional market.",
+  explanation: [
+    "Steady demand and liquidity support a functional market.",
+    "Recent pricing supports the overall assessment.",
+  ],
   headline: "Prices and sales activity are broadly stable.",
   evidence_quality: {
     score: 72,
     reason: "Several recent sales were available.",
   },
-  market_balance: "balanced",
+  market_balance: {
+    label: "balanced",
+    explanation: "Supply and demand are broadly matched.",
+  },
   market_signals: {
     demand: {
       score: 61,
@@ -41,7 +47,10 @@ const response = JSON.stringify({
     risks: ["More supply could pressure prices."],
     upside_drivers: ["Consistent collector demand."],
   },
-  strongest_segment: "PSA 9",
+  healthiest_segment: {
+    label: "PSA 9",
+    explanation: "Recent sales and listings support steady activity.",
+  },
 });
 
 describe("MarketAnalysisView", () => {
@@ -62,15 +71,60 @@ describe("MarketAnalysisView", () => {
       screen.getByText("Prices and sales activity are broadly stable."),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", { level: 2, name: "Summary" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Position in the market" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Other" })).toBeNull();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Outlook" }),
+    ).toBeInTheDocument();
+    const detailsContainer = screen
+      .getByRole("heading", { level: 2, name: "Summary" })
+      .closest(".default-container");
+    expect(
+      screen
+        .getByRole("heading", { name: "Analysis confidence" })
+        .closest(".market-analysis-report__summary-section"),
+    ).toBe(
+      screen
+        .getByRole("heading", { level: 2, name: "Summary" })
+        .closest(".market-analysis-report__summary-section"),
+    );
+    expect(detailsContainer).not.toBe(
+      screen
+        .getByRole("heading", { level: 2, name: "Outlook" })
+        .closest(".default-container"),
+    );
+    expect(
       screen.getByText(
         "Steady demand and liquidity support a functional market.",
       ),
     ).toBeInTheDocument();
     expect(
+      screen.getByText("Recent pricing supports the overall assessment."),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText("Recent sales show steady buyer interest."),
     ).toBeInTheDocument();
     expect(screen.getByText("PSA 9")).toBeInTheDocument();
-    expect(screen.getByText("Demand: 61")).toBeInTheDocument();
+    expect(
+      screen.getByText("Recent sales and listings support steady activity."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Supply and demand are broadly matched."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Healthiest segment" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Market balance" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Demand" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Demand score: 61 out of 100" }),
+    ).toHaveTextContent("61");
     expect(
       screen.getByRole("img", {
         name: "Analysis confidence score: 72 out of 100",
@@ -85,13 +139,77 @@ describe("MarketAnalysisView", () => {
     ).toBeInTheDocument();
   });
 
-  it("rejects a malformed response", () => {
+  it("renders valid scores and flexible labels", () => {
+    const data = JSON.parse(response);
     render(
       <MarketAnalysisView
-        grokRequest={{ error: "", loading: false, response: "{}" }}
+        grokRequest={{
+          error: "",
+          loading: false,
+          response: JSON.stringify({
+            ...data,
+            score: 1,
+            market_balance: { ...data.market_balance, label: "mixed by grade" },
+            outlook: {
+              ...data.outlook,
+              near_term: { ...data.outlook.near_term, label: "flat" },
+            },
+          }),
+        }}
       />,
     );
 
+    expect(
+      screen.getByRole("img", { name: "Market health score: 1 out of 100" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Mixed by grade")).toBeInTheDocument();
+    expect(screen.getByText("Flat")).toBeInTheDocument();
+  });
+
+  it("rejects responses with incorrect field types", () => {
+    render(
+      <MarketAnalysisView
+        grokRequest={{
+          error: "",
+          loading: false,
+          response: JSON.stringify({
+            ...JSON.parse(response),
+            explanation: "A legacy string explanation.",
+          }),
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
+  });
+
+  it("rejects market scores outside the 1–100 integer range", () => {
+    const data = JSON.parse(response);
+    data.market_signals.demand.score = 0;
+    render(
+      <MarketAnalysisView
+        grokRequest={{
+          error: "",
+          loading: false,
+          response: JSON.stringify(data),
+        }}
+      />,
+    );
+    expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
+  });
+
+  it("rejects the old single-string healthiest segment", () => {
+    const data = JSON.parse(response);
+    data.healthiest_segment = "PSA 9";
+    render(
+      <MarketAnalysisView
+        grokRequest={{
+          error: "",
+          loading: false,
+          response: JSON.stringify(data),
+        }}
+      />,
+    );
     expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
   });
 });

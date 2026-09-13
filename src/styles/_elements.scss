@@ -46,7 +46,6 @@ h6 {
 /* Do not put default padding on `p` — it breaks centered UI (hero, forms, cards). */
 p {
   font-size: var(--font-size-paragraph-sm);
-  font-weight: var(--font-weight-medium);
   margin: 0;
   padding: 0;
 }
@@ -219,12 +218,12 @@ input[type="radio"] {
   border-radius: var(--default-container-radius);
   box-sizing: border-box;
   padding: var(--default-container-padding);
+  padding-inline: 2rem;
 }
 
 .default-container-inner--centered {
   display: grid;
   justify-items: center;
-  text-align: center;
 }
 
 .default-container-header {

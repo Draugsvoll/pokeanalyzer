@@ -30,8 +30,9 @@
 
 .worth-grading-view__overview-reasoning {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   max-width: var(--max-text-width);
+  margin-top: 0.5rem;
 
   p {
     color: var(--font-color-secondary);
@@ -85,7 +86,7 @@
 
 .worth-grading-view__section-title {
   color: var(--font-color-primary);
-  font-size: var(--font-size-h3);
+  font-size: var(--font-size-h2);
   font-weight: var(--font-weight-bold);
   line-height: var(--font-leading-snug);
   margin: 0;
@@ -94,7 +95,7 @@
 .worth-grading-view__scenario-grid {
   align-items: start;
   display: grid;
-  gap: 0.85rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -416,114 +417,6 @@
   }
 }
 
-.worth-grading-view__collapsible-details {
-  summary {
-    align-items: center;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    list-style: none;
-    position: relative;
-
-    &::before {
-      bottom: calc(-1 * var(--default-container-padding));
-      content: "";
-      left: calc(-1 * var(--default-container-padding));
-      position: absolute;
-      right: calc(-1 * var(--default-container-padding));
-      top: calc(-1 * var(--default-container-padding));
-    }
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    h3 {
-      margin: 0;
-    }
-
-    svg {
-      border-bottom: 1px solid transparent;
-      color: var(--font-color-muted);
-      height: 1.15rem;
-      transition: border-color var(--animation-duration-fast)
-        var(--animation-ease-standard);
-      width: 1.15rem;
-    }
-
-    &:hover svg {
-      border-bottom-color: currentColor;
-    }
-  }
-
-  &[open] summary::before {
-    bottom: 0;
-  }
-}
-
-.worth-grading-view__collapsible-content {
-  align-content: start;
-  display: grid;
-  gap: 0.75rem;
-  min-width: 0;
-  padding: var(--space-4) 0 0;
-
-  h3 {
-    color: var(--font-color-primary);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--font-leading-snug);
-    margin: 0;
-  }
-
-  ul {
-    display: grid;
-    gap: var(--space-4) var(--space-5);
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  li {
-    align-content: start;
-    color: var(--font-color-secondary);
-    display: grid;
-    font-size: var(--font-size-paragraph-sm);
-    gap: 0.25rem var(--space-2);
-    grid-template-columns: auto minmax(0, 1fr);
-    line-height: var(--font-leading-normal);
-    padding: var(--default-container-inner-padding);
-
-    > strong {
-      color: var(--font-color-primary);
-      font-weight: var(--font-weight-semibold);
-      grid-column: 2;
-      font-size: var(--font-size-paragraph);
-    }
-
-    > p {
-      grid-column: 2;
-    }
-
-    &::before {
-      background: var(--worth-grading-accent);
-      border-radius: var(--border-radius-round);
-      content: "";
-      grid-row: 1 / span 2;
-      height: var(--glow-dot-size);
-      margin-top: 0.65em;
-      opacity: var(--glow-dot-opacity);
-      width: var(--glow-dot-size);
-    }
-  }
-
-  p {
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    line-height: var(--font-leading-normal);
-  }
-}
-
 .worth-grading-view__decision-summary {
   display: grid;
   gap: var(--space-3);
@@ -560,21 +453,6 @@
   }
 }
 
-.worth-grading-view__notes {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.worth-grading-view__notes-grid {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 58rem) {
   .worth-grading-view__scenario-grid {
     grid-template-columns: 1fr;
@@ -586,10 +464,6 @@
   }
 
   .worth-grading-view__decision-summary-content {
-    grid-template-columns: 1fr;
-  }
-
-  .worth-grading-view__notes-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -4,13 +4,16 @@ import { isValidStoredFeatureResponse } from "./cardGrokStore.js";
 
 const marketAnalysisResponse = {
   score: 63,
-  explanation: "Steady demand and liquidity support a functional market.",
+  explanation: ["Steady demand and liquidity support a functional market."],
   headline: "Prices and sales activity are broadly stable.",
   evidence_quality: {
     score: 72,
     reason: "Several recent sales were available.",
   },
-  market_balance: "balanced",
+  market_balance: {
+    label: "balanced",
+    explanation: "Supply and demand are broadly matched.",
+  },
   market_signals: {
     demand: {
       score: 61,
@@ -41,16 +44,99 @@ const marketAnalysisResponse = {
     risks: ["A rapid increase in supply could pressure prices."],
     upside_drivers: ["Consistent collector demand."],
   },
-  strongest_segment: "PSA 9",
+  healthiest_segment: {
+    label: "PSA 9",
+    explanation: "Recent sales and listings support steady activity.",
+  },
+};
+
+const collectorAnalysisResponse = {
+  analyses: [
+    {
+      variant_name: "Unlimited Holofoil",
+      totalScore: "75",
+      verdict: "A familiar collectible with broad demand.",
+      overview: "This print has a longstanding place in collections.",
+      categories: [
+        "Rarity & Scarcity",
+        "Collectors Demand",
+        "Significance",
+        "Artwork & Aesthetics",
+        "Long-Term Collectibility",
+      ].map((name) => ({
+        name,
+        score: "75",
+        text: "Strong collector interest.",
+      })),
+      finalNote: ["Collectors value this print for its history."],
+    },
+  ],
+};
+
+const worthGradingResponse = {
+  variants: [
+    {
+      card: {
+        name: "Charizard",
+        set: "Base Set",
+        number: "4/102",
+        variant_name: "Unlimited Holofoil",
+      },
+      attractiveness_level: {
+        score: "72",
+        reasoning: ["Collector demand supports grading interest."],
+      },
+      raw_sale_today: {
+        gross_sale_usd: 200,
+        estimated_fees_usd: 25,
+        net_proceeds_usd: 175,
+        time_to_sell: "Two to four weeks",
+      },
+      graded_scenarios: [
+        {
+          grade: "PSA 9",
+          expected_sale_price_usd: 500,
+          grading_tier: "Value",
+          grading_tier_justification: "Standard tier",
+          psa_grading_fee_usd: 25,
+          shipping_and_insurance_usd: 20,
+          ebay_fees_usd: 65,
+          ebay_fee_model: "Standard fee",
+          roi_vs_raw_net_percent: 122.9,
+          net_profit_vs_raw_usd: 215,
+          turnaround_time: "45 business days",
+          psa_note: null,
+        },
+      ],
+      psa_population: { psa_population_total: null },
+      potential: "high",
+      headline: "Strong grading potential for clean copies.",
+      bottom_line: "Consider grading clean copies.",
+      risk_profile: {
+        label: "average",
+        explanation: "Condition uncertainty affects the outcome.",
+      },
+    },
+  ],
 };
 
 test("stored feature validation accepts each current response shape", () => {
   assert.equal(
+    isValidStoredFeatureResponse(
+      "collectors_analysis",
+      collectorAnalysisResponse,
+    ),
+    true,
+  );
+  assert.equal(
     isValidStoredFeatureResponse("collectors_analysis", {
       analyses: [
         {
-          variant_name: "Unlimited",
-          categories: [{ name: "Collector demand", score: "75" }],
+          ...collectorAnalysisResponse.analyses[0],
+          totalScore: "1",
+          categories: [
+            { name: "Custom category", score: "1", text: "Usable content." },
+          ],
         },
       ],
     }),
@@ -63,26 +149,105 @@ test("stored feature validation accepts each current response shape", () => {
   assert.equal(
     isValidStoredFeatureResponse("market_analysis", {
       ...marketAnalysisResponse,
-      score: "63",
+      score: 1,
+      market_balance: {
+        ...marketAnalysisResponse.market_balance,
+        label: "mixed by grade",
+      },
+      outlook: {
+        ...marketAnalysisResponse.outlook,
+        near_term: {
+          ...marketAnalysisResponse.outlook.near_term,
+          label: "flat",
+        },
+      },
     }),
     true,
   );
   assert.equal(
+    isValidStoredFeatureResponse("worth_grading", worthGradingResponse),
+    true,
+  );
+  assert.equal(
     isValidStoredFeatureResponse("worth_grading", {
-      variants: [{ card: {} }],
+      variants: [
+        {
+          ...worthGradingResponse.variants[0],
+          raw_sale_today: {
+            ...worthGradingResponse.variants[0].raw_sale_today,
+            time_to_sell: null,
+          },
+          graded_scenarios: [
+            {
+              ...worthGradingResponse.variants[0].graded_scenarios[0],
+              grading_tier: null,
+              grading_tier_justification: null,
+              ebay_fee_model: null,
+              turnaround_time: null,
+            },
+          ],
+        },
+      ],
     }),
     true,
   );
+  for (const psaPopulation of [undefined, null, {}, "unavailable"]) {
+    assert.equal(
+      isValidStoredFeatureResponse("worth_grading", {
+        variants: [
+          {
+            ...worthGradingResponse.variants[0],
+            attractiveness_level: {
+              score: "1",
+              reasoning: ["A valid explanation."],
+            },
+            potential: "mixed",
+            risk_profile: { label: "variable", explanation: "It depends." },
+            psa_population: psaPopulation,
+          },
+        ],
+      }),
+      true,
+    );
+  }
 });
 
 test("stored feature validation rejects missing or empty analysis content", () => {
   for (const [storageKey, value] of [
     ["collectors_analysis", { analyses: [] }],
     [
+      "collectors_analysis",
+      {
+        analyses: [
+          {
+            ...collectorAnalysisResponse.analyses[0],
+            finalNote: "Old string note",
+          },
+        ],
+      },
+    ],
+    [
       "market_analysis",
       {
         ...marketAnalysisResponse,
-        market_balance: "unknown",
+        market_balance: {
+          label: 42,
+          explanation: "Supply and demand are broadly matched.",
+        },
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        healthiest_segment: "PSA 9",
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        market_balance: "balanced",
       },
     ],
     [
@@ -103,10 +268,110 @@ test("stored feature validation rejects missing or empty analysis content", () =
       },
     ],
     [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        score: "63",
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        explanation: "A legacy string explanation.",
+      },
+    ],
+    [
       "collectors_analysis",
       { analyses: [{ variant_name: "Unlimited", categories: [{}] }] },
     ],
     ["worth_grading", { variants: [] }],
+    [
+      "collectors_analysis",
+      {
+        analyses: [
+          { ...collectorAnalysisResponse.analyses[0], totalScore: "0" },
+        ],
+      },
+    ],
+    [
+      "collectors_analysis",
+      {
+        analyses: [
+          {
+            ...collectorAnalysisResponse.analyses[0],
+            categories: [{ name: "Custom", score: "101", text: "Reason." }],
+          },
+        ],
+      },
+    ],
+    ["market_analysis", { ...marketAnalysisResponse, score: 0 }],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        market_signals: {
+          ...marketAnalysisResponse.market_signals,
+          demand: { score: 63.5, explanation: "Half point." },
+        },
+      },
+    ],
+    [
+      "market_analysis",
+      {
+        ...marketAnalysisResponse,
+        evidence_quality: { score: 101, reason: "Out of range." },
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            ...worthGradingResponse.variants[0],
+            attractiveness_level: { score: "0", reasoning: ["Reason."] },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            ...worthGradingResponse.variants[0],
+            attractiveness_level: { score: "65.5", reasoning: ["Reason."] },
+          },
+        ],
+      },
+    ],
+    ["worth_grading", { variants: [{ card: {} }] }],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            ...worthGradingResponse.variants[0],
+            raw_sale_today: {
+              ...worthGradingResponse.variants[0].raw_sale_today,
+              net_proceeds_usd: "175",
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "worth_grading",
+      {
+        variants: [
+          {
+            ...worthGradingResponse.variants[0],
+            risk_profile: undefined,
+            recommendation: { bottom_line: "Legacy field" },
+          },
+        ],
+      },
+    ],
     ["worth_grading", { variants: [{}] }],
     ["worth_grading", { variants: [{ unrelated: true }] }],
     ["worth_grading", { variants: [null] }],

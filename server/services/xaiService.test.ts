@@ -71,7 +71,7 @@ test("chat sends the documented xAI payload with app defaults", async (t) => {
   });
 });
 
-test("chat applies custom instructions, model, reasoning, and interpreter", async (t) => {
+test("chat applies custom instructions, model, reasoning, and code interpreter", async (t) => {
   const requests = mockSuccessfulXaiRequest(t);
 
   await chat("Pikachu 58/102 Base Set", {

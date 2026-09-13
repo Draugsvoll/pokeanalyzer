@@ -8,6 +8,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { parseScoreString } from "../../../../../shared/analysisScores";
 import { useState } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -19,24 +20,42 @@ import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
   name: string;
-  score: string;
+  score: number;
   text: string;
 };
 
 type CollectorAnalysisData = {
   variantName: string;
-  totalScore: string;
+  totalScore: number;
   verdict: string;
   overview: string;
   categories: CollectorCategory[];
-  finalNote: string;
+  finalNote: string[];
 };
 
 type CollectorAnalysisProps = {
   grokRequest: GrokRequestState;
 };
 
-const categoryIcons: LucideIcon[] = [Gem, Users, Landmark, Palette, Clock3];
+const categories: { name: string; icon: LucideIcon }[] = [
+  { name: "Rarity & Scarcity", icon: Gem },
+  { name: "Collectors Demand", icon: Users },
+  { name: "Significance", icon: Landmark },
+  { name: "Artwork & Aesthetics", icon: Palette },
+  { name: "Long-Term Collectibility", icon: Clock3 },
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function nonEmptyText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function parseScore(value: unknown): number | null {
+  return parseScoreString(value);
+}
 
 function getScoreTone(score: number) {
   if (score >= 90) return "Elite collectible";
@@ -51,32 +70,45 @@ function getScoreTone(score: number) {
 function parseCollectorAnalysisEntry(
   data: Record<string, unknown>,
 ): CollectorAnalysisData | null {
-  if (!Array.isArray(data.categories)) return null;
+  if (!Array.isArray(data.categories) || data.categories.length === 0) {
+    return null;
+  }
 
-  const categories = data.categories
-    .filter(
-      (category): category is Record<string, unknown> =>
-        Boolean(category) &&
-        typeof category === "object" &&
-        !Array.isArray(category),
-    )
-    .map((category) => ({
-      name: String(category.name ?? "Category"),
-      score: String(category.score ?? "0"),
-      text: String(category.text ?? ""),
-    }));
+  const variantName = nonEmptyText(data.variant_name);
+  const totalScore = parseScore(data.totalScore);
+  const verdict = nonEmptyText(data.verdict);
+  const overview = nonEmptyText(data.overview);
+  const finalNote = data.finalNote;
+  if (
+    !variantName ||
+    totalScore === null ||
+    !verdict ||
+    !overview ||
+    !Array.isArray(finalNote) ||
+    finalNote.length === 0 ||
+    !finalNote.every(nonEmptyText)
+  ) {
+    return null;
+  }
 
-  const variantName =
-    typeof data.variant_name === "string" ? data.variant_name.trim() : "";
-  if (!variantName) return null;
+  const parsedCategories = data.categories.map((category) => {
+    if (!isRecord(category)) return null;
+    const name = nonEmptyText(category.name);
+    const score = parseScore(category.score);
+    const text = nonEmptyText(category.text);
+    return name && score !== null && text ? { name, score, text } : null;
+  });
+  if (parsedCategories.some((category) => category === null)) {
+    return null;
+  }
 
   return {
     variantName,
-    totalScore: String(data.totalScore ?? "0"),
-    verdict: String(data.verdict ?? ""),
-    overview: String(data.overview ?? ""),
-    categories,
-    finalNote: String(data.finalNote ?? ""),
+    totalScore,
+    verdict,
+    overview,
+    categories: parsedCategories as CollectorCategory[],
+    finalNote: finalNote.map((paragraph) => paragraph.trim()),
   };
 }
 
@@ -90,19 +122,15 @@ function parseCollectorAnalysis(
   }
 
   const root = value as Record<string, unknown>;
-  const rawAnalyses: unknown[] = Array.isArray(root.analyses)
-    ? root.analyses
-    : [];
-
-  const analyses = rawAnalyses
-    .filter(
-      (item): item is Record<string, unknown> =>
-        Boolean(item) && typeof item === "object" && !Array.isArray(item),
-    )
-    .map(parseCollectorAnalysisEntry)
-    .filter((analysis): analysis is CollectorAnalysisData => Boolean(analysis));
-
-  return analyses.length > 0 ? analyses : null;
+  if (!Array.isArray(root.analyses) || root.analyses.length === 0) return null;
+  const analyses = root.analyses.map((item) =>
+    isRecord(item) ? parseCollectorAnalysisEntry(item) : null,
+  );
+  return analyses.every(
+    (analysis): analysis is CollectorAnalysisData => analysis !== null,
+  )
+    ? analyses
+    : null;
 }
 
 export default function CollectorAnalysis({
@@ -131,10 +159,7 @@ export default function CollectorAnalysis({
     ? selectedVariantIndex
     : 0;
   const analysis = analyses[activeVariantIndex];
-  const totalScore = Math.min(
-    100,
-    Math.max(0, Number(analysis.totalScore) || 0),
-  );
+  const totalScore = analysis.totalScore;
   const scoreTone = getScoreTone(totalScore);
 
   return (
@@ -172,7 +197,7 @@ export default function CollectorAnalysis({
               {scoreTone}
             </Badge>
           }
-          eyebrow="Overall score"
+          eyebrow="Collector score"
           headline={analysis.verdict}
           score={totalScore}
           scoreLabel="Overall collector score"
@@ -181,11 +206,10 @@ export default function CollectorAnalysis({
 
         <div className="collector-ranking__categories">
           {analysis.categories.map((category, index) => {
-            const Icon = categoryIcons[index] ?? Gem;
-            const score = Math.min(
-              100,
-              Math.max(0, Number(category.score) || 0),
-            );
+            const Icon =
+              categories.find(({ name }) => name === category.name)?.icon ??
+              Gem;
+            const score = category.score;
 
             return (
               <article
@@ -215,17 +239,17 @@ export default function CollectorAnalysis({
           })}
         </div>
 
-        {analysis.finalNote && (
-          <section className="collector-ranking__conclusion collector-ranking__category default-container">
-            <div className="feature-analysis-card-header">
-              <h4>
-                <FileText size={19} aria-hidden="true" />
-                Conclusion
-              </h4>
-            </div>
-            <p>{analysis.finalNote}</p>
-          </section>
-        )}
+        <section className="collector-ranking__conclusion collector-ranking__category default-container">
+          <div className="feature-analysis-card-header">
+            <h4>
+              <FileText size={19} aria-hidden="true" />
+              Overview
+            </h4>
+          </div>
+          {analysis.finalNote.map((paragraph, index) => (
+            <p key={`${paragraph}-${index}`}>{paragraph}</p>
+          ))}
+        </section>
       </div>
     </div>
   );

@@ -1,11 +1,10 @@
-import { ChevronDown, Layers3, Scale } from "lucide-react";
+import { Layers3, Scale } from "lucide-react";
+import { parseScoreString } from "../../../../../shared/analysisScores";
 import { useState, type ReactNode } from "react";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
-import {
-  FeatureAnalysisHero,
-  FeatureAnalysisScoreMeter,
-} from "../../components/FeatureAnalysisPanel";
+import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
+import { isValidWorthGradingResponse } from "../../../../../shared/validateWorthGrading";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
@@ -55,36 +54,30 @@ type PsaPopulation = {
   psa_population_total?: number | string | null;
 };
 
-type ConfidenceLevel = {
-  reasoning?: string | null;
-  score?: string | null;
-};
-
 type AttractivenessLevel = {
   reasoning?: string[] | null;
   score?: string | null;
 };
 
-type Recommendation = {
-  bottom_line?: string | null;
-  headline?: string | null;
-  notes?: string[] | null;
-  potential?: string | null;
+type RiskProfile = {
+  explanation?: string | null;
+  label?: string | null;
 };
 
 type WorthGradingVariant = {
-  assumptions?: unknown;
   attractiveness_level?: AttractivenessLevel;
+  bottom_line?: string | null;
   card?: CardInfo;
-  confidence_level?: ConfidenceLevel;
-  graded_scenarios?: unknown;
-  psa_population?: PsaPopulation;
+  graded_scenarios?: GradedScenario[];
+  headline?: string | null;
+  potential?: string | null;
+  psa_population?: PsaPopulation | null;
   raw_sale_today?: RawSaleToday;
-  recommendation?: Recommendation;
+  risk_profile?: RiskProfile;
 };
 
 type WorthGradingResponse = {
-  variants?: unknown;
+  variants: WorthGradingVariant[];
 };
 
 const EMPTY_VALUE = "-";
@@ -99,7 +92,6 @@ function formatPotentialLabel(potential: string) {
 function getPotentialBadgeAccent(potential: string) {
   switch (potential.trim().toLowerCase()) {
     case "negative":
-    case "none":
     case "very low":
       return "red";
     case "marginal":
@@ -115,10 +107,24 @@ function getPotentialBadgeAccent(potential: string) {
   }
 }
 
+function getRiskBadgeAccent(label: string) {
+  switch (label.trim().toLowerCase()) {
+    case "low":
+      return "green";
+    case "average":
+      return "yellow";
+    case "high":
+      return "orange";
+    case "very high":
+      return "red";
+    default:
+      return "neutral";
+  }
+}
+
 function parseWorthGradingResponse(response: string) {
   const parsed = parseJsonText(response);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-    return null;
+  if (!isValidWorthGradingResponse(parsed)) return null;
   return parsed as WorthGradingResponse;
 }
 
@@ -128,29 +134,6 @@ function asStringList(value: unknown) {
     (item): item is string =>
       typeof item === "string" && item.trim().length > 0,
   );
-}
-
-type TitledDetail = {
-  text: string;
-  title: string;
-};
-
-function asTitledDetails(
-  value: unknown,
-  textField: "assumption" | "reason",
-): TitledDetail[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
-
-    const record = item as Record<string, unknown>;
-    const title = typeof record.title === "string" ? record.title.trim() : "";
-    const text =
-      typeof record[textField] === "string" ? record[textField].trim() : "";
-
-    return title && text ? [{ text, title }] : [];
-  });
 }
 
 function asNumber(value: unknown) {
@@ -168,6 +151,23 @@ function asNumber(value: unknown) {
   const number = Number(normalized);
 
   return Number.isFinite(number) ? number : null;
+}
+
+function getRenderablePopulation(value: unknown): PsaPopulation | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const population = value as Record<string, unknown>;
+  const countFields = [
+    "psa_population_total",
+    "psa_population_psa10",
+    "psa_population_psa9",
+    "psa_population_psa8",
+    "psa_population_psa7",
+    "psa_population_psa6",
+  ];
+  return countFields.every((field) => asNumber(population[field]) !== null)
+    ? (value as PsaPopulation)
+    : null;
 }
 
 function hasParenthesizedNumber(value: unknown) {
@@ -234,14 +234,6 @@ function getNumberTone(value: unknown) {
   return number < 0 ? "negative" : "positive";
 }
 
-function isScenario(value: unknown): value is GradedScenario {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isVariant(value: unknown): value is WorthGradingVariant {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function FieldCard({
   children,
   label,
@@ -305,11 +297,11 @@ function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
           </CostRow>
         </div>
       </div>
-      <div className="worth-grading-view__scenario-support">
-        <FieldCard label="eBay sell time">
-          {displayValue(rawSale.time_to_sell)}
-        </FieldCard>
-      </div>
+      {rawSale.time_to_sell?.trim() && (
+        <div className="worth-grading-view__scenario-support">
+          <FieldCard label="eBay sell time">{rawSale.time_to_sell}</FieldCard>
+        </div>
+      )}
     </section>
   );
 }
@@ -437,39 +429,49 @@ function ScenarioCard({
             </div>
           </div>
 
-          <div className="worth-grading-view__scenario-support">
-            <div className="worth-grading-view__scenario-meta">
-              <FieldCard label="turnaround">
-                {displayValue(scenario.turnaround_time)}
-              </FieldCard>
-              <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
-                <span>grading tier</span>
-                <div>
-                  <strong>{displayValue(scenario.grading_tier)}</strong>
-                  <small>{formatCurrency(scenario.psa_grading_fee_usd)}</small>
-                </div>
+          {(scenario.turnaround_time?.trim() ||
+            scenario.grading_tier?.trim() ||
+            scenario.psa_note?.trim()) && (
+            <div className="worth-grading-view__scenario-support">
+              <div className="worth-grading-view__scenario-meta">
+                {scenario.turnaround_time?.trim() && (
+                  <FieldCard label="turnaround">
+                    {scenario.turnaround_time}
+                  </FieldCard>
+                )}
+                {scenario.grading_tier?.trim() && (
+                  <div className="worth-grading-view__metric worth-grading-view__tier-metric default-container-inner">
+                    <span>grading tier</span>
+                    <div>
+                      <strong>{scenario.grading_tier}</strong>
+                      <small>
+                        {formatCurrency(scenario.psa_grading_fee_usd)}
+                      </small>
+                    </div>
+                  </div>
+                )}
               </div>
+              {scenario.psa_note?.trim() && (
+                <p className="worth-grading-view__accent-note default-container-inner">
+                  {scenario.psa_note}
+                </p>
+              )}
             </div>
-            {scenario.psa_note?.trim() && (
-              <p className="worth-grading-view__accent-note default-container-inner">
-                {scenario.psa_note}
-              </p>
-            )}
-          </div>
+          )}
         </>
       )}
     </section>
   );
 }
 
-function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
-  const totalPopulation = asNumber(population?.psa_population_total);
+function PsaPopulationCard({ population }: { population: PsaPopulation }) {
+  const totalPopulation = asNumber(population.psa_population_total);
   const reportedGradeCounts = [
-    ["PSA 10", population?.psa_population_psa10],
-    ["PSA 9", population?.psa_population_psa9],
-    ["PSA 8", population?.psa_population_psa8],
-    ["PSA 7", population?.psa_population_psa7],
-    ["PSA 6", population?.psa_population_psa6],
+    ["PSA 10", population.psa_population_psa10],
+    ["PSA 9", population.psa_population_psa9],
+    ["PSA 8", population.psa_population_psa8],
+    ["PSA 7", population.psa_population_psa7],
+    ["PSA 6", population.psa_population_psa6],
   ] as const;
   const reportedPopulation = reportedGradeCounts.reduce(
     (sum, [, value]) => sum + (asNumber(value) ?? 0),
@@ -491,7 +493,7 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
     <article className="worth-grading-view__population-card default-container-inner">
       <div className="worth-grading-view__population-total">
         <span>Total Population</span>
-        <strong>{formatNumber(population?.psa_population_total)}</strong>
+        <strong>{formatNumber(population.psa_population_total)}</strong>
       </div>
       <div className="worth-grading-view__population-grades">
         {gradeCounts.map(([label, value]) => {
@@ -511,7 +513,7 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
               <div
                 aria-label={
                   hasPercentage
-                    ? `${label} population: ${formatNumber(value)} of ${formatNumber(population?.psa_population_total)}`
+                    ? `${label} population: ${formatNumber(value)} of ${formatNumber(population.psa_population_total)}`
                     : undefined
                 }
                 aria-valuemax={hasPercentage ? 100 : undefined}
@@ -532,35 +534,6 @@ function PsaPopulationCard({ population }: { population?: PsaPopulation }) {
   );
 }
 
-function CollapsibleTitledDetailList({
-  items = [],
-  title,
-}: {
-  items?: TitledDetail[];
-  title: string;
-}) {
-  if (!items.length) return null;
-
-  return (
-    <details className="worth-grading-view__collapsible-details default-container">
-      <summary>
-        <h3>{title}</h3>
-        <ChevronDown aria-hidden="true" />
-      </summary>
-      <div className="worth-grading-view__collapsible-content">
-        <ul>
-          {items.map((item, index) => (
-            <li key={`${item.title}-${index}`}>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
-  );
-}
-
 export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
   const [selectedVariant, setSelectedVariant] = useState({
@@ -578,11 +551,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
   if (!data)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
-  const variants = Array.isArray(data.variants)
-    ? data.variants.filter(isVariant)
-    : [];
-  if (!variants.length)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+  const variants = data.variants;
 
   const selectedVariantIndex =
     selectedVariant.responseKey === responseKey ? selectedVariant.index : 0;
@@ -590,25 +559,12 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
     ? selectedVariantIndex
     : 0;
   const activeVariant = variants[activeVariantIndex];
-  const assumptions = asTitledDetails(activeVariant.assumptions, "assumption");
-  const scenarios = Array.isArray(activeVariant.graded_scenarios)
-    ? activeVariant.graded_scenarios.filter(isScenario)
-    : [];
-  const recommendation = activeVariant.recommendation;
-  const notes = asStringList(recommendation?.notes);
-  const confidence = activeVariant.confidence_level;
-  const confidenceScoreValue = asNumber(confidence?.score);
-  const confidenceScore =
-    confidenceScoreValue == null
-      ? null
-      : Math.min(100, Math.max(0, confidenceScoreValue));
+  const scenarios = activeVariant.graded_scenarios ?? [];
+  const population = getRenderablePopulation(activeVariant.psa_population);
+  const riskProfile = activeVariant.risk_profile;
   const attractiveness = activeVariant.attractiveness_level;
   const attractivenessReasoning = asStringList(attractiveness?.reasoning);
-  const attractivenessScoreValue = asNumber(attractiveness?.score);
-  const attractivenessScore =
-    attractivenessScoreValue == null
-      ? null
-      : Math.min(100, Math.max(0, attractivenessScoreValue));
+  const attractivenessScore = parseScoreString(attractiveness?.score);
   const rawSale = activeVariant.raw_sale_today;
   const hasRawSale = Boolean(
     rawSale &&
@@ -660,24 +616,23 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             className="worth-grading-view__variant-content ui-render-fade"
             key={`${responseKey}-${activeVariantIndex}`}
           >
-            {(recommendation?.potential?.trim() ||
-              recommendation?.headline?.trim() ||
+            {(activeVariant.potential?.trim() ||
+              activeVariant.headline?.trim() ||
               attractivenessReasoning.length > 0 ||
               attractivenessScore != null) && (
               <FeatureAnalysisHero
                 badge={
-                  recommendation?.potential?.trim() ? (
+                  activeVariant.potential?.trim() ? (
                     <Badge
-                      accent={getPotentialBadgeAccent(recommendation.potential)}
+                      accent={getPotentialBadgeAccent(activeVariant.potential)}
                       weight="strong"
                     >
-                      {formatPotentialLabel(recommendation.potential)} max
-                      profit
+                      {formatPotentialLabel(activeVariant.potential)} max profit
                     </Badge>
                   ) : undefined
                 }
                 eyebrow="Overall Score"
-                headline={recommendation?.headline?.trim() || undefined}
+                headline={activeVariant.headline?.trim() || undefined}
                 score={attractivenessScore}
                 scoreLabel="Grading attractiveness score"
               >
@@ -692,9 +647,9 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
             )}
             {(scenarios.length > 0 || hasRawSale) && (
               <section className="worth-grading-view__json-section default-container">
-                <h3 className="worth-grading-view__section-title">
+                <h2 className="worth-grading-view__section-title">
                   Calculations
-                </h3>
+                </h2>
                 <div className="worth-grading-view__scenario-grid">
                   {scenarios.map((scenario, index) => (
                     <ScenarioCard
@@ -709,13 +664,13 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                 </div>
               </section>
             )}
-            {(recommendation?.bottom_line?.trim() ||
-              confidenceScore != null ||
-              confidence?.reasoning?.trim()) && (
+            {(activeVariant.bottom_line?.trim() ||
+              riskProfile?.label?.trim() ||
+              riskProfile?.explanation?.trim()) && (
               <section className="worth-grading-view__decision-summary default-container">
-                <h3 className="worth-grading-view__section-title">Summary</h3>
+                <h2 className="worth-grading-view__section-title">Summary</h2>
                 <div className="worth-grading-view__decision-summary-content">
-                  {recommendation?.bottom_line?.trim() && (
+                  {activeVariant.bottom_line?.trim() && (
                     <section className="worth-grading-view__decision-summary-item default-container-inner">
                       <div className="feature-analysis-card-header">
                         <h4>
@@ -723,25 +678,25 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                           Recommendation
                         </h4>
                       </div>
-                      <p>{recommendation.bottom_line}</p>
+                      <p>{activeVariant.bottom_line}</p>
                     </section>
                   )}
-                  {(confidenceScore != null ||
-                    confidence?.reasoning?.trim()) && (
+                  {(riskProfile?.label?.trim() ||
+                    riskProfile?.explanation?.trim()) && (
                     <section className="worth-grading-view__decision-summary-item default-container-inner">
                       <div className="feature-analysis-card-header">
-                        {confidenceScore != null && (
-                          <FeatureAnalysisScoreMeter
-                            label="Confidence score"
-                            score={confidenceScore}
-                            showMaximum={false}
-                            size="icon"
-                          />
+                        {riskProfile.label?.trim() && (
+                          <Badge
+                            accent={getRiskBadgeAccent(riskProfile.label)}
+                            weight="strong"
+                          >
+                            {formatPotentialLabel(riskProfile.label)} risk
+                            profile
+                          </Badge>
                         )}
-                        <h4>Analysis confidence</h4>
                       </div>
-                      {confidence?.reasoning?.trim() && (
-                        <p>{confidence.reasoning}</p>
+                      {riskProfile.explanation?.trim() && (
+                        <p>{riskProfile.explanation}</p>
                       )}
                     </section>
                   )}
@@ -749,33 +704,14 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
               </section>
             )}
 
-            {notes.length > 0 && (
-              <section className="worth-grading-view__notes default-container">
-                <h3 className="worth-grading-view__section-title">Notes</h3>
-                <div className="worth-grading-view__notes-grid">
-                  {notes.map((note, index) => (
-                    <p
-                      className="worth-grading-view__accent-note default-container-inner"
-                      key={`${note}-${index}`}
-                    >
-                      {note}
-                    </p>
-                  ))}
-                </div>
+            {population && (
+              <section className="worth-grading-view__json-section default-container">
+                <h2 className="worth-grading-view__section-title">
+                  PSA Population
+                </h2>
+                <PsaPopulationCard population={population} />
               </section>
             )}
-
-            <CollapsibleTitledDetailList
-              items={assumptions}
-              title="Assumptions"
-            />
-
-            <section className="worth-grading-view__json-section default-container">
-              <h3 className="worth-grading-view__section-title">
-                PSA Population
-              </h3>
-              <PsaPopulationCard population={activeVariant.psa_population} />
-            </section>
           </div>
         </div>
       </article>

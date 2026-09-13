@@ -16,43 +16,7 @@
     min-width: 0;
 
     > header {
-      align-items: flex-start;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      /* Match vertical rhythm of summary card gap below */
       margin-bottom: 1.25rem;
-    }
-
-    > header h3:not(.feature-section-heading) {
-      color: var(--font-color-primary);
-      font-size: var(--font-size-h2);
-      margin: 0;
-    }
-
-    &__intro {
-      align-items: end;
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-      min-width: 0;
-      width: 100%;
-    }
-
-    &__intro p {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-paragraph);
-      line-height: var(--font-leading-normal);
-      margin: 0;
-      margin-top: 0.25rem;
-      padding: 0;
-      text-align: right;
-
-      strong {
-        color: var(--font-color-secondary);
-        font-size: inherit;
-        font-weight: var(--font-weight-semibold);
-      }
     }
 
     &__controls {
@@ -69,6 +33,7 @@
       display: grid;
       gap: 0.85rem;
       grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 1.35rem;
       width: 100%;
     }
 
@@ -505,20 +470,6 @@
   .just-tcg-variants {
     .just-tcg-history {
       --default-container-padding: 1rem;
-
-      > header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      &__intro {
-        align-items: start;
-        grid-template-columns: 1fr;
-      }
-
-      &__intro p {
-        text-align: left;
-      }
 
       &__controls {
         width: 100%;

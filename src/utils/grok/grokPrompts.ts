@@ -4,23 +4,29 @@ import type {
 } from "./grokPromptTypes";
 
 const extraToolsInstructions = `
-Complete all tool calls internally before producing the final response, no matter how easy the task is.
+Complete all tool calls internally before producing the final response.
 Never mention web_search, code_interpreter, search queries, or any planning steps.
-Return only the final analysis as the required JSON object.
+Return only an answer once you have produced the final output in the required JSON format which is shown below.
 `.trim();
 
 export const marketAnalysisInstructions: string = `
+${extraToolsInstructions}
+
+If there are multiple variants of this card, choose the most common one. Do not blend variants, choose only one.
+
 # TASK
-Give a score 1-100 on how healthy and functional the markets are for this card relative to other pokemon cards. Explain how you concluded your score.
+Give a score 1-100 on how healthy and functional the markets are for this card. The score is only market-focused, we don't care about it as a collectable.
 
 # OUTPUT
-Output must be purely market focused, do not mention its position as a collectable or as a grading candidate.
 Answer only in the following JSON schema. No text added before or after the JSON object.
+Output must be purely market focused, do not mention its position as a collectable or as a grading candidate.
 
 {
+"set_name":"set name of the card",
+"variant_name":"Official print/variant name of the card",
 "score":"score 1-100. Only return an Integer",
-"explanation":"Fully explain why it deserved the score you gave it. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans.",
-"headline":"One sentence summary which serves as a headline to let me know it's position in the market",
+"explanation":["Explain why it deserved the score you gave it. It should give me a sense of what dragged the score down, and what pulled it up. Do not shorten or truncate your answer. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans. This field is an array so that lengthy texts can be split into paragraphs"],
+"headline":"One sentence summary which to let me know it's position in the market",
 "market_signals":{
 	"demand":{
 		"score":"score 1-100. Only return an Integer",
@@ -39,8 +45,14 @@ Answer only in the following JSON schema. No text added before or after the JSON
 		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
 	}
 },
-"strongest_segment":"Concisely state which grade or condition appears to perform best in the market",
-"market_balance":"buyer_favored | balanced | seller_favored | unclear",
+"healthiest_segment": {
+"label": "Concisely state which grade or condition appears to be the most healthy and functional in the markets. Preferably only 1 grade and/or 1 condition.",
+"explanation": "Very concisely describe the market health and functionality at the grades/condition you mentioned in label"
+},
+"market_balance": {
+"label":"buyer_favored | balanced | seller_favored | unclear",
+"explanation": "Very concise explanation of why it deserved the label you gave. Clarify if it's different across grades or conditions"
+},
 "outlook": {
 "near_term": {
 	"label": "very negative | negative | stable | positive | very positive",
@@ -60,9 +72,13 @@ Answer only in the following JSON schema. No text added before or after the JSON
 "evidence_quality": {
 "score":"score 1-100. Only return an Integer",
 "reason": "Explain why it deserved the score you gave."
-},
-"notes":["If there is anything important or valueable a collector must know that hasn't been adressed yet, add it in here. Must be market focused. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans."]
 }
+}
+
+# OUTPUT RULES
+- all "explanation" fields should use normal sentence structure, preferably avoid semicolons or colons. They should also give a sense of what held the score back.
+- lean towards neutral language with a neutral tone
+- Never say "across conditions". Clarify if it's raw, graded, or both.
 
 All "score" fields must be whole integers from 1 through 100. Return them as JSON numbers, not strings.
 
@@ -223,13 +239,13 @@ Use exactly this structure example (field names and nesting must match):
 export const collectorsAnalysisInstructions: string = `
 ${extraToolsInstructions}
 
-You are an expert Pokémon TCG collectible analyst.
-
-Your task is to rate the provided card as a collectible for Pokémon collectors on a scale of 1-100.
+# TASK
+Rate this card as a collectible for Pokemon collectors on a scale of 1-100.
 
 ### Core Rules
-- Identify every distinct English variant/print that has reliable collector data.
+- Identify every distinct English variant/print. All variants must be from the same set, don't use multiple sets.
 - Analyze each English variant separately. Never blend or average different variants.
+- Treat each variant as an independent analysis.
 - In "variant_name" field insert the official and commonly used variant name for the card. For example, "Unlimited Holofoil", "1st Edition Shadowless Holofoil", "Reverse Holofoil", etc.
 - Completely ignore Japanese and all non-English variants.
 - Never invent anything.
@@ -279,7 +295,7 @@ For every variant, score these five categories independently from overall score:
           "text": "Justification"
         }
       ],
-      "finalNote": "Reasoning for the totalScore. You can add facts or history about the card if it's valuable to a collector. Explain how this variant fits into a collection and the broader market."
+      "finalNote": ["Reasoning for the totalScore. You can add facts or history about the card if it's valuable to a collector. If this variant is tricky to identify, then clarify how to do that. Explain how this variant fits into a collection and the collection hobby as a whole. This is an array so that lengthy texts can be split into paragraphs"]
     }
   ]
 }
@@ -290,18 +306,19 @@ For every variant, score these five categories independently from overall score:
 - Keep the overview concise and collector-focused.
 - Every English variant is an item in the "analyses" array. Each variant must have its own complete analysis.
 
-Now analyze the card.
+# OUTPUT RULES
+- In all fields named "text" and "finalNote" don't truncate or shorten the text.
+- In all fields named "text" be specific and detailed.
+- Explaining how to identify a variant should ONLY be explained in finalNote.
 
 `.trim();
 
 export const worthGradingInstructions: string = `
   ${extraToolsInstructions}
 
-  I own this card. Can it make sense to grade & sell it, instead of just selling it raw?
-
-  I need to know this for every English variant of the card, as long as it has reliable data available. Don't include Japanese variants.
-
-  Break down the grading economics for PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Default/primary source for price data should be PriceCharting, but you can use others if you have a strong reason to. Mention which source you used in "assumptions", if you didn't use PriceCharting explain why. Use reliable sources for all data.
+  # TASK
+  Research the grading economics for this card at PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Default/primary source for price data should be PriceCharting, if you skip it as a source you need good a reason for it. You can combine price sources to estimate expected selling prices. Use reliable sources for all data.
+  I need to know this for every English variant of the card, as long as it has reliable data available. All variants must be from the same set, don't use multiple sets. Treat each variant as an independent analysis.
 
   Remember ebay can have different fee structure/model for high prices, account for that in calculations.
 
@@ -337,16 +354,9 @@ export const worthGradingInstructions: string = `
   "number": "",
   "variant_name": ""
   },
-  "assumptions": [
-    {"title":"title for the assumption", "assumption":"describe the assumption"}
-  ],
-  "confidence_level":{
-  "score":"Score 1-100 on how confident you feel about this analysis. Must be a string containing only a number. For example '83'",
-   "reasoning":"Explain why you are feeling this level of confidence in your analysis as a whole. Use neutral language in a neutral tone. If the score is below 80, make it clear what's dragging it down."
-  },
   "attractiveness_level": {
-  "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. Must be a string containing only a number, for example '65'",
-  "reasoning":["Explain why it deserved the score you gave it. Explain it outside of just the paper profit numbers, and don't contradict the paper profit calculations. I should have a basic sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. Structure it into paragraphs"]
+  "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. This is without knowing what grade it will come back as. Must be a string containing only the score, for example '65'",
+  "reasoning":["Explain why it deserved the score you gave it, outside of just the paper profit numbers. You don't need to explain profit levels since we already display this in other fields. I should have a sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. This field is an array so that lengthy texts can be split into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,
@@ -421,28 +431,33 @@ export const worthGradingInstructions: string = `
   "psa_population_psa7": null,
   "psa_population_psa6": null
   },
-  "recommendation": {
   "potential": "",
   "headline": "",
   "bottom_line":"",
-  "notes":[""]
+   "risk_profile":{
+   "label":"low | average | high | very high ",
+   "explanation":"explain why it deserved the label you chose. If there are risks or pitfalls that affects this card more than a typical card, mention it. Use neutral language with a neutral tone."
   }
   }
   ]
   }
 
-Writing rules for the following text fields ("title", "headline", "bottom_line", "notes", "reasoning"):
-- Write like a collector explaining the card to another collector. The tone and language should sound professional.
+# OUTPUT RULES
+output rules for the following text fields ("title", "bottom_line", "reasoning", "explanation"):
+- Use only neutral language with a neutral tone.
+- Avoid financial jargon, phrases or slogans.
 - Avoid truncation and semicolons.
 - Titles must be plain labels, not slogans.
 - Always say PSA 7, PSA 8, PSA 9, and PSA 10. Never say "a seven", "an 8", "a nine", "a ten"
 - Do not omit "PSA" in titles.
 - Do not use telegraphic titles such as "Ten pricing is soft" or "An 8 still works".
-- Good title examples: "PSA 8 is the lowest grade that still beats selling raw", "PSA 10 sold data for this print is thin".
-- Bad title examples: "An 8 still works", "Ten pricing is soft"
 - Spell out dollar amounts as $1,475 not "1475 dollar".
+- When mentioning profits, always use the numbers from our calculations in schema and only refer to it as paper profits.
+- You don't need to state profits, fees or costs in these fields since we are already doing that in other fields.
+- Never refer to data or a source as a "snapshot"
+- Never cite the specific sources for PSA population data.
 
-The field "potential" describes how much net incremental gains are available if my card comes back as a perfect PSA10. Must choose exactly one of these labels "negative", "very low", "marginal", "modest", "good", "high", "very high".
+The field "potential" describes how much net incremental gains are available if my card comes back as a perfect PSA10. Must choose exactly one of these labels "negative", "very low", "marginal", "modest", "good", "high", "very high". If PSA10 sales data is completely unavailable, then measure against the highest PSA grade which has sales data available.
 
 label definitions:
 "negative": below 0$
@@ -453,15 +468,9 @@ label definitions:
 "high": $1,001 to $5,000
 "very high": more than $5,000
 
-The field "headline" is a headline version of explaining its attractiveness outside of just looking at paper profit numbers. Maximum 25 words.
+The field "headline" is a headline version of its general attractiveness for submission outside of just looking at paper profit numbers. This is without knowing what grade it will be. If you mention something about profits, it must align with our calculations in the schema. Maximum 25 words.
 
-The field "bottom_line" is an overall recommendation/guide with all things considered. You don't need to break down numbers since we already have a field with all calculations. Make things clear and don't shorten or truncate. Don't explain that aiming for a PSA10 is gambling or unrealistic, that's self-explanatory.
-Adjust the strength of your wording proportionally to the size of the actual edge or risk.
-When mentioning probabilities or expected values, justify how you concluded them.
-
-The field "notes" is an optional field. If there are any important or valueable considerations for grading this exact card/variant that hasn't been mentioned already, put it in here. If everything important and valueable has already been adressed, leave it empty,
-
-In the field "assumptions" mention your assumptions.
+The field "bottom_line" A simplified concise conclusion if grading make sense, and under what conditions or circumstances. Do not list out profit levels or explain higher grade has higher profit, everybody knows that. If you mention something about paper profit, don't measure it with pricecharting figures, simply state it. Don't shorten or truncate. Don't explain that aiming for a PSA10 is gambling or unrealistic since that's self-explanatory.
 
 PSA Population:
 Use the public PSA Population Report on psacard.com first. Make sure you have the correct card (set, card number and variant).
@@ -471,11 +480,12 @@ If you can't find psa population data from a reliable source then return null (d
 
 Don't forget to populate "psa_population_psa6" when filling in psa_population data.
 
-When calculating Profit vs Raw and ROI:
-Calculate Raw Net = Raw sale price - selling fees on the raw sale.
-Calculate Graded Net = Graded sale price - grading costs - selling fees on the graded sale.
-Profit vs Raw = Graded Net - Raw Net
-ROI = (Graded Net - Raw Net) / Raw Net * 100
+raw_sale_today.estimated_fees_usd = estimated ebay selling fee
+raw_sale_today.net_proceeds_usd = raw_sale_today.gross_sale_usd - raw_sale_today.estimated_fees_usd
+
+For each graded_scenarios entry:
+net_profit_vs_raw_usd = expected_sale_price_usd - psa_grading_fee_usd - shipping_and_insurance_usd - ebay_fees_usd - raw_sale_today.net_proceeds_usd
+roi_vs_raw_net_percent = net_profit_vs_raw_usd / raw_sale_today.net_proceeds_usd × 100
 
 Never use the raw sale price directly as the baseline without subtracting its selling fees.
 
