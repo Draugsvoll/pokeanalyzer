@@ -31,6 +31,7 @@ const FILTER_TRANSITION_MS = 250;
 type EbaySoldViewProps = {
   card: PokemonCard;
   runToken: number;
+  demoResponse?: EbayCompsResponse;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
   onLoadingChange?: (loading: boolean) => void;
   onReportAvailableChange?: (available: boolean) => void;
@@ -525,6 +526,7 @@ function matchesGrade(
 export default function EbaySoldView({
   card,
   runToken,
+  demoResponse,
   onSubscriptionChange,
   onLoadingChange,
   onReportAvailableChange,
@@ -566,7 +568,8 @@ export default function EbaySoldView({
   );
 
   useEffect(() => {
-    if (runToken <= 0) return;
+    if (runToken <= 0 || card.id === "demo" || demoResponse !== undefined)
+      return;
 
     async function loadEbayListings() {
       const params = new URLSearchParams({ cardId: card.id });
@@ -649,6 +652,7 @@ export default function EbaySoldView({
     onReportAvailableChange,
     onSubscriptionChange,
     runToken,
+    demoResponse,
     startRequest,
   ]);
 
@@ -662,7 +666,7 @@ export default function EbaySoldView({
   if (error)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
 
-  const responseData = response as
+  const responseData = (demoResponse ?? response) as
     | { sold?: EbayCompsResponse; active?: EbayCompsResponse }
     | EbayCompsResponse;
   const splitResponse =

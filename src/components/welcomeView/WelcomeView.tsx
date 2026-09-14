@@ -1,4 +1,6 @@
 import React from "react";
+import { ArrowRight, Layers3 } from "lucide-react";
+import { Link } from "react-router-dom";
 import "./WelcomeView.scss";
 import { INFO_CARDS } from "../../data/infoCards";
 import { getCustomColors } from "../../utils/customStylings";
@@ -34,6 +36,24 @@ export const WelcomeView: React.FC = () => {
           })}
         </div>
       </section>
+
+      <div className="welcome-view__demo">
+        <span className="welcome-view__demo-icon" aria-hidden="true">
+          <Layers3 size={20} strokeWidth={1.8} />
+        </span>
+        <div className="welcome-view__demo-copy">
+          <span className="welcome-view__demo-eyebrow">Featured demo</span>
+          <strong>Base Set Charizard</strong>
+          <p>
+            Explore prices, collector analysis, grading, and eBay comps. No
+            sign-in needed.
+          </p>
+        </div>
+        <Link className="welcome-view__demo-link" to="/card/demo">
+          Explore demo
+          <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
+        </Link>
+      </div>
     </div>
   );
 };

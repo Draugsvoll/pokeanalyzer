@@ -12,6 +12,21 @@
   padding: 3rem 0 2rem;
   width: 100%;
 
+  &__demo-note {
+    align-self: center;
+    background: color-mix(in srgb, var(--custom-color-yellow) 9%, var(--bg2));
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-yellow) 38%, transparent);
+    border-radius: var(--border-radius-card);
+    color: color-mix(in srgb, var(--custom-color-yellow) 82%, white);
+    font-size: 0.8rem;
+    margin-block: -1.5rem;
+    max-width: min(100%, 36rem);
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+    width: fit-content;
+  }
+
   &--status {
     min-height: 12rem;
     justify-content: center;

@@ -12,8 +12,10 @@ const mocks = vi.hoisted(() => ({
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
   fetchJustTcgCard: vi.fn(),
+  getSelectedPokemonFromCache: vi.fn(),
   hasSubscription: true,
   loadingSubscription: false,
+  setSelectedPokemonCache: vi.fn(),
   updateSubscription: vi.fn(),
   verifyJustTcgCard: vi.fn(),
 }));
@@ -66,8 +68,8 @@ vi.mock("../../services/cardApi", () => ({
 }));
 
 vi.mock("../../utils/selectedPokemonCache", () => ({
-  getSelectedPokemonFromCache: vi.fn(() => null),
-  setSelectedPokemonCache: vi.fn(),
+  getSelectedPokemonFromCache: mocks.getSelectedPokemonFromCache,
+  setSelectedPokemonCache: mocks.setSelectedPokemonCache,
 }));
 
 vi.mock("../../context/authContextValue", () => ({
@@ -201,10 +203,12 @@ vi.mock("./views/EbaySold/EbaySoldView", async () => {
   const { useEffect, useState } = await import("react");
 
   function MockEbaySoldView({
+    demoResponse,
     onLoadingChange,
     onReportAvailableChange,
     runToken,
   }: {
+    demoResponse?: unknown;
     onLoadingChange: (loading: boolean) => void;
     onReportAvailableChange: (available: boolean) => void;
     runToken: number;
@@ -212,16 +216,20 @@ vi.mock("./views/EbaySold/EbaySoldView", async () => {
     const [response, setResponse] = useState("");
 
     useEffect(() => {
-      if (!runToken) return;
+      if (!runToken || demoResponse) return;
 
       mocks.ebayRuns(runToken);
       onLoadingChange(false);
       onReportAvailableChange(true);
       setResponse(`eBay response ${runToken}`);
-    }, [onLoadingChange, onReportAvailableChange, runToken]);
+    }, [demoResponse, onLoadingChange, onReportAvailableChange, runToken]);
 
     return (
-      <div data-testid="ebay-response">{response || "No eBay response"}</div>
+      <div data-testid="ebay-response">
+        {demoResponse
+          ? "Saved demo eBay response"
+          : response || "No eBay response"}
+      </div>
     );
   }
 
@@ -250,15 +258,32 @@ beforeEach(() => {
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
   mocks.fetchJustTcgCard.mockReset();
+  mocks.getSelectedPokemonFromCache.mockReset();
+  mocks.getSelectedPokemonFromCache.mockReturnValue(null);
+  mocks.setSelectedPokemonCache.mockReset();
   mocks.hasSubscription = true;
   mocks.loadingSubscription = false;
   mocks.updateSubscription.mockReset();
   mocks.verifyJustTcgCard.mockReset();
 
   mocks.fetchCardById.mockImplementation(async (cardId: string) =>
-    cardId === "card-a"
-      ? buildCard("card-a", "Pikachu")
-      : buildCard("card-b", "Raichu"),
+    cardId === "demo"
+      ? {
+          ...buildCard("demo", "Charizard"),
+          just_tcg_history: { data: [{ id: "base-set-charizard" }] },
+          grok: {
+            collectors_analysis: {
+              timestamp: "2026-09-14",
+              report: "collector",
+            },
+            market_analysis: { timestamp: "2026-09-14", report: "market" },
+            worth_grading: { timestamp: "2026-09-14", report: "grading" },
+            ebay_sold: { timestamp: "2026-09-14", sold: {}, active: {} },
+          },
+        }
+      : cardId === "card-a"
+        ? buildCard("card-a", "Pikachu")
+        : buildCard("card-b", "Raichu"),
   );
   mocks.askGrok.mockImplementation(async (feature: string) => ({
     fromDatabase: false,
@@ -268,6 +293,53 @@ beforeEach(() => {
   }));
   mocks.fetchJustTcgCard.mockResolvedValue({ cards: [] });
   mocks.verifyJustTcgCard.mockReturnValue({ verified: true });
+});
+
+test("anonymous demo shows saved analyses without paid requests", async () => {
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  mocks.loadingSubscription = true;
+  mocks.getSelectedPokemonFromCache.mockReturnValue(
+    buildCard("demo", "Charizard"),
+  );
+
+  render(
+    <MemoryRouter initialEntries={["/card/demo"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole("heading", { name: "Charizard" });
+  expect(screen.getByText(/Demo snapshot:/)).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /Collector's Value/ }),
+  ).toBeEnabled();
+  expect(screen.getByTestId("market-price-response")).toHaveTextContent(
+    '"report":"market"',
+  );
+  expect(screen.getByTestId("justtcg-response")).toHaveTextContent(
+    "JustTCG response",
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  expect(screen.getByTestId("collector-response")).toHaveTextContent(
+    '"report":"collector"',
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  expect(screen.getByTestId("grading-response")).toHaveTextContent(
+    '"report":"grading"',
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
+  expect(screen.getByTestId("ebay-response")).toHaveTextContent(
+    "Saved demo eBay response",
+  );
+  expect(mocks.askGrok).not.toHaveBeenCalled();
+  expect(mocks.fetchJustTcgCard).not.toHaveBeenCalled();
+  expect(mocks.ebayRuns).not.toHaveBeenCalled();
+  expect(mocks.getSelectedPokemonFromCache).not.toHaveBeenCalled();
+  expect(mocks.setSelectedPokemonCache).not.toHaveBeenCalled();
 });
 
 test("enables feature actions after authentication and subscription loading", async () => {

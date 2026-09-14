@@ -212,16 +212,32 @@ function getJustTcgCardNumber(result: unknown): string | undefined {
   return undefined;
 }
 
+function getDemoAnalysisResponse(
+  card: PokemonCard,
+  feature: CreditUsageFeature,
+) {
+  const savedResponse =
+    feature === "collector_analysis"
+      ? card.grok?.collectors_analysis
+      : feature === "market_analysis"
+        ? card.grok?.market_analysis
+        : feature === "worth_grading"
+          ? card.grok?.worth_grading
+          : undefined;
+  return savedResponse ? JSON.stringify(savedResponse) : "";
+}
+
 function PokemonDetailsForCard() {
   const { id } = useParams();
+  const isDemo = id === "demo";
   const navigate = useNavigate();
   const cardRequestSequenceRef = useRef(0);
   const routeCardIdRef = useRef(id);
   const [searchResultsHost, setSearchResultsHost] =
     useState<HTMLDivElement | null>(null);
   const cachedCard = useMemo(
-    () => (id ? getSelectedPokemonFromCache(id) : null),
-    [id],
+    () => (id && !isDemo ? getSelectedPokemonFromCache(id) : null),
+    [id, isDemo],
   );
   const [cardRequestState, setCardRequestState] = useState<{
     card: PokemonCard | null;
@@ -373,7 +389,12 @@ function PokemonDetailsForCard() {
 
     const justTcgRequest = fetchJustTcgCard(card.name, cardNumber, signal)
       .then((result) => {
-        setJustTcgResult(verifyJustTcgCard(result, card.set.name, cardNumber));
+        const validatedResult = verifyJustTcgCard(
+          result,
+          card.set.name,
+          cardNumber,
+        );
+        setJustTcgResult(validatedResult);
         setJustTcgResultCardId(card.id);
         return true;
       })
@@ -398,6 +419,7 @@ function PokemonDetailsForCard() {
     action: () => void | Promise<void>,
   ) {
     if (
+      isDemo ||
       !authUser ||
       !card ||
       featureCooldown ||
@@ -540,10 +562,12 @@ function PokemonDetailsForCard() {
           cardId: id,
           loading: false,
         });
-        try {
-          setSelectedPokemonCache(fetchedCard);
-        } catch (cacheError) {
-          logClientError("Failed to refresh selected card cache", cacheError);
+        if (!isDemo) {
+          try {
+            setSelectedPokemonCache(fetchedCard);
+          } catch (cacheError) {
+            logClientError("Failed to refresh selected card cache", cacheError);
+          }
         }
       })
       .catch((error: unknown) => {
@@ -567,7 +591,7 @@ function PokemonDetailsForCard() {
       cardRequestSequenceRef.current += 1;
       controller.abort();
     };
-  }, [cachedCard, id]);
+  }, [cachedCard, id, isDemo]);
 
   useEffect(() => {
     let image: HTMLImageElement | null = null;
@@ -672,7 +696,7 @@ function PokemonDetailsForCard() {
       ),
     }))
     .filter((section) => section.items.length > 0);
-  const cardIsSaved = isCardSaved(card.id);
+  const cardIsSaved = !isDemo && isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
   const portfolioUnavailable =
@@ -681,16 +705,25 @@ function PokemonDetailsForCard() {
     (feature) => feature.view === activeView,
   );
   const currentGrokResponse = activeFeature
-    ? (grokResponses[activeFeature.featureKey] ?? "")
+    ? isDemo
+      ? getDemoAnalysisResponse(card, activeFeature.featureKey)
+      : (grokResponses[activeFeature.featureKey] ?? "")
     : "";
   const currentGrokError = activeFeature
     ? (grokErrors[activeFeature.featureKey] ?? "")
     : "";
-  const currentJustTcgResult =
-    justTcgResultCardId === card.id ? justTcgResult : null;
-  const currentEbayRunToken = ebayRunCardId === card.id ? ebayRunToken : 0;
+  const currentJustTcgResult = isDemo
+    ? (card.just_tcg_history ?? null)
+    : justTcgResultCardId === card.id
+      ? justTcgResult
+      : null;
+  const currentEbayRunToken = isDemo
+    ? 1
+    : ebayRunCardId === card.id
+      ? ebayRunToken
+      : 0;
   const currentEbayReportAvailable =
-    ebayReportCardId === card.id && ebayReportAvailable;
+    isDemo || (ebayReportCardId === card.id && ebayReportAvailable);
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
     error: currentGrokError,
@@ -701,12 +734,14 @@ function PokemonDetailsForCard() {
     (activeView === "prices" && justTcgLoading) ||
     (activeView === "ebay_sold" && ebayLoading);
   const activeFeatureHasResponse =
-    activeView === "prices"
+    isDemo ||
+    (activeView === "prices"
       ? Boolean(currentGrokResponse || currentJustTcgResult)
       : activeView === "ebay_sold"
         ? currentEbayReportAvailable
-        : Boolean(currentGrokResponse);
+        : Boolean(currentGrokResponse));
   const activeFeatureActionDisabled =
+    isDemo ||
     !authUser ||
     featureCooldown ||
     loadingSubscription ||
@@ -723,7 +758,7 @@ function PokemonDetailsForCard() {
           <div className="card-view__details">
             <div className="card-view__image-side">
               <div className="card-view__image-frame">
-                {authUser && (
+                {authUser && !isDemo && (
                   <button
                     type="button"
                     className={`portfolio-toggle-button card-view__portfolio-toggle${
@@ -948,52 +983,64 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      <div className="card-view__credit-bar">
-        <div
-          className={`card-view__credit-note${
-            !subscription && !loadingSubscription
-              ? " card-view__credit-note--auth"
-              : ""
-          }`}
-        >
-          <span className="card-view__credit-cost">
-            <Coins aria-hidden="true" />
-            <strong>1 Credit</strong>
-            <span className="card-view__credit-meta">per analysis</span>
-          </span>
-          <span className="card-view__credit-divider" aria-hidden="true" />
-          <span className="card-view__credit-copy">
-            {loadingSubscription ? (
-              <span
-                className="card-view__credit-spinner"
-                role="status"
-                aria-label="Laster credits"
-              />
-            ) : subscription ? (
-              <span className="card-view__credit-balance">
-                <Wallet aria-hidden="true" />
-                {creditsRemaining} Credits
-              </span>
-            ) : (
-              <>
-                <Button variant="micro" onClick={() => setShowLoginModal(true)}>
-                  Log in
-                </Button>
-                <span className="card-view__credit-auth-muted">or</span>
-                <Link className="card-view__credit-link" to="/signup">
-                  Sign up
-                </Link>
-                <span className="card-view__credit-auth-muted">
-                  for free credits
+      {isDemo ? (
+        <aside className="card-view__demo-note" role="note">
+          Demo snapshot: analyses and prices are saved examples and may be out
+          of date.
+        </aside>
+      ) : (
+        <div className="card-view__credit-bar">
+          <div
+            className={`card-view__credit-note${
+              !subscription && !loadingSubscription
+                ? " card-view__credit-note--auth"
+                : ""
+            }`}
+          >
+            <span className="card-view__credit-cost">
+              <Coins aria-hidden="true" />
+              <strong>1 Credit</strong>
+              <span className="card-view__credit-meta">per analysis</span>
+            </span>
+            <span className="card-view__credit-divider" aria-hidden="true" />
+            <span className="card-view__credit-copy">
+              {loadingSubscription ? (
+                <span
+                  className="card-view__credit-spinner"
+                  role="status"
+                  aria-label="Laster credits"
+                />
+              ) : subscription ? (
+                <span className="card-view__credit-balance">
+                  <Wallet aria-hidden="true" />
+                  {creditsRemaining} Credits
                 </span>
-              </>
+              ) : (
+                <>
+                  <Button
+                    variant="micro"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Log in
+                  </Button>
+                  <span className="card-view__credit-auth-muted">or</span>
+                  <Link className="card-view__credit-link" to="/signup">
+                    Sign up
+                  </Link>
+                  <span className="card-view__credit-auth-muted">
+                    for free credits
+                  </span>
+                </>
+              )}
+            </span>
+            {creditMessage && (
+              <small className="card-view__credit-message">
+                {creditMessage}
+              </small>
             )}
-          </span>
-          {creditMessage && (
-            <small className="card-view__credit-message">{creditMessage}</small>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <section className="card-view__analysis-panel">
         <div className="card-view__actions feature-buttons__row">
@@ -1016,11 +1063,12 @@ function PokemonDetailsForCard() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setActiveView(aiFeature.view)}
                 disabled={
-                  loadingSubscription ||
-                  updatingCredits ||
-                  grokLoading ||
-                  justTcgLoading ||
-                  ebayLoading
+                  !isDemo &&
+                  (loadingSubscription ||
+                    updatingCredits ||
+                    grokLoading ||
+                    justTcgLoading ||
+                    ebayLoading)
                 }
                 aria-pressed={activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}
@@ -1073,7 +1121,10 @@ function PokemonDetailsForCard() {
                 actionHidden={activeFeatureHasResponse}
                 onAction={() => void activeFeature.onOpen()}
                 authActions={
-                  !authUser && !authLoading && !loadingSubscription ? (
+                  !isDemo &&
+                  !authUser &&
+                  !authLoading &&
+                  !loadingSubscription ? (
                     <>
                       <div className="card-feature-header__auth-row">
                         <Button
@@ -1109,6 +1160,7 @@ function PokemonDetailsForCard() {
                   <EbaySoldView
                     card={card}
                     runToken={currentEbayRunToken}
+                    demoResponse={isDemo ? card.grok?.ebay_sold : undefined}
                     onSubscriptionChange={updateSubscription}
                     onLoadingChange={setEbayLoading}
                     onReportAvailableChange={handleEbayReportAvailableChange}

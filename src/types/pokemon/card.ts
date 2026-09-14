@@ -29,6 +29,7 @@ export type PokemonCard = {
   tcgplayer?: TCGPlayer;
   cardmarket?: CardMarket;
   justtcg?: JustTcg;
+  just_tcg_history?: { data: unknown[] };
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };
     market_analysis?: Record<string, unknown> & { timestamp: string };

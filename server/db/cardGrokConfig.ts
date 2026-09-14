@@ -5,7 +5,7 @@ export const CARD_GROK_FEATURES = {
   },
   market_analysis: {
     storageKey: "market_analysis",
-    reuseDays: -8,
+    reuseDays: 8,
   },
   ebay_sold: {
     storageKey: "ebay_sold",

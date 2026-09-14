@@ -1,8 +1,4 @@
-import type {
-  CardMarket,
-  PokemonCard,
-  TCGPlayer,
-} from "../types/pokemon";
+import type { CardMarket, PokemonCard, TCGPlayer } from "../types/pokemon";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -91,8 +87,8 @@ async function readErrorMessage(response: Response) {
   return `Card request failed: ${response.status}`;
 }
 
-async function cardRequest(path: string, signal?: AbortSignal) {
-  const response = await fetch(`${API_URL}${path}`, {
+async function cardRequest(url: string, signal?: AbortSignal) {
+  const response = await fetch(url, {
     cache: "no-store",
     signal,
   });
@@ -101,10 +97,11 @@ async function cardRequest(path: string, signal?: AbortSignal) {
 }
 
 export async function fetchCardById(cardId: string, signal?: AbortSignal) {
-  const value = await cardRequest(
-    `/api/cards/${encodeURIComponent(cardId)}`,
-    signal,
-  );
+  const url =
+    cardId === "demo"
+      ? `${import.meta.env.BASE_URL}demo-card.json`
+      : `${API_URL}/api/cards/${encodeURIComponent(cardId)}`;
+  const value = await cardRequest(url, signal);
   if (!isRecord(value) || value.id !== cardId) {
     throw new Error("Invalid card response");
   }
@@ -118,7 +115,7 @@ export async function fetchCardPriceHistory(
 ) {
   const params = new URLSearchParams({ days: String(days) });
   const value = await cardRequest(
-    `/api/cards/${encodeURIComponent(cardId)}/price-history?${params}`,
+    `${API_URL}/api/cards/${encodeURIComponent(cardId)}/price-history?${params}`,
     signal,
   );
   const history = parsePriceHistoryResponse(value);
