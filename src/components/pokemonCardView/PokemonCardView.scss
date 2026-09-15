@@ -128,10 +128,6 @@
   visibility: visible;
 }
 
-.pokemon-card-view__card:has(.pokemon-card__identity) {
-  gap: 0.15rem;
-}
-
 .pokemon-card-view__card .pokemon-card__name,
 .pokemon-card__set {
   display: block;
@@ -165,7 +161,7 @@
   min-width: 0;
   overflow: hidden;
   width: 100%;
-  margin-top: 0.15rem;
+  margin-top: 0.13rem;
 }
 
 .pokemon-card__set {
@@ -230,7 +226,6 @@
   justify-content: space-between;
   min-width: 0;
   width: 100%;
-  margin-top: 0.1rem;
 }
 
 .pokemon-card__price-current {
@@ -539,7 +534,7 @@
 .pokemon-card-view__card .pokemon-card__name {
   letter-spacing: var(--font-tracking-button);
   line-height: 1.28;
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 
 .pokemon-card__image {
