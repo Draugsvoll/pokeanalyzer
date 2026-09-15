@@ -1,4 +1,3 @@
-import { ChartNoAxesCombined } from "lucide-react";
 import { isScoreNumber } from "../../../../../shared/analysisScores";
 import { Badge } from "../../../../components/ui/Badge";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
@@ -205,7 +204,6 @@ export function MarketAnalysisView({
       <FeatureAnalysisHero
         eyebrow="Market Health"
         headline={data.headline}
-        score={data.score}
         scoreLabel="Market health score"
       >
         <div className="market-analysis-report__overview-content">
@@ -236,17 +234,6 @@ export function MarketAnalysisView({
       <div className="market-analysis-report__details default-container">
         <section className="market-analysis-report__summary-section">
           <h2>Summary</h2>
-          <div className="market-analysis-report__overview-explanation default-container-inner">
-            <header className="feature-analysis-card-header">
-              <h4>
-                <ChartNoAxesCombined aria-hidden="true" />
-                Position in the market
-              </h4>
-            </header>
-            {data.explanation.map((paragraph, index) => (
-              <p key={`${paragraph}-${index}`}>{paragraph}</p>
-            ))}
-          </div>
           <article className="market-analysis-report__confidence default-container-inner default-container-inner--centered">
             <header className="feature-analysis-card-header">
               <FeatureAnalysisScoreMeter

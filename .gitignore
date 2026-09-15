@@ -32,3 +32,5 @@ terminals/
 
 notes.md
 db_notes.md
+server/db/pkmnprices.sqlite*
+server/db/poketrace.sqlite*

@@ -68,6 +68,8 @@ import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
+import PkmnPricesCard from "./PkmnPricesCard";
+import PokeTraceCard from "./PokeTraceCard";
 
 const releaseDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -985,7 +987,7 @@ function PokemonDetailsForCard() {
 
       {isDemo ? (
         <aside className="card-view__demo-note" role="note">
-          Demo snapshot: analyses and prices are saved examples and may be out
+          Demo snapshot: analysis and prices are saved examples and may be out
           of date.
         </aside>
       ) : (
@@ -1202,6 +1204,14 @@ function PokemonDetailsForCard() {
 
 export default function PokemonDetails() {
   const { id } = useParams();
+
+  if (id?.startsWith("poketrace-") && /^poketrace-[0-9a-f-]{36}$/i.test(id)) {
+    return <PokeTraceCard key={id} id={id.slice(10)} />;
+  }
+
+  if (id?.startsWith("pkmn-") && /^pkmn-[1-9]\d*$/.test(id)) {
+    return <PkmnPricesCard key={id} id={id.slice(5)} />;
+  }
 
   // A route-ID change represents a different card. Remounting resets every
   // card-specific analysis/request state and runs all request cleanup before

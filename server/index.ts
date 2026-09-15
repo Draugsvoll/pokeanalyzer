@@ -8,6 +8,8 @@ import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
+import pkmnPricesRoutes from "./db/routes/pkmnPricesRoutes.js";
+import pokeTraceRoutes from "./db/routes/pokeTraceRoutes.js";
 import {
   buildEbayCardRequests,
   fetchEbayComps,
@@ -152,6 +154,8 @@ app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/pkmn-cards", pkmnPricesRoutes);
+app.use("/api/poketrace-cards", pokeTraceRoutes);
 
 app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
   try {

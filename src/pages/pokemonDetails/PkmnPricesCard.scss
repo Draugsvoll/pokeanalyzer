@@ -1,0 +1,22 @@
+.pkmn-card-json {
+  width: min(100% - 2rem, 1100px);
+  margin: 1.5rem auto 4rem;
+  padding: 1rem;
+  border: 1px solid #393d49;
+  border-radius: 0.75rem;
+  background: #15171e;
+  color: #e6e8ec;
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  pre {
+    margin: 0;
+    overflow: auto;
+    max-height: 70vh;
+    font: 0.8rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: pre;
+  }
+}

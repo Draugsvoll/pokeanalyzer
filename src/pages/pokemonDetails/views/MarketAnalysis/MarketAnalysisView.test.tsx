@@ -63,10 +63,10 @@ describe("MarketAnalysisView", () => {
 
     expect(screen.getByText("Market Health")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", {
+      screen.queryByRole("img", {
         name: "Market health score: 63 out of 100",
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText("Prices and sales activity are broadly stable."),
     ).toBeInTheDocument();
@@ -74,8 +74,11 @@ describe("MarketAnalysisView", () => {
       screen.getByRole("heading", { level: 2, name: "Summary" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { level: 4, name: "Position in the market" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", {
+        level: 4,
+        name: "Position in the market",
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Other" })).toBeNull();
     expect(
       screen.getByRole("heading", { level: 2, name: "Outlook" }),
@@ -98,13 +101,13 @@ describe("MarketAnalysisView", () => {
         .closest(".default-container"),
     );
     expect(
-      screen.getByText(
+      screen.queryByText(
         "Steady demand and liquidity support a functional market.",
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText("Recent pricing supports the overall assessment."),
-    ).toBeInTheDocument();
+      screen.queryByText("Recent pricing supports the overall assessment."),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText("Recent sales show steady buyer interest."),
     ).toBeInTheDocument();
@@ -160,8 +163,8 @@ describe("MarketAnalysisView", () => {
     );
 
     expect(
-      screen.getByRole("img", { name: "Market health score: 1 out of 100" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("img", { name: "Market health score: 1 out of 100" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Mixed by grade")).toBeInTheDocument();
     expect(screen.getByText("Flat")).toBeInTheDocument();
   });
