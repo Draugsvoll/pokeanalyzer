@@ -369,11 +369,6 @@ input[type="radio"] {
 
 .feature-analysis-accent-container {
   --feature-analysis-accent: var(--feature-accent, var(--custom-color-blue));
-  --feature-analysis-accent-secondary: color-mix(
-    in srgb,
-    var(--feature-analysis-accent) 72%,
-    white
-  );
 
   align-items: center;
   background:
@@ -402,24 +397,6 @@ input[type="radio"] {
   overflow: hidden;
   padding: 1.25rem 1.45rem;
   position: relative;
-
-  &::before {
-    background: linear-gradient(
-      180deg,
-      var(--feature-analysis-accent),
-      color-mix(
-        in srgb,
-        var(--feature-analysis-accent-secondary) 62%,
-        transparent
-      )
-    );
-    border-radius: var(--border-radius-pill);
-    content: "";
-    inset: 1rem auto 1rem 0;
-    opacity: 0.85;
-    position: absolute;
-    width: 0.22rem;
-  }
 }
 
 .feature-analysis-score {

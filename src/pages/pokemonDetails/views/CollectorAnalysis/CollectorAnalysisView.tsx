@@ -189,7 +189,7 @@ export default function CollectorAnalysis({
         </div>
       </fieldset>
       <div
-        className="collector-ranking__content ui-render-fade"
+        className="collector-ranking__content default-container ui-render-fade"
         key={`${responseKey}-${activeVariantIndex}`}
       >
         <FeatureAnalysisPanel
