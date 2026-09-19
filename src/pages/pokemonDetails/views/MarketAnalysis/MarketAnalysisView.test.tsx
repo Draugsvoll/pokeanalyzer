@@ -66,7 +66,7 @@ describe("MarketAnalysisView", () => {
       screen.queryByRole("img", {
         name: "Market health score: 63 out of 100",
       }),
-    ).toBeNull();
+    ).toHaveTextContent("63");
     expect(
       screen.getByText("Prices and sales activity are broadly stable."),
     ).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("MarketAnalysisView", () => {
         level: 4,
         name: "Position in the market",
       }),
-    ).toBeNull();
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Other" })).toBeNull();
     expect(
       screen.getByRole("heading", { level: 2, name: "Outlook" }),
@@ -104,10 +104,10 @@ describe("MarketAnalysisView", () => {
       screen.queryByText(
         "Steady demand and liquidity support a functional market.",
       ),
-    ).toBeNull();
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText("Recent pricing supports the overall assessment."),
-    ).toBeNull();
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText("Recent sales show steady buyer interest."),
     ).toBeInTheDocument();
@@ -163,8 +163,8 @@ describe("MarketAnalysisView", () => {
     );
 
     expect(
-      screen.queryByRole("img", { name: "Market health score: 1 out of 100" }),
-    ).toBeNull();
+      screen.getByRole("img", { name: "Market health score: 1 out of 100" }),
+    ).toHaveTextContent("1");
     expect(screen.getByText("Mixed by grade")).toBeInTheDocument();
     expect(screen.getByText("Flat")).toBeInTheDocument();
   });

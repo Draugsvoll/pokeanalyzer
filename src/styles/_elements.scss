@@ -858,6 +858,7 @@ input[type="radio"] {
   gap: 0.18rem;
   justify-content: center;
   letter-spacing: 0.02rem;
+  line-height: 1;
   margin: 0;
   max-width: 100%;
   min-width: 3.5rem;
@@ -883,23 +884,6 @@ input[type="radio"] {
     flex: 0 0 auto;
     height: 0.85rem;
     width: 0.85rem;
-  }
-
-  /* Market chips: color only, no fill/border (shared) */
-  &--tcgplayer,
-  &--cardmarket {
-    background: transparent;
-    border-color: transparent;
-    font-weight: var(--font-weight-bold);
-    padding: 0;
-  }
-
-  &--tcgplayer {
-    color: color-mix(in srgb, var(--custom-color-orange) 82%, white);
-  }
-
-  &--cardmarket {
-    color: color-mix(in srgb, var(--custom-color-teal) 78%, white);
   }
 }
 
@@ -943,7 +927,12 @@ input[type="radio"] {
 
 .app-badge--sm {
   font-size: 0.68rem;
-  padding: 0.18rem 0.58rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.app-badge--lg {
+  line-height: var(--font-leading-normal);
+  padding: 0.3rem 0.8rem;
 }
 
 .app-badge--weight-medium {

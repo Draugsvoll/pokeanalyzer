@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
-type BadgeSize = "sm" | "md";
+type BadgeSize = "sm" | "md" | "lg";
 type BadgeWeight = "medium" | "strong";
 type BadgeAccent =
   | "neutral"
@@ -13,7 +13,10 @@ type BadgeAccent =
   | "purple"
   | "teal";
 
-type BadgeProps = Omit<HTMLAttributes<HTMLSpanElement>, "children" | "className"> & {
+type BadgeProps = Omit<
+  HTMLAttributes<HTMLSpanElement>,
+  "children" | "className"
+> & {
   children: ReactNode;
   accent?: BadgeAccent;
   size?: BadgeSize;

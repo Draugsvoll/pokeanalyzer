@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { Header } from "./components/header/Header";
 
 export default function Layout() {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const previousPathRef = useRef<string | null>(null);
   const pageKey = location.pathname.split("/").filter(Boolean)[0] ?? "home";
 
@@ -12,13 +13,19 @@ export default function Layout() {
     const openedDifferentCard =
       location.pathname.startsWith("/card/") &&
       location.pathname !== previousPath;
+    const openedFromVariant =
+      navigationType === "PUSH" &&
+      location.state !== null &&
+      typeof location.state === "object" &&
+      "navigationSource" in location.state &&
+      location.state.navigationSource === "card-variant";
 
-    if (openedDifferentCard) {
+    if (openedDifferentCard && !openedFromVariant) {
       window.scrollTo({ behavior: "instant", left: 0, top: 0 });
     }
 
     previousPathRef.current = location.pathname;
-  }, [location.pathname]);
+  }, [location.pathname, location.state, navigationType]);
 
   return (
     <div className="app">

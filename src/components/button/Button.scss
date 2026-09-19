@@ -100,17 +100,18 @@
 
 /* Solid — previous Search CTA */
 .app-btn-pill--solid {
-  background: var(--feature-accent);
-  border: 1px solid var(--feature-accent);
-  box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--feature-accent) 18%, transparent);
+  --solid-accent: color-mix(in srgb, var(--feature-accent) 88%, black);
+
+  background: var(--solid-accent);
+  border: 1px solid var(--solid-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--solid-accent) 18%, transparent);
   color: var(--button-font-color);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--feature-accent) 92%, white);
-    border-color: color-mix(in srgb, var(--feature-accent) 92%, white);
+    background: color-mix(in srgb, var(--solid-accent) 92%, white);
+    border-color: color-mix(in srgb, var(--solid-accent) 92%, white);
     box-shadow: 0 0 0 2px
-      color-mix(in srgb, var(--feature-accent) 24%, transparent);
+      color-mix(in srgb, var(--solid-accent) 24%, transparent);
     color: var(--button-font-color);
   }
 

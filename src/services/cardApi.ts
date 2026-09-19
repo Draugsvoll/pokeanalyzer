@@ -1,13 +1,12 @@
-import type { CardMarket, PokemonCard, TCGPlayer } from "../types/pokemon";
+import type { PokemonCard } from "../types/pokemon";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 export type CardPriceHistorySnapshot = {
   recordedAt: string;
-  tcgplayerPrices: Partial<TCGPlayer["prices"]> | null;
-  cardmarketPrices: Partial<CardMarket["prices"]> | null;
-  tcgplayerUpdatedAt: string | null;
-  cardmarketUpdatedAt: string | null;
+  currency: string | null;
+  prices: Record<string, unknown>;
+  sourceUpdatedAt: string | null;
 };
 
 export type CardPriceHistoryResponse = {
@@ -27,10 +26,9 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
-function parsePriceObject(value: unknown, field: string) {
-  if (value === null) return null;
+function parsePriceObject(value: unknown) {
   if (!isRecord(value)) {
-    throw new Error(`Invalid ${field} in price-history response`);
+    throw new Error("Invalid prices in price-history response");
   }
   return value;
 }
@@ -50,24 +48,17 @@ function parsePriceHistoryResponse(value: unknown): CardPriceHistoryResponse {
     if (
       !isRecord(snapshot) ||
       typeof snapshot.recordedAt !== "string" ||
-      !isNullableString(snapshot.tcgplayerUpdatedAt) ||
-      !isNullableString(snapshot.cardmarketUpdatedAt)
+      !isNullableString(snapshot.currency) ||
+      !isNullableString(snapshot.sourceUpdatedAt)
     ) {
       throw new Error("Invalid snapshot in price-history response");
     }
 
     return {
       recordedAt: snapshot.recordedAt,
-      tcgplayerPrices: parsePriceObject(
-        snapshot.tcgplayerPrices,
-        "tcgplayerPrices",
-      ) as Partial<TCGPlayer["prices"]> | null,
-      cardmarketPrices: parsePriceObject(
-        snapshot.cardmarketPrices,
-        "cardmarketPrices",
-      ) as Partial<CardMarket["prices"]> | null,
-      tcgplayerUpdatedAt: snapshot.tcgplayerUpdatedAt,
-      cardmarketUpdatedAt: snapshot.cardmarketUpdatedAt,
+      currency: snapshot.currency,
+      prices: parsePriceObject(snapshot.prices),
+      sourceUpdatedAt: snapshot.sourceUpdatedAt,
     };
   });
 

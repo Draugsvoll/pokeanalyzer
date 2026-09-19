@@ -5,8 +5,8 @@ import type {
 
 const extraToolsInstructions = `
 Complete all tool calls internally before producing the final response.
-Never mention web_search, code_interpreter, search queries, or any planning steps.
-Return only an answer once you have produced the final output in the required JSON format which is shown below.
+Never mention web_search, code_interpreter, search queries, or any planning steps. No intermediate steps in response ever.
+Return only an answer once you have produced the final output which can fit the JSON schema shown below.
 `.trim();
 
 export const marketAnalysisInstructions: string = `
@@ -558,23 +558,6 @@ Respond in the JSON format provided below. Your entire response must only be a v
   Use today's date for reference in "date" field.
 
 `.trim();
-
-export function worthGradingInput(cardNameAndSet: string): string {
-  return `"${cardNameAndSet}"`;
-}
-
-export function collectorsAnalysisInput(cardNameAndSet: string): string {
-  return cardNameAndSet;
-}
-
-export function marketAnalysisInput(
-  cardName: string,
-  setName: string,
-  cardNumber: string | number,
-): string {
-  const primaryCardNumber = String(cardNumber).split("/")[0].trim();
-  return `Name: ${cardName} set: ${setName} number:${primaryCardNumber}`;
-}
 
 export function identifyCardPrompt(
   frontImageBase64: string,

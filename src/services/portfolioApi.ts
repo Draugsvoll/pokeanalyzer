@@ -1,7 +1,6 @@
 import type {
   AddPortfolioCardResponse,
   HydratedPortfolioResponse,
-  PortfolioPriceSource,
   PortfolioReference,
   PortfolioReferencesResponse,
 } from "../types/portfolio";
@@ -61,50 +60,6 @@ export function addPortfolioCard(cardId: string, expectedUid: string) {
   });
 }
 
-export function ensurePortfolioJustTcgLookup(
-  cardId: string,
-  expectedUid: string,
-) {
-  return portfolioRequest<unknown>(
-    `/cards/${encodeURIComponent(cardId)}/justtcg-lookup`,
-    expectedUid,
-    { method: "POST" },
-  );
-}
-
-export function getPortfolioJustTcgPrices(
-  expectedUid: string,
-  signal?: AbortSignal,
-) {
-  return portfolioRequest<{
-    cards: Array<{
-      cardId: string;
-      justtcg: HydratedPortfolioResponse["cards"][number]["justtcg"] | null;
-    }>;
-    missingCardIds: string[];
-    portfolioJustTcgPricesFetchedAt?: string;
-  }>("/cards/justtcg-prices", expectedUid, { signal });
-}
-
-export function fillMissingPortfolioJustTcgData(
-  cardIds: string[],
-  expectedUid: string,
-  signal?: AbortSignal,
-) {
-  return portfolioRequest<{
-    cards: Array<{
-      cardId: string;
-      justtcg: HydratedPortfolioResponse["cards"][number]["justtcg"] | null;
-    }>;
-    missingCardIds: string[];
-    portfolioJustTcgPricesFetchedAt?: string;
-  }>("/cards/justtcg-fill-missing", expectedUid, {
-    method: "POST",
-    body: JSON.stringify({ cardIds }),
-    signal,
-  });
-}
-
 export function removePortfolioCard(cardId: string, expectedUid: string) {
   return portfolioRequest<void>(
     `/cards/${encodeURIComponent(cardId)}`,
@@ -124,23 +79,6 @@ export function updatePortfolioCardQuantity(
     {
       method: "PATCH",
       body: JSON.stringify({ quantity }),
-    },
-  );
-}
-
-export function updatePortfolioCardPriceSource(
-  cardId: string,
-  priceSource: PortfolioPriceSource,
-  priceKey: string,
-  selectForAll: boolean,
-  expectedUid: string,
-) {
-  return portfolioRequest<PortfolioReference>(
-    `/cards/${encodeURIComponent(cardId)}/price-source`,
-    expectedUid,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ priceSource, priceKey, selectForAll }),
     },
   );
 }

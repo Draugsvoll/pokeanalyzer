@@ -1,13 +1,10 @@
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import type { PokemonCard } from "../../types/pokemon";
-import type { PortfolioPriceSource } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
   addPortfolioCard,
-  ensurePortfolioJustTcgLookup,
   removePortfolioCard,
-  updatePortfolioCardPriceSource,
   updatePortfolioCardQuantity,
 } from "../../services/portfolioApi";
 
@@ -22,14 +19,6 @@ export function usePokemonPortfolio() {
     try {
       const response = await addPortfolioCard(card.id, authUser.uid);
       upsertPortfolioReference(response.entry);
-      void ensurePortfolioJustTcgLookup(card.id, authUser.uid).catch(
-        (error) => {
-          logClientError(
-            "Failed to enrich portfolio card with JustTCG ID",
-            error,
-          );
-        },
-      );
       return true;
     } catch (error) {
       logClientError("Failed to save card", error);
@@ -80,35 +69,9 @@ export function usePokemonPortfolio() {
     }
   };
 
-  const updatePokemonPriceSource = async (
-    cardId: string,
-    priceSource: PortfolioPriceSource,
-    priceKey: string,
-    selectForAll = false,
-  ) => {
-    if (!authUser || !priceKey.trim()) return false;
-
-    try {
-      const entry = await updatePortfolioCardPriceSource(
-        cardId,
-        priceSource,
-        priceKey,
-        selectForAll,
-        authUser.uid,
-      );
-      upsertPortfolioReference(entry);
-      return true;
-    } catch (error) {
-      logClientError("Failed to update card price source", error);
-      alert("Failed to update price source.");
-      return false;
-    }
-  };
-
   return {
     savePokemonToPortfolio,
     removePokemonFromPortfolio,
     updatePokemonQuantity,
-    updatePokemonPriceSource,
   };
 }

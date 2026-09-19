@@ -53,6 +53,18 @@ test("eBay card requests preserve the sold and active request contract", () => {
   }
 });
 
+test("eBay card requests retain a bare-number fallback for PokeTrace fractions", () => {
+  const { query } = buildEbayCardRequests({
+    cardName: "Charizard",
+    cardNumber: "004/102",
+    formattedCardNumber: "004/102",
+    setName: "Base Set",
+    unpaddedCardNumber: "4/102",
+  });
+
+  assert.equal(query, "Charizard (004/102,4/102,4) Base Set");
+});
+
 test("eBay comps keep only titles containing the card name", () => {
   const response = filterEbayCompsResponseByTitle(
     {

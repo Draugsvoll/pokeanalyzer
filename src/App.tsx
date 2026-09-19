@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./Layout";
 import Homepage from "./pages/homepage/Homepage";
@@ -8,8 +9,13 @@ import Portfolio from "./pages/portfolio/Portfolio";
 import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
 import Admin from "./pages/admin/Admin";
+import { initializePokeTraceCatalog } from "./services/pokeTraceCatalog";
 
 export default function App() {
+  useEffect(() => {
+    void initializePokeTraceCatalog();
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
@@ -20,7 +26,6 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="portfolio" element={<Portfolio />} />
         <Route path="admin" element={<Admin />} />
-        {/* <Route path="uploadcard" element={<CardGrader />} /> */}
 
         <Route path="*" element={<NotFound />} />
       </Route>

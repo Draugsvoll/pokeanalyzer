@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
@@ -7,23 +7,13 @@ import { GridView } from "../../components/gridView/GridView";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
-import {
-  fillMissingPortfolioJustTcgData,
-  getPortfolioJustTcgPrices,
-  getHydratedPortfolio,
-} from "../../services/portfolioApi";
+import { getHydratedPortfolio } from "../../services/portfolioApi";
 import type {
   PortfolioCard,
   PortfolioComparisonPeriod,
-  PortfolioPriceMode,
-  PortfolioPriceSource,
 } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
-import {
-  getDirectPriceChangeForOption,
-  getHistoricalPriceForOption,
-  resolvePortfolioCardPriceOption,
-} from "../../utils/pokemonPricing";
+import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./Portfolio.scss";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -31,159 +21,69 @@ const money = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-function cardQuantity(card: PortfolioCard) {
-  const quantity = Number(card.quantity ?? 1);
-  return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1;
-}
-
-function normalizeFilterValue(value?: string | null) {
-  return (value ?? "").trim().toLocaleLowerCase();
-}
-
-type PortfolioSort =
-  "" | "price-high" | "price-low" | "change-high" | "change-low";
-type PortfolioChangePeriod = Exclude<PortfolioComparisonPeriod, "latest">;
-
-const JUST_TCG_LOOKUP_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
-const JUST_TCG_PRICE_RETRY_MS = 48 * 60 * 60 * 1000;
-const JUST_TCG_UPDATE_RETRY_MS = 24 * 60 * 60 * 1000;
-
-const PORTFOLIO_SORT_OPTIONS: {
-  value: PortfolioSort;
-  label: string;
-}[] = [
+type Sort = "" | "price-high" | "price-low";
+const SORT_OPTIONS: { value: Sort; label: string }[] = [
   { value: "", label: "-" },
   { value: "price-high", label: "Price: high-low" },
   { value: "price-low", label: "Price: low-high" },
-  { value: "change-high", label: "Change: high-low" },
-  { value: "change-low", label: "Change: low-high" },
 ];
 
-const CHANGE_PERIOD_OPTIONS: {
-  value: PortfolioChangePeriod;
+const CHANGE_PERIOD_OPTIONS: Array<{
+  value: PortfolioComparisonPeriod;
   label: string;
-}[] = [
-  { value: "24h", label: "24h" },
-  { value: "7d", label: "7 day" },
-  { value: "30d", label: "30 day" },
+}> = [
+  { value: "1d", label: "1D" },
+  { value: "7d", label: "7D" },
+  { value: "30d", label: "30D" },
 ];
 
-function getPortfolioCardPrice(
-  card: PortfolioCard,
-  priceMode: PortfolioPriceMode,
-) {
-  return resolvePortfolioCardPriceOption(card, priceMode)?.price ?? null;
+function quantity(card: PortfolioCard) {
+  return Number.isSafeInteger(card.quantity) && card.quantity > 0
+    ? card.quantity
+    : 1;
 }
 
-function getPortfolioCardPriceChange(
-  card: PortfolioCard,
-  period: PortfolioChangePeriod,
-  priceMode: PortfolioPriceMode,
-) {
-  const option = resolvePortfolioCardPriceOption(card, priceMode);
-  const comparisonSnapshot = card.priceSnapshots?.[period];
-  const directChange = getDirectPriceChangeForOption(card, option, period);
-  if (directChange !== undefined) return directChange;
-  if (option?.source !== "tcgplayer") return null;
-
-  if (!option || !comparisonSnapshot) {
-    return null;
-  }
-
-  const previousPrice = getHistoricalPriceForOption(option, comparisonSnapshot);
-  if (previousPrice == null) return null;
-
-  return ((option.price - previousPrice) / previousPrice) * 100;
-}
-
-function isRetryDue(failedAt: string | undefined, retryMs: number) {
-  if (!failedAt) return true;
-
-  const failedTime = Date.parse(failedAt);
-  return !Number.isFinite(failedTime) || Date.now() - failedTime >= retryMs;
-}
-
-function shouldRequestMissingJustTcgData(card: PortfolioCard) {
-  if (resolvePortfolioCardPriceOption(card, "justtcg")) return false;
-
-  if (card.justtcgRetry?.hasLookupIds) {
-    return isRetryDue(card.justtcgRetry.priceFailedAt, JUST_TCG_PRICE_RETRY_MS);
-  }
-
-  return isRetryDue(
-    card.justtcgRetry?.lookupFailedAt,
-    JUST_TCG_LOOKUP_RETRY_MS,
-  );
+function price(card: PortfolioCard) {
+  return resolvePokeTraceCardPrice(card)?.price ?? null;
 }
 
 function PortfolioForCurrentUser() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { replacePortfolioReferences } = usePortfolioCache();
-  const activePortfolioRequestRef = useRef(0);
-  const justTcgUpdateAbortRef = useRef<AbortController | null>(null);
-  const justTcgMissingAbortRef = useRef<AbortController | null>(null);
-  const autoMissingJustTcgKeyRef = useRef("");
-  const autoUpdateJustTcgKeyRef = useRef("");
-  const [portfolio, setPortfolio] = useState<PortfolioCard[]>([]);
-  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
-  const [portfolioError, setPortfolioError] = useState("");
+  const [cards, setCards] = useState<PortfolioCard[]>([]);
   const [missingCardIds, setMissingCardIds] = useState<string[]>([]);
-  const priceSource: PortfolioPriceMode = "all";
-  const [nameFilter, setNameFilter] = useState("");
-  const [portfolioSort, setPortfolioSort] = useState<PortfolioSort>("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("");
+  const [sort, setSort] = useState<Sort>("");
   const [changePeriod, setChangePeriod] =
-    useState<PortfolioChangePeriod>("24h");
-  const [loadingJustTcgPrices, setLoadingJustTcgPrices] = useState(false);
-  const [fillingMissingJustTcg, setFillingMissingJustTcg] = useState(false);
-  const [portfolioJustTcgPricesFetchedAt, setPortfolioJustTcgPricesFetchedAt] =
-    useState<string>();
+    useState<PortfolioComparisonPeriod>("1d");
 
-  const loadPortfolio = useCallback(
+  const load = useCallback(
     async (signal?: AbortSignal) => {
-      const requestId = ++activePortfolioRequestRef.current;
-
       if (!user) {
-        setPortfolio([]);
-        setMissingCardIds([]);
-        setPortfolioError("");
-        setPortfolioJustTcgPricesFetchedAt(undefined);
-        setLoadingPortfolio(false);
+        setLoading(false);
         return;
       }
-
-      setLoadingPortfolio(true);
-      setPortfolioError("");
-
+      setLoading(true);
+      setError("");
       try {
         const response = await getHydratedPortfolio(user.uid, signal);
-        if (signal?.aborted || requestId !== activePortfolioRequestRef.current)
-          return;
-        setPortfolio(response.cards);
+        if (signal?.aborted) return;
+        setCards(response.cards);
         setMissingCardIds(response.missingCardIds);
-        setPortfolioJustTcgPricesFetchedAt(
-          response.portfolioJustTcgPricesFetchedAt,
-        );
         replacePortfolioReferences(response.entries);
-      } catch (error) {
-        if (signal?.aborted || requestId !== activePortfolioRequestRef.current)
-          return;
-        logClientError("Failed to load portfolio cards", error);
-        setPortfolio([]);
-        setMissingCardIds([]);
-        setPortfolioJustTcgPricesFetchedAt(undefined);
-        setPortfolioError(
-          error instanceof Error
-            ? error.message
+      } catch (cause) {
+        if (signal?.aborted) return;
+        logClientError("Failed to load portfolio cards", cause);
+        setError(
+          cause instanceof Error
+            ? cause.message
             : "Failed to load your collection.",
         );
       } finally {
-        if (
-          !signal?.aborted &&
-          requestId === activePortfolioRequestRef.current
-        ) {
-          setLoadingPortfolio(false);
-        }
+        if (!signal?.aborted) setLoading(false);
       }
     },
     [replacePortfolioReferences, user],
@@ -191,339 +91,65 @@ function PortfolioForCurrentUser() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const initialize = window.setTimeout(() => {
-      void loadPortfolio(controller.signal);
-    }, 0);
+    const timer = window.setTimeout(() => void load(controller.signal), 0);
     return () => {
-      window.clearTimeout(initialize);
+      window.clearTimeout(timer);
       controller.abort();
-      activePortfolioRequestRef.current += 1;
     };
-  }, [loadPortfolio]);
+  }, [load]);
 
-  useEffect(
-    () => () => {
-      justTcgUpdateAbortRef.current?.abort();
-      justTcgMissingAbortRef.current?.abort();
-    },
-    [],
-  );
-
-  const portfolioCardIdKey = useMemo(
-    () => portfolio.map((card) => card.id).join("|"),
-    [portfolio],
-  );
-
-  const mergeJustTcgCards = useCallback(
-    (
-      cards: Array<{
-        cardId: string;
-        justtcg: PortfolioCard["justtcg"] | null;
-      }>,
-    ) => {
-      const justTcgByCardId = new Map(
-        cards.map((card) => [card.cardId, card.justtcg]),
-      );
-
-      setPortfolio((current) =>
-        current.map((card) => {
-          if (!justTcgByCardId.has(card.id)) return card;
-          const justtcg = justTcgByCardId.get(card.id);
-          return justtcg ? { ...card, justtcg } : card;
-        }),
-      );
-    },
-    [],
-  );
-
-  const updateJustTcgPrices = useCallback(async () => {
-    if (
-      !user ||
-      loadingJustTcgPrices ||
-      fillingMissingJustTcg ||
-      !portfolioCardIdKey
-    )
-      return;
-
-    justTcgUpdateAbortRef.current?.abort();
-    const controller = new AbortController();
-    justTcgUpdateAbortRef.current = controller;
-
-    setLoadingJustTcgPrices(true);
-    try {
-      const response = await getPortfolioJustTcgPrices(
-        user.uid,
-        controller.signal,
-      );
-      if (controller.signal.aborted) return;
-
-      mergeJustTcgCards(response.cards);
-      if (response.portfolioJustTcgPricesFetchedAt) {
-        setPortfolioJustTcgPricesFetchedAt(
-          response.portfolioJustTcgPricesFetchedAt,
-        );
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      logClientError("Failed to load portfolio JustTCG prices", error);
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoadingJustTcgPrices(false);
-      }
-      if (justTcgUpdateAbortRef.current === controller) {
-        justTcgUpdateAbortRef.current = null;
-      }
-    }
-  }, [
-    fillingMissingJustTcg,
-    loadingJustTcgPrices,
-    mergeJustTcgCards,
-    portfolioCardIdKey,
-    user,
-  ]);
-
-  const fillMissingJustTcgData = useCallback(async () => {
-    if (
-      !user ||
-      loadingJustTcgPrices ||
-      fillingMissingJustTcg ||
-      !portfolioCardIdKey
-    )
-      return;
-
-    const missingJustTcgCardIds = portfolio
-      .filter(shouldRequestMissingJustTcgData)
-      .map((card) => card.id);
-
-    if (missingJustTcgCardIds.length === 0) return;
-
-    justTcgMissingAbortRef.current?.abort();
-    const controller = new AbortController();
-    justTcgMissingAbortRef.current = controller;
-
-    setFillingMissingJustTcg(true);
-    try {
-      const response = await fillMissingPortfolioJustTcgData(
-        missingJustTcgCardIds,
-        user.uid,
-        controller.signal,
-      );
-      if (controller.signal.aborted) return;
-
-      mergeJustTcgCards(response.cards);
-      if (response.portfolioJustTcgPricesFetchedAt) {
-        setPortfolioJustTcgPricesFetchedAt(
-          response.portfolioJustTcgPricesFetchedAt,
-        );
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      logClientError("Failed to fill missing portfolio JustTCG data", error);
-    } finally {
-      if (!controller.signal.aborted) {
-        setFillingMissingJustTcg(false);
-      }
-      if (justTcgMissingAbortRef.current === controller) {
-        justTcgMissingAbortRef.current = null;
-      }
-    }
-  }, [
-    fillingMissingJustTcg,
-    loadingJustTcgPrices,
-    mergeJustTcgCards,
-    portfolio,
-    portfolioCardIdKey,
-    user,
-  ]);
-
-  useEffect(() => {
-    if (loadingPortfolio || !user || !portfolioCardIdKey) return;
-    if (loadingJustTcgPrices || fillingMissingJustTcg) return;
-
-    const missingJustTcgCardIds = portfolio.filter(
-      shouldRequestMissingJustTcgData,
-    );
-    if (missingJustTcgCardIds.length === 0) return;
-
-    const key = `${user.uid}:${portfolioCardIdKey}`;
-    if (autoMissingJustTcgKeyRef.current === key) return;
-    autoMissingJustTcgKeyRef.current = key;
-
-    void fillMissingJustTcgData();
-  }, [
-    fillMissingJustTcgData,
-    fillingMissingJustTcg,
-    loadingPortfolio,
-    loadingJustTcgPrices,
-    portfolio,
-    portfolioCardIdKey,
-    user,
-  ]);
-
-  useEffect(() => {
-    if (loadingPortfolio || !user || !portfolioCardIdKey) return;
-    if (loadingJustTcgPrices || fillingMissingJustTcg) return;
-    if (portfolio.some(shouldRequestMissingJustTcgData)) return;
-    const hasJustTcgPrices = portfolio.some((card) =>
-      resolvePortfolioCardPriceOption(card, "justtcg"),
-    );
-    if (!hasJustTcgPrices) return;
-    if (!isRetryDue(portfolioJustTcgPricesFetchedAt, JUST_TCG_UPDATE_RETRY_MS))
-      return;
-
-    const key = `${user.uid}:${portfolioCardIdKey}:${portfolioJustTcgPricesFetchedAt ?? ""}`;
-    if (autoUpdateJustTcgKeyRef.current === key) return;
-    autoUpdateJustTcgKeyRef.current = key;
-
-    void updateJustTcgPrices();
-  }, [
-    fillingMissingJustTcg,
-    loadingJustTcgPrices,
-    loadingPortfolio,
-    portfolio,
-    portfolioCardIdKey,
-    portfolioJustTcgPricesFetchedAt,
-    updateJustTcgPrices,
-    user,
-  ]);
-
-  // Sum each card's resolved price x quantity.
-  const { totalValue, valuedCardCount } = useMemo(() => {
-    let totalValue = 0;
-    let valuedCardCount = 0;
-
-    for (const card of portfolio) {
-      const quantity = cardQuantity(card);
-      const option = resolvePortfolioCardPriceOption(card, priceSource);
-      if (!option) continue;
-
-      totalValue += option.price * quantity;
-      valuedCardCount += quantity;
-    }
-
-    return { totalValue, valuedCardCount };
-  }, [portfolio, priceSource]);
-
-  const filteredPortfolio = useMemo(() => {
-    const terms = normalizeFilterValue(nameFilter).split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return portfolio;
-
-    return portfolio.filter((card) => {
-      const searchableCardData = [
-        card.name,
-        card.set?.name,
-        card.set?.series,
-        card.rarity,
-      ]
-        .map(normalizeFilterValue)
-        .join(" ");
-
-      return terms.every((term) => searchableCardData.includes(term));
+  const visibleCards = useMemo(() => {
+    const terms = filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const filtered = terms.length
+      ? cards.filter((card) => {
+          const value = [card.name, card.set?.name, card.rarity]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return terms.every((term) => value.includes(term));
+        })
+      : cards;
+    if (!sort) return filtered;
+    return [...filtered].sort((left, right) => {
+      const leftPrice = price(left);
+      const rightPrice = price(right);
+      if (leftPrice == null) return 1;
+      if (rightPrice == null) return -1;
+      return sort === "price-high"
+        ? rightPrice - leftPrice
+        : leftPrice - rightPrice;
     });
-  }, [nameFilter, portfolio]);
+  }, [cards, filter, sort]);
 
-  const visiblePortfolio = useMemo(() => {
-    if (!portfolioSort) return filteredPortfolio;
-
-    const isPriceSort = portfolioSort.startsWith("price");
-    const descending = portfolioSort.endsWith("high");
-
-    return filteredPortfolio
-      .map((card, index) => ({
-        card,
-        index,
-        missingPrice:
-          (priceSource === "all" || priceSource === "justtcg") &&
-          getPortfolioCardPrice(card, priceSource) == null,
-        value: isPriceSort
-          ? getPortfolioCardPrice(card, priceSource)
-          : getPortfolioCardPriceChange(card, changePeriod, priceSource),
-      }))
-      .sort((a, b) => {
-        if (!isPriceSort) {
-          if (a.value == null && b.value == null) return a.index - b.index;
-          if (a.value == null) return 1;
-          if (b.value == null) return -1;
-
-          const difference = descending ? b.value - a.value : a.value - b.value;
-          return difference || a.index - b.index;
-        }
-
-        if (a.missingPrice !== b.missingPrice) {
-          return a.missingPrice ? -1 : 1;
-        }
-        if (a.value == null && b.value == null) return a.index - b.index;
-        if (a.value == null) return 1;
-        if (b.value == null) return -1;
-
-        const difference = descending ? b.value - a.value : a.value - b.value;
-        return difference || a.index - b.index;
-      })
-      .map(({ card }) => card);
-  }, [changePeriod, filteredPortfolio, portfolioSort, priceSource]);
-
-  const totalCurrencySymbol = "$";
-
-  const handleCardQuantityUpdated = (cardId: string, quantity: number) => {
-    setPortfolio((current) =>
-      current.map((card) =>
-        card.id === cardId ? { ...card, quantity } : card,
+  const { totalValue, totalCards } = useMemo(
+    () =>
+      cards.reduce(
+        (total, card) => ({
+          totalCards: total.totalCards + quantity(card),
+          totalValue: total.totalValue + (price(card) ?? 0) * quantity(card),
+        }),
+        { totalCards: 0, totalValue: 0 },
       ),
-    );
-  };
+    [cards],
+  );
 
-  const handleCardRemoved = (cardId: string) => {
-    setPortfolio((current) => current.filter((card) => card.id !== cardId));
-  };
-
-  const handleCardPriceSourceUpdated = (
-    cardId: string,
-    source: PortfolioPriceSource,
-    priceKey: string,
-    selectForAll: boolean,
-  ) => {
-    setPortfolio((current) =>
-      current.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              priceSources: {
-                ...(card.priceSources ?? {}),
-                [source]: priceKey,
-              },
-              ...(selectForAll && { allPriceSource: source }),
-            }
-          : card,
-      ),
-    );
-  };
-
-  if (authLoading || loadingPortfolio) {
+  if (authLoading || loading) {
     return (
-      <main
-        className="portfolio portfolio--status ui-render-fade"
-        key="loading"
-      >
+      <main className="portfolio portfolio--status">
         <h1>Loading collection...</h1>
       </main>
     );
   }
-
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (portfolioError) {
+  if (!user) return <Navigate to="/" replace />;
+  if (error) {
     return (
-      <main className="portfolio portfolio--status ui-render-fade" key="error">
+      <main className="portfolio portfolio--status">
         <h1>Couldn&apos;t load your collection</h1>
-        <p>{portfolioError}</p>
+        <p>{error}</p>
         <button
-          type="button"
           className="portfolio__link"
-          onClick={() => {
-            void loadPortfolio();
-          }}
+          onClick={() => void load()}
+          type="button"
         >
           Try again
         </button>
@@ -532,7 +158,7 @@ function PortfolioForCurrentUser() {
   }
 
   return (
-    <main className="portfolio ui-render-fade" key="collection">
+    <main className="portfolio ui-render-fade">
       <div className="portfolio__toolbar">
         <div className="portfolio__primary">
           <header className="portfolio__header">
@@ -541,7 +167,7 @@ function PortfolioForCurrentUser() {
               <h1>My collection</h1>
             </div>
           </header>
-          {portfolio.length > 0 && (
+          {cards.length > 0 && (
             <div className="portfolio__filter-bar">
               <div className="portfolio__filter-group">
                 <label
@@ -559,35 +185,24 @@ function PortfolioForCurrentUser() {
                     id="portfolio-filter"
                     className="portfolio__filter-input"
                     type="search"
-                    value={nameFilter}
-                    onChange={(event) => setNameFilter(event.target.value)}
+                    value={filter}
+                    onChange={(event) => setFilter(event.target.value)}
                     placeholder="Filter"
-                    aria-label="Filter portfolio cards by name, set, series, or rarity"
-                    autoComplete="off"
                   />
-                  {nameFilter.length > 0 && (
+                  {filter && (
                     <button
-                      type="button"
                       className="portfolio__filter-clear"
-                      onClick={() => setNameFilter("")}
-                      aria-label="Clear name filter"
+                      type="button"
+                      onClick={() => setFilter("")}
+                      aria-label="Clear filter"
                     >
                       <X aria-hidden="true" />
                     </button>
                   )}
                 </div>
               </div>
-              <div
-                className="portfolio__timeframe"
-                role="radiogroup"
-                aria-labelledby="portfolio-change-period-label"
-              >
-                <span
-                  id="portfolio-change-period-label"
-                  className="portfolio__control-label"
-                >
-                  % Change
-                </span>
+              <fieldset className="portfolio__timeframe">
+                <legend className="portfolio__control-label">Change</legend>
                 <div className="portfolio__timeframe-options">
                   {CHANGE_PERIOD_OPTIONS.map((option) => (
                     <label
@@ -606,31 +221,24 @@ function PortfolioForCurrentUser() {
                     </label>
                   ))}
                 </div>
-              </div>
+              </fieldset>
               <div className="portfolio__sort-group">
                 <span className="portfolio__control-label">Sort</span>
                 <SelectDropdown
                   ariaLabel="Sort portfolio cards"
                   className="portfolio__sort"
-                  options={PORTFOLIO_SORT_OPTIONS}
-                  value={portfolioSort}
-                  onChange={setPortfolioSort}
+                  options={SORT_OPTIONS}
+                  value={sort}
+                  onChange={setSort}
                 />
               </div>
               <div className="portfolio__total" aria-live="polite">
-                <div className="portfolio__total-heading">
-                  <span className="portfolio__total-label">
-                    Collection value
-                  </span>
-                </div>
+                <span className="portfolio__total-label">Collection value</span>
                 <strong className="portfolio__total-market-value">
-                  {totalValue > 0
-                    ? `${totalCurrencySymbol}${money.format(totalValue)}`
-                    : "—"}
+                  {totalValue > 0 ? `$${money.format(totalValue)}` : "—"}
                 </strong>
                 <span className="portfolio__total-count">
-                  {valuedCardCount}{" "}
-                  {valuedCardCount === 1 ? "card valued" : "Cards"}
+                  {totalCards} {totalCards === 1 ? "card" : "cards"}
                 </span>
               </div>
             </div>
@@ -641,17 +249,16 @@ function PortfolioForCurrentUser() {
       {missingCardIds.length > 0 && (
         <p role="status">
           {missingCardIds.length} saved{" "}
-          {missingCardIds.length === 1 ? "card is" : "cards are"} temporarily
-          unavailable. No portfolio entries were removed.
+          {missingCardIds.length === 1 ? "card is" : "cards are"} unavailable in
+          the local catalogue.
         </p>
       )}
-
-      {portfolio.length === 0 ? (
+      {cards.length === 0 ? (
         <div className="portfolio__empty">
           {missingCardIds.length > 0 ? (
             <>
-              <h2>Saved cards temporarily unavailable</h2>
-              <p>Your portfolio references are still safely stored.</p>
+              <h2>Saved cards unavailable</h2>
+              <p>The saved card IDs are not available in the catalogue.</p>
             </>
           ) : (
             <>
@@ -666,47 +273,30 @@ function PortfolioForCurrentUser() {
         </div>
       ) : (
         <GridView>
-          {visiblePortfolio.map((card) => {
-            const option = resolvePortfolioCardPriceOption(card, priceSource);
-            const activeSource =
-              option?.source ??
-              (priceSource === "all" ? "justtcg" : priceSource);
-
-            return (
-              <PokemonCardPortfolioView
-                key={card.id}
-                card={card}
-                quantity={cardQuantity(card)}
-                comparisonPriceSnapshot={
-                  activeSource === "tcgplayer"
-                    ? (card.priceSnapshots?.[changePeriod] ?? null)
-                    : undefined
-                }
-                priceChangePercent={
-                  activeSource === "justtcg"
-                    ? getPortfolioCardPriceChange(
-                        card,
-                        changePeriod,
-                        priceSource,
-                      )
-                    : undefined
-                }
-                priceChangeLabel={
-                  activeSource === "justtcg"
-                    ? `${changePeriod} change`
-                    : undefined
-                }
-                priceSource={activeSource}
-                showPriceWarning={
-                  activeSource !== "justtcg" &&
-                  (card.priceReliability?.[activeSource]?.isFlagged ?? false)
-                }
-                onQuantityUpdated={handleCardQuantityUpdated}
-                onRemoved={handleCardRemoved}
-                onPriceSourceUpdated={handleCardPriceSourceUpdated}
-              />
-            );
-          })}
+          {visibleCards.map((card) => (
+            <PokemonCardPortfolioView
+              key={card.id}
+              card={card}
+              quantity={quantity(card)}
+              comparisonPriceSnapshot={
+                card.priceSnapshots?.[changePeriod] ?? null
+              }
+              onQuantityUpdated={(cardId, nextQuantity) =>
+                setCards((current) =>
+                  current.map((item) =>
+                    item.id === cardId
+                      ? { ...item, quantity: nextQuantity }
+                      : item,
+                  ),
+                )
+              }
+              onRemoved={(cardId) =>
+                setCards((current) =>
+                  current.filter((item) => item.id !== cardId),
+                )
+              }
+            />
+          ))}
         </GridView>
       )}
     </main>
@@ -715,9 +305,5 @@ function PortfolioForCurrentUser() {
 
 export default function Portfolio() {
   const { user } = useAuth();
-
-  // Remount all hydrated cards, pending edits, and in-flight request state when
-  // the authenticated account changes. Data from one UID can never render in
-  // another UID's portfolio, even for a single transition frame.
-  return <PortfolioForCurrentUser key={user?.uid ?? "logged-out"} />;
+  return <PortfolioForCurrentUser key={user?.uid ?? "signed-out"} />;
 }

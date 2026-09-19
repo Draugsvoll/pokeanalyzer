@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+test-results
 *.local
 
 # Agent / IDE terminal session files
@@ -32,3 +33,4 @@ terminals/
 
 notes.md
 db_notes.md
+server/db/poketrace.sqlite*

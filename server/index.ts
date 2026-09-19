@@ -2,22 +2,16 @@ import "dotenv/config";
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { dbAll, dbGet } from "./db/db.js";
 import grokRoutes from "./db/routes/grokRoutes.js";
 import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
-import cardDetailsRoutes from "./db/routes/cardDetailsRoutes.js";
+import pokeTraceRoutes from "./db/routes/pokeTraceRoutes.js";
 import {
   buildEbayCardRequests,
   fetchEbayComps,
   filterEbayCompsResponseByTitle,
 } from "./services/ebayCompsApi.js";
-import {
-  fetchJustTcgCard,
-  type JustTcgMovementPeriod,
-  JustTcgApiError,
-} from "./services/justTcgApi.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
@@ -36,14 +30,7 @@ import {
   getCardGrokContext,
   saveCardGrokResponse,
 } from "./db/cardGrokStore.js";
-import { parsePublicStoredCard } from "./db/cardSerialization.js";
-import {
-  getJustTcgCategory,
-  JUST_TCG_CATEGORIES,
-  type JustTcgCategory,
-} from "./db/justTcgCategoryStore.js";
-import { acceptsGzip, getCardCatalog } from "./db/cardCatalog.js";
-import { getMostExpensiveNewReleases } from "./db/cardDiscovery.js";
+import { ensurePokeTraceReady, pokeTraceDb } from "./db/pokeTraceDb.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -68,6 +55,14 @@ const limiter = rateLimit({
   max: 200, // per minutt
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+const cardCatalogLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many catalog requests. Please wait and try again." },
 });
 
 const ebayLimiter = rateLimit({
@@ -152,6 +147,15 @@ app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/cards/catalog", cardCatalogLimiter);
+app.use(
+  "/api/cards",
+  (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  },
+  pokeTraceRoutes,
+);
 
 app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
   try {
@@ -212,7 +216,11 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
     if (!context || !context.cardNameAndSet) {
       throw new CreditHttpError("Card not found", 404);
     }
-    if (isCompleteEbayResponse(context.storedResponse)) {
+    const ebayRequests = buildEbayCardRequests(context);
+    if (
+      isCompleteEbayResponse(context.storedResponse) &&
+      context.storedResponse.request_query === ebayRequests.query
+    ) {
       const storedResponse = {
         ...context.storedResponse,
         active: filterEbayCompsResponseByTitle(
@@ -241,8 +249,7 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
       uid,
       "ebay_sold",
       async () => {
-        const { query, soldOptions, activeOptions } =
-          buildEbayCardRequests(context);
+        const { query, soldOptions, activeOptions } = ebayRequests;
         const [soldResult, activeResult] = await Promise.allSettled([
           fetchEbayComps(query, signal, soldOptions),
           fetchEbayComps(query, signal, activeOptions),
@@ -257,6 +264,7 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
           sold: soldResult.status === "fulfilled" ? soldResult.value : null,
           active:
             activeResult.status === "fulfilled" ? activeResult.value : null,
+          request_query: query,
         };
         if (!isCompleteEbayResponse(response)) return response;
 
@@ -287,321 +295,6 @@ app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
   }
 });
 
-app.use("/api/cards", (_req, res, next) => {
-  res.setHeader("Cache-Control", "no-store");
-  next();
-});
-
-// FETCH ALL CARDS
-app.get("/api/cards", async (_req, res) => {
-  try {
-    const rows = await dbAll<{ raw_json: string }>(
-      `
-      SELECT raw_json
-      FROM cards
-      LIMIT 10
-      `,
-    );
-    const cards = rows.map((row) =>
-      parsePublicStoredCard(String(row.raw_json)),
-    );
-    res.json(cards);
-  } catch (err) {
-    logError("Failed to fetch cards", err);
-    res.status(500).json({ error: "Failed to fetch cards" });
-  }
-});
-
-app.get("/api/cards/catalog", async (req, res) => {
-  try {
-    const catalog = await getCardCatalog();
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.vary("Accept-Encoding");
-
-    if (acceptsGzip(req.header("Accept-Encoding"))) {
-      res.setHeader("Content-Encoding", "gzip");
-      res.send(catalog.gzip);
-      return;
-    }
-
-    res.send(catalog.json);
-  } catch (error) {
-    logError("Failed to fetch card catalog", error);
-    res.status(500).json({ error: "Failed to fetch card catalog" });
-  }
-});
-
-app.get("/api/cards/most-expensive-new-releases", async (_req, res) => {
-  try {
-    res.json({ cards: await getMostExpensiveNewReleases() });
-  } catch (error) {
-    logError("Failed to fetch most expensive new releases", error);
-    res.status(500).json({ error: "Failed to fetch new releases" });
-  }
-});
-
-app.get(
-  "/api/justtcg-card",
-  requireVerifiedUser,
-  paidApiLimiter,
-  async (req, res) => {
-    const signal = getRequestAbortSignal(res);
-    const name =
-      typeof req.query.name === "string" ? req.query.name.trim() : "";
-    const number =
-      typeof req.query.number === "string" ? req.query.number.trim() : "";
-
-    if (!name || !number) {
-      res.status(400).json({ message: "name and number are required" });
-      return;
-    }
-
-    try {
-      const result = await fetchJustTcgCard(name, number, signal);
-      res.json(result);
-    } catch (error) {
-      if (isRequestAbort(error, signal)) return;
-      logError("JustTCG API request failed", error);
-      const statusCode =
-        error instanceof JustTcgApiError && error.statusCode === 429
-          ? 429
-          : 502;
-      res.status(statusCode).json({ message: "JustTCG API request failed" });
-    }
-  },
-);
-
-function registerJustTcgMoversRoute(path: string, category: JustTcgCategory) {
-  app.get(path, async (req, res) => {
-    const signal = getRequestAbortSignal(res);
-    const periodCategory =
-      typeof req.query.period === "string" ? req.query.period : "7d";
-
-    if (!["24h", "7d", "30d", "90d"].includes(periodCategory)) {
-      res.status(400).json({ message: "Invalid JustTCG movement period" });
-      return;
-    }
-
-    try {
-      const payload = await getJustTcgCategory(
-        category,
-        periodCategory as JustTcgMovementPeriod,
-      );
-      res.json({
-        cards: payload?.cards ?? [],
-        updatedAt: payload?.updatedAt ?? null,
-      });
-    } catch (error) {
-      if (isRequestAbort(error, signal)) return;
-      logError("JustTCG cached movers request failed", error);
-      res.status(502).json({ message: "JustTCG movers are unavailable" });
-    }
-  });
-}
-
-registerJustTcgMoversRoute(
-  "/api/justtcg/biggest-gainers",
-  JUST_TCG_CATEGORIES.biggestMovers,
-);
-registerJustTcgMoversRoute(
-  "/api/justtcg/biggest-losers",
-  JUST_TCG_CATEGORIES.biggestLosers,
-);
-
-// SEARCH FUNCTION
-app.get("/api/cards/search", async (req, res) => {
-  const pokemonName =
-    typeof req.query.pokemonName === "string"
-      ? req.query.pokemonName.trim()
-      : "";
-  const setName =
-    typeof req.query.setName === "string" ? req.query.setName.trim() : "";
-  const setSeries =
-    typeof req.query.setSeries === "string" ? req.query.setSeries.trim() : "";
-  const cardNumber =
-    typeof req.query.cardNumber === "string" ? req.query.cardNumber.trim() : "";
-  const rarity =
-    typeof req.query.rarity === "string" ? req.query.rarity.trim() : "";
-  const nationalPokedexNumbers =
-    typeof req.query.nationalPokedexNumbers === "string"
-      ? req.query.nationalPokedexNumbers.trim()
-      : "";
-  const cardId =
-    typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
-  const conditions: string[] = [];
-  const params: (number | string)[] = [];
-
-  if (pokemonName) {
-    conditions.push("name LIKE ?");
-    params.push(`%${pokemonName}%`);
-  }
-
-  if (setName) {
-    conditions.push("set_name LIKE ?");
-    params.push(`%${setName}%`);
-  }
-
-  if (setSeries) {
-    conditions.push("json_extract(raw_json, '$.set.series') LIKE ?");
-    params.push(`%${setSeries}%`);
-  }
-
-  if (cardNumber) {
-    conditions.push("number = ? COLLATE NOCASE");
-    params.push(cardNumber);
-  }
-
-  if (rarity) {
-    conditions.push("json_extract(raw_json, '$.rarity') LIKE ?");
-    params.push(`%${rarity}%`);
-  }
-
-  if (nationalPokedexNumbers) {
-    const pokedexNumber = Number(nationalPokedexNumbers);
-
-    if (!Number.isNaN(pokedexNumber)) {
-      conditions.push(`
-        EXISTS (
-          SELECT 1
-          FROM json_each(cards.raw_json, '$.nationalPokedexNumbers')
-          WHERE json_each.value = ?
-        )
-      `);
-      params.push(pokedexNumber);
-    }
-  }
-
-  if (cardId) {
-    conditions.push("id LIKE ?");
-    params.push(`%${cardId}%`);
-  }
-
-  if (conditions.length === 0) {
-    res.status(400).json({ error: "At least one search field is required" });
-    return;
-  }
-
-  const sql = `
-    SELECT raw_json
-    FROM cards
-    WHERE ${conditions.join(" AND ")}
-    LIMIT 50
-  `;
-
-  try {
-    const rows = await dbAll<{ raw_json: string }>(sql, params);
-    const cards = rows.map((row) =>
-      parsePublicStoredCard(String(row.raw_json)),
-    );
-    res.json(cards);
-  } catch (err) {
-    logError("Card search failed", err);
-    res.status(500).json({ error: "Card search failed" });
-  }
-});
-
-type PriceHistoryRow = {
-  recorded_at: string;
-  tcgplayer_prices: string | null;
-  cardmarket_prices: string | null;
-  tcgplayer_updated_at: string | null;
-  cardmarket_updated_at: string | null;
-};
-
-function parseSnapshotPrices(
-  value: string | null,
-  cardId: string,
-  recordedAt: string,
-  provider: "tcgplayer" | "cardmarket",
-) {
-  if (value == null) return null;
-  const parsed: unknown = JSON.parse(String(value));
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(
-      `Malformed ${provider} price history for ${cardId} on ${recordedAt}`,
-    );
-  }
-  return parsed;
-}
-
-app.get("/api/cards/:id/price-history", async (req, res) => {
-  const rawDays = req.query.days ?? "7";
-  const days = Number(rawDays);
-  if (!Number.isSafeInteger(days) || days < 1 || days > 30) {
-    res.status(400).json({ error: "days must be an integer between 1 and 30" });
-    return;
-  }
-
-  try {
-    const card = await dbGet<{ id: string }>(
-      "SELECT id FROM cards WHERE id = ?",
-      [req.params.id],
-    );
-    if (!card) {
-      res.status(404).json({ error: "Card not found" });
-      return;
-    }
-
-    const rows = await dbAll<PriceHistoryRow>(
-      `
-      SELECT
-        recorded_at,
-        tcgplayer_prices,
-        cardmarket_prices,
-        tcgplayer_updated_at,
-        cardmarket_updated_at
-      FROM (
-        SELECT
-          recorded_at,
-          tcgplayer_prices,
-          cardmarket_prices,
-          tcgplayer_updated_at,
-          cardmarket_updated_at
-        FROM price_snapshots
-        WHERE card_id = ?
-        ORDER BY recorded_at DESC
-        LIMIT ?
-      )
-      ORDER BY recorded_at ASC
-      `,
-      [req.params.id, days],
-    );
-
-    res.json({
-      cardId: req.params.id,
-      days,
-      snapshots: rows.map((row) => ({
-        recordedAt: String(row.recorded_at),
-        tcgplayerPrices: parseSnapshotPrices(
-          row.tcgplayer_prices,
-          req.params.id,
-          String(row.recorded_at),
-          "tcgplayer",
-        ),
-        cardmarketPrices: parseSnapshotPrices(
-          row.cardmarket_prices,
-          req.params.id,
-          String(row.recorded_at),
-          "cardmarket",
-        ),
-        tcgplayerUpdatedAt:
-          row.tcgplayer_updated_at == null
-            ? null
-            : String(row.tcgplayer_updated_at),
-        cardmarketUpdatedAt:
-          row.cardmarket_updated_at == null
-            ? null
-            : String(row.cardmarket_updated_at),
-      })),
-    });
-  } catch (err) {
-    logError("Failed to fetch card price history", err);
-    res.status(500).json({ error: "Failed to fetch card price history" });
-  }
-});
-
-app.use("/api/cards", cardDetailsRoutes);
-
 const PORT = process.env.PORT || 3001;
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
@@ -624,6 +317,17 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function startServer() {
+  try {
+    await ensurePokeTraceReady();
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    logError("Failed to initialize PokeTrace database", error);
+    pokeTraceDb.close();
+    process.exitCode = 1;
+  }
+}
+
+void startServer();

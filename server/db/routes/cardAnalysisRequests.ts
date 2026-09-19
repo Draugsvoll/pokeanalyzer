@@ -1,10 +1,7 @@
 import type { GrokChatOptions } from "../../services/xaiService.js";
 import {
-  collectorsAnalysisInput,
   collectorsAnalysisInstructions,
-  marketAnalysisInput,
   marketAnalysisInstructions,
-  worthGradingInput,
   worthGradingInstructions,
 } from "../../../src/utils/grok/grokPrompts.js";
 import { CreditHttpError } from "../../subscriptions/creditService.js";
@@ -12,7 +9,6 @@ import { CreditHttpError } from "../../subscriptions/creditService.js";
 type CardAnalysisContext = {
   cardName: string;
   cardNumber: string;
-  cardPromptIdentity: string;
   setName: string;
 };
 
@@ -41,11 +37,19 @@ function requireSetAndNumber(
   }
 }
 
+function cardIdentityInput(context: CardAnalysisContext) {
+  requireSetAndNumber(context);
+  return JSON.stringify({
+    name: context.cardName,
+    cardNumber: context.cardNumber,
+    set: context.setName,
+  });
+}
+
 const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
   {
     collector_analysis: {
-      buildUserInput: (context) =>
-        collectorsAnalysisInput(context.cardPromptIdentity),
+      buildUserInput: cardIdentityInput,
       grokOptions: {
         model: "grok-4.5",
         reasoningEffort: "medium",
@@ -53,14 +57,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       instructions: collectorsAnalysisInstructions,
     },
     market_analysis: {
-      buildUserInput: (context) => {
-        requireSetAndNumber(context);
-        return marketAnalysisInput(
-          context.cardName,
-          context.setName,
-          context.cardNumber,
-        );
-      },
+      buildUserInput: cardIdentityInput,
       grokOptions: {
         model: "grok-4.5",
         reasoningEffort: "medium",
@@ -68,8 +65,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       instructions: marketAnalysisInstructions,
     },
     worth_grading: {
-      buildUserInput: (context) =>
-        worthGradingInput(context.cardPromptIdentity),
+      buildUserInput: cardIdentityInput,
       grokOptions: {
         model: "grok-4.5",
         reasoningEffort: "high",
