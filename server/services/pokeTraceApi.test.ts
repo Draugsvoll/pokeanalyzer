@@ -107,6 +107,11 @@ test("a burst 429 is retried and the card page is saved", async () => {
 
 test("transport and server failures are retried before giving up", async () => {
   let requests = 0;
+  const retries: Array<{
+    attempt: number;
+    maxAttempts: number;
+    reason: string;
+  }> = [];
   globalThis.fetch = async () => {
     requests += 1;
     if (requests === 1) throw new TypeError("temporary network failure");
@@ -122,8 +127,24 @@ test("transport and server failures are retried before giving up", async () => {
     });
   };
 
-  const page = await fetchPokeTracePage("test-key", {});
+  const page = await fetchPokeTracePage(
+    "test-key",
+    {},
+    {
+      onRetry: ({ attempt, maxAttempts, reason }) => {
+        retries.push({ attempt, maxAttempts, reason });
+      },
+    },
+  );
 
   assert.equal(requests, 3);
   assert.equal(page.data[0].id, card.id);
+  assert.deepEqual(retries, [
+    {
+      attempt: 1,
+      maxAttempts: 2,
+      reason: "TypeError: temporary network failure",
+    },
+    { attempt: 2, maxAttempts: 2, reason: "HTTP 503" },
+  ]);
 });

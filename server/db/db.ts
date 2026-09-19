@@ -32,14 +32,16 @@ export function assertExplicitDatabaseTarget(): void {
   if (error) throw new Error(error);
 }
 
-void (async () => {
+export async function checkDatabaseConnection(): Promise<boolean> {
   try {
     await db.execute("SELECT 1");
     console.log("Database connected successfully");
+    return true;
   } catch (err) {
     logError("Database connection failed", err);
+    return false;
   }
-})();
+}
 
 export async function dbExecute(sql: string, args: SqlValue[] = []) {
   return db.execute({ sql, args });

@@ -37,6 +37,7 @@ type AskGrokOptions = {
   setName?: string;
   signal?: AbortSignal;
   userInput?: string;
+  variantName?: string;
 };
 
 export async function askGrok(
@@ -52,6 +53,7 @@ export async function askGrok(
       setName,
       signal,
       userInput,
+      variantName,
     } = options;
     const res = await authenticatedFetch(`${API_URL}/ai`, {
       method: "POST",
@@ -63,6 +65,7 @@ export async function askGrok(
         name: cardName,
         cardNumber,
         set: setName,
+        variant: variantName,
         instructions,
       }),
       signal,

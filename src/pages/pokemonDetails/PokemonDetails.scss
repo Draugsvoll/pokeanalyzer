@@ -503,6 +503,10 @@
     }
   }
 
+  &__credit-note--demo {
+    color: var(--custom-color-yellow);
+  }
+
   &__credit-cost {
     align-items: center;
     display: inline-flex;

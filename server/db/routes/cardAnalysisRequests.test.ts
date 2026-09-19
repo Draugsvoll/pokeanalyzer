@@ -11,6 +11,7 @@ const cardContext = {
   cardName: "Pikachu",
   cardNumber: "58/102",
   setName: "Base Set",
+  variantName: "  1st_Edition  ",
 };
 
 test("card features use the expected instructions and Grok options", () => {
@@ -53,7 +54,32 @@ test("card features build their user input from the stored card context", () => 
   });
   assert.equal(collectorInput, expectedIdentity);
   assert.equal(marketInput, expectedIdentity);
-  assert.equal(worthGradingInput, expectedIdentity);
+  assert.equal(
+    worthGradingInput,
+    JSON.stringify({
+      name: "Pikachu",
+      cardNumber: "58/102",
+      set: "Base Set",
+      variant: "1st edition",
+    }),
+  );
+});
+
+test("Worth Grading uses normal when the active card has no variant name", () => {
+  const input = getCardAnalysisRequest("worth_grading")!.buildUserInput({
+    ...cardContext,
+    variantName: "",
+  });
+
+  assert.equal(
+    input,
+    JSON.stringify({
+      name: "Pikachu",
+      cardNumber: "58/102",
+      set: "Base Set",
+      variant: "normal",
+    }),
+  );
 });
 
 test("unknown card features do not resolve to a request", () => {

@@ -17,6 +17,18 @@ export type PokeTracePage = {
   pagination: { hasMore: boolean; nextCursor: string | null };
 };
 
+export type PokeTraceRetryEvent = {
+  resource: string;
+  attempt: number;
+  maxAttempts: number;
+  delayMs: number;
+  reason: string;
+};
+
+type PokeTraceRequestOptions = {
+  onRetry?: (event: PokeTraceRetryEvent) => void;
+};
+
 export const POKETRACE_CARD_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -51,17 +63,33 @@ function retryDelayMs(attempt: number, response?: Response, minimumMs = 500) {
 async function waitForRetry(
   resource: string,
   attempt: number,
+  reason: string,
   response?: Response,
   minimumMs = 500,
+  onRetry?: PokeTraceRequestOptions["onRetry"],
 ) {
   const delayMs = retryDelayMs(attempt, response, minimumMs);
-  console.warn(
-    `PokeTrace ${resource} failed temporarily; retry ${attempt + 1}/${transientRetries} in ${delayMs}ms`,
-  );
+  const event = {
+    resource,
+    attempt: attempt + 1,
+    maxAttempts: transientRetries,
+    delayMs,
+    reason,
+  };
+  if (onRetry) onRetry(event);
+  else
+    console.warn(
+      `PokeTrace ${resource} failed temporarily (${reason}); retry ${event.attempt}/${event.maxAttempts} in ${delayMs}ms`,
+    );
   await sleep(delayMs);
 }
 
-async function pokeTraceFetch(url: string, apiKey: string, resource: string) {
+async function pokeTraceFetch(
+  url: string,
+  apiKey: string,
+  resource: string,
+  options?: PokeTraceRequestOptions,
+) {
   for (let attempt = 0; ; attempt += 1) {
     let response: Response;
     try {
@@ -71,7 +99,18 @@ async function pokeTraceFetch(url: string, apiKey: string, resource: string) {
       });
     } catch (error) {
       if (attempt >= transientRetries) throw error;
-      await waitForRetry(resource, attempt);
+      const reason =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : String(error);
+      await waitForRetry(
+        resource,
+        attempt,
+        reason,
+        undefined,
+        500,
+        options?.onRetry,
+      );
       continue;
     }
 
@@ -99,7 +138,14 @@ async function pokeTraceFetch(url: string, apiKey: string, resource: string) {
       ) {
         throw new PokeTraceHttpError(429, resource);
       }
-      await waitForRetry(resource, attempt, response, 2_100);
+      await waitForRetry(
+        resource,
+        attempt,
+        "burst rate limit",
+        response,
+        2_100,
+        options?.onRetry,
+      );
       continue;
     }
 
@@ -110,7 +156,14 @@ async function pokeTraceFetch(url: string, apiKey: string, resource: string) {
       if (attempt >= transientRetries) {
         throw new PokeTraceHttpError(response.status, resource);
       }
-      await waitForRetry(resource, attempt, response);
+      await waitForRetry(
+        resource,
+        attempt,
+        `HTTP ${response.status}`,
+        response,
+        500,
+        options?.onRetry,
+      );
       continue;
     }
 
@@ -135,6 +188,7 @@ export function isEnglishSingle(value: unknown): value is PokeTraceCard {
 export async function fetchPokeTracePage(
   apiKey: string,
   filters: Record<string, string>,
+  options?: PokeTraceRequestOptions,
 ): Promise<PokeTracePage> {
   const params = new URLSearchParams({
     game: "pokemon",
@@ -147,6 +201,7 @@ export async function fetchPokeTracePage(
     `https://api.poketrace.com/v1/cards?${params}`,
     apiKey,
     "card list",
+    options,
   );
   const value: unknown = await response.json();
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -178,11 +233,16 @@ export async function fetchPokeTracePage(
   };
 }
 
-export async function fetchPokeTraceCard(apiKey: string, id: string) {
+export async function fetchPokeTraceCard(
+  apiKey: string,
+  id: string,
+  options?: PokeTraceRequestOptions,
+) {
   const response = await pokeTraceFetch(
     `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}`,
     apiKey,
     `card ${id}`,
+    options,
   );
   const value: unknown = await response.json();
   if (!value || typeof value !== "object" || Array.isArray(value)) {

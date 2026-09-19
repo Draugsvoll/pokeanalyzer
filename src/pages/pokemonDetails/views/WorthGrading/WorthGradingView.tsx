@@ -1,9 +1,9 @@
 import { Layers3, Scale } from "lucide-react";
 import { parseScoreString } from "../../../../../shared/analysisScores";
 import { useState, type ReactNode } from "react";
-import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
+import { GrokLoadingState } from "../../components/GrokLoadingState";
 import { isValidWorthGradingResponse } from "../../../../../shared/validateWorthGrading";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
@@ -541,7 +541,8 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
     responseKey: "",
   });
 
-  if (loading) return <LoadingState>Researching value...</LoadingState>;
+  if (loading)
+    return <GrokLoadingState>Building grading report...</GrokLoadingState>;
   if (error)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;

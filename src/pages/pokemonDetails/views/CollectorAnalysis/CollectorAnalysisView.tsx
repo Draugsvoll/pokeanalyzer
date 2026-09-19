@@ -13,9 +13,9 @@ import { useState } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
-import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisPanel } from "../../components/FeatureAnalysisPanel";
+import { GrokLoadingState } from "../../components/GrokLoadingState";
 import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
@@ -143,7 +143,8 @@ export default function CollectorAnalysis({
     responseKey: "",
   });
 
-  if (loading) return <LoadingState>Building collector report...</LoadingState>;
+  if (loading)
+    return <GrokLoadingState>Building collector report...</GrokLoadingState>;
   if (error)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
   if (!response) return null;

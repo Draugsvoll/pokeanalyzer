@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parsePokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";

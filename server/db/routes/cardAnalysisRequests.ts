@@ -4,12 +4,14 @@ import {
   marketAnalysisInstructions,
   worthGradingInstructions,
 } from "../../../src/utils/grok/grokPrompts.js";
+import { normalizeCardVariant } from "../../../shared/normalizeCardVariant.js";
 import { CreditHttpError } from "../../subscriptions/creditService.js";
 
 type CardAnalysisContext = {
   cardName: string;
   cardNumber: string;
   setName: string;
+  variantName: string;
 };
 
 type CardAnalysisGrokOptions = Pick<
@@ -46,6 +48,16 @@ function cardIdentityInput(context: CardAnalysisContext) {
   });
 }
 
+function worthGradingCardInput(context: CardAnalysisContext) {
+  requireSetAndNumber(context);
+  return JSON.stringify({
+    name: context.cardName,
+    cardNumber: context.cardNumber,
+    set: context.setName,
+    variant: normalizeCardVariant(context.variantName) || "normal",
+  });
+}
+
 const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
   {
     collector_analysis: {
@@ -65,7 +77,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       instructions: marketAnalysisInstructions,
     },
     worth_grading: {
-      buildUserInput: cardIdentityInput,
+      buildUserInput: worthGradingCardInput,
       grokOptions: {
         model: "grok-4.5",
         reasoningEffort: "high",
