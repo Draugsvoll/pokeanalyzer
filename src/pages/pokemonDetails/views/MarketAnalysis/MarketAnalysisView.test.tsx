@@ -63,7 +63,7 @@ describe("MarketAnalysisView", () => {
 
     expect(screen.getByText("Market Health")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", {
+      screen.queryByRole("img", {
         name: "Market health score: 63 out of 100",
       }),
     ).toHaveTextContent("63");

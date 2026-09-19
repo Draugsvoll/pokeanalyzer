@@ -26,6 +26,10 @@
   &__content {
     display: grid;
     gap: var(--space-4);
+
+    > .feature-analysis-accent-container {
+      background: var(--bg2);
+    }
   }
 
   &__categories {
@@ -40,6 +44,10 @@
 
     > .feature-analysis-card-header {
       justify-content: space-between;
+
+      > strong {
+        font-size: var(--font-size-price);
+      }
     }
 
     &:last-child:nth-child(odd) {
@@ -58,8 +66,8 @@
       color-mix(in srgb, var(--font-color-primary) 3%, transparent)
     );
     border-radius: var(--border-radius-pill);
-    height: 0.42rem;
-    margin-top: 0.8rem;
+    height: 0.3rem;
+    margin-top: 0.65rem;
     overflow: hidden;
 
     span {

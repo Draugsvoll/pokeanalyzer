@@ -201,12 +201,7 @@ export function MarketAnalysisView({
 
   return (
     <section className="market-analysis-report ui-render-fade">
-      <FeatureAnalysisHero
-        eyebrow="Market Health"
-        headline={data.headline}
-        score={data.score}
-        scoreLabel="Market health score"
-      >
+      <FeatureAnalysisHero eyebrow="Market Health" headline={data.headline}>
         <div className="market-analysis-report__overview-content">
           <div className="market-analysis-report__signals">
             {data.signals.map((signal) => (

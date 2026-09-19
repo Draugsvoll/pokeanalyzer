@@ -24,7 +24,7 @@ type FeatureAnalysisHeroProps = {
   eyebrow: string;
   headline?: string;
   score?: number | null;
-  scoreLabel: string;
+  scoreLabel?: string;
 };
 
 export function FeatureAnalysisScoreMeter({
@@ -73,7 +73,7 @@ export function FeatureAnalysisHero({
       {score != null && (
         <div className="feature-analysis-score-block">
           <FeatureAnalysisScoreMeter
-            label={scoreLabel}
+            label={scoreLabel ?? "Score"}
             score={score}
             size="large"
           />
