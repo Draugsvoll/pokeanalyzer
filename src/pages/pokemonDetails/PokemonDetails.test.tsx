@@ -393,6 +393,46 @@ test("Market Analysis fetches the stored market report", async () => {
       setName: "Base Set",
     }),
   );
+  expect(mocks.askGrok.mock.calls[0]?.[1]).not.toHaveProperty("variantName");
+});
+
+test("Worth Grading sends the normalized active variant", async () => {
+  const activeCard = buildCard("card-a", "Pikachu");
+  activeCard.pokeTrace.variant = "  1st_Edition  ";
+  activeCard.pokeTrace.variants = [
+    { id: "card-a", name: "1st Edition" },
+    { id: "card-b", name: "Unlimited" },
+  ];
+  mocks.fetchCardById.mockResolvedValue(activeCard);
+
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole("heading", { name: "Pikachu" });
+  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  const openGradingButton = screen.getByRole("button", {
+    name: "Open Grading",
+  });
+  await waitFor(() => expect(openGradingButton).toBeEnabled(), {
+    timeout: 2_000,
+  });
+  fireEvent.click(openGradingButton);
+
+  await waitFor(() => {
+    expect(mocks.askGrok).toHaveBeenCalledWith(
+      "worth_grading",
+      expect.objectContaining({
+        cardId: "card-a",
+        cardName: "Pikachu",
+        cardNumber: "58/102",
+        setName: "Base Set",
+        variantName: "1st edition",
+      }),
+    );
+  });
 });
 
 test("eBay data survives feature switches and clears for a new card", async () => {

@@ -31,7 +31,7 @@
           "median3d": 219.63,
           "median7d": 219.63,
           "median30d": 227.5,
-          "saleCount": 58,
+          "saleCount": 59,
           "approxSaleCount": true
         },
         "HEAVILY_PLAYED": {
@@ -45,7 +45,7 @@
           "median3d": 245,
           "median7d": 245,
           "median30d": 245,
-          "saleCount": 15,
+          "saleCount": 16,
           "approxSaleCount": true
         },
         "LIGHTLY_PLAYED": {
@@ -63,31 +63,31 @@
           "approxSaleCount": true
         },
         "MODERATELY_PLAYED": {
-          "avg": 284.5,
-          "low": 284.5,
-          "high": 284.5,
-          "lastUpdated": "2026-09-09T00:00:00.000Z",
-          "avg1d": null,
-          "avg7d": null,
-          "avg30d": null,
-          "median3d": 284.5,
-          "median7d": 284.5,
-          "median30d": 284.5,
-          "saleCount": 13,
+          "avg": 340,
+          "low": 340,
+          "high": 340,
+          "lastUpdated": "2026-09-18T00:00:00.000Z",
+          "avg1d": 409.99,
+          "avg7d": 344.83,
+          "avg30d": 344.83,
+          "median3d": 374.995,
+          "median7d": 340,
+          "median30d": 332.5,
+          "saleCount": 16,
           "approxSaleCount": true
         },
         "NEAR_MINT": {
-          "avg": 775,
-          "low": 650,
-          "high": 900,
-          "lastUpdated": "2026-09-12T00:00:00.000Z",
-          "avg1d": 667.34,
-          "avg7d": 635.85254,
-          "avg30d": 635.85254,
-          "median3d": 775,
-          "median7d": 658.67,
-          "median30d": 660,
-          "saleCount": 65,
+          "avg": 760,
+          "low": 760,
+          "high": 760,
+          "lastUpdated": "2026-09-15T00:00:00.000Z",
+          "avg1d": 775,
+          "avg7d": 660.682,
+          "avg30d": 660.682,
+          "median3d": 779.995,
+          "median7d": 779.995,
+          "median30d": 683.67,
+          "saleCount": 66,
           "approxSaleCount": true
         },
         "ACE_1": {
@@ -1087,41 +1087,41 @@
       },
       "tcgplayer": {
         "DAMAGED": {
-          "avg": 183.48,
-          "low": 183.48,
-          "high": 183.48,
-          "lastUpdated": "2026-09-16T00:00:00.000Z",
-          "avg1d": 183.48,
-          "avg7d": 184.84572,
-          "avg30d": 191.19388,
+          "avg": 182.89,
+          "low": 182.89,
+          "high": 182.89,
+          "lastUpdated": "2026-09-19T00:00:00.000Z",
+          "avg1d": 182.89,
+          "avg7d": 183.26,
+          "avg30d": 189.83258,
           "median3d": null,
           "median7d": null,
           "median30d": null,
-          "saleCount": 516,
+          "saleCount": 519,
           "approxSaleCount": false
         },
         "HEAVILY_PLAYED": {
-          "avg": 278.18,
-          "low": 278.18,
-          "high": 278.18,
-          "lastUpdated": "2026-09-16T00:00:00.000Z",
-          "avg1d": 278.18,
-          "avg7d": 278.7743,
-          "avg30d": 280.17484,
+          "avg": 276.22,
+          "low": 276.22,
+          "high": 276.22,
+          "lastUpdated": "2026-09-19T00:00:00.000Z",
+          "avg1d": 276.22,
+          "avg7d": 277.74,
+          "avg30d": 279.7687,
           "median3d": null,
           "median7d": null,
           "median30d": null,
-          "saleCount": 384,
+          "saleCount": 385,
           "approxSaleCount": false
         },
         "LIGHTLY_PLAYED": {
           "avg": 535.43,
           "low": 535.43,
           "high": 535.43,
-          "lastUpdated": "2026-09-16T00:00:00.000Z",
+          "lastUpdated": "2026-09-19T00:00:00.000Z",
           "avg1d": 535.43,
-          "avg7d": 530.6857,
-          "avg30d": 526.5523,
+          "avg7d": 533.47284,
+          "avg30d": 527.84906,
           "median3d": null,
           "median7d": null,
           "median30d": null,
@@ -1129,31 +1129,45 @@
           "approxSaleCount": false
         },
         "MODERATELY_PLAYED": {
-          "avg": 381.4,
-          "low": 381.4,
-          "high": 381.4,
-          "lastUpdated": "2026-09-16T00:00:00.000Z",
-          "avg1d": 381.4,
-          "avg7d": 379.99713,
-          "avg30d": 381.59354,
+          "avg": 381.78,
+          "low": 381.78,
+          "high": 381.78,
+          "lastUpdated": "2026-09-19T00:00:00.000Z",
+          "avg1d": 381.78,
+          "avg7d": 381.5057,
+          "avg30d": 381.1555,
           "median3d": null,
           "median7d": null,
           "median30d": null,
-          "saleCount": 447,
+          "saleCount": 448,
           "approxSaleCount": false
         },
         "NEAR_MINT": {
           "avg": 882.02,
           "low": 882.02,
           "high": 882.02,
-          "lastUpdated": "2026-09-16T00:00:00.000Z",
+          "lastUpdated": "2026-09-19T00:00:00.000Z",
           "avg1d": 882.02,
-          "avg7d": 874.59143,
-          "avg30d": 871.47675,
+          "avg7d": 880.16284,
+          "avg30d": 873.90356,
           "median3d": null,
           "median7d": null,
           "median30d": null,
           "saleCount": 99,
+          "approxSaleCount": false
+        },
+        "CGC_8": {
+          "avg": 775,
+          "low": 775,
+          "high": 775,
+          "lastUpdated": "2025-12-09T00:00:00.000Z",
+          "avg1d": null,
+          "avg7d": null,
+          "avg30d": null,
+          "median3d": null,
+          "median7d": null,
+          "median30d": null,
+          "saleCount": 2,
           "approxSaleCount": false
         }
       }
@@ -1165,69 +1179,69 @@
         "name": "Holofoil"
       }
     ],
-    "lastUpdated": "2026-09-16T04:41:20.281Z"
+    "lastUpdated": "2026-09-19T07:30:22.506Z"
   },
   "grok": {
     "market_analysis": {
       "set_name": "Base Set",
       "variant_name": "Unlimited Holofoil",
       "score": 88,
-      "explanation": [
-        "The market for this card benefits from unmatched recognition that sustains steady buyer interest at every price point from heavily played raw copies through high graded examples. Frequent completed sales appear across major platforms with clear pricing bands that allow quick matching of buyers and sellers. High overall graded populations especially in the middle grades keep supply available without creating overhang that stalls activity.",
-        "What holds the score back is the sheer volume of lower and mid grade copies that can create temporary soft spots when many similar examples list at once. Top gem copies show wider price swings between sales and lower transaction frequency than mid grades. Short term price movement has included both modest gains and pullbacks depending on the condition tier which introduces some noise into an otherwise functional market."
-      ],
-      "headline": "Highly functional blue chip market with constant activity across raw and graded copies driven by broad recognition.",
+      "headline": "Highly liquid iconic card with steady demand and clear pricing across grades.",
       "market_signals": {
         "demand": {
-          "score": 95,
-          "explanation": "Buyer interest remains broad and consistent because the card serves as an entry point and a long term holding for many participants. Demand appears at every condition level from damaged raw pieces to high graded slabs and shows little seasonal drop off. The only factor limiting a perfect score is that awareness is already near universal so incremental new demand growth is harder to generate than for less known cards."
+          "score": 92,
+          "explanation": "Consistent buyer interest persists due to the card's status as a flagship vintage piece, supporting regular transactions even after market corrections. Volume holds back a perfect score as it is not exploding beyond established collector bases."
         },
         "liquidity": {
-          "score": 94,
-          "explanation": "Sales occur regularly with multiple raw and graded examples changing hands each week and daily activity common in mid grades. Clear comparable sales make pricing transparent and reduce time to complete a transaction. Liquidity thins somewhat at the absolute top gem level where fewer copies trade but overall turnaround remains among the strongest available."
+          "score": 90,
+          "explanation": "Frequent sales occur daily for mid-grades and weekly for raw and top grades, with hundreds of active listings enabling quick turns. Lower damaged copies move slower which slightly limits the overall ease."
         },
         "stability": {
-          "score": 78,
-          "explanation": "Prices hold within recognizable ranges over multi month periods and recover from broader market soft patches better than most peers. Mid grade and raw copies show tighter spreads while gem mint examples experience larger percentage moves between individual sales. Ongoing new grading submissions gradually increase supply which can pressure prices in lower tiers during quiet periods and prevents a higher stability reading."
+          "score": 82,
+          "explanation": "Realized prices cluster reliably within condition bands after the post-boom adjustment, though high-grade examples still show wider spreads from auction outliers. Raw copies exhibit tighter consistency than gem mint slabs."
         },
         "momentum": {
-          "score": 72,
-          "explanation": "Longer term direction has been constructive with values well above earlier decade levels supported by nostalgia cycles. Near term charts display mixed results including short term dips in some graded tiers offset by steady raw activity. Momentum is positive overall but not accelerating strongly enough for a top tier score given the already elevated base."
+          "score": 78,
+          "explanation": "Recent months display mild upward movement in raw and mid-grade sales with some sources noting double-digit gains over 30-90 days, appearing genuine from volume rather than sparse spikes. Top grades remain flatter which caps stronger momentum."
         }
       },
       "healthiest_segment": {
-        "label": "PSA 8",
-        "explanation": "High sales frequency combined with substantial population and tight pricing bands create reliable two way flow without the scarcity premiums or condition disputes seen at the extremes."
+        "label": "PSA 8 raw-to-mid grade",
+        "explanation": "These see the highest transaction frequency with tight price agreement and ready buyers, making them the most functional part of the market."
       },
       "market_balance": {
         "label": "balanced",
-        "explanation": "Raw and mid graded copies show roughly even buyer and seller presence with listings clearing at expected levels. Higher gems lean slightly seller favored due to stronger competition among buyers while lower conditions can tilt buyer favored when multiple similar copies appear together."
+        "explanation": "Supply of raw and mid-grade copies meets steady demand without large overhangs or shortages, while PSA 10s lean slightly seller-favored due to scarcity. Damaged raw copies favor buyers more."
+      },
+      "price_discovery": {
+        "label": "strong",
+        "explanation": "Multiple platforms and frequent sold comps align closely on fair values for raw NM through PSA 9, with only PSA 10 showing occasional auction variance. Sources generally converge well."
+      },
+      "eyes_on": {
+        "label": "PSA 10 sales volume and population growth",
+        "explanation": "Tracking how often true gems trade and whether new high grades enter the market will signal if premiums hold or compress further."
       },
       "outlook": {
         "near_term": {
           "label": "stable",
-          "explanation": "Current activity levels and pricing bands look sustainable with no clear catalyst for sharp moves in either direction over the next several months. Seasonal collecting patterns and general market sentiment should keep volume steady without major disruption."
+          "explanation": "Current sales patterns and listing activity suggest prices will hold in established ranges without sharp moves either way over the next several months."
         },
         "long_term": {
           "label": "positive",
-          "explanation": "Enduring cultural status and successive waves of collectors reaching peak earning years support gradual appreciation potential. Fixed original print supply continues to underpin values even as graded populations grow slowly over time."
+          "explanation": "Enduring cultural recognition and fixed original supply support gradual appreciation as new collectors enter, outweighing gradual population increases from grading."
         },
         "upside_drivers": [
-          "Persistent nostalgia driven collecting interest",
-          "Role as a benchmark holding that attracts both new and returning participants",
-          "Resilience during broader market corrections"
+          "Sustained nostalgia-driven collector influx",
+          "Limited original print supply relative to demand",
+          "Clear grade premiums encouraging careful ownership"
         ],
         "risks": [
-          "Continued grading submissions expanding mid and lower grade supply",
-          "Sensitivity of higher end copies to overall economic conditions",
-          "Potential for temporary listing oversupply in common conditions"
+          "Further grading increasing mid-to-high grade supply",
+          "Broader collectibles market cooling",
+          "Condition sensitivity causing price gaps on imperfect copies"
         ]
       },
-      "evidence_quality": {
-        "score": 92,
-        "reason": "Multiple independent pricing platforms population reports and recent sold listings provide consistent overlapping data points across raw and graded segments. Coverage is dense enough to map volume and price ranges reliably though exact short term percentage changes can vary slightly by source."
-      },
-      "timestamp": "2026-09-16T17:18:56.509Z"
+      "timestamp": "2026-09-19T12:34:49.909Z"
     },
     "collectors_analysis": {
       "analyses": [
@@ -8599,299 +8613,6 @@
       },
       "request_query": "Charizard (004/102,4/102,4) Base Set",
       "timestamp": "2026-09-17T12:11:26.016Z"
-    },
-    "worth_grading": {
-      "variants": [
-        {
-          "card": {
-            "name": "Charizard",
-            "set": "Base Set",
-            "number": "4",
-            "variant_name": "Unlimited Holofoil"
-          },
-          "attractiveness_level": {
-            "score": "78",
-            "reasoning": [
-              "This is one of the most recognized and liquid Pokemon cards ever printed, with consistent buyer demand across conditions and strong historical recognition that supports grading submissions even without knowing the final grade.",
-              "High population across mid grades reduces scarcity premiums at PSA 7 through PSA 9 relative to scarcer printings, which can limit upside if the card does not gem, while the iconic status and steady sales volume still make submission relatively attractive compared with average modern or less iconic vintage cards.",
-              "Centering, surface scratches on the holo, and edge wear are common condition risks that frequently cap grades below PSA 10, dragging the relative attractiveness somewhat, though the card remains a staple for collectors seeking classic Base Set pieces."
-            ]
-          },
-          "raw_sale_today": {
-            "gross_sale_usd": 374.6,
-            "estimated_fees_usd": 50.03,
-            "net_proceeds_usd": 324.57,
-            "time_to_sell": "1-2 weeks"
-          },
-          "graded_scenarios": [
-            {
-              "grade": "PSA 7",
-              "expected_sale_price_usd": 737.37,
-              "grading_tier": "Regular",
-              "grading_tier_justification": "Expected sale under the $1,500 max insured value for Regular tier at $79.99. Value tiers are paused so Regular is the lowest available option that covers the declared value.",
-              "psa_grading_fee_usd": 79.99,
-              "shipping_and_insurance_usd": 40,
-              "ebay_fees_usd": 98.1,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 60,
-              "net_profit_vs_raw_usd": 194.71,
-              "turnaround_time": "70-80 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 8",
-              "expected_sale_price_usd": 1350.26,
-              "grading_tier": "Regular",
-              "grading_tier_justification": "Expected sale under the $1,500 max insured value for Regular tier at $79.99. Value tiers are paused so Regular is the lowest available option that covers the declared value.",
-              "psa_grading_fee_usd": 79.99,
-              "shipping_and_insurance_usd": 45,
-              "ebay_fees_usd": 179.31,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 222.3,
-              "net_profit_vs_raw_usd": 721.39,
-              "turnaround_time": "70-80 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 9",
-              "expected_sale_price_usd": 2850,
-              "grading_tier": "Super Express",
-              "grading_tier_justification": "Expected sale exceeds Express max insured value of $2,500 but fits Super Express max of $5,000 at $349. Higher tiers not required.",
-              "psa_grading_fee_usd": 349,
-              "shipping_and_insurance_usd": 50,
-              "ebay_fees_usd": 378.02,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 538.7,
-              "net_profit_vs_raw_usd": 1748.41,
-              "turnaround_time": "10-15 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 10",
-              "expected_sale_price_usd": 12062.2,
-              "grading_tier": "Premium 1",
-              "grading_tier_justification": "Expected sale exceeds Walk-Through max insured value of $10,000 but fits Premium 1 max of $25,000 at $999.",
-              "psa_grading_fee_usd": 999,
-              "shipping_and_insurance_usd": 80,
-              "ebay_fees_usd": 1101.36,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 2944.6,
-              "net_profit_vs_raw_usd": 9557.27,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            }
-          ],
-          "psa_population": {
-            "source": "https://www.psacard.com/pop/tcg-cards/1999/pokemon-game-movie/57801",
-            "psa_population_total": 97588,
-            "psa_population_psa10": 486,
-            "psa_population_psa9": 8446,
-            "psa_population_psa8": 15809,
-            "psa_population_psa7": 16665,
-            "psa_population_psa6": 17495
-          },
-          "potential": "high",
-          "headline": "Strong liquidity and iconic status support grading for Unlimited Base Set Charizard despite high mid-grade populations.",
-          "bottom_line": "Grading makes sense when the raw card shows strong potential for PSA 8 or higher based on centering and surface quality. Paper profits appear at PSA 8 and above under current pricing.",
-          "risk_profile": {
-            "label": "average",
-            "explanation": "High overall population and common surface and edge issues on holo cards create typical grade risk for vintage holos. Liquidity remains strong so downside from a lower grade is moderated compared with less popular cards."
-          }
-        },
-        {
-          "card": {
-            "name": "Charizard",
-            "set": "Base Set",
-            "number": "4",
-            "variant_name": "Shadowless Holofoil"
-          },
-          "attractiveness_level": {
-            "score": "85",
-            "reasoning": [
-              "Shadowless printings carry a clear premium over Unlimited due to earlier production and thinner HP font details that collectors specifically seek, increasing the appeal of submitting even without a guaranteed high grade.",
-              "Lower population than Unlimited especially at the top end supports better scarcity premiums, while still offering enough sales volume for relatively quick turns after grading.",
-              "Condition sensitivity remains high because of the holo foil and age-related whitening, which can pull grades down, yet the variant's desirability relative to standard Unlimited copies elevates overall attractiveness for submission."
-            ]
-          },
-          "raw_sale_today": {
-            "gross_sale_usd": 1030,
-            "estimated_fees_usd": 136.88,
-            "net_proceeds_usd": 893.12,
-            "time_to_sell": "1-2 weeks"
-          },
-          "graded_scenarios": [
-            {
-              "grade": "PSA 7",
-              "expected_sale_price_usd": 3000,
-              "grading_tier": "Super Express",
-              "grading_tier_justification": "Expected sale exceeds Express max insured value of $2,500 but fits Super Express max of $5,000 at $349. Value tiers paused.",
-              "psa_grading_fee_usd": 349,
-              "shipping_and_insurance_usd": 50,
-              "ebay_fees_usd": 397.9,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 146.7,
-              "net_profit_vs_raw_usd": 1309.98,
-              "turnaround_time": "10-15 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 8",
-              "expected_sale_price_usd": 5660.77,
-              "grading_tier": "Super Express",
-              "grading_tier_justification": "Expected sale fits within Super Express max insured value of $5,000 at $349. Higher tiers not required for this expected price.",
-              "psa_grading_fee_usd": 349,
-              "shipping_and_insurance_usd": 60,
-              "ebay_fees_usd": 750.45,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 404,
-              "net_profit_vs_raw_usd": 3608.2,
-              "turnaround_time": "10-15 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 9",
-              "expected_sale_price_usd": 8995.13,
-              "grading_tier": "Walk-Through",
-              "grading_tier_justification": "Expected sale fits within Walk-Through max insured value of $10,000 at $599.",
-              "psa_grading_fee_usd": 599,
-              "shipping_and_insurance_usd": 70,
-              "ebay_fees_usd": 1029.29,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 717,
-              "net_profit_vs_raw_usd": 6403.72,
-              "turnaround_time": "7-10 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 10",
-              "expected_sale_price_usd": 30100,
-              "grading_tier": "Premium 1",
-              "grading_tier_justification": "Expected sale exceeds Walk-Through max of $10,000 but fits Premium 1 max of $25,000 at $999.",
-              "psa_grading_fee_usd": 999,
-              "shipping_and_insurance_usd": 120,
-              "ebay_fees_usd": 1525.25,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 2974.1,
-              "net_profit_vs_raw_usd": 26562.63,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            }
-          ],
-          "psa_population": {
-            "source": "https://www.psacard.com/pop/tcg-cards/1999/pokemon-game-movie/57801",
-            "psa_population_total": 13611,
-            "psa_population_psa10": 58,
-            "psa_population_psa9": 847,
-            "psa_population_psa8": 1481,
-            "psa_population_psa7": 1688,
-            "psa_population_psa6": 2275
-          },
-          "potential": "very high",
-          "headline": "Shadowless premium and lower top-end population make this a more attractive grading candidate than Unlimited.",
-          "bottom_line": "Grading is attractive for clean examples that can reach PSA 8 or better. Paper profits are available starting at PSA 7 under current market levels.",
-          "risk_profile": {
-            "label": "average",
-            "explanation": "Condition risks from holo wear and whitening are similar to other Base Set holos. Lower population than Unlimited provides some buffer, but grade outcomes still depend heavily on surface and centering quality."
-          }
-        },
-        {
-          "card": {
-            "name": "Charizard",
-            "set": "Base Set",
-            "number": "4",
-            "variant_name": "1st Edition Holofoil"
-          },
-          "attractiveness_level": {
-            "score": "92",
-            "reasoning": [
-              "The 1st Edition stamp combined with shadowless printing creates the highest demand and recognition among Base Set Charizard variants, making submission highly attractive regardless of the unknown final grade.",
-              "Extremely low population at PSA 10 relative to total graded copies and strong auction results support significant premiums that pull attractiveness upward compared with other Pokemon cards.",
-              "High absolute values increase shipping insurance and grading tier costs, and any surface or centering flaw can drop the grade substantially, yet the overall collector and investor interest remains among the strongest in the hobby."
-            ]
-          },
-          "raw_sale_today": {
-            "gross_sale_usd": 9605.5,
-            "estimated_fees_usd": 1043.63,
-            "net_proceeds_usd": 8561.87,
-            "time_to_sell": "1-3 weeks"
-          },
-          "graded_scenarios": [
-            {
-              "grade": "PSA 7",
-              "expected_sale_price_usd": 17635.21,
-              "grading_tier": "Premium 1",
-              "grading_tier_justification": "Expected sale fits within Premium 1 max insured value of $25,000 at $999. Lower tiers have insufficient max value limits.",
-              "psa_grading_fee_usd": 999,
-              "shipping_and_insurance_usd": 100,
-              "ebay_fees_usd": 1232.33,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 78.7,
-              "net_profit_vs_raw_usd": 6742.01,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 8",
-              "expected_sale_price_usd": 28627.53,
-              "grading_tier": "Premium 2",
-              "grading_tier_justification": "Expected sale exceeds Premium 1 max of $25,000 but fits Premium 2 max of $50,000 at $1,999.",
-              "psa_grading_fee_usd": 1999,
-              "shipping_and_insurance_usd": 150,
-              "ebay_fees_usd": 1490.65,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 191.9,
-              "net_profit_vs_raw_usd": 16426.01,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 9",
-              "expected_sale_price_usd": 43230,
-              "grading_tier": "Premium 2",
-              "grading_tier_justification": "Expected sale fits within Premium 2 max insured value of $50,000 at $1,999.",
-              "psa_grading_fee_usd": 1999,
-              "shipping_and_insurance_usd": 150,
-              "ebay_fees_usd": 1833.81,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 358.4,
-              "net_profit_vs_raw_usd": 30685.32,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            },
-            {
-              "grade": "PSA 10",
-              "expected_sale_price_usd": 343098,
-              "grading_tier": "Premium 10",
-              "grading_tier_justification": "Expected sale requires Premium 10 starting at $9,999 for max insured values up to $350,000.",
-              "psa_grading_fee_usd": 9999,
-              "shipping_and_insurance_usd": 300,
-              "ebay_fees_usd": 8880.7,
-              "ebay_fee_model": "Trading Cards category: 13.25% on amount up to $7,500 then 2.35% above plus $0.40 order fee",
-              "roi_vs_raw_net_percent": 3683.3,
-              "net_profit_vs_raw_usd": 315356.43,
-              "turnaround_time": "5-7 business days",
-              "psa_note": "Value Bulk, Value, Value Plus, and Value Max tiers are temporarily paused."
-            }
-          ],
-          "psa_population": {
-            "source": "https://www.psacard.com/pop/tcg-cards/1999/pokemon-game-movie/57801",
-            "psa_population_total": 5244,
-            "psa_population_psa10": 125,
-            "psa_population_psa9": 729,
-            "psa_population_psa8": 712,
-            "psa_population_psa7": 601,
-            "psa_population_psa6": 836
-          },
-          "potential": "very high",
-          "headline": "Highest demand Base Set Charizard variant with strong premiums across grades supports grading for quality examples.",
-          "bottom_line": "Grading is warranted for well-centered clean copies. Paper profits appear across PSA 7 and higher under present pricing, with the largest gains at the top grades.",
-          "risk_profile": {
-            "label": "high",
-            "explanation": "Absolute dollar values are large so any grade miss carries meaningful opportunity cost. Holo surface issues and centering remain critical pitfalls that affect this card more than lower-value modern cards due to the size of the price steps between grades."
-          }
-        }
-      ],
-      "timestamp": "2026-09-13T16:04:11.081Z"
     }
   }
 }

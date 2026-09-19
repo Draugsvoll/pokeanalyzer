@@ -3,13 +3,10 @@ import test from "node:test";
 import { isValidStoredFeatureResponse } from "./cardGrokStore.js";
 
 const marketAnalysisResponse = {
+  set_name: "Base Set",
+  variant_name: "Unlimited Holofoil",
   score: 63,
-  explanation: ["Steady demand and liquidity support a functional market."],
   headline: "Prices and sales activity are broadly stable.",
-  evidence_quality: {
-    score: 72,
-    reason: "Several recent sales were available.",
-  },
   market_balance: {
     label: "balanced",
     explanation: "Supply and demand are broadly matched.",
@@ -47,6 +44,14 @@ const marketAnalysisResponse = {
   healthiest_segment: {
     label: "PSA 9",
     explanation: "Recent sales and listings support steady activity.",
+  },
+  price_discovery: {
+    label: "strong",
+    explanation: "Recent transactions establish a consistent price range.",
+  },
+  eyes_on: {
+    label: "Raw supply",
+    explanation: "An increase in raw listings could affect realized prices.",
   },
 };
 
@@ -152,14 +157,38 @@ test("stored feature validation accepts each current response shape", () => {
       score: 1,
       market_balance: {
         ...marketAnalysisResponse.market_balance,
-        label: "mixed by grade",
+        label: "seller_favored",
       },
       outlook: {
         ...marketAnalysisResponse.outlook,
         near_term: {
           ...marketAnalysisResponse.outlook.near_term,
-          label: "flat",
+          label: "very negative",
         },
+      },
+    }),
+    true,
+  );
+  assert.equal(
+    isValidStoredFeatureResponse("market_analysis", {
+      ...marketAnalysisResponse,
+      eyes_on: null,
+    }),
+    true,
+  );
+  assert.equal(
+    isValidStoredFeatureResponse("market_analysis", {
+      score: 63,
+      headline: "Prices and sales activity are broadly stable.",
+      market_signals: {
+        demand: {
+          score: 61,
+          explanation: "Recent sales show steady buyer interest.",
+        },
+      },
+      price_discovery: {
+        label: "volatile",
+        explanation: "A clear range has not formed yet.",
       },
     }),
     true,
@@ -230,32 +259,7 @@ test("stored feature validation rejects missing or empty analysis content", () =
       "market_analysis",
       {
         ...marketAnalysisResponse,
-        market_balance: {
-          label: 42,
-          explanation: "Supply and demand are broadly matched.",
-        },
-      },
-    ],
-    [
-      "market_analysis",
-      {
-        ...marketAnalysisResponse,
-        healthiest_segment: "PSA 9",
-      },
-    ],
-    [
-      "market_analysis",
-      {
-        ...marketAnalysisResponse,
-        market_balance: "balanced",
-      },
-    ],
-    [
-      "market_analysis",
-      {
-        ...marketAnalysisResponse,
         market_signals: {
-          ...marketAnalysisResponse.market_signals,
           demand: "61",
         },
       },
@@ -272,13 +276,6 @@ test("stored feature validation rejects missing or empty analysis content", () =
       {
         ...marketAnalysisResponse,
         score: "63",
-      },
-    ],
-    [
-      "market_analysis",
-      {
-        ...marketAnalysisResponse,
-        explanation: "A legacy string explanation.",
       },
     ],
     [
@@ -311,18 +308,12 @@ test("stored feature validation rejects missing or empty analysis content", () =
       {
         ...marketAnalysisResponse,
         market_signals: {
-          ...marketAnalysisResponse.market_signals,
           demand: { score: 63.5, explanation: "Half point." },
         },
       },
     ],
-    [
-      "market_analysis",
-      {
-        ...marketAnalysisResponse,
-        evidence_quality: { score: 101, reason: "Out of range." },
-      },
-    ],
+    ["market_analysis", { ...marketAnalysisResponse, headline: undefined }],
+    ["market_analysis", { ...marketAnalysisResponse, market_signals: {} }],
     [
       "worth_grading",
       {

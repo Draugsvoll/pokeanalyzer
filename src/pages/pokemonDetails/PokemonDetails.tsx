@@ -61,6 +61,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { signInWithGoogle } from "../../services/auth";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
+import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
@@ -360,6 +361,9 @@ function PokemonDetailsForCard() {
         cardName: card.name,
         cardNumber: card.number ?? "",
         setName: card.set?.name ?? "",
+        ...(featureKey === "worth_grading" && {
+          variantName: normalizeCardVariant(card.pokeTrace.variant) || "normal",
+        }),
       });
       if (signal.aborted) return false;
 
@@ -836,8 +840,8 @@ function PokemonDetailsForCard() {
 
       {isDemo ? (
         <aside className="card-view__credit-bar" role="note">
-          <span className="card-view__credit-note">
-            Demo snapshot: prices and analyses are static examples.
+          <span className="card-view__credit-note card-view__credit-note--demo">
+            Demo snapshot: prices and analyses are not live data.
           </span>
         </aside>
       ) : (

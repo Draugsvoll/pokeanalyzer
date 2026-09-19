@@ -9,7 +9,7 @@
 
   &__surface {
     display: grid;
-    gap: var(--space-7);
+    gap: var(--space-5);
     margin-bottom: var(--space-5);
   }
 
@@ -30,15 +30,8 @@
   &__filter-row {
     align-items: end;
     display: flex;
-    flex-wrap: wrap;
     gap: 1rem;
-  }
-
-  &__filter-groups {
-    align-items: end;
-    display: flex;
-    flex: 1 1 auto;
-    gap: 2.25rem;
+    justify-content: space-between;
     min-width: 0;
   }
 
@@ -123,7 +116,6 @@
     > div {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.45rem;
     }
 
     label {
@@ -173,6 +165,10 @@
 
   &__filters.radio-group.radio-group label > span {
     min-width: 4.35rem;
+  }
+
+  &__filters.radio-group.radio-group > div {
+    gap: 0.45rem;
   }
 
   &__results {
@@ -429,16 +425,12 @@
   @media (max-width: 34rem) {
     &__filter-row {
       align-items: stretch;
+      flex-direction: column;
       gap: 0.75rem;
     }
 
     &__surface {
       gap: 1rem;
-    }
-
-    &__filter-groups {
-      align-items: stretch;
-      flex-direction: column;
     }
 
     &__text-filter {

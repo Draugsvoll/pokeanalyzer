@@ -20,6 +20,11 @@
     margin: 0;
   }
 
+  &__hero-group {
+    display: grid;
+    gap: 1.15rem;
+  }
+
   &__details {
     display: grid;
     gap: var(--card-view-section-gap);
@@ -29,27 +34,6 @@
     display: grid;
     gap: var(--default-container-section-gap);
     width: 100%;
-  }
-
-  &__overview-explanation {
-    --feature-analysis-card-header-accent: var(
-      --feature-accent,
-      var(--custom-color-orange)
-    );
-
-    color: var(--font-color-secondary);
-    display: grid;
-    gap: var(--space-3);
-    line-height: var(--font-leading-relaxed);
-    width: 100%;
-
-    .feature-analysis-card-header {
-      justify-content: center;
-    }
-
-    p {
-      margin: 0;
-    }
   }
 
   &__signals {
@@ -109,11 +93,12 @@
     gap: var(--space-2);
   }
 
-  &__confidence {
-    --feature-analysis-accent: var(
-      --feature-accent,
-      var(--custom-color-orange)
-    );
+  &__eyes-on {
+    gap: var(--space-2);
+
+    h4 {
+      margin: 0;
+    }
   }
 
   &__outlook-grid {
@@ -149,9 +134,6 @@
       line-height: var(--font-leading-relaxed);
       text-align: left;
 
-      &::marker {
-        color: var(--feature-accent, var(--custom-color-orange));
-      }
     }
 
     > p {
@@ -166,6 +148,28 @@
       padding-left: 1.1rem;
       width: fit-content;
     }
+  }
+
+  &__outlook-title {
+    align-items: center;
+    display: inline-flex;
+    gap: var(--space-2);
+
+    &--upside svg {
+      color: var(--font-color-success);
+    }
+
+    &--risks svg {
+      color: var(--font-color-error);
+    }
+  }
+
+  &__outlook-list--upside li::marker {
+    color: var(--font-color-success);
+  }
+
+  &__outlook-list--risks li::marker {
+    color: var(--font-color-error);
   }
 
   ul {

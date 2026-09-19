@@ -25,24 +25,23 @@ Output must be purely market focused, do not mention its position as a collectab
 "set_name":"set name of the card",
 "variant_name":"Official print/variant name of the card",
 "score":"score 1-100. Only return an Integer",
-"explanation":["Explain why it deserved the score you gave it. It should give me a sense of what dragged the score down, and what pulled it up. Do not shorten or truncate your answer. Use only neutral language and neutral tone, avoid using financial jargon, phrases or slogans. This field is an array so that lengthy texts can be split into paragraphs"],
-"headline":"One sentence summary which to let me know it's position in the market",
+"headline":"One sentence summary which to let me know it's position in the market. Max 15 words.",
 "market_signals":{
 	"demand":{
 		"score":"score 1-100. Only return an Integer",
-		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
+		"explanation":"Explain concisely why it deserved the score you gave. Be clear but dont list out comps"
 	},
 	"liquidity":{
 		"score":"score 1-100. Only return an Integer",
-		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
+		"explanation":"Explain concisely why it deserved the score you gave. Be clear but dont list out comps"
 	},
 	"stability":{
 		"score":"score 1-100. Only return an Integer",
-		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
+		"explanation":"Explain concisely why it deserved the score you gave. Be clear but dont list out comps"
 	},
 	"momentum":{
 		"score":"score 1-100. Only return an Integer",
-		"explanation":"Explain why it deserved the score you gave. Mostly on a generic level as opposed to a list of comps"
+		"explanation":"Explain concisely why it deserved the score you gave. Be clear but dont list out comps"
 	}
 },
 "healthiest_segment": {
@@ -51,7 +50,15 @@ Output must be purely market focused, do not mention its position as a collectab
 },
 "market_balance": {
 "label":"buyer_favored | balanced | seller_favored | unclear",
-"explanation": "Very concise explanation of why it deserved the label you gave. Clarify if it's different across grades or conditions"
+"explanation": "Concise explanation of why it deserved the label you gave. Clarify if it's different across grades or conditions"
+},
+"price_discovery": {
+"label":"weak | normal | strong | unclear",
+"explanation": "Concise explanation of why it deserved the label you gave. Clarify if it's different across grades or conditions"
+},
+"eyes_on": {
+"label":"a fitting label/title for whats most interesting/valueable to keep my eyes on when it comes to this card in the market",
+"explanation":"Explain concisely."
 },
 "outlook": {
 "near_term": {
@@ -63,26 +70,28 @@ Output must be purely market focused, do not mention its position as a collectab
 	"explanation": "Explain why it deserved the label you gave it."
 },
 "upside_drivers": [
-	"string"
+	""
 ],
 "risks": [
-	"string"
+	""
 ]
-},
-"evidence_quality": {
-"score":"score 1-100. Only return an Integer",
-"reason": "Explain why it deserved the score you gave."
 }
 }
 
 # OUTPUT RULES
+- keep it market focused.
+- Use neutral language with a neutral tone, avoid financial jargon, phrases or slogans.
 - all "explanation" fields should use normal sentence structure, preferably avoid semicolons or colons. They should also give a sense of what held the score back.
-- lean towards neutral language with a neutral tone
 - Never say "across conditions". Clarify if it's raw, graded, or both.
 
-All "score" fields must be whole integers from 1 through 100. Return them as JSON numbers, not strings.
-
-In "explanation" you don't need to list out specific sales and prices, this is more on a generic level. You don't need to mention that it's relative to other pokemon cards. It should give me a basic sense of what dragged the score down, and what pulled it up. You don't need to explicitly state it, as long as it's somewhat obvious in the text.
+# FIELD INPUT GUIDE
+- All "score" fields must be whole integers from 1 through 100. Return them as JSON numbers, not strings.
+- "Demand" → Describe the demand from a market perspective, not collectable.
+- "Liquidity" → How frequently and easily do the card transact.
+- "Stability" → How consistent realized prices are. Not whether they're rising or falling.
+- "Momentum" → Direction and strength of recent price/volume movement. Also clarify if it seems like genuine price movement or uncertain evidence.
+- "price discovery" → how clearly and reliably the market is establishing a fair current price. Do sources agree/disagree?
+- "eyes_on" must always be present. Fill it only when there is something valuable to monitor for this card in the market. Otherwise return null.
 
 `.trim();
 
@@ -318,7 +327,7 @@ export const worthGradingInstructions: string = `
 
   # TASK
   Research the grading economics for this card at PSA7,8,9,10 including selling fees/costs. We want the expected NET incremental gain for grading & selling versus selling raw. We want to calculate this for each grade. Default/primary source for price data should be PriceCharting, if you skip it as a source you need good a reason for it. You can combine price sources to estimate expected selling prices. Use reliable sources for all data.
-  I need to know this for every English variant of the card, as long as it has reliable data available. All variants must be from the same set, don't use multiple sets. Treat each variant as an independent analysis.
+  Choose only 1 variant, the one that matches my card the best.
 
   Remember ebay can have different fee structure/model for high prices, account for that in calculations.
 
@@ -341,8 +350,6 @@ export const worthGradingInstructions: string = `
 
   Respond in the JSON format provided below. Your entire response must only be a valid JSON object, never add any text before or after the JSON object.
 
-  Always include every English variant where you can find data from reliable sources.
-  in variant_name field give the proper and official variant name.
   In the JSON schema, each variant is an entry in the "variants" array inside the JSON object.
 
   {
@@ -352,11 +359,11 @@ export const worthGradingInstructions: string = `
   "name": "",
   "set": "",
   "number": "",
-  "variant_name": ""
+  "variant_name": "The official variant/print name of the card you researched"
   },
   "attractiveness_level": {
   "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. This is without knowing what grade it will come back as. Must be a string containing only the score, for example '65'",
-  "reasoning":["Explain why it deserved the score you gave it, outside of just the paper profit numbers. You don't need to explain profit levels since we already display this in other fields. I should have a sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. This field is an array so that lengthy texts can be split into paragraphs"]
+  "reasoning":["Explain why it deserved the score you gave it, outside of just the paper profit numbers. You don't need to explain profit levels since we already display this in other fields. I should have a sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. Always describe this as its score, instead of attractiveness. This field is an array so that lengthy texts can be split into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,

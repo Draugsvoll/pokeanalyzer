@@ -1,10 +1,8 @@
 import { ensurePokeTraceReady, pokeTraceDb } from "./pokeTraceDb.js";
 import { parsePokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
 import { isValidWorthGradingResponse } from "../../shared/validateWorthGrading.js";
-import {
-  isScoreNumber,
-  parseScoreString,
-} from "../../shared/analysisScores.js";
+import { parseScoreString } from "../../shared/analysisScores.js";
+import { parseMarketAnalysisResponse } from "../../shared/marketAnalysis.js";
 
 type JsonObject = Record<string, unknown>;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -28,10 +26,6 @@ function parseJsonValue(value: string): unknown {
 
 function hasText(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function hasOnlyTextItems(value: unknown) {
-  return Array.isArray(value) && value.every(hasText);
 }
 
 function hasNonEmptyTextItems(value: unknown) {
@@ -58,57 +52,6 @@ function isValidCollectorAnalysis(value: unknown) {
   );
 }
 
-function isValidMarketSignal(value: unknown) {
-  return (
-    isJsonObject(value) &&
-    isScoreNumber(value.score) &&
-    hasText(value.explanation)
-  );
-}
-
-function isValidMarketOutlook(value: unknown) {
-  return (
-    isJsonObject(value) && hasText(value.label) && hasText(value.explanation)
-  );
-}
-
-function isValidMarketLabelExplanation(value: unknown) {
-  return (
-    isJsonObject(value) && hasText(value.label) && hasText(value.explanation)
-  );
-}
-
-function isValidMarketAnalysis(value: JsonObject) {
-  const signals = isJsonObject(value.market_signals)
-    ? value.market_signals
-    : null;
-  const outlook = isJsonObject(value.outlook) ? value.outlook : null;
-  const evidenceQuality = isJsonObject(value.evidence_quality)
-    ? value.evidence_quality
-    : null;
-
-  return Boolean(
-    isScoreNumber(value.score) &&
-    hasNonEmptyTextItems(value.explanation) &&
-    hasText(value.headline) &&
-    signals &&
-    isValidMarketSignal(signals.demand) &&
-    isValidMarketSignal(signals.liquidity) &&
-    isValidMarketSignal(signals.momentum) &&
-    isValidMarketSignal(signals.stability) &&
-    isValidMarketLabelExplanation(value.healthiest_segment) &&
-    isValidMarketLabelExplanation(value.market_balance) &&
-    outlook &&
-    isValidMarketOutlook(outlook.near_term) &&
-    isValidMarketOutlook(outlook.long_term) &&
-    hasOnlyTextItems(outlook.upside_drivers) &&
-    hasOnlyTextItems(outlook.risks) &&
-    evidenceQuality &&
-    isScoreNumber(evidenceQuality.score) &&
-    hasText(evidenceQuality.reason),
-  );
-}
-
 export function isValidStoredFeatureResponse(
   storageKey: string,
   value: unknown,
@@ -124,7 +67,7 @@ export function isValidStoredFeatureResponse(
   }
 
   if (storageKey === "market_analysis") {
-    return isValidMarketAnalysis(value);
+    return parseMarketAnalysisResponse(value) !== null;
   }
 
   if (storageKey === "worth_grading") {
@@ -198,6 +141,7 @@ export async function getCardGrokContext(
   const cardName = typeof card.name === "string" ? card.name.trim() : "";
   const setName = typeof set?.name === "string" ? set.name.trim() : "";
   const rarity = typeof card.rarity === "string" ? card.rarity.trim() : "";
+  const variantName = typeof card.variant === "string" ? card.variant : "";
   const rawCardNumber = card.cardNumber;
   const cardNumber =
     typeof rawCardNumber === "string"
@@ -220,6 +164,7 @@ export async function getCardGrokContext(
     unpaddedCardNumber: unpaddedCardNumber || cardNumber,
     rarity,
     setName,
+    variantName,
     storedResponse: getFreshFeatureResponse(
       savedResponses.grok,
       storageKey,

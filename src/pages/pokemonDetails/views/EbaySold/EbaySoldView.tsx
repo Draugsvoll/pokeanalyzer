@@ -497,7 +497,7 @@ export default function EbaySoldView({
   }
 
   if (loading) {
-    return <LoadingState>Loading eBay listings...</LoadingState>;
+    return <LoadingState>Loading eBay listings and sales...</LoadingState>;
   }
   if (error)
     return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
@@ -619,41 +619,38 @@ export default function EbaySoldView({
           value={listingTypeFilter}
         />
         <div className="ebay-sold-view__filter-row">
-          <div className="ebay-sold-view__filter-groups">
-            <fieldset className="ebay-sold-view__filters radio-group">
-              <legend>Grade</legend>
-              <div>
-                {GRADE_FILTERS.map((filter) => (
-                  <label key={filter.value}>
-                    <input
-                      checked={gradeFilter === filter.value}
-                      name="ebay-grade"
-                      type="radio"
-                      value={filter.value}
-                      onChange={() => handleGradeFilterChange(filter.value)}
-                    />
-                    <span>{filter.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <label className="ebay-sold-view__text-filter">
-              <span>Filter</span>
-              <div>
-                <Search aria-hidden="true" />
-                <input
-                  aria-label="Filter eBay results"
-                  onChange={(event) =>
-                    handleTextFilterChange(event.currentTarget.value)
-                  }
-                  minLength={2}
-                  placeholder="Keyword"
-                  type="search"
-                  value={textFilter}
-                />
-              </div>
-            </label>
-          </div>
+          <fieldset className="ebay-sold-view__filters radio-group">
+            <legend>Grade</legend>
+            <div>
+              {GRADE_FILTERS.map((filter) => (
+                <label key={filter.value}>
+                  <input
+                    checked={gradeFilter === filter.value}
+                    name="ebay-grade"
+                    type="radio"
+                    value={filter.value}
+                    onChange={() => handleGradeFilterChange(filter.value)}
+                  />
+                  <span>{filter.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="ebay-sold-view__text-filter">
+            <div>
+              <Search aria-hidden="true" />
+              <input
+                aria-label="Filter eBay results"
+                onChange={(event) =>
+                  handleTextFilterChange(event.currentTarget.value)
+                }
+                minLength={2}
+                placeholder="Filter"
+                type="search"
+                value={textFilter}
+              />
+            </div>
+          </label>
           <label className="ebay-sold-view__sorting">
             <span>Sort by</span>
             <SelectDropdown
