@@ -1,7 +1,13 @@
 .market-analysis-report {
+  box-sizing: border-box;
   display: grid;
   gap: var(--card-view-section-gap);
+  max-width: 100%;
   width: 100%;
+
+  .app-view-datestamp {
+    margin-top: 0;
+  }
 
   article {
     display: grid;

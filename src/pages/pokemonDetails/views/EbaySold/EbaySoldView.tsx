@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import type {
@@ -11,7 +11,13 @@ import {
   type EbayCompsResponse,
   type EbayCompResult,
 } from "../../../../utils/ebayComps";
-import { CalendarDays, ChevronDown, ExternalLink, Gavel } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ExternalLink,
+  Gavel,
+  Search,
+} from "lucide-react";
 import "./EbaySoldView.scss";
 import {
   isAbortError,
@@ -22,7 +28,6 @@ import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
-import { getFirstTcgPlayerMarketEntry } from "../../../../utils/pokemonPricing";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const RESULTS_BATCH_SIZE = 25;
@@ -30,32 +35,18 @@ const FILTER_TRANSITION_MS = 250;
 
 type EbaySoldViewProps = {
   card: PokemonCard;
+  demoResponse?: Record<string, unknown>;
   runToken: number;
-  demoResponse?: EbayCompsResponse;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
   onLoadingChange?: (loading: boolean) => void;
   onReportAvailableChange?: (available: boolean) => void;
 };
 
-type EbaySortOrder =
-  "default" | "price-asc" | "price-desc" | "date-desc" | "date-asc";
+type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
 type ListingTypeFilter = "sold" | "active";
 type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
-type ListingVariantFilter = {
-  id: string;
-  label: string;
-  kind:
-    | "normal"
-    | "holo"
-    | "reverse-holo"
-    | "first-edition"
-    | "first-edition-holo"
-    | "other";
-  aliases: string[];
-};
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
-  { value: "default", label: "—" },
   { value: "price-asc", label: "Price: low to high" },
   { value: "price-desc", label: "Price: high to low" },
   { value: "date-desc", label: "Newest" },
@@ -64,10 +55,10 @@ const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
 const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "raw", label: "Raw" },
-  { value: "7", label: "PSA 7" },
-  { value: "8", label: "PSA 8" },
-  { value: "9", label: "PSA 9" },
-  { value: "10", label: "PSA 10" },
+  { value: "7", label: "Grade 7" },
+  { value: "8", label: "Grade 8" },
+  { value: "9", label: "Grade 9" },
+  { value: "10", label: "Grade 10" },
 ];
 
 function getField(result: EbayCompResult, key: string) {
@@ -268,174 +259,26 @@ function getGradingSearchText(result: EbayCompResult) {
   return { compactText, searchableText };
 }
 
-function hasUsablePrice(value: unknown): boolean {
-  if (typeof value === "number") return Number.isFinite(value) && value > 0;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  return Object.values(value).some(hasUsablePrice);
-}
-
-function getAvailableVariantFilters(card: PokemonCard): ListingVariantFilter[] {
-  const availableKeys = new Set<string>();
-
-  for (const [key, value] of Object.entries(card.tcgplayer?.prices ?? {})) {
-    if (hasUsablePrice(value))
-      availableKeys.add(key.toLocaleLowerCase("en-US"));
-  }
-  if (
-    Object.entries(card.cardmarket?.prices ?? {}).some(
-      ([key, value]) =>
-        key.toLocaleLowerCase("en-US").startsWith("reverseholo") &&
-        hasUsablePrice(value),
-    )
-  ) {
-    availableKeys.add("reverseholofoil");
-  }
-
-  const variants: ListingVariantFilter[] = [];
-  const add = (variant: ListingVariantFilter) => {
-    if (!variants.some((item) => item.id === variant.id))
-      variants.push(variant);
-  };
-
-  for (const key of availableKeys) {
-    if (key.includes("firstedition") && key.includes("holo")) {
-      add({
-        id: "first-edition-holo",
-        label: "1st Ed. Holo",
-        kind: "first-edition-holo",
-        aliases: ["1st edition holo", "first edition holo", "1st ed holo"],
-      });
-    } else if (key.includes("firstedition")) {
-      add({
-        id: "first-edition",
-        label: "1st Edition",
-        kind: "first-edition",
-        aliases: ["1st edition", "first edition", "1st ed"],
-      });
-    } else if (key.includes("reverse") && key.includes("holo")) {
-      add({
-        id: "reverse-holo",
-        label: "Reverse Holo",
-        kind: "reverse-holo",
-        aliases: [
-          "reverse holo",
-          "reverse holofoil",
-          "reverse foil",
-          "rev holo",
-          "rev foil",
-          "rh",
-        ],
-      });
-    } else if (key.includes("holo")) {
-      add({
-        id: "holo",
-        label: "Holofoil",
-        kind: "holo",
-        aliases: ["holo", "holofoil", "holo foil"],
-      });
-    } else if (key === "normal") {
-      add({
-        id: "normal",
-        label: "Normal",
-        kind: "normal",
-        aliases: ["normal", "non holo", "non holofoil", "regular", "standard"],
-      });
-    }
-  }
-
-  return variants;
-}
-
-function getDefaultListingVariantId(card: PokemonCard): string | null {
-  const variant = getFirstTcgPlayerMarketEntry(
-    card.tcgplayer?.prices,
-  )?.variant.toLocaleLowerCase("en-US");
-
-  if (!variant) return null;
-  if (variant.includes("firstedition") && variant.includes("holo")) {
-    return "first-edition-holo";
-  }
-  if (variant.includes("firstedition")) return "first-edition";
-  if (variant.includes("reverse") && variant.includes("holo")) {
-    return "reverse-holo";
-  }
-  if (variant.includes("holo")) return "holo";
-  if (variant === "normal") return "normal";
-  return null;
-}
-
-function getVariantSearchText(result: EbayCompResult) {
-  return result.fields
-    .filter((field) =>
-      /title|condition|finish|foil|printing|variant|edition/i.test(field.key),
-    )
-    .map((field) => field.value)
-    .join(" ")
+function normalizeFilterText(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
     .toLocaleLowerCase("en-US")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
-function containsVariantAlias(text: string, alias: string) {
-  const pattern = alias
-    .toLocaleLowerCase("en-US")
-    .trim()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-    .join("\\s*");
-  return (
-    Boolean(pattern) && new RegExp(`(?:^|\\s)${pattern}(?:$|\\s)`).test(text)
+function matchesTextFilter(result: EbayCompResult, query: string) {
+  const normalizedQuery = normalizeFilterText(query);
+  if (normalizedQuery.length < 2) return true;
+
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+
+  const searchableText = normalizeFilterText(
+    result.fields.map((field) => field.value).join(" "),
   );
-}
-
-function matchesListingVariant(
-  result: EbayCompResult,
-  variant: ListingVariantFilter,
-  defaultVariantId: string | null,
-) {
-  const text = getVariantSearchText(result);
-  const hasReverseHolo = [
-    "reverse holo",
-    "reverse holofoil",
-    "reverse foil",
-    "rev holo",
-    "rev foil",
-    "rh",
-  ].some((alias) => containsVariantAlias(text, alias));
-  const hasFirstEdition = ["1st edition", "first edition", "1st ed"].some(
-    (alias) => containsVariantAlias(text, alias),
-  );
-  const hasHolo = ["holo", "holofoil", "holo foil"].some((alias) =>
-    containsVariantAlias(text, alias),
-  );
-  const hasNormal = [
-    "normal",
-    "non holo",
-    "non holofoil",
-    "regular",
-    "standard",
-  ].some((alias) => containsVariantAlias(text, alias));
-  const hasExplicitVariant =
-    hasReverseHolo || hasFirstEdition || hasHolo || hasNormal;
-
-  if (!hasExplicitVariant && variant.id === defaultVariantId) {
-    return true;
-  }
-
-  if (variant.kind === "holo") {
-    return hasHolo && !hasReverseHolo && !hasFirstEdition;
-  }
-  if (variant.kind === "first-edition") {
-    return hasFirstEdition && !hasHolo && !hasReverseHolo;
-  }
-  if (variant.kind === "first-edition-holo") {
-    return hasFirstEdition && hasHolo && !hasReverseHolo;
-  }
-  if (variant.kind === "normal") {
-    return hasNormal;
-  }
-
-  return variant.aliases.some((alias) => containsVariantAlias(text, alias));
+  return terms.every((term) => searchableText.includes(term));
 }
 
 function isRawListing(result: EbayCompResult) {
@@ -525,8 +368,8 @@ function matchesGrade(
 
 export default function EbaySoldView({
   card,
-  runToken,
   demoResponse,
+  runToken,
   onSubscriptionChange,
   onLoadingChange,
   onReportAvailableChange,
@@ -534,27 +377,19 @@ export default function EbaySoldView({
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sortOrder, setSortOrder] = useState<EbaySortOrder>("default");
+  const [sortOrder, setSortOrder] = useState<EbaySortOrder>("date-desc");
   const [listingTypeFilter, setListingTypeFilter] =
     useState<ListingTypeFilter>("sold");
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>("all");
   const [appliedGradeFilter, setAppliedGradeFilter] =
     useState<GradeFilter>("all");
-  const [variantFilter, setVariantFilter] = useState("all");
-  const [appliedVariantFilter, setAppliedVariantFilter] = useState("all");
+  const [textFilter, setTextFilter] = useState("");
+  const [appliedTextFilter, setAppliedTextFilter] = useState("");
   const [filtering, setFiltering] = useState(false);
   const [visibleResultCount, setVisibleResultCount] =
     useState(RESULTS_BATCH_SIZE);
   const filterTimerRef = useRef<number | undefined>(undefined);
   const { isCurrentRequest, startRequest } = useAbortableRequest();
-  const availableVariantFilters = useMemo(
-    () => getAvailableVariantFilters(card),
-    [card],
-  );
-  const defaultVariantFilterId = useMemo(
-    () => getDefaultListingVariantId(card),
-    [card],
-  );
 
   useEffect(() => {
     onLoadingChange?.(loading);
@@ -568,8 +403,9 @@ export default function EbaySoldView({
   );
 
   useEffect(() => {
-    if (runToken <= 0 || card.id === "demo" || demoResponse !== undefined)
-      return;
+    if (runToken <= 0) return;
+
+    if (demoResponse) return;
 
     async function loadEbayListings() {
       const params = new URLSearchParams({ cardId: card.id });
@@ -579,12 +415,12 @@ export default function EbaySoldView({
       setError("");
       setResponse(null);
       onReportAvailableChange?.(false);
-      setSortOrder("default");
+      setSortOrder("date-desc");
       setListingTypeFilter("sold");
       setGradeFilter("all");
       setAppliedGradeFilter("all");
-      setVariantFilter("all");
-      setAppliedVariantFilter("all");
+      setTextFilter("");
+      setAppliedTextFilter("");
       setFiltering(false);
       window.clearTimeout(filterTimerRef.current);
       setVisibleResultCount(RESULTS_BATCH_SIZE);
@@ -699,35 +535,31 @@ export default function EbaySoldView({
         : listingTypeResults.filter((result) =>
             matchesGrade(result, appliedGradeFilter),
           );
-  const selectedVariant = availableVariantFilters.find(
-    (variant) => variant.id === appliedVariantFilter,
-  );
-  const filteredResults = selectedVariant
+  const filteredResults = appliedTextFilter
     ? gradeFilteredResults.filter((result) =>
-        matchesListingVariant(result, selectedVariant, defaultVariantFilterId),
+        matchesTextFilter(result, appliedTextFilter),
       )
     : gradeFilteredResults;
-  const sortedResults =
-    sortOrder === "default"
-      ? filteredResults
-      : [...filteredResults].sort((firstResult, secondResult) => {
-          const sortingByDate =
-            sortOrder === "date-desc" || sortOrder === "date-asc";
-          const firstValue = sortingByDate
-            ? getEndedAtTimestamp(firstResult)
-            : getNumericSoldPrice(firstResult);
-          const secondValue = sortingByDate
-            ? getEndedAtTimestamp(secondResult)
-            : getNumericSoldPrice(secondResult);
+  const sortedResults = [...filteredResults].sort(
+    (firstResult, secondResult) => {
+      const sortingByDate =
+        sortOrder === "date-desc" || sortOrder === "date-asc";
+      const firstValue = sortingByDate
+        ? getEndedAtTimestamp(firstResult)
+        : getNumericSoldPrice(firstResult);
+      const secondValue = sortingByDate
+        ? getEndedAtTimestamp(secondResult)
+        : getNumericSoldPrice(secondResult);
 
-          if (firstValue === null && secondValue === null) return 0;
-          if (firstValue === null) return 1;
-          if (secondValue === null) return -1;
+      if (firstValue === null && secondValue === null) return 0;
+      if (firstValue === null) return 1;
+      if (secondValue === null) return -1;
 
-          return sortOrder === "price-asc" || sortOrder === "date-asc"
-            ? firstValue - secondValue
-            : secondValue - firstValue;
-        });
+      return sortOrder === "price-asc" || sortOrder === "date-asc"
+        ? firstValue - secondValue
+        : secondValue - firstValue;
+    },
+  );
   const visibleResults = sortedResults.slice(0, visibleResultCount);
   const remainingResultCount = sortedResults.length - visibleResults.length;
   const nextBatchSize = Math.min(RESULTS_BATCH_SIZE, remainingResultCount);
@@ -737,25 +569,34 @@ export default function EbaySoldView({
     setVisibleResultCount(RESULTS_BATCH_SIZE);
   }
 
-  function scheduleFilterChange(nextGrade: GradeFilter, nextVariant: string) {
+  function scheduleFilterChange(nextGrade: GradeFilter, nextText: string) {
     setFiltering(true);
     setVisibleResultCount(RESULTS_BATCH_SIZE);
     window.clearTimeout(filterTimerRef.current);
     filterTimerRef.current = window.setTimeout(() => {
       setAppliedGradeFilter(nextGrade);
-      setAppliedVariantFilter(nextVariant);
+      setAppliedTextFilter(nextText);
       setFiltering(false);
     }, FILTER_TRANSITION_MS);
   }
 
   function handleGradeFilterChange(value: GradeFilter) {
     setGradeFilter(value);
-    scheduleFilterChange(value, variantFilter);
+    scheduleFilterChange(value, textFilter);
   }
 
-  function handleVariantFilterChange(value: string) {
-    setVariantFilter(value);
-    scheduleFilterChange(gradeFilter, value);
+  function handleTextFilterChange(value: string) {
+    setTextFilter(value);
+    const nextTextFilter = normalizeFilterText(value).length >= 2 ? value : "";
+    if (
+      nextTextFilter === appliedTextFilter &&
+      gradeFilter === appliedGradeFilter
+    ) {
+      window.clearTimeout(filterTimerRef.current);
+      setFiltering(false);
+      return;
+    }
+    scheduleFilterChange(gradeFilter, nextTextFilter);
   }
 
   function handleListingTypeChange(value: ListingTypeFilter) {
@@ -796,35 +637,22 @@ export default function EbaySoldView({
                 ))}
               </div>
             </fieldset>
-            {availableVariantFilters.length > 1 && (
-              <fieldset className="ebay-sold-view__filters radio-group">
-                <legend>Variant</legend>
-                <div>
-                  <label>
-                    <input
-                      checked={variantFilter === "all"}
-                      name="ebay-card-variant"
-                      type="radio"
-                      value="all"
-                      onChange={() => handleVariantFilterChange("all")}
-                    />
-                    <span>All</span>
-                  </label>
-                  {availableVariantFilters.map((variant) => (
-                    <label key={variant.id}>
-                      <input
-                        checked={variantFilter === variant.id}
-                        name="ebay-card-variant"
-                        type="radio"
-                        value={variant.id}
-                        onChange={() => handleVariantFilterChange(variant.id)}
-                      />
-                      <span>{variant.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            )}
+            <label className="ebay-sold-view__text-filter">
+              <span>Filter</span>
+              <div>
+                <Search aria-hidden="true" />
+                <input
+                  aria-label="Filter eBay results"
+                  onChange={(event) =>
+                    handleTextFilterChange(event.currentTarget.value)
+                  }
+                  minLength={2}
+                  placeholder="Keyword"
+                  type="search"
+                  value={textFilter}
+                />
+              </div>
+            </label>
           </div>
           <label className="ebay-sold-view__sorting">
             <span>Sort by</span>
@@ -862,7 +690,7 @@ export default function EbaySoldView({
           ) : null}
           <div
             className="ebay-sold-view__results ui-render-fade"
-            key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedVariantFilter}-${sortOrder}`}
+            key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedTextFilter}-${sortOrder}`}
           >
             {visibleResults.map((result, index) => (
               <EbayResultCard

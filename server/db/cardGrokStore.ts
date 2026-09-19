@@ -1,8 +1,5 @@
-import { dbGet, dbRun } from "./db.js";
-import {
-  formatCardNumber,
-  formatUnpaddedCardNumber,
-} from "../../shared/formatCardNumber.js";
+import { ensurePokeTraceReady, pokeTraceDb } from "./pokeTraceDb.js";
+import { parsePokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
 import { isValidWorthGradingResponse } from "../../shared/validateWorthGrading.js";
 import {
   isScoreNumber,
@@ -146,26 +143,30 @@ export function isValidStoredFeatureResponse(
   return false;
 }
 
-async function readCard(cardId: string): Promise<JsonObject | null> {
-  const row = await dbGet<{ raw_json: string }>(
-    "SELECT raw_json FROM cards WHERE id = ?",
-    [cardId],
-  );
+async function readCard(cardId: string) {
+  await ensurePokeTraceReady();
+  const result = await pokeTraceDb.execute({
+    sql: "SELECT raw_json, saved_responses FROM poketrace_cards WHERE id = ?",
+    args: [cardId],
+  });
+  const row = result.rows[0];
   if (!row) return null;
 
   const card = parseJsonObject(String(row.raw_json));
   if (!card) {
     throw new Error(`Card ${cardId} contains invalid JSON`);
   }
-  return card;
+  return {
+    card,
+    savedResponses: parsePokeTraceSavedResponses(row.saved_responses),
+  };
 }
 
 function getFreshFeatureResponse(
-  card: JsonObject,
+  grok: unknown,
   storageKey: string,
   reuseDays: number,
 ) {
-  const grok = card.grok;
   if (!isJsonObject(grok)) return null;
 
   const response = grok[storageKey];
@@ -189,25 +190,27 @@ export async function getCardGrokContext(
   storageKey: string,
   reuseDays: number,
 ) {
-  const card = await readCard(cardId);
-  if (!card) return null;
+  const storedCard = await readCard(cardId);
+  if (!storedCard) return null;
+  const { card, savedResponses } = storedCard;
 
   const set = isJsonObject(card.set) ? card.set : null;
   const cardName = typeof card.name === "string" ? card.name.trim() : "";
   const setName = typeof set?.name === "string" ? set.name.trim() : "";
   const rarity = typeof card.rarity === "string" ? card.rarity.trim() : "";
-  const rawCardNumber = card.number;
+  const rawCardNumber = card.cardNumber;
   const cardNumber =
     typeof rawCardNumber === "string"
       ? rawCardNumber.trim()
       : typeof rawCardNumber === "number" && Number.isFinite(rawCardNumber)
         ? String(rawCardNumber)
         : "";
-  const rawPrintedTotal = set?.printedTotal;
-  const printedTotal =
-    typeof rawPrintedTotal === "number" && Number.isFinite(rawPrintedTotal)
-      ? rawPrintedTotal
-      : undefined;
+  const numberParts = cardNumber.split("/");
+  const unpaddedNumerator = numberParts[0]?.replace(/^0+(?=\d)/, "") ?? "";
+  const unpaddedCardNumber =
+    numberParts.length > 1
+      ? [unpaddedNumerator, ...numberParts.slice(1)].join("/")
+      : unpaddedNumerator;
 
   return {
     cardName,
@@ -216,17 +219,15 @@ export async function getCardGrokContext(
       .filter(Boolean)
       .join(" "),
     cardNumber,
-    formattedCardNumber:
-      formatCardNumber({ number: cardNumber, set: { printedTotal } }) ??
-      cardNumber,
-    unpaddedCardNumber:
-      formatUnpaddedCardNumber({
-        number: cardNumber,
-        set: { printedTotal },
-      }) ?? cardNumber,
+    formattedCardNumber: cardNumber,
+    unpaddedCardNumber: unpaddedCardNumber || cardNumber,
     rarity,
     setName,
-    storedResponse: getFreshFeatureResponse(card, storageKey, reuseDays),
+    storedResponse: getFreshFeatureResponse(
+      savedResponses.grok,
+      storageKey,
+      reuseDays,
+    ),
   };
 }
 
@@ -256,18 +257,17 @@ export async function saveCardGrokResponse(
     ...parsedResponse,
     timestamp: new Date().toISOString(),
   };
-  const jsonPath = `$.grok.${storageKey}`;
-
-  const result = await dbRun(
-    `
-    UPDATE cards
-    SET raw_json = json_set(raw_json, ?, json(?))
-    WHERE id = ?
+  await ensurePokeTraceReady();
+  const result = await pokeTraceDb.execute({
+    sql: `
+      UPDATE poketrace_cards
+      SET saved_responses = json_set(saved_responses, ?, json(?))
+      WHERE id = ?
     `,
-    [jsonPath, JSON.stringify(storedResponse), cardId],
-  );
+    args: [`$.grok.${storageKey}`, JSON.stringify(storedResponse), cardId],
+  });
 
-  if (result.changes !== 1) {
+  if (result.rowsAffected !== 1) {
     throw new Error(`Card ${cardId} was not updated`);
   }
 

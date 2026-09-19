@@ -1,11 +1,6 @@
 import fs from "fs";
 import path from "path";
-import {
-  assertExplicitDatabaseTarget,
-  db,
-  splitSqlStatements,
-} from "./db.js";
-import { assertDatabaseSchemaCompatible } from "./schemaValidation.js";
+import { assertExplicitDatabaseTarget, db, splitSqlStatements } from "./db.js";
 import { assertNewsContentSchemaCompatible } from "./newsStore.js";
 import { logError } from "../security/logging.js";
 
@@ -19,7 +14,6 @@ async function initializeDatabase() {
     for (const statement of statements) {
       await db.execute(statement);
     }
-    await assertDatabaseSchemaCompatible();
     await assertNewsContentSchemaCompatible();
     console.log("Database initialized and schema verified successfully.");
   } catch (err) {

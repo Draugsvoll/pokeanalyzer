@@ -37,42 +37,84 @@ export class PokeTraceDailyLimitError extends PokeTraceHttpError {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const transientRetries = 2;
+
+function retryDelayMs(attempt: number, response?: Response, minimumMs = 500) {
+  const retryAfter = Number(response?.headers.get("Retry-After"));
+  const requestedDelay =
+    Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : minimumMs * 2 ** attempt;
+  return Math.min(30_000, Math.max(minimumMs, requestedDelay));
+}
+
+async function waitForRetry(
+  resource: string,
+  attempt: number,
+  response?: Response,
+  minimumMs = 500,
+) {
+  const delayMs = retryDelayMs(attempt, response, minimumMs);
+  console.warn(
+    `PokeTrace ${resource} failed temporarily; retry ${attempt + 1}/${transientRetries} in ${delayMs}ms`,
+  );
+  await sleep(delayMs);
+}
 
 async function pokeTraceFetch(url: string, apiKey: string, resource: string) {
-  for (let attempt = 0; ; attempt++) {
-    const response = await fetch(url, {
-      headers: { "X-API-Key": apiKey },
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (response.ok) return response;
-    if (response.status !== 429) {
-      throw new PokeTraceHttpError(response.status, resource);
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: { "X-API-Key": apiKey },
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (error) {
+      if (attempt >= transientRetries) throw error;
+      await waitForRetry(resource, attempt);
+      continue;
     }
 
-    const body: unknown = await response.json().catch(() => null);
-    const details =
-      body && typeof body === "object" && !Array.isArray(body)
-        ? (body as Record<string, unknown>)
-        : {};
-    const usage = details.usage as Record<string, unknown> | undefined;
-    const daily = usage?.daily as Record<string, unknown> | undefined;
+    if (response.ok) return response;
+
+    if (response.status === 429) {
+      const body: unknown = await response.json().catch(() => null);
+      const details =
+        body && typeof body === "object" && !Array.isArray(body)
+          ? (body as Record<string, unknown>)
+          : {};
+      const usage = details.usage as Record<string, unknown> | undefined;
+      const daily = usage?.daily as Record<string, unknown> | undefined;
+      if (
+        daily?.remaining === 0 ||
+        response.headers.get("X-RateLimit-Remaining") === "0" ||
+        (typeof details.error === "string" &&
+          details.error.toLowerCase().includes("daily rate limit"))
+      ) {
+        throw new PokeTraceDailyLimitError(resource);
+      }
+      if (
+        details.code !== "BURST_RATE_LIMIT_EXCEEDED" ||
+        attempt >= transientRetries
+      ) {
+        throw new PokeTraceHttpError(429, resource);
+      }
+      await waitForRetry(resource, attempt, response, 2_100);
+      continue;
+    }
+
     if (
-      daily?.remaining === 0 ||
-      response.headers.get("X-RateLimit-Remaining") === "0" ||
-      (typeof details.error === "string" &&
-        details.error.toLowerCase().includes("daily rate limit"))
+      [408, 425].includes(response.status) ||
+      (response.status >= 500 && response.status <= 599)
     ) {
-      throw new PokeTraceDailyLimitError(resource);
+      if (attempt >= transientRetries) {
+        throw new PokeTraceHttpError(response.status, resource);
+      }
+      await waitForRetry(resource, attempt, response);
+      continue;
     }
-    if (details.code !== "BURST_RATE_LIMIT_EXCEEDED" || attempt >= 3) {
-      throw new PokeTraceHttpError(429, resource);
-    }
-    const retryAfter = Number(response.headers.get("Retry-After"));
-    const delayMs =
-      Number.isFinite(retryAfter) && retryAfter > 0
-        ? retryAfter * 1000
-        : 2_000 * 2 ** attempt;
-    await sleep(Math.min(30_000, Math.max(2_100, delayMs)));
+
+    throw new PokeTraceHttpError(response.status, resource);
   }
 }
 

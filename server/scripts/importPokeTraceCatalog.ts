@@ -1,5 +1,9 @@
 import "dotenv/config";
-import { pokeTraceDb, pokeTraceReady } from "../db/pokeTraceDb.js";
+import {
+  assertExplicitPokeTraceDatabaseTarget,
+  ensurePokeTraceReady,
+  pokeTraceDb,
+} from "../db/pokeTraceDb.js";
 import {
   fetchPokeTracePage,
   PokeTraceDailyLimitError,
@@ -12,6 +16,7 @@ if (!apiKey) {
   console.error("Set POKETRACE_API_KEY before importing cards");
   process.exit(1);
 }
+assertExplicitPokeTraceDatabaseTarget();
 
 const targetArgument = process.argv[2] ?? "20";
 const target = targetArgument === "all" ? Infinity : Number(targetArgument);
@@ -29,7 +34,7 @@ const importName = "english-us-singles";
 const requestGapMs = 2100; // Safe for the free tier's one-request-per-two-seconds burst limit.
 
 try {
-  await pokeTraceReady;
+  await ensurePokeTraceReady();
   const acquired = await withPokeTraceJobLock(async (assertHeld) => {
     const progress = await pokeTraceDb.execute({
       sql: "SELECT next_cursor, imported_count, complete FROM poketrace_import_progress WHERE name = ?",
@@ -53,7 +58,7 @@ try {
       complete = !page.pagination.hasMore;
       await pokeTraceDb.batch(
         [
-          ...page.data.map(cardUpsert),
+          ...page.data.map((card) => cardUpsert(card)),
           {
             sql: `
             INSERT INTO poketrace_import_progress (name, next_cursor, imported_count, complete)
@@ -69,7 +74,7 @@ try {
         "write",
       );
       console.log(
-        `Saved ${count} English US singles to the PokeTrace trial database`,
+        `Saved ${count} English US singles to the PokeTrace database`,
       );
       cursor = nextCursor;
       if (!complete && count < target) {
@@ -81,7 +86,7 @@ try {
         ? "PokeTrace catalogue exhausted"
         : `Import paused at ${count} cards`,
     );
-    console.log("Browse /poketrace-search");
+    console.log("Browse /search");
   });
   if (!acquired)
     console.log("PokeTrace maintenance job already running; import skipped");

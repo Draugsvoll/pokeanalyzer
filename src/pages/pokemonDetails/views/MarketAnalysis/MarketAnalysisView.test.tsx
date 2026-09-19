@@ -63,10 +63,10 @@ describe("MarketAnalysisView", () => {
 
     expect(screen.getByText("Market Health")).toBeInTheDocument();
     expect(
-      screen.queryByRole("img", {
+      screen.getByRole("img", {
         name: "Market health score: 63 out of 100",
       }),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("63");
     expect(
       screen.getByText("Prices and sales activity are broadly stable."),
     ).toBeInTheDocument();
@@ -163,8 +163,8 @@ describe("MarketAnalysisView", () => {
     );
 
     expect(
-      screen.queryByRole("img", { name: "Market health score: 1 out of 100" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("img", { name: "Market health score: 1 out of 100" }),
+    ).toHaveTextContent("1");
     expect(screen.getByText("Mixed by grade")).toBeInTheDocument();
     expect(screen.getByText("Flat")).toBeInTheDocument();
   });

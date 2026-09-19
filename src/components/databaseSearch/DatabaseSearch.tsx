@@ -1,20 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
-import { resolveCardPriceOption } from "../../utils/pokemonPricing";
+import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { SearchHero } from "../searchHero/SearchHero";
-import {
-  disableCardCatalogForSession,
-  getAvailableCardCatalog,
-  initializeCardCatalog,
-  searchCardCatalog,
-} from "../../services/cardCatalog";
+import { searchCachedPokeTraceCatalog } from "../../services/pokeTraceCatalog";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -22,9 +16,6 @@ type DatabaseSearchProps = {
   autoFocusName?: boolean;
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
-  onSearchStart?: () => void;
-  /** When set, results render into this element (e.g. below the card shell) */
-  resultsPortalEl?: HTMLElement | null;
 };
 
 type DatabaseSearchBarProps = {
@@ -37,20 +28,15 @@ type DatabaseSearchBarProps = {
   onSearch: () => void;
   onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onSetNameChange: (value: string) => void;
-  onSetSeriesChange: (value: string) => void;
   pokemonName: string;
   setName: string;
-  setSeries: string;
 };
 
-type SearchSortDirection =
-  "price-high-low" | "price-low-high" | "release-newest" | "release-oldest";
+type SearchSortDirection = "price-high-low" | "price-low-high";
 
 const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
   { value: "price-high-low", label: "Price: high to low" },
   { value: "price-low-high", label: "Price: low to high" },
-  { value: "release-newest", label: "Newest releases" },
-  { value: "release-oldest", label: "Oldest releases" },
 ];
 
 export function DatabaseSearchBar({
@@ -63,12 +49,10 @@ export function DatabaseSearchBar({
   onSearch,
   onSearchKeyDown,
   onSetNameChange,
-  onSetSeriesChange,
   pokemonName,
   setName,
-  setSeries,
 }: DatabaseSearchBarProps) {
-  const searchButtonBusy = isSearching || !canSearch;
+  const searchButtonDisabled = isSearching || !canSearch;
   const pokemonNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -123,17 +107,6 @@ export function DatabaseSearchBar({
             aria-label="Set name"
           />
         </label>
-        <span className="explore-search-shell__divider" aria-hidden="true" />
-        <label className="explore-search-field">
-          <input
-            className="database-search"
-            value={setSeries}
-            onChange={(event) => onSetSeriesChange(event.target.value)}
-            onKeyDown={onSearchKeyDown}
-            placeholder="Series"
-            aria-label="Series"
-          />
-        </label>
       </div>
       <div className="database-search-actions">
         <button
@@ -141,10 +114,10 @@ export function DatabaseSearchBar({
           className="explore-search-shell__submit"
           onClick={onSearch}
           onMouseDown={(event) => event.preventDefault()}
-          disabled={searchButtonBusy}
-          aria-busy={searchButtonBusy || undefined}
+          disabled={searchButtonDisabled}
+          aria-busy={isSearching || undefined}
         >
-          {searchButtonBusy ? (
+          {isSearching ? (
             <span className="database-search-spinner" aria-label="Searching" />
           ) : (
             "Search"
@@ -158,49 +131,26 @@ export function DatabaseSearchBar({
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
-  onSearchStart,
-  resultsPortalEl = null,
 }) => {
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
-  const [setSeries, setSetSeries] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [results, setResults] = useState<PokemonCardType[]>([]);
   const [resultRenderKey, setResultRenderKey] = useState(0);
+  const searchCooldownTimerRef = useRef<number | undefined>(undefined);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
   const [sortDirection, setSortDirection] =
     useState<SearchSortDirection>("price-high-low");
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
-  useEffect(() => {
-    void initializeCardCatalog();
-  }, []);
+  useEffect(
+    () => () => window.clearTimeout(searchCooldownTimerRef.current),
+    [],
+  );
   const sortedResults = useMemo(() => {
     return [...results].sort((a, b) => {
-      if (
-        sortDirection === "release-newest" ||
-        sortDirection === "release-oldest"
-      ) {
-        const aTime = Date.parse(a.set?.releaseDate ?? "");
-        const bTime = Date.parse(b.set?.releaseDate ?? "");
-        const aSortTime = Number.isNaN(aTime)
-          ? sortDirection === "release-newest"
-            ? Number.NEGATIVE_INFINITY
-            : Number.POSITIVE_INFINITY
-          : aTime;
-        const bSortTime = Number.isNaN(bTime)
-          ? sortDirection === "release-newest"
-            ? Number.NEGATIVE_INFINITY
-            : Number.POSITIVE_INFINITY
-          : bTime;
-
-        return sortDirection === "release-newest"
-          ? bSortTime - aSortTime
-          : aSortTime - bSortTime;
-      }
-
       const getDisplayedPrice = (card: PokemonCardType) =>
-        resolveCardPriceOption(card)?.price;
+        resolvePokeTraceCardPrice(card)?.price;
       const aPrice = getDisplayedPrice(a);
       const bPrice = getDisplayedPrice(b);
       const aSortPrice =
@@ -225,15 +175,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
 
     const trimmedPokemonName = pokemonName.trim();
     const trimmedSetName = setName.trim();
-    const trimmedSetSeries = setSeries.trim();
     const trimmedCardNumber = cardNumber.trim();
 
-    if (
-      !trimmedPokemonName &&
-      !trimmedSetName &&
-      !trimmedSetSeries &&
-      !trimmedCardNumber
-    ) {
+    if (!trimmedPokemonName && !trimmedSetName && !trimmedCardNumber) {
       setResults([]);
       setActiveQueryLabel("");
       return;
@@ -248,7 +192,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
 
         if (trimmedPokemonName) params.set("pokemonName", trimmedPokemonName);
         if (trimmedSetName) params.set("setName", trimmedSetName);
-        if (trimmedSetSeries) params.set("setSeries", trimmedSetSeries);
         if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
 
         const res = await fetch(
@@ -259,28 +202,12 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         return res.json();
       };
 
-      let data: PokemonCardType[] | null;
-      const catalog = getAvailableCardCatalog();
-      if (catalog) {
-        try {
-          data = searchCardCatalog(catalog, {
-            pokemonName: trimmedPokemonName,
-            setName: trimmedSetName,
-            setSeries: trimmedSetSeries,
-            cardNumber: trimmedCardNumber,
-          });
-        } catch (localError) {
-          disableCardCatalogForSession();
-          logClientError(
-            "Local card search failed; using API fallback",
-            localError,
-          );
-          data = await searchApi();
-        }
-      } else {
-        void initializeCardCatalog();
-        data = await searchApi();
-      }
+      const localResults = searchCachedPokeTraceCatalog({
+        pokemonName: trimmedPokemonName,
+        setName: trimmedSetName,
+        cardNumber: trimmedCardNumber,
+      });
+      const data = localResults ?? (await searchApi());
 
       if (!data) {
         setResults([]);
@@ -288,12 +215,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       }
       setResults(data);
       setActiveQueryLabel(
-        [
-          trimmedPokemonName,
-          trimmedCardNumber,
-          trimmedSetName,
-          trimmedSetSeries,
-        ]
+        [trimmedPokemonName, trimmedCardNumber, trimmedSetName]
           .filter(Boolean)
           .join(" · "),
       );
@@ -304,7 +226,8 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     } finally {
       setIsSearching(false);
 
-      setTimeout(() => {
+      window.clearTimeout(searchCooldownTimerRef.current);
+      searchCooldownTimerRef.current = window.setTimeout(() => {
         setCanSearch(true);
       }, 1000);
     }
@@ -321,16 +244,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   function submitSearch() {
     if (!canSearch || isSearching) return;
 
-    const hasSearchInput =
-      pokemonName.trim() ||
-      setName.trim() ||
-      setSeries.trim() ||
-      cardNumber.trim();
-
-    if (hasSearchInput) {
-      onSearchStart?.();
-    }
-
     handleSearch();
   }
 
@@ -345,10 +258,8 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       onSearch={submitSearch}
       onSearchKeyDown={handleSearchKeyDown}
       onSetNameChange={setSetName}
-      onSetSeriesChange={setSetSeries}
       pokemonName={pokemonName}
       setName={setName}
-      setSeries={setSeries}
     />
   );
 
@@ -371,9 +282,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
               {!embedded && results.length > 0 && (
                 <div className="explore-results-toolbar">
                   <div className="explore-results-toolbar__copy">
-                    <h3 className="explore-results-toolbar__title">
-                      Search results
-                    </h3>
                     <p className="explore-results-toolbar__meta">
                       {results.length} card
                       {results.length === 1 ? "" : "s"} matching
@@ -384,7 +292,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   </div>
                   <div className="explore-results-toolbar__actions">
                     <label className="explore-sort-control">
-                      <span>Sort by</span>
                       <SelectDropdown
                         ariaLabel="Sort search results"
                         className="explore-sort-control__dropdown"
@@ -393,26 +300,30 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                         onChange={setSortDirection}
                       />
                     </label>
+                    <button
+                      aria-label="Close search results"
+                      className="explore-results-toolbar__close"
+                      onClick={() => {
+                        setResults([]);
+                        setActiveQueryLabel("");
+                      }}
+                      title="Close results"
+                      type="button"
+                    >
+                      <X aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
               )}
               {results.length > 0 && (
                 <GridView>
                   {sortedResults.map((card) => (
-                    <PokemonCardView
-                      key={card.id}
-                      card={card}
-                      showPriceSourcePicker
-                    />
+                    <PokemonCardView key={card.id} card={card} />
                   ))}
                 </GridView>
               )}
             </div>
           );
-
-          if (resultsPortalEl) {
-            return createPortal(resultsNode, resultsPortalEl);
-          }
 
           return resultsNode;
         })()}

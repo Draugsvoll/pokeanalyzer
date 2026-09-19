@@ -12,11 +12,18 @@ type EbayCardSearchContext = {
   unpaddedCardNumber: string;
 };
 
+function bareCardNumber(value: string) {
+  const numerator = value.split("/", 1)[0]?.trim() ?? "";
+  if (!/^\d+$/.test(numerator)) return "";
+  return numerator.replace(/^0+(?=\d)/, "");
+}
+
 export function buildEbayCardRequests(context: EbayCardSearchContext) {
   const cardNumberCandidates = [
     context.formattedCardNumber,
     context.unpaddedCardNumber,
     context.cardNumber,
+    bareCardNumber(context.cardNumber),
   ].filter((value, index, values) => value && values.indexOf(value) === index);
   const cardNumberQuery =
     cardNumberCandidates.length > 1

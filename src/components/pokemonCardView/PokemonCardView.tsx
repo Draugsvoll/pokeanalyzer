@@ -1,13 +1,6 @@
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Star, TriangleAlert } from "lucide-react";
+import { ChevronDown, ChevronUp, ImageOff, Star } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
@@ -16,21 +9,12 @@ import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import type {
   PortfolioCard,
-  PortfolioPriceSource,
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
-import {
-  getCardPriceSourceLabel,
-  getHistoricalPriceForOption,
-  listCardPriceOptions,
-  pickDefaultCardPriceOption,
-  resolvePortfolioCardPriceOption,
-  type CardPriceOption,
-  type CardPriceSource,
-} from "../../utils/pokemonPricing";
+import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./PokemonCardView.scss";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -40,22 +24,8 @@ const money = new Intl.NumberFormat("en-US", {
 
 export type PokemonCardViewProps = {
   card: PokemonCardType;
-  priceSource?: CardPriceSource;
-  /** Saved selection (controlled). Do not pass a pending id here. */
-  selectedPriceOptionId?: string | null;
-  /** Fires when user picks a different radio - parent should open confirm only. */
-  onPriceOptionChange?: (optionId: string) => void;
-  /** Pending option waiting for confirm (does not change displayed price yet). */
-  pendingPriceOptionId?: string | null;
-  onConfirmPriceOption?: () => void | Promise<void>;
-  onCancelPriceOption?: () => void;
-  confirmingPriceOption?: boolean;
-  lockPriceSource?: boolean;
-  showPriceSourcePicker?: boolean;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
-  priceChangePercent?: number | null;
   priceChangeLabel?: string;
-  showPriceWarning?: boolean;
   hidePortfolioButtonUntilHover?: boolean;
   onPortfolioChanged?: (saved: boolean) => void;
 };
@@ -65,30 +35,21 @@ function formatPriceChange(value: number) {
   return `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(1)}%`;
 }
 
-function getJustTcgOptionLabelParts(option: CardPriceOption) {
-  const [printing = "", setName = ""] = option.groupKey?.split("|") ?? [];
-  return {
-    condition: option.conditionShortLabel ?? option.conditionLabel ?? "",
-    printing,
-    setName,
-  };
+function getVariantBadgeAccent(variant?: string) {
+  const value = variant?.trim().toLowerCase().replaceAll("_", " ") ?? "";
+
+  if (value.includes("1st edition") && value.includes("holo")) {
+    return "orange" as const;
+  }
+  if (value.includes("1st edition")) return "yellow" as const;
+  if (value.includes("reverse holo")) return "teal" as const;
+  return "neutral" as const;
 }
 
 export function PokemonCardView({
   card,
-  priceSource = "tcgplayer",
-  selectedPriceOptionId,
-  onPriceOptionChange,
-  pendingPriceOptionId = null,
-  onConfirmPriceOption,
-  onCancelPriceOption,
-  confirmingPriceOption = false,
-  lockPriceSource = false,
-  showPriceSourcePicker = false,
   comparisonPriceSnapshot,
-  priceChangePercent,
   priceChangeLabel,
-  showPriceWarning = false,
   hidePortfolioButtonUntilHover = false,
   onPortfolioChanged,
 }: PokemonCardViewProps) {
@@ -98,125 +59,18 @@ export function PokemonCardView({
     usePokemonPortfolio();
   const { isCardSaved, loadingPortfolioReferences, portfolioReferencesError } =
     usePortfolioCache();
-  const sourcePanelId = useId();
-  const pricingRef = useRef<HTMLDivElement>(null);
-  const sourceFlyoutRef = useRef<HTMLDivElement>(null);
-  const [sourceOpen, setSourceOpen] = useState(false);
-  const [internalOptionId, setInternalOptionId] = useState<string | null>(null);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
-
-  const isControlled = selectedPriceOptionId !== undefined;
-  const requiresConfirm = Boolean(onConfirmPriceOption);
-  const priceOptions = useMemo(() => listCardPriceOptions(card), [card]);
-  const visiblePriceOptions = useMemo(() => {
-    if (!lockPriceSource) return priceOptions;
-
-    return priceOptions.filter((option) => option.source === priceSource);
-  }, [lockPriceSource, priceOptions, priceSource]);
-  const duplicateJustTcgGroupKeys = useMemo(() => {
-    const labelCounts = new Map<string, number>();
-
-    for (const option of visiblePriceOptions) {
-      if (option.source !== "justtcg" || !option.groupKey) continue;
-      const { printing, setName } = getJustTcgOptionLabelParts(option);
-      const condition = option.conditionShortLabel ?? option.conditionLabel;
-      const labelKey = [printing, setName, condition].filter(Boolean).join("|");
-      labelCounts.set(labelKey, (labelCounts.get(labelKey) ?? 0) + 1);
-    }
-
-    return new Set(
-      Array.from(labelCounts.entries())
-        .filter(([, count]) => count > 1)
-        .map(([labelKey]) => labelKey),
-    );
-  }, [visiblePriceOptions]);
-  const defaultPriceOption = lockPriceSource
-    ? visiblePriceOptions[0]
-    : pickDefaultCardPriceOption(priceOptions, priceSource);
-  const validInternalOptionId =
-    internalOptionId &&
-    visiblePriceOptions.some((option) => option.id === internalOptionId)
-      ? internalOptionId
-      : (defaultPriceOption?.id ?? null);
-  const selectedOptionId = isControlled
-    ? selectedPriceOptionId
-    : validInternalOptionId;
-
-  useEffect(() => {
-    if (!sourceOpen) return;
-
-    const onPointerDown = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (
-        pricingRef.current &&
-        target &&
-        !pricingRef.current.contains(target)
-      ) {
-        setSourceOpen(false);
-        onCancelPriceOption?.();
-      }
-    };
-
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [sourceOpen, onCancelPriceOption]);
-
-  useLayoutEffect(() => {
-    if (!sourceOpen) return;
-
-    const flyout = sourceFlyoutRef.current;
-    if (!flyout) return;
-
-    const updatePlacement = () => {
-      flyout.style.removeProperty("--pokemon-card-source-offset-x");
-
-      const flyoutRect = flyout.getBoundingClientRect();
-      const gridRect = flyout
-        .closest<HTMLElement>(".card-grid")
-        ?.getBoundingClientRect();
-      const edgeGap = 8;
-      const viewportLeft = edgeGap;
-      const viewportRight = window.innerWidth - edgeGap;
-      const gridCanContainFlyout =
-        gridRect && gridRect.width >= flyoutRect.width;
-      const availableLeft = gridCanContainFlyout
-        ? Math.max(viewportLeft, gridRect.left)
-        : viewportLeft;
-      const availableRight = gridCanContainFlyout
-        ? Math.min(viewportRight, gridRect.right)
-        : viewportRight;
-      const offsetX = Math.min(
-        Math.max(0, availableLeft - flyoutRect.left),
-        availableRight - flyoutRect.right,
-      );
-
-      flyout.style.setProperty(
-        "--pokemon-card-source-offset-x",
-        `${offsetX}px`,
-      );
-    };
-
-    updatePlacement();
-    window.addEventListener("resize", updatePlacement);
-    return () => window.removeEventListener("resize", updatePlacement);
-  }, [sourceOpen]);
-
-  const activeOption: CardPriceOption | undefined =
-    visiblePriceOptions.find((option) => option.id === selectedOptionId) ??
-    defaultPriceOption;
+  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+  const activeOption = resolvePokeTraceCardPrice(card);
+  const imageSrc = card.images?.small;
+  const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
   const displayedPrice = activeOption?.price;
-  const comparisonPrice =
-    activeOption && comparisonPriceSnapshot
-      ? getHistoricalPriceForOption(activeOption, comparisonPriceSnapshot)
-      : undefined;
+  const comparisonPrice = comparisonPriceSnapshot?.marketPrice;
   const calculatedPriceChangePercent =
     displayedPrice != null && comparisonPrice != null
       ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
       : null;
-  const normalizedPriceChangePercent =
-    priceChangePercent !== undefined
-      ? priceChangePercent
-      : calculatedPriceChangePercent;
+  const normalizedPriceChangePercent = calculatedPriceChangePercent;
   const displayedPriceChangePercent =
     normalizedPriceChangePercent != null &&
     Math.abs(normalizedPriceChangePercent) < 0.05
@@ -234,16 +88,16 @@ export function PokemonCardView({
         : displayedPriceChangePercent < 0
           ? "down"
           : "flat";
-  const showPriceChange =
-    priceChangePercent !== undefined || comparisonPriceSnapshot != null;
+  const showPriceChange = comparisonPriceSnapshot != null;
   const priceChangeTitle =
     priceChangeLabel ??
     (comparisonPriceSnapshot
       ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
       : "Price change");
-  const currencySymbol =
-    activeOption?.currencySymbol ?? (priceSource === "tcgplayer" ? "$" : "€");
+  const currencySymbol = activeOption?.currencySymbol ?? "$";
   const printedCardNumber = formatCardNumber(card);
+  const variantName = card.pokeTrace.variant?.trim().replaceAll("_", " ");
+  const variantAccent = getVariantBadgeAccent(card.pokeTrace.variant);
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -272,201 +126,31 @@ export function PokemonCardView({
     }
   }
 
-  const selectOption = (optionId: string) => {
-    if (optionId === activeOption?.id) {
-      onCancelPriceOption?.();
-      return;
-    }
-
-    if (requiresConfirm) {
-      onPriceOptionChange?.(optionId);
-      return;
-    }
-
-    if (!isControlled) setInternalOptionId(optionId);
-    onPriceOptionChange?.(optionId);
-    setSourceOpen(false);
-  };
-
   const handleCardClick = () => {
     navigateToPokemonCard(navigate, card);
   };
 
-  const closeSource = () => {
-    setSourceOpen(false);
-    onCancelPriceOption?.();
-  };
-
-  const cancelPendingPriceOption = () => {
-    onCancelPriceOption?.();
-  };
-
-  function renderSourcePanel() {
-    const renderConfirmPopover = () => (
-      <ConfirmPopover
-        className="pokemon-card__source-confirm"
-        aria-label="Confirm price source change"
-        confirming={confirmingPriceOption}
-        onConfirm={() => {
-          void (async () => {
-            await onConfirmPriceOption?.();
-            setSourceOpen(false);
-          })();
-        }}
-        onCancel={cancelPendingPriceOption}
-      />
-    );
-
-    return (
-      <>
-        <div
-          id={sourcePanelId}
-          className="pokemon-card__source-panel ui-popover-surface"
-          role="radiogroup"
-          aria-label="Price source"
-        >
-          {visiblePriceOptions.map((option, index) => {
-            const inputId = `${sourcePanelId}-${option.id}`;
-            const checked = option.id === activeOption?.id;
-            const isPending = option.id === pendingPriceOptionId;
-            const pretext = getCardPriceSourceLabel(option.source);
-            const {
-              condition: optionConditionLabel,
-              printing: optionPrinting,
-              setName: optionSetName,
-            } = option.source === "justtcg"
-              ? getJustTcgOptionLabelParts(option)
-              : {
-                  condition:
-                    option.conditionShortLabel ?? option.conditionLabel ?? "",
-                  printing: "",
-                  setName: "",
-                };
-            const justTcgLabelKey = [
-              optionPrinting,
-              optionSetName,
-              optionConditionLabel,
-            ]
-              .filter(Boolean)
-              .join("|");
-            const optionLabel =
-              option.source === "justtcg" && optionPrinting
-                ? [
-                    optionPrinting,
-                    duplicateJustTcgGroupKeys.has(justTcgLabelKey) &&
-                    option.cardName
-                      ? option.cardName
-                      : optionSetName,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-                : option.label;
-            const hasOptionLabel = Boolean(optionLabel.trim());
-            const hasOptionDetail = Boolean(
-              optionLabel.trim() || optionConditionLabel,
-            );
-            const optionContent = (
-              <>
-                <input
-                  className="app-radio"
-                  id={inputId}
-                  type="radio"
-                  name={`${sourcePanelId}-price`}
-                  value={option.id}
-                  checked={checked}
-                  onChange={() => selectOption(option.id)}
-                />
-                <span className="pokemon-card__source-option-label">
-                  <span
-                    className={[
-                      "pokemon-card__source-option-pretext",
-                      `pokemon-card__source-option-pretext--${option.source}`,
-                      hasOptionDetail ? "has-detail" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {pretext}
-                  </span>
-                  {hasOptionLabel && (
-                    <span className="pokemon-card__source-option-name">
-                      {optionLabel}
-                    </span>
-                  )}
-                  {optionConditionLabel && (
-                    <span className="pokemon-card__source-option-condition">
-                      {optionConditionLabel}
-                    </span>
-                  )}
-                </span>
-                <span className="pokemon-card__source-option-price">
-                  {option.currencySymbol}
-                  {money.format(option.price)}
-                </span>
-              </>
-            );
-
-            const optionClassName = [
-              "pokemon-card__source-option",
-              checked ? "is-selected" : "",
-              isPending ? "is-pending" : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-
-            return (
-              <div
-                key={`${option.id}-${index}`}
-                className="pokemon-card__source-option-wrap"
-              >
-                <label htmlFor={inputId} className={optionClassName}>
-                  {optionContent}
-                </label>
-                {isPending && renderConfirmPopover()}
-              </div>
-            );
-          })}
-        </div>
-      </>
-    );
-  }
-
-  const sourceFlyout = sourceOpen ? (
-    <div ref={sourceFlyoutRef} className="pokemon-card__source-flyout">
-      {renderSourcePanel()}
-    </div>
-  ) : null;
-
   return (
-    <div
-      className={`pokemon-card-view${
-        sourceOpen ? " pokemon-card-view--source-open" : ""
-      }`}
-    >
+    <div className="pokemon-card-view">
       <div
         className={[
           "pokemon-card-view__card",
-          sourceOpen ? "pokemon-card-view__card--source-open" : "",
-          confirmingPriceOption
-            ? "pokemon-card-view__card--price-option-updating"
-            : "",
           hidePortfolioButtonUntilHover
             ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
             : "",
         ]
           .filter(Boolean)
           .join(" ")}
-        aria-busy={confirmingPriceOption || undefined}
-        onClick={handleCardClick}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            handleCardClick();
-          }
-        }}
-        role="button"
-        tabIndex={0}
       >
+        <button
+          aria-label={`Open ${card.name}`}
+          className="pokemon-card__open"
+          onClick={handleCardClick}
+          title={[card.name, card.set?.name, variantName]
+            .filter(Boolean)
+            .join(" · ")}
+          type="button"
+        />
         {authUser && (
           <button
             type="button"
@@ -494,11 +178,9 @@ export function PokemonCardView({
                     ? "Remove from portfolio"
                     : "Add to portfolio"
             }
-            onClick={(event) => {
-              event.stopPropagation();
+            onClick={() => {
               void handlePortfolioToggle();
             }}
-            onKeyDown={(event) => event.stopPropagation()}
           >
             {portfolioBusy ? (
               <span className="app-btn__spinner" aria-hidden="true" />
@@ -509,45 +191,57 @@ export function PokemonCardView({
         )}
 
         <div className="pokemon-card__image">
-          <img src={card.images?.small} alt={card.name} />
+          {imageAvailable ? (
+            <img
+              src={imageSrc}
+              alt=""
+              onError={() => setFailedImageSrc(imageSrc ?? null)}
+            />
+          ) : (
+            <span
+              aria-label="Card image unavailable"
+              className="pokemon-card__image-placeholder"
+              role="img"
+            >
+              <ImageOff aria-hidden="true" />
+            </span>
+          )}
         </div>
 
         <div className="pokemon-card__content">
           <div className="pokemon-card__identity">
-            <div className="pokemon-card__name-row">
-              <h2 className="pokemon-card__name" title={card.name}>
-                {card.name}
-              </h2>
-              {printedCardNumber && (
+            {printedCardNumber && (
+              <div className="pokemon-card__number-row">
                 <span
                   className="pokemon-card__number"
                   title={`Card number ${printedCardNumber}`}
                 >
                   {printedCardNumber}
                 </span>
-              )}
+              </div>
+            )}
+            <div className="pokemon-card__name-row">
+              <h2 className="pokemon-card__name" title={card.name}>
+                {card.name}
+              </h2>
             </div>
             <div className="pokemon-card__set-row">
               <span className="pokemon-card__set" title={card.set?.name}>
                 {card.set?.name ?? "Unknown set"}
               </span>
-              {card.set?.series && (
-                <span className="pokemon-card__series" title={card.set.series}>
-                  <span aria-hidden="true">•</span>
-                  <span className="pokemon-card__series-name">
-                    {card.set.series}
-                  </span>
+              {variantName && (
+                <span className="pokemon-card__variant">
+                  <Badge accent={variantAccent} size="sm" title={variantName}>
+                    <span className="pokemon-card__variant-label">
+                      {variantName}
+                    </span>
+                  </Badge>
                 </span>
               )}
             </div>
           </div>
 
-          <div
-            ref={pricingRef}
-            className="pokemon-card__pricing"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => event.stopPropagation()}
-          >
+          <div className="pokemon-card__pricing">
             <div className="pokemon-card__price">
               <div className="pokemon-card__price-row">
                 <div className="pokemon-card__price-current">
@@ -556,16 +250,6 @@ export function PokemonCardView({
                       ? `${currencySymbol}${money.format(displayedPrice)}`
                       : "-"}
                   </span>
-                  {showPriceWarning && (
-                    <span
-                      className="pokemon-card__price-warning"
-                      role="img"
-                      aria-label="Flagged as potentially inaccurate price-data. Verify with market analysis."
-                      data-tooltip="Flagged as potentially inaccurate price-data. Verify with market analysis."
-                    >
-                      <TriangleAlert aria-hidden="true" />
-                    </span>
-                  )}
                   {showPriceChange &&
                     (formattedPriceChange && priceChangeTone ? (
                       <span
@@ -585,40 +269,10 @@ export function PokemonCardView({
                       </span>
                     ))}
                 </div>
-                {showPriceSourcePicker && visiblePriceOptions.length > 0 && (
-                  <div className="pokemon-card__source">
-                    <button
-                      type="button"
-                      className={`pokemon-card__source-toggle${
-                        sourceOpen ? " is-open" : ""
-                      }`}
-                      aria-expanded={sourceOpen}
-                      aria-controls={sourcePanelId}
-                      onClick={() => {
-                        if (sourceOpen) closeSource();
-                        else setSourceOpen(true);
-                      }}
-                    >
-                      <span className="pokemon-card__source-name">Source</span>
-                      <ChevronDown
-                        className="pokemon-card__source-chevron"
-                        aria-hidden="true"
-                      />
-                    </button>
-
-                    {sourceFlyout}
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
-
-        {confirmingPriceOption && (
-          <div className="pokemon-card__loading-overlay" aria-hidden="true">
-            <span className="app-loading-spinner" />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -629,12 +283,6 @@ type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
   quantity?: number;
   onQuantityUpdated?: (cardId: string, quantity: number) => void;
   onRemoved?: (cardId: string) => void;
-  onPriceSourceUpdated?: (
-    cardId: string,
-    priceSource: PortfolioPriceSource,
-    priceKey: string,
-    selectForAll: boolean,
-  ) => void;
 };
 
 export function PokemonCardPortfolioView({
@@ -642,23 +290,13 @@ export function PokemonCardPortfolioView({
   quantity = card.quantity ?? 1,
   onQuantityUpdated,
   onRemoved,
-  onPriceSourceUpdated,
   onPortfolioChanged,
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
-  const { updatePokemonPriceSource, updatePokemonQuantity } =
-    usePokemonPortfolio();
-  const resolvedPriceOption = resolvePortfolioCardPriceOption(card, "all");
-  const activePriceSource: PortfolioPriceSource =
-    resolvedPriceOption?.source ?? "justtcg";
+  const { updatePokemonQuantity } = usePokemonPortfolio();
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
   const [actionsDismissed, setActionsDismissed] = useState(false);
-  const [pendingPriceOptionId, setPendingPriceOptionId] = useState<
-    string | null
-  >(null);
-  const [updatingPriceOption, setUpdatingPriceOption] = useState(false);
-  const activePendingPriceOptionId = pendingPriceOptionId;
 
   const requestQuantityChange = (amount: number) => {
     if (updatingQuantity) return;
@@ -692,45 +330,6 @@ export function PokemonCardPortfolioView({
     }
   };
 
-  const confirmPriceOptionChange = async () => {
-    if (!activePendingPriceOptionId) return;
-
-    const separatorIndex = activePendingPriceOptionId.indexOf(":");
-    const source =
-      separatorIndex >= 0
-        ? activePendingPriceOptionId.slice(0, separatorIndex)
-        : "";
-    const priceKey =
-      separatorIndex >= 0
-        ? activePendingPriceOptionId.slice(separatorIndex + 1)
-        : "";
-    if (
-      !priceKey ||
-      (source !== "tcgplayer" &&
-        source !== "cardmarket" &&
-        source !== "justtcg")
-    ) {
-      setPendingPriceOptionId(null);
-      return;
-    }
-
-    setUpdatingPriceOption(true);
-    try {
-      const updated = await updatePokemonPriceSource(
-        card.id,
-        source,
-        priceKey,
-        true,
-      );
-      if (!updated) return;
-
-      onPriceSourceUpdated?.(card.id, source, priceKey, true);
-      setPendingPriceOptionId(null);
-    } finally {
-      setUpdatingPriceOption(false);
-    }
-  };
-
   return (
     // Portfolio-only shell: do not restyle PokemonCardView internals here.
     <div
@@ -757,14 +356,6 @@ export function PokemonCardPortfolioView({
       <PokemonCardView
         card={card}
         {...cardViewProps}
-        priceSource={activePriceSource}
-        showPriceSourcePicker
-        selectedPriceOptionId={resolvedPriceOption?.id ?? null}
-        pendingPriceOptionId={activePendingPriceOptionId}
-        onPriceOptionChange={setPendingPriceOptionId}
-        onConfirmPriceOption={confirmPriceOptionChange}
-        onCancelPriceOption={() => setPendingPriceOptionId(null)}
-        confirmingPriceOption={updatingPriceOption}
         hidePortfolioButtonUntilHover
         onPortfolioChanged={(saved) => {
           onPortfolioChanged?.(saved);

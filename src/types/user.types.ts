@@ -7,11 +7,8 @@ export type UserProfile = {
   uid: string;
   email: string;
   firstName?: string;
-  portfolioPriceSource?: "all";
   createdAt?: UserCreatedAt;
-  /** Legacy field retained for existing profiles. */
   username?: string;
-  /** Legacy field retained for existing profiles. */
   avatar?: string | null;
 };
 

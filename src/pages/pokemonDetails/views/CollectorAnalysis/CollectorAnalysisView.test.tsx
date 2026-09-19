@@ -49,7 +49,7 @@ describe("CollectorAnalysis", () => {
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     }
     expect(
-      screen.getByRole("heading", { name: "Final note" }),
+      screen.getByRole("heading", { name: "Overview" }),
     ).toBeInTheDocument();
     for (const paragraph of analysis.finalNote) {
       expect(screen.getByText(paragraph).tagName).toBe("P");

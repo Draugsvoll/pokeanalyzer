@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
+  fetchPokeTraceCard,
   fetchPokeTracePage,
   isEnglishSingle,
   PokeTraceDailyLimitError,
@@ -52,6 +53,24 @@ test("reads the documented paginated card response and preserves prices", async 
   assert.deepEqual(result.data[0].prices, card.prices);
 });
 
+test("reads one card with its complete current prices", async () => {
+  globalThis.fetch = async (input, init) => {
+    assert.equal(
+      String(input),
+      `https://api.poketrace.com/v1/cards/${card.id}`,
+    );
+    assert.equal(
+      (init?.headers as Record<string, string>)["X-API-Key"],
+      "test-key",
+    );
+    return Response.json({ data: card });
+  };
+
+  const result = await fetchPokeTraceCard("test-key", card.id);
+
+  assert.deepEqual(result.prices, card.prices);
+});
+
 test("daily quota errors are distinguishable from failed requests", async () => {
   globalThis.fetch = async () =>
     Response.json(
@@ -83,5 +102,28 @@ test("a burst 429 is retried and the card page is saved", async () => {
   };
   const page = await fetchPokeTracePage("test-key", {});
   assert.equal(requests, 2);
+  assert.equal(page.data[0].id, card.id);
+});
+
+test("transport and server failures are retried before giving up", async () => {
+  let requests = 0;
+  globalThis.fetch = async () => {
+    requests += 1;
+    if (requests === 1) throw new TypeError("temporary network failure");
+    if (requests === 2) {
+      return new Response(null, {
+        status: 503,
+        headers: { "Retry-After": "0.001" },
+      });
+    }
+    return Response.json({
+      data: [card],
+      pagination: { hasMore: false, nextCursor: null },
+    });
+  };
+
+  const page = await fetchPokeTracePage("test-key", {});
+
+  assert.equal(requests, 3);
   assert.equal(page.data[0].id, card.id);
 });

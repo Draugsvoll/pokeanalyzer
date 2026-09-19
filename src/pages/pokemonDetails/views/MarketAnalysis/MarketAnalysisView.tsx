@@ -204,6 +204,7 @@ export function MarketAnalysisView({
       <FeatureAnalysisHero
         eyebrow="Market Health"
         headline={data.headline}
+        score={data.score}
         scoreLabel="Market health score"
       >
         <div className="market-analysis-report__overview-content">

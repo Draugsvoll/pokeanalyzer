@@ -3,7 +3,7 @@ import { SELECTED_POKEMON_CACHE_KEY } from "../constants/cache";
 import type { PokemonCard } from "../types/pokemon";
 
 export function getSelectedPokemonFromCache(
-  cardId?: string
+  cardId?: string,
 ): PokemonCard | null {
   if (!cardId) return null;
 
@@ -22,10 +22,7 @@ export function getSelectedPokemonFromCache(
 export function setSelectedPokemonCache(card: PokemonCard): void {
   const publicCard = { ...card };
   delete publicCard.grok;
-  localStorage.setItem(
-    SELECTED_POKEMON_CACHE_KEY,
-    JSON.stringify(publicCard),
-  );
+  localStorage.setItem(SELECTED_POKEMON_CACHE_KEY, JSON.stringify(publicCard));
 }
 
 export function preloadPokemonImage(url?: string): void {
@@ -39,9 +36,13 @@ export function navigateToPokemonCard(
   navigate: NavigateFunction,
   card: PokemonCard,
 ): void {
-  setSelectedPokemonCache(card);
+  try {
+    setSelectedPokemonCache(card);
+  } catch {
+    // Navigation still works when browser storage is unavailable or full.
+  }
   preloadPokemonImage(card.images?.large ?? card.images?.small);
-  navigate(`/card/${card.id}`, {
+  navigate(`/card/${encodeURIComponent(card.id)}`, {
     state: { card },
   });
 }

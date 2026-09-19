@@ -195,8 +195,6 @@
   --radio-option-state-bg: color-mix(in srgb, var(--text) 5%, transparent);
   --padding-row: 0.85rem 0.65rem;
 
-  /* Legacy alias → fill shell (do not re-cap page content) */
-  --content-width: 100%;
   /* Card detail panel only — centered compact shell (exception to full shell width) */
   --card-view-max-width: 76rem;
   --max-text-width: 53rem;
