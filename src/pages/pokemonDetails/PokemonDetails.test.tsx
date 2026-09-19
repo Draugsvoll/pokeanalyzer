@@ -36,12 +36,11 @@ function buildCard(id: string, name: string): PokemonCard {
     id,
     images: { large: `${id}-large.png`, small: `${id}-small.png` },
     name,
-    number: "58",
+    number: "58/102",
     rarity: "Common",
     set: {
       id: "base1",
       name: "Base Set",
-      printedTotal: 102,
     },
     pokeTrace: {
       currency: "USD",
@@ -387,7 +386,12 @@ test("Market Analysis fetches the stored market report", async () => {
   });
   expect(mocks.askGrok).toHaveBeenCalledWith(
     "market_analysis",
-    expect.objectContaining({ cardId: "card-a" }),
+    expect.objectContaining({
+      cardId: "card-a",
+      cardName: "Pikachu",
+      cardNumber: "58/102",
+      setName: "Base Set",
+    }),
   );
 });
 

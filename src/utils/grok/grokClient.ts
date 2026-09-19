@@ -30,8 +30,11 @@ export type GrokRequestState = {
 };
 
 type AskGrokOptions = {
+  cardName?: string;
+  cardNumber?: string;
   cardId?: string;
   instructions?: string;
+  setName?: string;
   signal?: AbortSignal;
   userInput?: string;
 };
@@ -41,11 +44,27 @@ export async function askGrok(
   options: AskGrokOptions = {},
 ): Promise<GrokResult> {
   try {
-    const { cardId, instructions, signal, userInput } = options;
+    const {
+      cardId,
+      cardName,
+      cardNumber,
+      instructions,
+      setName,
+      signal,
+      userInput,
+    } = options;
     const res = await authenticatedFetch(`${API_URL}/ai`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ feature, userInput, cardId, instructions }),
+      body: JSON.stringify({
+        feature,
+        userInput,
+        cardId,
+        name: cardName,
+        cardNumber,
+        set: setName,
+        instructions,
+      }),
       signal,
     });
     const data = (await res.json()) as GrokResponse;

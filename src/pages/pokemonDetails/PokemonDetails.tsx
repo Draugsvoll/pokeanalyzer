@@ -357,6 +357,9 @@ function PokemonDetailsForCard() {
       const result = await askGrok(featureKey, {
         signal,
         cardId: card.id,
+        cardName: card.name,
+        cardNumber: card.number ?? "",
+        setName: card.set?.name ?? "",
       });
       if (signal.aborted) return false;
 

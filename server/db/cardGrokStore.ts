@@ -215,9 +215,6 @@ export async function getCardGrokContext(
   return {
     cardName,
     cardNameAndSet: [cardName, setName].filter(Boolean).join(" "),
-    cardPromptIdentity: [cardName, cardNumber, setName]
-      .filter(Boolean)
-      .join(" "),
     cardNumber,
     formattedCardNumber: cardNumber,
     unpaddedCardNumber: unpaddedCardNumber || cardNumber,

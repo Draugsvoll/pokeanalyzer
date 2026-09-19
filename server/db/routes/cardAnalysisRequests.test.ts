@@ -10,7 +10,6 @@ import { getCardAnalysisRequest } from "./cardAnalysisRequests.js";
 const cardContext = {
   cardName: "Pikachu",
   cardNumber: "58/102",
-  cardPromptIdentity: "Pikachu 58/102 Base Set",
   setName: "Base Set",
 };
 
@@ -47,9 +46,14 @@ test("card features build their user input from the stored card context", () => 
   const worthGradingInput =
     getCardAnalysisRequest("worth_grading")!.buildUserInput(cardContext);
 
-  assert.match(collectorInput, /Pikachu 58\/102 Base Set/);
-  assert.equal(marketInput, "Name: Pikachu set: Base Set number:58");
-  assert.match(worthGradingInput, /Pikachu 58\/102 Base Set/);
+  const expectedIdentity = JSON.stringify({
+    name: "Pikachu",
+    cardNumber: "58/102",
+    set: "Base Set",
+  });
+  assert.equal(collectorInput, expectedIdentity);
+  assert.equal(marketInput, expectedIdentity);
+  assert.equal(worthGradingInput, expectedIdentity);
 });
 
 test("unknown card features do not resolve to a request", () => {

@@ -559,23 +559,6 @@ Respond in the JSON format provided below. Your entire response must only be a v
 
 `.trim();
 
-export function worthGradingInput(cardNameAndSet: string): string {
-  return `"${cardNameAndSet}"`;
-}
-
-export function collectorsAnalysisInput(cardNameAndSet: string): string {
-  return cardNameAndSet;
-}
-
-export function marketAnalysisInput(
-  cardName: string,
-  setName: string,
-  cardNumber: string | number,
-): string {
-  const primaryCardNumber = String(cardNumber).split("/")[0].trim();
-  return `Name: ${cardName} set: ${setName} number:${primaryCardNumber}`;
-}
-
 export function identifyCardPrompt(
   frontImageBase64: string,
 ): GrokMultimodalMessage {
