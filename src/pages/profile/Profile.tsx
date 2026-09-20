@@ -237,11 +237,9 @@ export default function Profile() {
                       : (subscription?.planName ?? "No membership")}
                   </h3>
                   <p>
-                    {subscription?.planId === "free"
-                      ? "Your free account plan"
-                      : subscription
-                        ? `${membershipCreditsTotal} credits every month`
-                        : "No active plan found"}
+                    {subscription
+                      ? `${membershipCreditsTotal} credits every month`
+                      : "No active plan found"}
                   </p>
                 </div>
               </div>
@@ -252,9 +250,11 @@ export default function Profile() {
                 <div className="profile__period-row">
                   {subscription?.currentPeriodEnd && (
                     <small className="profile__period">
-                      {subscription.cancelAtPeriodEnd
-                        ? "Access until"
-                        : "Next billing date"}{" "}
+                      {subscription.planId === "free"
+                        ? "Credits renew"
+                        : subscription.cancelAtPeriodEnd
+                          ? "Access until"
+                          : "Next billing date"}{" "}
                       <strong>
                         {new Date(
                           subscription.currentPeriodEnd,
@@ -396,7 +396,9 @@ export default function Profile() {
                     </span>
                     <span className="profile__purchase-name">{plan.name}</span>
                     <strong>
-                      {isFreePlan ? "Free forever" : `${plan.credits} credits`}
+                      {isFreePlan
+                        ? `${plan.credits} credits / month`
+                        : `${plan.credits} credits`}
                     </strong>
                     <small>
                       {isFreePlan
@@ -406,7 +408,7 @@ export default function Profile() {
                     <Button
                       fill="solid"
                       fitContent
-                      size="small"
+                      size="medium"
                       style={getCustomColors(planAccent)}
                       disabled={
                         planIsCurrent ||
@@ -470,7 +472,7 @@ export default function Profile() {
                 <Button
                   fill="solid"
                   fitContent
-                  size="small"
+                  size="medium"
                   style={getCustomColors("orange")}
                   disabled={!canUseMembership || updatingCredits}
                   onClick={() => void topUpCredits()}

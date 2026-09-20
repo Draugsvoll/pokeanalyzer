@@ -23,7 +23,7 @@ Output must be purely market focused, do not mention its position as a collectab
 
 {
 "set_name":"set name of the card",
-"variant_name":"Official print/variant name of the card",
+"variant_name":"Official print/variant name of the card you researched",
 "score":"score 1-100. Only return an Integer",
 "headline":"One sentence summary which to let me know it's position in the market. Max 15 words.",
 "market_signals":{
@@ -363,7 +363,7 @@ export const worthGradingInstructions: string = `
   },
   "attractiveness_level": {
   "score":"Score 1-100 on how attractive this variant is to submit for grading all things considered, relative to other Pokemon cards. This is without knowing what grade it will come back as. Must be a string containing only the score, for example '65'",
-  "reasoning":["Explain why it deserved the score you gave it, outside of just the paper profit numbers. You don't need to explain profit levels since we already display this in other fields. I should have a sense of what dragged the score down, and what pulled it up. Use neutral language with a neutral tone. Don't shorten or truncate the text. Always describe this as its score, instead of attractiveness. This field is an array so that lengthy texts can be split into paragraphs"]
+  "reasoning":["Explain why it deserved the score you gave it, outside of just the paper profit numbers. You don't need to explain profit levels since we already display this in other fields. I should have a sense of what dragged the score down, and what pulled it up. If long turnaround times is an issue/relevant then mention it. Use neutral language with a neutral tone. Don't shorten or truncate the text. Always describe this as its score, instead of attractiveness. This field is an array so that lengthy texts can be split into paragraphs"]
   },
   "raw_sale_today": {
     "gross_sale_usd": null,

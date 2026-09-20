@@ -16,6 +16,29 @@ export type CardPriceHistoryResponse = {
   snapshots: CardPriceHistorySnapshot[];
 };
 
+export type MarketPriceHistorySource = "tcgplayer" | "ebay";
+
+export type MarketPriceHistoryPoint = {
+  date: string;
+  avg: number;
+  median7d: number | null;
+  median30d: number | null;
+  low: number | null;
+  high: number | null;
+  saleCount: number | null;
+  approxSaleCount: boolean | null;
+};
+
+export type MarketPriceHistoryResponse = {
+  cardId: string;
+  condition: "NEAR_MINT";
+  period: "90d";
+  currency: string;
+  fetchedAt: string;
+  stale: boolean;
+  series: Partial<Record<MarketPriceHistorySource, MarketPriceHistoryPoint[]>>;
+};
+
 type JsonRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -69,6 +92,75 @@ function parsePriceHistoryResponse(value: unknown): CardPriceHistoryResponse {
   };
 }
 
+function nullableFiniteNumber(value: unknown) {
+  return (
+    value === null || (typeof value === "number" && Number.isFinite(value))
+  );
+}
+
+function parseMarketPriceHistoryResponse(
+  value: unknown,
+): MarketPriceHistoryResponse {
+  if (
+    !isRecord(value) ||
+    typeof value.cardId !== "string" ||
+    value.condition !== "NEAR_MINT" ||
+    value.period !== "90d" ||
+    typeof value.currency !== "string" ||
+    typeof value.fetchedAt !== "string" ||
+    typeof value.stale !== "boolean" ||
+    !isRecord(value.series)
+  ) {
+    throw new Error("Invalid marketplace price-history response");
+  }
+
+  const series: MarketPriceHistoryResponse["series"] = {};
+  for (const source of ["tcgplayer", "ebay"] as const) {
+    const rawPoints = value.series[source];
+    if (rawPoints === undefined) continue;
+    if (!Array.isArray(rawPoints)) {
+      throw new Error("Invalid marketplace price-history series");
+    }
+    series[source] = rawPoints.map((point) => {
+      if (
+        !isRecord(point) ||
+        typeof point.date !== "string" ||
+        typeof point.avg !== "number" ||
+        !Number.isFinite(point.avg) ||
+        !nullableFiniteNumber(point.median7d) ||
+        !nullableFiniteNumber(point.median30d) ||
+        !nullableFiniteNumber(point.low) ||
+        !nullableFiniteNumber(point.high) ||
+        !nullableFiniteNumber(point.saleCount) ||
+        (point.approxSaleCount !== null &&
+          typeof point.approxSaleCount !== "boolean")
+      ) {
+        throw new Error("Invalid marketplace price-history point");
+      }
+      return {
+        date: point.date,
+        avg: point.avg,
+        median7d: point.median7d as number | null,
+        median30d: point.median30d as number | null,
+        low: point.low as number | null,
+        high: point.high as number | null,
+        saleCount: point.saleCount as number | null,
+        approxSaleCount: point.approxSaleCount,
+      };
+    });
+  }
+
+  return {
+    cardId: value.cardId,
+    condition: "NEAR_MINT",
+    period: "90d",
+    currency: value.currency,
+    fetchedAt: value.fetchedAt,
+    stale: value.stale,
+    series,
+  };
+}
+
 async function readErrorMessage(response: Response) {
   const body = (await response.json().catch(() => null)) as unknown;
   if (isRecord(body)) {
@@ -112,6 +204,23 @@ export async function fetchCardPriceHistory(
   const history = parsePriceHistoryResponse(value);
   if (history.cardId !== cardId) {
     throw new Error("Price-history response belongs to another card");
+  }
+  return history;
+}
+
+export async function fetchMarketPriceHistory(
+  cardId: string,
+  signal?: AbortSignal,
+) {
+  const value = await cardRequest(
+    `${API_URL}/api/cards/${encodeURIComponent(cardId)}/market-price-history`,
+    signal,
+  );
+  const history = parseMarketPriceHistoryResponse(value);
+  if (history.cardId !== cardId) {
+    throw new Error(
+      "Marketplace price-history response belongs to another card",
+    );
   }
   return history;
 }

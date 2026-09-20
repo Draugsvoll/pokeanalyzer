@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
   fetchPokeTraceCard,
+  fetchPokeTracePriceHistory,
   fetchPokeTracePage,
   isEnglishSingle,
   PokeTraceDailyLimitError,
@@ -69,6 +70,48 @@ test("reads one card with its complete current prices", async () => {
   const result = await fetchPokeTraceCard("test-key", card.id);
 
   assert.deepEqual(result.prices, card.prices);
+});
+
+test("requests Near Mint price history for 90 days", async () => {
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    assert.equal(url.pathname, `/v1/cards/${card.id}/prices/NEAR_MINT/history`);
+    assert.equal(url.searchParams.get("period"), "90d");
+    assert.equal(url.searchParams.get("limit"), "365");
+    assert.equal(
+      (init?.headers as Record<string, string>)["X-API-Key"],
+      "test-key",
+    );
+    return Response.json({
+      data: [
+        {
+          date: "2026-09-18",
+          source: "tcgplayer",
+          avg: 420,
+          median7d: 415,
+          median30d: 410,
+          low: 400,
+          high: 440,
+          saleCount: 12,
+        },
+      ],
+      pagination: { hasMore: false, nextCursor: null, count: 1 },
+    });
+  };
+
+  const history = await fetchPokeTracePriceHistory("test-key", card.id);
+
+  assert.deepEqual(history.data[0], {
+    date: "2026-09-18",
+    source: "tcgplayer",
+    avg: 420,
+    median7d: 415,
+    median30d: 410,
+    low: 400,
+    high: 440,
+    saleCount: 12,
+    approxSaleCount: null,
+  });
 });
 
 test("daily quota errors are distinguishable from failed requests", async () => {

@@ -157,7 +157,7 @@ function PokemonDetailsForCard() {
   const [failedCardImageSrc, setFailedCardImageSrc] = useState<string | null>(
     null,
   );
-  const [activeView, setActiveView] = useState<ActiveView>("prices");
+  const [activeView, setActiveView] = useState<ActiveView>("ebay_sold");
   const [cardSearchCardId, setCardSearchCardId] = useState<string | null>(null);
   const showCardSearch = Boolean(id && cardSearchCardId === id);
   const [grokResponses, setGrokResponses] = useState<
@@ -420,9 +420,19 @@ function PokemonDetailsForCard() {
 
   const aiFeatures: AiFeature[] = [
     {
+      view: "ebay_sold",
+      title: "eBay Comps",
+      description: "Show completed sales & active listings.",
+      icon: BadgeDollarSign,
+      color: "teal",
+      featureKey: "ebay_sold",
+      onOpen: openEbayAnalysis,
+    },
+    {
       view: "prices",
       title: "Market Analysis",
-      description: "TCGPlayer prices and market activity",
+      description:
+        "Scan markets to show you the cards activity and relevant metrics.",
       icon: LineChart,
       color: "orange",
       featureKey: "market_analysis",
@@ -436,15 +446,6 @@ function PokemonDetailsForCard() {
       color: "blue",
       featureKey: "collector_analysis",
       onOpen: openCollectorAnalysis,
-    },
-    {
-      view: "ebay_sold",
-      title: "eBay Comps",
-      description: "Recent comps from real sales",
-      icon: BadgeDollarSign,
-      color: "teal",
-      featureKey: "ebay_sold",
-      onOpen: openEbayAnalysis,
     },
     {
       view: "worth_grading",
@@ -642,6 +643,13 @@ function PokemonDetailsForCard() {
     !subscription ||
     creditsRemaining < 1 ||
     isActiveFeatureLoading;
+  const shouldAddCredits =
+    !isDemo &&
+    Boolean(authUser) &&
+    Boolean(subscription) &&
+    !loadingSubscription &&
+    !updatingCredits &&
+    creditsRemaining === 0;
 
   // RENDERING
   return (
@@ -714,7 +722,6 @@ function PokemonDetailsForCard() {
                   <Button
                     fill="ghost"
                     fullWidth
-                    style={getCustomColors("blue")}
                     onClick={handleEmbeddedSearchToggle}
                     aria-expanded={showCardSearch}
                   >
@@ -759,7 +766,7 @@ function PokemonDetailsForCard() {
                       <div className="card-view__product-meta">
                         <Badge
                           accent={getRarityBadgeAccent(displayRarity)}
-                          size="lg"
+                          size="md"
                           weight="strong"
                         >
                           {displayRarity}
@@ -816,6 +823,10 @@ function PokemonDetailsForCard() {
             className="card-view__search-overlay ui-render-fade"
             onMouseDown={(event) => {
               const target = event.target;
+              const clickedScrollbar =
+                target === event.currentTarget &&
+                event.clientX >= event.currentTarget.clientWidth;
+              if (clickedScrollbar) return;
               if (
                 target instanceof Element &&
                 target.closest(".database-search-bar, .search-results")
@@ -855,8 +866,8 @@ function PokemonDetailsForCard() {
           >
             <span className="card-view__credit-cost">
               <Coins aria-hidden="true" />
-              <strong>1 Credit</strong>
-              <span className="card-view__credit-meta">per analysis</span>
+              <strong>Credit</strong>
+              <span className="card-view__credit-meta">pay per-feature</span>
             </span>
             <span className="card-view__credit-divider" aria-hidden="true" />
             <span className="card-view__credit-copy">
@@ -964,13 +975,23 @@ function PokemonDetailsForCard() {
                 color={activeFeature.color}
                 icon={activeFeature.icon}
                 label={activeFeature.title}
-                actionLabel={CARD_FEATURE_HEADER_ACTION_LABEL}
+                actionLabel={
+                  shouldAddCredits
+                    ? "Add credits"
+                    : CARD_FEATURE_HEADER_ACTION_LABEL
+                }
                 actionLoading={
                   authLoading || loadingSubscription || isActiveFeatureLoading
                 }
-                actionDisabled={activeFeatureActionDisabled}
+                actionDisabled={
+                  shouldAddCredits ? false : activeFeatureActionDisabled
+                }
                 actionHidden={activeFeatureHasResponse}
-                onAction={() => void activeFeature.onOpen()}
+                onAction={
+                  shouldAddCredits
+                    ? () => navigate("/profile")
+                    : () => void activeFeature.onOpen()
+                }
                 authActions={
                   !authUser && !authLoading && !loadingSubscription ? (
                     <>

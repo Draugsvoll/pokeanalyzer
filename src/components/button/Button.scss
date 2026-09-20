@@ -3,12 +3,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 0.5rem var(--space-4);
+  padding: 0.65rem var(--space-4);
   /* Mock: all app buttons use full-pill control radius */
   border-radius: var(--border-radius-control);
   font-size: var(--font-size-button);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--font-tracking-button);
+  line-height: 1;
   cursor: pointer;
   user-select: none;
   transition:
@@ -100,7 +101,7 @@
 
 /* Solid — previous Search CTA */
 .app-btn-pill--solid {
-  --solid-accent: color-mix(in srgb, var(--feature-accent) 88%, black);
+  --solid-accent: color-mix(in srgb, var(--feature-accent) 83%, black);
 
   background: var(--solid-accent);
   border: 1px solid var(--solid-accent);
@@ -108,8 +109,8 @@
   color: var(--button-font-color);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--solid-accent) 92%, white);
-    border-color: color-mix(in srgb, var(--solid-accent) 92%, white);
+    background: color-mix(in srgb, var(--solid-accent) 95%, white);
+    border-color: color-mix(in srgb, var(--solid-accent) 95%, white);
     box-shadow: 0 0 0 2px
       color-mix(in srgb, var(--solid-accent) 24%, transparent);
     color: var(--button-font-color);

@@ -1,5 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "./firebaseAdmin.js";
+import { getFreeSubscriptionRefresh } from "./freeSubscription.js";
 import {
   serializeSubscription,
   type StoredUserSubscription,
@@ -53,15 +54,24 @@ function assertCreditBalance(
 
 async function checkUserCredits(uid: string, credits: number) {
   const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
-  const subscriptionSnap = await subscriptionRef.get();
+  return adminDb.runTransaction(async (transaction) => {
+    const subscriptionSnap = await transaction.get(subscriptionRef);
+    if (!subscriptionSnap.exists) {
+      throw new CreditHttpError("No active subscription found", 409);
+    }
 
-  if (!subscriptionSnap.exists) {
-    throw new CreditHttpError("No active subscription found", 409);
-  }
-
-  const subscription = subscriptionSnap.data() as StoredUserSubscription;
-  assertCreditBalance(subscription, credits);
-  return subscription;
+    const current = subscriptionSnap.data() as StoredUserSubscription;
+    const refresh = getFreeSubscriptionRefresh(current);
+    const subscription = refresh ? { ...current, ...refresh } : current;
+    if (refresh) {
+      transaction.update(subscriptionRef, {
+        ...refresh,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+    assertCreditBalance(subscription, credits);
+    return subscription;
+  });
 }
 
 async function deductUserCredits(

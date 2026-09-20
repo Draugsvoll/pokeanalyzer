@@ -66,6 +66,16 @@ const cardCatalogLimiter = rateLimit({
   message: { error: "Too many catalog requests. Please wait and try again." },
 });
 
+const cardPriceHistoryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many price-history requests. Please wait and try again.",
+  },
+});
+
 const ebayLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -149,6 +159,7 @@ app.use("/api/news", newsRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/cards/catalog", cardCatalogLimiter);
+app.use("/api/cards/:id/market-price-history", cardPriceHistoryLimiter);
 app.use(
   "/api/cards",
   (_req, res, next) => {

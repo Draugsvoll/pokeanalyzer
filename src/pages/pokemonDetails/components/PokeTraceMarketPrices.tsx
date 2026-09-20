@@ -1,6 +1,14 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
+import {
+  fetchMarketPriceHistory,
+  type MarketPriceHistoryResponse,
+} from "../../../services/cardApi";
+import {
+  MarketPriceHistoryChart,
+  MarketPriceHistoryLoading,
+} from "./MarketPriceHistoryChart";
 import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
@@ -88,8 +96,7 @@ function gradeLabel(grade: string) {
 
 function formatSales(price: TierPrice) {
   if (typeof price.saleCount !== "number") return "—";
-  const count = price.saleCount.toLocaleString();
-  return `${price.approxSaleCount ? "~" : ""}${count}`;
+  return price.saleCount.toLocaleString();
 }
 
 function formatSalesLabel(price: TierPrice) {
@@ -125,9 +132,13 @@ function MarketplaceColumn({
   return (
     <article className="poketrace-market__marketplace default-container-inner">
       <div className="poketrace-market__source-heading">
-        <h4>{sourceLabel(source)}</h4>
+        <h4
+          className={`poketrace-market__source-title poketrace-market__source-title--${source.toLowerCase()}`}
+        >
+          {sourceLabel(source)}
+        </h4>
         <div
-          className="poketrace-market__condition-tabs"
+          className={`poketrace-market__condition-tabs poketrace-market__condition-tabs--${source.toLowerCase()}`}
           role="radiogroup"
           aria-label={`${sourceLabel(source)} card condition`}
         >
@@ -161,7 +172,7 @@ function MarketplaceColumn({
               {url && (
                 <a
                   aria-label={`Buy on ${sourceLabel(source)}`}
-                  className="poketrace-market__market-link"
+                  className={`poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
                   href={url}
                   rel="noreferrer"
                   target="_blank"
@@ -227,7 +238,7 @@ function GradedEbayPrices({
         <h3 id="poketrace-graded-title">Graded</h3>
         <div
           aria-label="Grading company"
-          className="poketrace-market__condition-tabs poketrace-market__grader-tabs"
+          className="poketrace-market__condition-tabs poketrace-market__condition-tabs--graded poketrace-market__grader-tabs"
           role="radiogroup"
         >
           {graders.map((grader) => (
@@ -266,6 +277,38 @@ function GradedEbayPrices({
   );
 }
 
+function PriceHistory({ cardId }: { cardId: string }) {
+  const [history, setHistory] = useState<MarketPriceHistoryResponse | null>(
+    null,
+  );
+  const [unavailable, setUnavailable] = useState(false);
+  const isDemo = cardId === "demo";
+
+  useEffect(() => {
+    if (isDemo) return;
+
+    const controller = new AbortController();
+    void fetchMarketPriceHistory(cardId, controller.signal)
+      .then(setHistory)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setUnavailable(true);
+      });
+
+    return () => controller.abort();
+  }, [cardId, isDemo]);
+
+  if (isDemo) return null;
+  if (!history && !unavailable) return <MarketPriceHistoryLoading />;
+  if (history) return <MarketPriceHistoryChart history={history} />;
+  return (
+    <p className="poketrace-market__history-unavailable">
+      Price history is temporarily unavailable.
+    </p>
+  );
+}
+
 export function PokeTraceMarketPrices({
   data,
   loadingVariantId,
@@ -286,8 +329,6 @@ export function PokeTraceMarketPrices({
   const sources = ["tcgplayer", "ebay"].filter(
     (source) => prices[source] && sortedEntries(prices[source]).length > 0,
   );
-
-  if (sources.length === 0 && ebayGradedEntries.length === 0) return null;
 
   return (
     <section aria-label="Market prices" className="poketrace-market">
@@ -324,6 +365,8 @@ export function PokeTraceMarketPrices({
           />
         ))}
       </div>
+
+      <PriceHistory cardId={selectedVariantId} key={selectedVariantId} />
 
       <GradedEbayPrices currency={data.currency} entries={ebayGradedEntries} />
     </section>

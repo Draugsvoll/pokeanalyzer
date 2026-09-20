@@ -4,7 +4,6 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAuthenticatedUid, requireVerifiedUser } from "../security/auth.js";
 import { logError } from "../security/logging.js";
 import {
-  FREE_BONUS_CREDITS,
   FREE_MEMBERSHIP_PLAN,
   MEMBERSHIP_PLANS,
 } from "../../shared/subscriptions/plans.js";
@@ -15,6 +14,10 @@ import {
   createTopUpCheckout,
 } from "./stripePayments.js";
 import { adminDb } from "./firebaseAdmin.js";
+import {
+  buildFreeSubscription,
+  getFreeSubscriptionRefresh,
+} from "./freeSubscription.js";
 import {
   serializeSubscription,
   type StoredUserSubscription,
@@ -80,21 +83,6 @@ function eventsCollection(uid: string) {
   return adminDb.collection(`users/${uid}/subscription_events`);
 }
 
-function buildFreeSubscription(): StoredUserSubscription {
-  return {
-    bonusCreditsRemaining: FREE_BONUS_CREDITS,
-    bonusCreditsTotal: FREE_BONUS_CREDITS,
-    bonusCreditsUsed: 0,
-    cancelAtPeriodEnd: false,
-    membershipCreditsRemaining: 0,
-    membershipCreditsTotal: 0,
-    membershipCreditsUsed: 0,
-    planId: FREE_MEMBERSHIP_PLAN.id,
-    planName: FREE_MEMBERSHIP_PLAN.name,
-    status: "active",
-  };
-}
-
 router.get("/plans", (_req, res) => {
   res.json({ plans: MEMBERSHIP_PLANS });
 });
@@ -102,10 +90,21 @@ router.get("/plans", (_req, res) => {
 router.get("/me", requireVerifiedUser, async (_req: Request, res: Response) => {
   try {
     const uid = getAuthenticatedUid(res);
-    const subscriptionSnap = await userSubscriptionRef(uid).get();
-    const subscription = subscriptionSnap.exists
-      ? (subscriptionSnap.data() as StoredUserSubscription)
-      : null;
+    const subscriptionRef = userSubscriptionRef(uid);
+    const subscription = await adminDb.runTransaction(async (transaction) => {
+      const subscriptionSnap = await transaction.get(subscriptionRef);
+      if (!subscriptionSnap.exists) return null;
+
+      const current = subscriptionSnap.data() as StoredUserSubscription;
+      const refresh = getFreeSubscriptionRefresh(current);
+      if (!refresh) return current;
+
+      transaction.update(subscriptionRef, {
+        ...refresh,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return { ...current, ...refresh };
+    });
 
     res.json({
       plans: MEMBERSHIP_PLANS,
@@ -125,30 +124,34 @@ router.post(
       const uid = getAuthenticatedUid(res);
 
       const subscriptionRef = userSubscriptionRef(uid);
-      const existingSubscription = await subscriptionRef.get();
-      if (existingSubscription.exists) {
-        res.json({
-          plans: MEMBERSHIP_PLANS,
-          subscription: serializeSubscription(
-            existingSubscription.data() as StoredUserSubscription,
-          ),
-        });
-        return;
-      }
+      const eventRef = eventsCollection(uid).doc();
+      const subscription = await adminDb.runTransaction(async (transaction) => {
+        const existingSubscription = await transaction.get(subscriptionRef);
+        if (existingSubscription.exists) {
+          const current = existingSubscription.data() as StoredUserSubscription;
+          const refresh = getFreeSubscriptionRefresh(current);
+          if (refresh) {
+            transaction.update(subscriptionRef, {
+              ...refresh,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          return refresh ? { ...current, ...refresh } : current;
+        }
 
-      const subscription = buildFreeSubscription();
-      const batch = adminDb.batch();
-      batch.set(subscriptionRef, {
-        ...subscription,
-        updatedAt: FieldValue.serverTimestamp(),
+        const initialSubscription = buildFreeSubscription();
+        transaction.set(subscriptionRef, {
+          ...initialSubscription,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        transaction.set(eventRef, {
+          eventType: "free_subscription_initialized",
+          membershipCredits: FREE_MEMBERSHIP_PLAN.credits,
+          planId: FREE_MEMBERSHIP_PLAN.id,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        return initialSubscription;
       });
-      batch.set(eventsCollection(uid).doc(), {
-        bonusCredits: FREE_BONUS_CREDITS,
-        eventType: "free_subscription_initialized",
-        planId: FREE_MEMBERSHIP_PLAN.id,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      await batch.commit();
 
       res.json({
         plans: MEMBERSHIP_PLANS,
@@ -157,7 +160,10 @@ router.post(
     } catch (error) {
       logError("Failed to initialize free subscription", error);
       res.status(500).json({
-        message: getSafeErrorMessage(error, "Failed to initialize free subscription"),
+        message: getSafeErrorMessage(
+          error,
+          "Failed to initialize free subscription",
+        ),
       });
     }
   },

@@ -58,6 +58,12 @@ one day newer; the entry is `null` when none of those dates exists. The daily
 history table remains the source of truth. Existing rows without this cache
 fall back to history until their next refresh.
 
+Opening a card also requests 90 days of `NEAR_MINT` history. Available
+TCGPlayer and eBay rows are normalized into separate series and stored with one
+fetch timestamp on the card row. The cache is reused for six hours, then
+refreshed and overwritten. If an upstream refresh fails, existing stored series
+are returned as stale instead of removing the chart.
+
 Import and refresh share a database lock. If either job is already running, the
 other skips its run successfully. A daily quota stop preserves all completed
 cards and exits with a failure status so the cron execution is visibly

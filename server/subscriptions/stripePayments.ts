@@ -13,10 +13,14 @@ import {
   serializeSubscription,
   type StoredUserSubscription,
 } from "./subscriptionModel.js";
+import { buildFreeSubscription } from "./freeSubscription.js";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 
-const MEMBERSHIP_PRICE_ENV: Record<Exclude<MembershipPlanId, "free">, string> = {
+const MEMBERSHIP_PRICE_ENV: Record<
+  Exclude<MembershipPlanId, "free">,
+  string
+> = {
   collector: "STRIPE_COLLECTOR_PRICE_ID",
   pro: "STRIPE_PRO_PRICE_ID",
 };
@@ -50,18 +54,22 @@ function getStripe() {
 
 function getRequiredEnv(name: string) {
   const value = process.env[name]?.trim();
-  if (!value) throw new PaymentHttpError("Stripe pricing is not configured.", 503);
+  if (!value)
+    throw new PaymentHttpError("Stripe pricing is not configured.", 503);
   return value;
 }
 
 function sendPaymentError(res: Response, error: unknown, fallback: string) {
-  const isSafeHttpError = error instanceof PaymentHttpError || error instanceof AuthHttpError;
+  const isSafeHttpError =
+    error instanceof PaymentHttpError || error instanceof AuthHttpError;
   const statusCode = isSafeHttpError ? error.statusCode : 500;
   const message = isSafeHttpError ? error.message : fallback;
   res.status(statusCode).json({ message });
 }
 
-function stripeCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null) {
+function stripeCustomerId(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+) {
   if (!customer) return null;
   return typeof customer === "string" ? customer : customer.id;
 }
@@ -77,12 +85,13 @@ async function findTopUpSessionForPaymentIntent(paymentIntentId: string) {
   });
   for (const session of sessions.data) {
     const isTopUp =
-      session.mode === "payment" &&
-      session.metadata?.purchaseType === "top_up";
+      session.mode === "payment" && session.metadata?.purchaseType === "top_up";
     if (!isTopUp) continue;
 
     const metadataUid = session.metadata?.firebaseUid;
-    const customerUid = await findUidForCustomer(stripeCustomerId(session.customer));
+    const customerUid = await findUidForCustomer(
+      stripeCustomerId(session.customer),
+    );
     if (metadataUid && customerUid === metadataUid) {
       return { session, uid: metadataUid };
     }
@@ -97,7 +106,8 @@ async function getOrCreateCustomer(uid: string) {
   const existingCustomerId = userSnap.data()?.stripeCustomerId;
 
   if (typeof existingCustomerId === "string" && existingCustomerId) {
-    const existingCustomer = await stripe.customers.retrieve(existingCustomerId);
+    const existingCustomer =
+      await stripe.customers.retrieve(existingCustomerId);
     if (!existingCustomer.deleted) {
       if (existingCustomer.metadata.firebaseUid !== uid) {
         throw new PaymentHttpError("Stripe customer ownership mismatch.", 409);
@@ -140,7 +150,10 @@ async function validateMembershipPrice(
     price.recurring?.interval !== "month" ||
     price.recurring.interval_count !== 1
   ) {
-    throw new PaymentHttpError(`Stripe price for ${plan.name} does not match the app plan.`, 503);
+    throw new PaymentHttpError(
+      `Stripe price for ${plan.name} does not match the app plan.`,
+      503,
+    );
   }
 }
 
@@ -153,7 +166,10 @@ async function validateTopUpPrice(priceId: string, packageId: TopUpPackageId) {
     price.unit_amount !== Math.round(topUp.amount * 100) ||
     price.recurring !== null
   ) {
-    throw new PaymentHttpError("Stripe top-up price does not match the app package.", 503);
+    throw new PaymentHttpError(
+      "Stripe top-up price does not match the app package.",
+      503,
+    );
   }
 }
 
@@ -161,7 +177,9 @@ async function getMembershipCheckoutRequestId(
   uid: string,
   planId: Exclude<MembershipPlanId, "free">,
 ) {
-  const attemptRef = adminDb.doc(`users/${uid}/stripe_checkout_attempts/membership`);
+  const attemptRef = adminDb.doc(
+    `users/${uid}/stripe_checkout_attempts/membership`,
+  );
   const now = Date.now();
 
   return adminDb.runTransaction(async (transaction) => {
@@ -171,7 +189,10 @@ async function getMembershipCheckoutRequestId(
 
     if (expiresAt > now && typeof attempt?.requestId === "string") {
       if (attempt.planId !== planId) {
-        throw new PaymentHttpError("A membership checkout is already being created.", 409);
+        throw new PaymentHttpError(
+          "A membership checkout is already being created.",
+          409,
+        );
       }
       return attempt.requestId as string;
     }
@@ -192,7 +213,7 @@ function getPlanId(subscription: Stripe.Subscription): MembershipPlanId | null {
   const planEntry = Object.entries(MEMBERSHIP_PRICE_ENV).find(
     ([, envName]) => process.env[envName] === priceId,
   );
-  return planEntry ? planEntry[0] as MembershipPlanId : null;
+  return planEntry ? (planEntry[0] as MembershipPlanId) : null;
 }
 
 function getPeriod(subscription: Stripe.Subscription) {
@@ -223,8 +244,11 @@ async function findUidForSubscription(subscription: Stripe.Subscription) {
   if (metadataUid) {
     const userSnap = await adminDb.doc(`users/${metadataUid}`).get();
     const storedCustomerId = userSnap.data()?.stripeCustomerId;
-    if (!storedCustomerId || storedCustomerId === customerId) return metadataUid;
-    throw new Error(`Stripe customer mismatch on subscription ${subscription.id}`);
+    if (!storedCustomerId || storedCustomerId === customerId)
+      return metadataUid;
+    throw new Error(
+      `Stripe customer mismatch on subscription ${subscription.id}`,
+    );
   }
 
   if (!customerId) return null;
@@ -252,16 +276,18 @@ async function recordUnmanagedStripeObject(
   objectId: string,
   details: Record<string, unknown> = {},
 ) {
-  await adminDb.doc(`stripe_billing_alerts/unmanaged-${objectType}-${objectId}`).set(
-    {
-      ...details,
-      eventType: `unmanaged_${objectType}`,
-      objectId,
-      objectType,
-      createdAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await adminDb
+    .doc(`stripe_billing_alerts/unmanaged-${objectType}-${objectId}`)
+    .set(
+      {
+        ...details,
+        eventType: `unmanaged_${objectType}`,
+        objectId,
+        objectType,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 }
 
 async function downgradeSubscriptionToFree(
@@ -290,31 +316,37 @@ async function downgradeSubscriptionToFree(
     if (
       (typeof currentSubscriptionId === "string" &&
         currentSubscriptionId !== subscription.id) ||
-      (!currentSubscriptionId && current?.lastStripeSubscriptionId === subscription.id) ||
+      (!currentSubscriptionId &&
+        current?.lastStripeSubscriptionId === subscription.id) ||
       (eventContext && latestEventCreated > eventContext.created)
     ) {
       return;
     }
 
-    transaction.set(subscriptionRef, {
-      cancelAtPeriodEnd: false,
-      currentPeriodEnd: FieldValue.delete(),
-      currentPeriodStart: FieldValue.delete(),
-      lastStripeSubscriptionId: subscription.id,
-      ...(eventContext && {
-        latestStripeEventCreated: eventContext.created,
-        latestStripeEventId: eventContext.id,
-      }),
-      membershipCreditsRemaining: 0,
-      membershipCreditsTotal: 0,
-      membershipCreditsUsed: 0,
-      planId: "free",
-      planName: "Free",
-      status: "active",
-      stripePriceId: FieldValue.delete(),
-      stripeSubscriptionId: FieldValue.delete(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    const freeSubscription = buildFreeSubscription();
+    transaction.set(
+      subscriptionRef,
+      {
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: freeSubscription.currentPeriodEnd,
+        currentPeriodStart: freeSubscription.currentPeriodStart,
+        lastStripeSubscriptionId: subscription.id,
+        ...(eventContext && {
+          latestStripeEventCreated: eventContext.created,
+          latestStripeEventId: eventContext.id,
+        }),
+        membershipCreditsRemaining: freeSubscription.membershipCreditsRemaining,
+        membershipCreditsTotal: freeSubscription.membershipCreditsTotal,
+        membershipCreditsUsed: freeSubscription.membershipCreditsUsed,
+        planId: "free",
+        planName: "Free",
+        status: "active",
+        stripePriceId: FieldValue.delete(),
+        stripeSubscriptionId: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     transaction.set(endedEventRef, {
       eventType: "stripe_subscription_ended",
@@ -350,17 +382,24 @@ async function syncSubscription(
   if (!plan) {
     await Promise.all([
       adminDb.doc(`users/${uid}`).set(
-        { billingReviewRequired: true, updatedAt: FieldValue.serverTimestamp() },
+        {
+          billingReviewRequired: true,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
         { merge: true },
       ),
-      adminDb.doc(`users/${uid}/billing_alerts/unknown-plan-${subscription.id}`).set({
-        eventType: "unknown_stripe_plan",
-        stripePriceId: subscription.items.data[0]?.price.id ?? null,
-        stripeSubscriptionId: subscription.id,
-        createdAt: FieldValue.serverTimestamp(),
-      }),
+      adminDb
+        .doc(`users/${uid}/billing_alerts/unknown-plan-${subscription.id}`)
+        .set({
+          eventType: "unknown_stripe_plan",
+          stripePriceId: subscription.items.data[0]?.price.id ?? null,
+          stripeSubscriptionId: subscription.id,
+          createdAt: FieldValue.serverTimestamp(),
+        }),
     ]);
-    throw new Error(`No app plan matches Stripe subscription ${subscription.id}`);
+    throw new Error(
+      `No app plan matches Stripe subscription ${subscription.id}`,
+    );
   }
 
   const customerId = stripeCustomerId(subscription.customer);
@@ -390,19 +429,23 @@ async function syncSubscription(
       !canReplaceEndedSubscription
     ) {
       if (eventContext) {
-        transaction.set(adminDb.doc(`users/${uid}/billing_alerts/${eventContext.id}`), {
-          eventType: "stale_or_conflicting_subscription_event",
-          ignoredStripeSubscriptionId: subscription.id,
-          activeStripeSubscriptionId: currentSubscriptionId,
-          stripeEventId: eventContext.id,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        transaction.set(
+          adminDb.doc(`users/${uid}/billing_alerts/${eventContext.id}`),
+          {
+            eventType: "stale_or_conflicting_subscription_event",
+            ignoredStripeSubscriptionId: subscription.id,
+            activeStripeSubscriptionId: currentSubscriptionId,
+            stripeEventId: eventContext.id,
+            createdAt: FieldValue.serverTimestamp(),
+          },
+        );
       }
       return;
     }
 
     if (
-      (!currentSubscriptionId && current?.lastStripeSubscriptionId === subscription.id) ||
+      (!currentSubscriptionId &&
+        current?.lastStripeSubscriptionId === subscription.id) ||
       (eventContext &&
         currentSubscriptionId === subscription.id &&
         latestEventCreated > eventContext.created)
@@ -413,36 +456,47 @@ async function syncSubscription(
     const currentPeriodStart = current?.currentPeriodStart;
 
     // Only reset credits on new billing cycle, not mid-cycle
-    const billingCycleChanged = currentPeriodStart && period.currentPeriodStart &&
+    const billingCycleChanged =
+      currentPeriodStart &&
+      period.currentPeriodStart &&
       currentPeriodStart.toMillis() !== period.currentPeriodStart.toMillis();
 
-    const isCanceledAtPeriodEnd = subscription.cancel_at !== null &&
+    const isCanceledAtPeriodEnd =
+      subscription.cancel_at !== null &&
       subscription.cancel_at === subscription.items.data[0]?.current_period_end;
 
-    transaction.set(subscriptionRef, {
-      cancelAtPeriodEnd: subscription.cancel_at_period_end || isCanceledAtPeriodEnd,
-      ...period,
-      ...(billingCycleChanged && {
-        // Reset credits on new billing cycle
-        membershipCreditsRemaining: plan.credits,
-        membershipCreditsTotal: plan.credits,
-        membershipCreditsUsed: 0,
-      }),
-      planId: plan.id,
-      planName: plan.name,
-      ...(eventContext && {
-        latestStripeEventCreated: eventContext.created,
-        latestStripeEventId: eventContext.id,
-      }),
-      status: mapStatus(subscription.status),
-      stripePriceId: subscription.items.data[0]?.price.id ?? null,
-      stripeSubscriptionId: subscription.id,
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    transaction.set(
+      subscriptionRef,
+      {
+        cancelAtPeriodEnd:
+          subscription.cancel_at_period_end || isCanceledAtPeriodEnd,
+        ...period,
+        ...(billingCycleChanged && {
+          // Reset credits on new billing cycle
+          membershipCreditsRemaining: plan.credits,
+          membershipCreditsTotal: plan.credits,
+          membershipCreditsUsed: 0,
+        }),
+        planId: plan.id,
+        planName: plan.name,
+        ...(eventContext && {
+          latestStripeEventCreated: eventContext.created,
+          latestStripeEventId: eventContext.id,
+        }),
+        status: mapStatus(subscription.status),
+        stripePriceId: subscription.items.data[0]?.price.id ?? null,
+        stripeSubscriptionId: subscription.id,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
   });
 }
 
-async function grantMembershipCredits(subscription: Stripe.Subscription, invoice: Stripe.Invoice) {
+async function grantMembershipCredits(
+  subscription: Stripe.Subscription,
+  invoice: Stripe.Invoice,
+) {
   const uid = await findUidForSubscription(subscription);
   const planId = getPlanId(subscription);
   const plan = planId ? getMembershipPlan(planId) : null;
@@ -470,23 +524,33 @@ async function grantMembershipCredits(subscription: Stripe.Subscription, invoice
     const isPlanChange = invoice.billing_reason === "subscription_update";
     const currentCreditsUsed = Number(current?.membershipCreditsUsed ?? 0);
     const adjustedCreditsUsed = Math.min(currentCreditsUsed, plan.credits);
-    const latestInvoiceCreated = Number(current?.latestMembershipInvoiceCreated ?? 0);
+    const latestInvoiceCreated = Number(
+      current?.latestMembershipInvoiceCreated ?? 0,
+    );
     const appliesToCurrentSubscription =
       current?.stripeSubscriptionId === subscription.id &&
       latestInvoiceCreated <= invoice.created;
-    const shouldAdjustCredits = appliesToCurrentSubscription && (isNewCycle || isPlanChange);
+    const shouldAdjustCredits =
+      appliesToCurrentSubscription && (isNewCycle || isPlanChange);
 
     if (shouldAdjustCredits) {
-      transaction.set(subscriptionRef, {
-        membershipCreditsRemaining: plan.credits,
-        membershipCreditsTotal: plan.credits,
-        membershipCreditsUsed: isNewCycle ? 0 : adjustedCreditsUsed,
-        ...(isPlanChange && {
-          membershipCreditsRemaining: Math.max(plan.credits - adjustedCreditsUsed, 0),
-        }),
-        latestMembershipInvoiceCreated: invoice.created,
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
+      transaction.set(
+        subscriptionRef,
+        {
+          membershipCreditsRemaining: plan.credits,
+          membershipCreditsTotal: plan.credits,
+          membershipCreditsUsed: isNewCycle ? 0 : adjustedCreditsUsed,
+          ...(isPlanChange && {
+            membershipCreditsRemaining: Math.max(
+              plan.credits - adjustedCreditsUsed,
+              0,
+            ),
+          }),
+          latestMembershipInvoiceCreated: invoice.created,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
     }
 
     transaction.set(paymentRef, {
@@ -503,15 +567,18 @@ async function grantMembershipCredits(subscription: Stripe.Subscription, invoice
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    transaction.set(adminDb.collection(`users/${uid}/subscription_events`).doc(), {
-      credits: shouldAdjustCredits ? plan.credits : 0,
-      creditsApplied: shouldAdjustCredits,
-      eventType: "stripe_invoice_paid",
-      billingReason: invoice.billing_reason,
-      invoiceId: invoice.id,
-      planId: plan.id,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    transaction.set(
+      adminDb.collection(`users/${uid}/subscription_events`).doc(),
+      {
+        credits: shouldAdjustCredits ? plan.credits : 0,
+        creditsApplied: shouldAdjustCredits,
+        eventType: "stripe_invoice_paid",
+        billingReason: invoice.billing_reason,
+        invoiceId: invoice.id,
+        planId: plan.id,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
   });
 }
 
@@ -541,13 +608,16 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
     const userRef = adminDb.doc(`users/${uid}`);
     const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
     const paymentRef = adminDb.doc(`users/${uid}/payments/${session.id}`);
-    const reversalRef = adminDb.doc(`users/${uid}/topup_reversals/${session.id}`);
-    const [userSnap, subscriptionSnap, paymentSnap, reversalSnap] = await Promise.all([
-      transaction.get(userRef),
-      transaction.get(subscriptionRef),
-      transaction.get(paymentRef),
-      transaction.get(reversalRef),
-    ]);
+    const reversalRef = adminDb.doc(
+      `users/${uid}/topup_reversals/${session.id}`,
+    );
+    const [userSnap, subscriptionSnap, paymentSnap, reversalSnap] =
+      await Promise.all([
+        transaction.get(userRef),
+        transaction.get(subscriptionRef),
+        transaction.get(paymentRef),
+        transaction.get(reversalRef),
+      ]);
 
     if (paymentSnap.exists) return;
     const current = subscriptionSnap.data();
@@ -557,26 +627,22 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
       credits,
     );
     const billingHold = userSnap.data()?.billingReviewRequired === true;
-    const creditsToGrant = billingHold ? 0 : Math.max(credits - creditsReversed, 0);
-    const paymentIntentId = typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : session.payment_intent?.id ?? null;
+    const creditsToGrant = billingHold
+      ? 0
+      : Math.max(credits - creditsReversed, 0);
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? null);
 
     transaction.set(
       subscriptionRef,
       {
-        ...(!subscriptionExists && {
-          cancelAtPeriodEnd: false,
-          membershipCreditsRemaining: 0,
-          membershipCreditsTotal: 0,
-          membershipCreditsUsed: 0,
-          planId: "free",
-          planName: "Free",
-          status: "active",
-        }),
+        ...(!subscriptionExists && buildFreeSubscription()),
         bonusCreditsRemaining:
           Number(current?.bonusCreditsRemaining ?? 0) + creditsToGrant,
-        bonusCreditsTotal: Number(current?.bonusCreditsTotal ?? 0) + creditsToGrant,
+        bonusCreditsTotal:
+          Number(current?.bonusCreditsTotal ?? 0) + creditsToGrant,
         bonusCreditsUsed: Number(current?.bonusCreditsUsed ?? 0),
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -602,13 +668,16 @@ async function grantTopUp(session: Stripe.Checkout.Session) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    transaction.set(adminDb.collection(`users/${uid}/subscription_events`).doc(), {
-      bonusCredits: creditsToGrant,
-      checkoutSessionId: session.id,
-      creditsReversed,
-      eventType: "stripe_credits_topped_up",
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    transaction.set(
+      adminDb.collection(`users/${uid}/subscription_events`).doc(),
+      {
+        bonusCredits: creditsToGrant,
+        checkoutSessionId: session.id,
+        creditsReversed,
+        eventType: "stripe_credits_topped_up",
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
   });
 }
 
@@ -626,7 +695,7 @@ async function recordBillingAlert(
   holdAccount = true,
   resolvedUid?: string | null,
 ) {
-  const uid = resolvedUid ?? await findUidForCustomer(customerId);
+  const uid = resolvedUid ?? (await findUidForCustomer(customerId));
   const alertData = {
     ...details,
     eventType: event.type,
@@ -639,10 +708,15 @@ async function recordBillingAlert(
       adminDb.doc(`users/${uid}/billing_alerts/${event.id}`).set(alertData),
     ];
     if (holdAccount) {
-      writes.push(adminDb.doc(`users/${uid}`).set(
-        { billingReviewRequired: true, updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      ));
+      writes.push(
+        adminDb.doc(`users/${uid}`).set(
+          {
+            billingReviewRequired: true,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        ),
+      );
     }
     await Promise.all(writes);
     return;
@@ -676,7 +750,9 @@ async function reverseTopUpCredits(
     originalCredits,
   );
   const reversalRef = adminDb.doc(`users/${uid}/topup_reversals/${session.id}`);
-  const adjustmentRef = adminDb.doc(`users/${uid}/credit_adjustments/${eventId}`);
+  const adjustmentRef = adminDb.doc(
+    `users/${uid}/credit_adjustments/${eventId}`,
+  );
   const subscriptionRef = adminDb.doc(`users/${uid}/subscription/current`);
   const paymentRef = adminDb.doc(`users/${uid}/payments/${session.id}`);
 
@@ -699,12 +775,25 @@ async function reverseTopUpCredits(
     const nextReversed = alreadyReversed + additionalReversal;
     const payment = paymentSnap.data();
     const current = subscriptionSnap.data();
-    const grantedCreditsRemaining = Math.max(Number(payment?.bonusCredits ?? 0), 0);
-    const availableBonusCredits = Math.max(Number(current?.bonusCreditsRemaining ?? 0), 0);
-    const creditsRemoved = paymentSnap.exists && subscriptionSnap.exists
-      ? Math.min(additionalReversal, grantedCreditsRemaining, availableBonusCredits)
+    const grantedCreditsRemaining = Math.max(
+      Number(payment?.bonusCredits ?? 0),
+      0,
+    );
+    const availableBonusCredits = Math.max(
+      Number(current?.bonusCreditsRemaining ?? 0),
+      0,
+    );
+    const creditsRemoved =
+      paymentSnap.exists && subscriptionSnap.exists
+        ? Math.min(
+            additionalReversal,
+            grantedCreditsRemaining,
+            availableBonusCredits,
+          )
+        : 0;
+    const creditDebt = paymentSnap.exists
+      ? additionalReversal - creditsRemoved
       : 0;
-    const creditDebt = paymentSnap.exists ? additionalReversal - creditsRemoved : 0;
 
     transaction.set(
       reversalRef,
@@ -729,10 +818,14 @@ async function reverseTopUpCredits(
       transaction.set(
         paymentRef,
         {
-          bonusCredits: Math.max(grantedCreditsRemaining - additionalReversal, 0),
+          bonusCredits: Math.max(
+            grantedCreditsRemaining - additionalReversal,
+            0,
+          ),
           creditsReversed: nextReversed,
           refundedAmount: FieldValue.increment(refundedAmount / 100),
-          status: nextReversed >= originalCredits ? "refunded" : "partially_refunded",
+          status:
+            nextReversed >= originalCredits ? "refunded" : "partially_refunded",
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
@@ -765,23 +858,29 @@ async function reverseTopUpCredits(
       );
     }
 
-    transaction.set(adminDb.collection(`users/${uid}/subscription_events`).doc(), {
-      checkoutSessionId: session.id,
-      creditDebt,
-      creditsRemoved,
-      creditsReversed: additionalReversal,
-      eventType: "stripe_topup_reversed",
-      stripeEventId: eventId,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    transaction.set(
+      adminDb.collection(`users/${uid}/subscription_events`).doc(),
+      {
+        checkoutSessionId: session.id,
+        creditDebt,
+        creditsRemoved,
+        creditsReversed: additionalReversal,
+        eventType: "stripe_topup_reversed",
+        stripeEventId: eventId,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
   });
 }
 
-async function handleRefund(event: Stripe.Event & { data: { object: Stripe.Refund } }) {
+async function handleRefund(
+  event: Stripe.Event & { data: { object: Stripe.Refund } },
+) {
   const refund = event.data.object;
-  const paymentIntentId = typeof refund.payment_intent === "string"
-    ? refund.payment_intent
-    : refund.payment_intent?.id;
+  const paymentIntentId =
+    typeof refund.payment_intent === "string"
+      ? refund.payment_intent
+      : refund.payment_intent?.id;
   const paymentIntent = paymentIntentId
     ? await getStripe().paymentIntents.retrieve(paymentIntentId)
     : null;
@@ -797,21 +896,31 @@ async function handleRefund(event: Stripe.Event & { data: { object: Stripe.Refun
       refund.currency,
     );
   }
-  await recordBillingAlert(event, stripeCustomerId(paymentIntent?.customer ?? null), {
-    amount: refund.amount / 100,
-    currency: refund.currency.toUpperCase(),
-    refundId: refund.id,
-    status: refund.status,
-  }, true, topUpSession?.uid);
+  await recordBillingAlert(
+    event,
+    stripeCustomerId(paymentIntent?.customer ?? null),
+    {
+      amount: refund.amount / 100,
+      currency: refund.currency.toUpperCase(),
+      refundId: refund.id,
+      status: refund.status,
+    },
+    true,
+    topUpSession?.uid,
+  );
 }
 
-async function handleDispute(event: Stripe.Event & { data: { object: Stripe.Dispute } }) {
+async function handleDispute(
+  event: Stripe.Event & { data: { object: Stripe.Dispute } },
+) {
   const dispute = event.data.object;
-  const chargeId = typeof dispute.charge === "string" ? dispute.charge : dispute.charge.id;
+  const chargeId =
+    typeof dispute.charge === "string" ? dispute.charge : dispute.charge.id;
   const charge = await getStripe().charges.retrieve(chargeId);
-  const paymentIntentId = typeof charge.payment_intent === "string"
-    ? charge.payment_intent
-    : charge.payment_intent?.id;
+  const paymentIntentId =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent?.id;
   const topUpSession = paymentIntentId
     ? await findTopUpSessionForPaymentIntent(paymentIntentId)
     : null;
@@ -824,13 +933,19 @@ async function handleDispute(event: Stripe.Event & { data: { object: Stripe.Disp
       dispute.currency,
     );
   }
-  await recordBillingAlert(event, stripeCustomerId(charge.customer), {
-    amount: dispute.amount / 100,
-    currency: dispute.currency.toUpperCase(),
-    disputeId: dispute.id,
-    reason: dispute.reason,
-    status: dispute.status,
-  }, true, topUpSession?.uid);
+  await recordBillingAlert(
+    event,
+    stripeCustomerId(charge.customer),
+    {
+      amount: dispute.amount / 100,
+      currency: dispute.currency.toUpperCase(),
+      disputeId: dispute.id,
+      reason: dispute.reason,
+      status: dispute.status,
+    },
+    true,
+    topUpSession?.uid,
+  );
 }
 
 async function processStripeEvent(event: Stripe.Event) {
@@ -849,10 +964,15 @@ async function processStripeEvent(event: Stripe.Event) {
   }
 
   if (event.type === "checkout.session.async_payment_failed") {
-    await recordBillingAlert(event, stripeCustomerId(event.data.object.customer), {
-      checkoutSessionId: event.data.object.id,
-      status: "payment_failed",
-    }, false);
+    await recordBillingAlert(
+      event,
+      stripeCustomerId(event.data.object.customer),
+      {
+        checkoutSessionId: event.data.object.id,
+        status: "payment_failed",
+      },
+      false,
+    );
     return;
   }
 
@@ -917,7 +1037,10 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
     }
 
     await processStripeEvent(event);
-    await eventRef.set({ type: event.type, processedAt: FieldValue.serverTimestamp() });
+    await eventRef.set({
+      type: event.type,
+      processedAt: FieldValue.serverTimestamp(),
+    });
     res.json({ received: true });
   } catch (error) {
     logError("Stripe webhook failed", error);
@@ -936,7 +1059,10 @@ export async function createMembershipCheckout(req: Request, res: Response) {
 
     const userSnap = await adminDb.doc(`users/${uid}`).get();
     if (userSnap.data()?.billingReviewRequired === true) {
-      throw new PaymentHttpError("Payments are paused while billing is under review.", 409);
+      throw new PaymentHttpError(
+        "Payments are paused while billing is under review.",
+        409,
+      );
     }
 
     const customer = await getOrCreateCustomer(uid);
@@ -953,7 +1079,11 @@ export async function createMembershipCheckout(req: Request, res: Response) {
       "trialing",
       "unpaid",
     ];
-    if (subscriptions.data.some((subscription) => blockingStatuses.includes(subscription.status))) {
+    if (
+      subscriptions.data.some((subscription) =>
+        blockingStatuses.includes(subscription.status),
+      )
+    ) {
       throw new PaymentHttpError(
         "Manage your existing plan before starting another subscription.",
         409,
@@ -991,26 +1121,39 @@ export async function createTopUpCheckout(req: Request, res: Response) {
   try {
     const uid = getAuthenticatedUid(res);
     const packageId = req.body?.packageId as TopUpPackageId | undefined;
-    const requestId = typeof req.body?.requestId === "string" ? req.body.requestId : "";
+    const requestId =
+      typeof req.body?.requestId === "string" ? req.body.requestId : "";
     if (!packageId || !(packageId in TOP_UP_PACKAGES)) {
       throw new PaymentHttpError("Invalid top-up package", 400);
     }
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        requestId,
+      )
+    ) {
       throw new PaymentHttpError("Invalid checkout request ID", 400);
     }
 
-    const subscriptionSnap = await adminDb.doc(`users/${uid}/subscription/current`).get();
+    const subscriptionSnap = await adminDb
+      .doc(`users/${uid}/subscription/current`)
+      .get();
     const subscriptionStatus = subscriptionSnap.data()?.status;
     if (
       !subscriptionSnap.exists ||
       (subscriptionStatus !== "active" && subscriptionStatus !== "trialing")
     ) {
-      throw new PaymentHttpError("An active membership is required for credit top-ups.", 409);
+      throw new PaymentHttpError(
+        "An active membership is required for credit top-ups.",
+        409,
+      );
     }
 
     const userSnap = await adminDb.doc(`users/${uid}`).get();
     if (userSnap.data()?.billingReviewRequired === true) {
-      throw new PaymentHttpError("Payments are paused while billing is under review.", 409);
+      throw new PaymentHttpError(
+        "Payments are paused while billing is under review.",
+        409,
+      );
     }
 
     const topUp = TOP_UP_PACKAGES[packageId];
@@ -1064,7 +1207,10 @@ export async function createBillingPortal(_req: Request, res: Response) {
   }
 }
 
-export async function cancelStripeSubscriptionAtPeriodEnd(_req: Request, res: Response) {
+export async function cancelStripeSubscriptionAtPeriodEnd(
+  _req: Request,
+  res: Response,
+) {
   try {
     const uid = getAuthenticatedUid(res);
 
@@ -1075,14 +1221,21 @@ export async function cancelStripeSubscriptionAtPeriodEnd(_req: Request, res: Re
       throw new PaymentHttpError("No Stripe subscription found", 400);
     }
 
-    const existingSubscription = await getStripe().subscriptions.retrieve(subscriptionId);
+    const existingSubscription =
+      await getStripe().subscriptions.retrieve(subscriptionId);
     if ((await findUidForSubscription(existingSubscription)) !== uid) {
-      throw new PaymentHttpError("Stripe subscription ownership mismatch.", 403);
+      throw new PaymentHttpError(
+        "Stripe subscription ownership mismatch.",
+        403,
+      );
     }
 
-    const subscription = await getStripe().subscriptions.update(subscriptionId, {
-      cancel_at_period_end: true,
-    });
+    const subscription = await getStripe().subscriptions.update(
+      subscriptionId,
+      {
+        cancel_at_period_end: true,
+      },
+    );
     await syncSubscription(subscription);
 
     const updatedSnap = await subscriptionRef.get();

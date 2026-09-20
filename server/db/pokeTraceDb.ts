@@ -57,7 +57,9 @@ async function initializePokeTraceDatabase() {
       price_refreshed_at TEXT,
       price_refresh_retry_at TEXT,
       price_refresh_failures INTEGER NOT NULL DEFAULT 0,
-      tcg_market_comparisons TEXT NOT NULL DEFAULT '{}'
+      tcg_market_comparisons TEXT NOT NULL DEFAULT '{}',
+      market_price_history TEXT,
+      market_price_history_fetched_at TEXT
     )
   `);
 
@@ -72,6 +74,8 @@ async function initializePokeTraceDatabase() {
     "tcg_market_comparisons",
     "TEXT NOT NULL DEFAULT '{}'",
   );
+  await ensureCardColumn("market_price_history", "TEXT");
+  await ensureCardColumn("market_price_history_fetched_at", "TEXT");
   await pokeTraceDb.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_fetched_at ON poketrace_cards(fetched_at, id)",
   );

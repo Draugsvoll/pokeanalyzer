@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { isAbortError } from "../../hooks/useAbortableRequest";
-import { fetchNewsFeeds } from "../../services/newsApi";
+import {
+  cacheNewsFeeds,
+  fetchNewsFeeds,
+  readCachedNewsFeeds,
+} from "../../services/newsApi";
 import type { NewsFeedsResponse } from "../../types/news";
 import type { CustomColors } from "../../utils/customStylings";
 import { logClientError } from "../../utils/logClientError";
@@ -25,9 +29,20 @@ const CATEGORIES = [
     : []),
 ] as const satisfies readonly NewsCategoryConfig[];
 
+function hasVisibleNewsFeeds(feeds: NewsFeedsResponse): boolean {
+  return Boolean(
+    feeds.generalNews || (NEWS_FEATURES.biggestMovers && feeds.biggestMovers),
+  );
+}
+
 export function NewsLane() {
   const [activeCategory, setActiveCategory] = useState<NewsCategory>("general");
-  const [newsFeeds, setNewsFeeds] = useState<NewsFeedsResponse | null>(null);
+  const [cachedNews] = useState(() => readCachedNewsFeeds());
+  const [newsFeeds, setNewsFeeds] = useState<NewsFeedsResponse | null>(() => {
+    return cachedNews && hasVisibleNewsFeeds(cachedNews.feeds)
+      ? cachedNews.feeds
+      : null;
+  });
   const availableCategories = CATEGORIES.filter((category) =>
     category.value === "general"
       ? Boolean(newsFeeds?.generalNews)
@@ -41,20 +56,38 @@ export function NewsLane() {
   useEffect(() => {
     const controller = new AbortController();
 
-    void fetchNewsFeeds(controller.signal)
-      .then((feeds) => {
-        if (!controller.signal.aborted) {
-          setNewsFeeds(feeds);
+    if (cachedNews?.isFresh && hasVisibleNewsFeeds(cachedNews.feeds)) {
+      return () => controller.abort();
+    }
+
+    async function refreshNews() {
+      let lastError: unknown;
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const feeds = await fetchNewsFeeds(controller.signal);
+          if (controller.signal.aborted) return;
+
+          if (hasVisibleNewsFeeds(feeds)) {
+            cacheNewsFeeds(feeds);
+            setNewsFeeds(feeds);
+            return;
+          }
+
+          lastError = new Error("News response did not contain any feeds");
+        } catch (error: unknown) {
+          if (isAbortError(error)) return;
+          lastError = error;
         }
-      })
-      .catch((error: unknown) => {
-        if (!isAbortError(error)) {
-          logClientError("Failed to load SQL news feeds", error);
-        }
-      });
+      }
+
+      logClientError("Failed to refresh SQL news feeds", lastError);
+    }
+
+    void refreshNews();
 
     return () => controller.abort();
-  }, []);
+  }, [cachedNews]);
 
   if (!displayedCategory) {
     return null;

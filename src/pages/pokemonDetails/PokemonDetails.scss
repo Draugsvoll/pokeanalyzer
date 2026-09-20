@@ -111,7 +111,7 @@
 
   &__search-modal {
     box-sizing: border-box;
-    margin: calc(50dvh - 1.75rem) auto 3rem;
+    margin: calc(50dvh - 5.75rem) auto 3rem;
     max-width: 72rem;
     width: calc(100% - 2rem);
 
@@ -195,31 +195,6 @@
     justify-self: center;
     min-width: 0;
     width: 100%;
-
-    .app-btn {
-      background: color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
-      border-color: color-mix(
-        in srgb,
-        var(--custom-color-blue) 22%,
-        transparent
-      );
-      color: color-mix(in srgb, var(--custom-color-blue) 42%, white);
-      min-height: 2.45rem;
-
-      &:hover:not(:disabled) {
-        background: color-mix(
-          in srgb,
-          var(--custom-color-blue) 12%,
-          transparent
-        );
-        border-color: color-mix(
-          in srgb,
-          var(--custom-color-blue) 34%,
-          transparent
-        );
-        color: var(--font-color-primary);
-      }
-    }
   }
 
   &__info-side {
@@ -257,6 +232,19 @@
     display: grid;
     gap: 0.4rem;
     min-width: 0;
+  }
+
+  &__product-meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  &__product-set {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
   }
 
   &__title-number {
@@ -508,7 +496,7 @@
   }
 
   &__credit-cost {
-    align-items: center;
+    align-items: baseline;
     display: inline-flex;
     flex-wrap: wrap;
     font-size: var(--font-size-paragraph-sm);
@@ -524,6 +512,7 @@
     }
 
     svg {
+      align-self: center;
       color: var(--custom-color-blue);
       flex: 0 0 auto;
       height: 0.95rem;
@@ -763,9 +752,15 @@
       width: 100%;
     }
 
-    > .loading-state {
-      min-height: 8rem;
-      padding-block: 1.25rem;
+    .loading-state {
+      min-height: 5rem;
+      padding-block: 1rem;
+
+      .loading-state__spinner {
+        border-width: 2px;
+        height: 1.1rem;
+        width: 1.1rem;
+      }
     }
   }
 
@@ -853,8 +848,8 @@
 
   .card-view__product-set {
     color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph);
-    font-weight: 500;
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
   }
 
   .card-view__title {
@@ -862,11 +857,6 @@
     letter-spacing: -0.045em;
     line-height: 1;
     text-transform: none;
-  }
-
-  .card-view__change-card .app-btn {
-    border-color: var(--border-divider);
-    color: var(--font-color-secondary);
   }
 
   .card-view__credit-bar {

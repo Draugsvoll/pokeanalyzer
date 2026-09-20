@@ -9,8 +9,10 @@ const mocks = vi.hoisted(() => ({
   authLoading: false,
   authUser: { uid: "user-1" } as { uid: string } | null,
   askGrok: vi.fn(),
+  creditsRemaining: 10,
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
+  fetchMarketPriceHistory: vi.fn(),
   getSelectedPokemonFromCache: vi.fn(),
   hasSubscription: true,
   loadingSubscription: false,
@@ -63,6 +65,7 @@ vi.mock("../../utils/grok/grokClient", async (importOriginal) => {
 
 vi.mock("../../services/cardApi", () => ({
   fetchCardById: mocks.fetchCardById,
+  fetchMarketPriceHistory: mocks.fetchMarketPriceHistory,
 }));
 
 vi.mock("../../utils/selectedPokemonCache", () => ({
@@ -81,7 +84,7 @@ vi.mock("../../context/authContextValue", () => ({
 vi.mock("../../subscriptions", () => ({
   useCredits: () => ({
     creditMessage: null,
-    creditsRemaining: 10,
+    creditsRemaining: mocks.creditsRemaining,
     updatingCredits: false,
   }),
   useMembershipSubscription: () => ({
@@ -129,6 +132,7 @@ vi.mock("./components/CardFeatureHeader", () => ({
       <span>{label}</span>
       {onAction && !actionHidden && (
         <button
+          data-testid="feature-action"
           type="button"
           disabled={actionDisabled || actionLoading}
           aria-busy={actionLoading}
@@ -224,6 +228,7 @@ function TestRoutes() {
       </button>
       <Routes>
         <Route path="/card/:id" element={<PokemonDetails />} />
+        <Route path="/profile" element={<span>Profile page</span>} />
       </Routes>
     </>
   );
@@ -232,9 +237,11 @@ function TestRoutes() {
 beforeEach(() => {
   mocks.authLoading = false;
   mocks.authUser = { uid: "user-1" };
+  mocks.creditsRemaining = 10;
   mocks.askGrok.mockReset();
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
+  mocks.fetchMarketPriceHistory.mockReset();
   mocks.getSelectedPokemonFromCache.mockReset();
   mocks.getSelectedPokemonFromCache.mockReturnValue(null);
   mocks.setSelectedPokemonCache.mockReset();
@@ -247,6 +254,15 @@ beforeEach(() => {
       ? buildCard("card-a", "Pikachu")
       : buildCard("card-b", "Raichu"),
   );
+  mocks.fetchMarketPriceHistory.mockImplementation(async (cardId: string) => ({
+    cardId,
+    condition: "NEAR_MINT",
+    currency: "USD",
+    fetchedAt: "2026-09-19T10:00:00.000Z",
+    period: "90d",
+    series: {},
+    stale: false,
+  }));
   mocks.askGrok.mockImplementation(async (feature: string) => ({
     fromDatabase: false,
     ok: true,
@@ -270,7 +286,7 @@ test("enables feature actions after authentication and subscription loading", as
 
   await screen.findByRole("heading", { name: "Pikachu" });
   let actionButton = screen.getByRole("button", {
-    name: "Loading Market Analysis",
+    name: "Loading eBay Comps",
   });
 
   expect(actionButton).toBeDisabled();
@@ -281,7 +297,7 @@ test("enables feature actions after authentication and subscription loading", as
   rerender(renderView());
 
   actionButton = screen.getByRole("button", {
-    name: "Loading Market Analysis",
+    name: "Loading eBay Comps",
   });
   expect(actionButton).toBeDisabled();
 
@@ -290,10 +306,27 @@ test("enables feature actions after authentication and subscription loading", as
   rerender(renderView());
 
   actionButton = screen.getByRole("button", {
-    name: "Open Market Analysis",
+    name: "Open eBay Comps",
   });
   expect(actionButton).toBeEnabled();
   expect(actionButton).toHaveAttribute("aria-busy", "false");
+});
+
+test("sends a user with no credits to the profile page", async () => {
+  mocks.creditsRemaining = 0;
+
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  const action = await screen.findByTestId("feature-action");
+  expect(action).toBeEnabled();
+
+  fireEvent.click(action);
+
+  expect(await screen.findByText("Profile page")).toBeVisible();
 });
 
 test("shows market loading while fetching a variant and reuses the result", async () => {
@@ -377,6 +410,7 @@ test("Market Analysis fetches the stored market report", async () => {
   );
 
   await screen.findByRole("heading", { name: "Pikachu" });
+  fireEvent.click(screen.getByRole("button", { name: /Market Analysis/ }));
   fireEvent.click(screen.getByRole("button", { name: "Open Market Analysis" }));
 
   await waitFor(() => {
@@ -443,7 +477,6 @@ test("eBay data survives feature switches and clears for a new card", async () =
   );
 
   await screen.findByRole("heading", { name: "Pikachu" });
-  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
   fireEvent.click(screen.getByRole("button", { name: "Open eBay Comps" }));
 
   await waitFor(() => {
@@ -461,7 +494,6 @@ test("eBay data survives feature switches and clears for a new card", async () =
 
   fireEvent.click(screen.getByRole("button", { name: "Open next card" }));
   await screen.findByRole("heading", { name: "Raichu" });
-  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
 
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
     "No eBay response",

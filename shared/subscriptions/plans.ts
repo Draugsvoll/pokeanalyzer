@@ -16,7 +16,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     price: 0,
     currency: "NOK",
     billingInterval: "month",
-    credits: 0,
+    credits: 3,
   },
   {
     id: "collector",
@@ -36,7 +36,6 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
   },
 ];
 
-export const FREE_BONUS_CREDITS = 20;
 export const FREE_MEMBERSHIP_PLAN = MEMBERSHIP_PLANS[0];
 
 export function getMembershipPlan(planId: string | undefined) {

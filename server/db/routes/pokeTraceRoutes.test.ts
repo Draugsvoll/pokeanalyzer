@@ -5,6 +5,7 @@ import express from "express";
 import {
   acceptsGzip,
   createPokeTracePriceHistoryHandler,
+  createMarketPriceHistoryHandler,
   loadPokeTracePriceHistory,
   selectUnambiguousVariants,
 } from "./pokeTraceRoutes.js";
@@ -217,4 +218,46 @@ test("price history returns 404 for a missing PokeTrace card", async () => {
 
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: "Card not found" });
+});
+
+test("GET /api/cards/:id/market-price-history returns available provider series", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/:id/market-price-history",
+    createMarketPriceHistoryHandler({
+      loadHistory: async (requestedCardId) => ({
+        cardId: requestedCardId,
+        condition: "NEAR_MINT",
+        currency: "USD",
+        fetchedAt: "2026-09-19T12:00:00.000Z",
+        period: "90d",
+        series: {
+          tcgplayer: [
+            {
+              date: "2026-09-18",
+              avg: 420,
+              low: 400,
+              high: 440,
+              saleCount: 12,
+              approxSaleCount: null,
+            },
+          ],
+          ebay: [],
+        },
+        stale: false,
+      }),
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    `/api/cards/${cardId}/market-price-history`,
+  );
+
+  assert.equal(response.status, 200);
+  const history = (await response.json()) as {
+    series: { tcgplayer: unknown[]; ebay: unknown[] };
+  };
+  assert.equal(history.series.tcgplayer.length, 1);
+  assert.equal(history.series.ebay.length, 0);
 });

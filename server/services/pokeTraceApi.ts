@@ -25,6 +25,26 @@ export type PokeTraceRetryEvent = {
   reason: string;
 };
 
+export type PokeTracePriceHistoryPoint = {
+  date: string;
+  source: string;
+  avg: number | null;
+  median7d: number | null;
+  median30d: number | null;
+  low: number | null;
+  high: number | null;
+  saleCount: number | null;
+  approxSaleCount: boolean | null;
+};
+
+export type PokeTracePriceHistoryResponse = {
+  data: PokeTracePriceHistoryPoint[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+  };
+};
+
 type PokeTraceRequestOptions = {
   onRetry?: (event: PokeTraceRetryEvent) => void;
 };
@@ -253,4 +273,87 @@ export async function fetchPokeTraceCard(
     throw new Error(`PokeTrace card ${id} returned invalid data`);
   }
   return card;
+}
+
+function nullableFiniteNumber(value: unknown, field: string) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`PokeTrace price history contains an invalid ${field}`);
+  }
+  return value;
+}
+
+export async function fetchPokeTracePriceHistory(
+  apiKey: string,
+  id: string,
+  options?: PokeTraceRequestOptions,
+): Promise<PokeTracePriceHistoryResponse> {
+  const params = new URLSearchParams({ period: "90d", limit: "365" });
+  const response = await pokeTraceFetch(
+    `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}/prices/NEAR_MINT/history?${params}`,
+    apiKey,
+    `price history for card ${id}`,
+    options,
+  );
+  const value: unknown = await response.json();
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`PokeTrace price history for card ${id} is invalid`);
+  }
+
+  const result = value as Record<string, unknown>;
+  const pagination = result.pagination as Record<string, unknown> | undefined;
+  if (
+    !Array.isArray(result.data) ||
+    !pagination ||
+    typeof pagination.hasMore !== "boolean"
+  ) {
+    throw new Error(`PokeTrace price history for card ${id} is invalid`);
+  }
+
+  const data = result.data.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`PokeTrace price history for card ${id} is invalid`);
+    }
+    const row = entry as Record<string, unknown>;
+    if (
+      typeof row.date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(row.date) ||
+      typeof row.source !== "string"
+    ) {
+      throw new Error(`PokeTrace price history for card ${id} is invalid`);
+    }
+    if (
+      row.approxSaleCount !== null &&
+      row.approxSaleCount !== undefined &&
+      typeof row.approxSaleCount !== "boolean"
+    ) {
+      throw new Error(
+        `PokeTrace price history contains an invalid approxSaleCount`,
+      );
+    }
+
+    return {
+      date: row.date,
+      source: row.source,
+      avg: nullableFiniteNumber(row.avg, "avg"),
+      median7d: nullableFiniteNumber(row.median7d, "median7d"),
+      median30d: nullableFiniteNumber(row.median30d, "median30d"),
+      low: nullableFiniteNumber(row.low, "low"),
+      high: nullableFiniteNumber(row.high, "high"),
+      saleCount: nullableFiniteNumber(row.saleCount, "saleCount"),
+      approxSaleCount:
+        typeof row.approxSaleCount === "boolean" ? row.approxSaleCount : null,
+    };
+  });
+
+  return {
+    data,
+    pagination: {
+      hasMore: pagination.hasMore,
+      nextCursor:
+        typeof pagination.nextCursor === "string"
+          ? pagination.nextCursor
+          : null,
+    },
+  };
 }

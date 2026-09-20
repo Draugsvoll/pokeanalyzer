@@ -9,7 +9,7 @@ import Button from "../../../components/button/Button";
 import { formatCardNumber } from "../../../../shared/formatCardNumber";
 import "./CardFeatureHeader.scss";
 
-export const CARD_FEATURE_HEADER_ACTION_LABEL = "Open";
+export const CARD_FEATURE_HEADER_ACTION_LABEL = "1 Credit";
 
 type CardFeatureHeaderProps = {
   card: PokemonCard;

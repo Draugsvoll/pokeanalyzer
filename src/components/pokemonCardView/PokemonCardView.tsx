@@ -210,26 +210,26 @@ export function PokemonCardView({
 
         <div className="pokemon-card__content">
           <div className="pokemon-card__identity">
-            {printedCardNumber && (
-              <div className="pokemon-card__number-row">
+            <div className="pokemon-card__name-row">
+              <h2 className="pokemon-card__name" title={card.name}>
+                {card.name}
+              </h2>
+            </div>
+            <div className="pokemon-card__metadata-row">
+              {printedCardNumber && (
                 <span
                   className="pokemon-card__number"
                   title={`Card number ${printedCardNumber}`}
                 >
                   {printedCardNumber}
                 </span>
-              </div>
-            )}
-            <div className="pokemon-card__name-row">
-              <h2 className="pokemon-card__name" title={card.name}>
-                {card.name}
-              </h2>
-            </div>
-            <div className="pokemon-card__set-row">
+              )}
               <span className="pokemon-card__set" title={card.set?.name}>
                 {card.set?.name ?? "Unknown set"}
               </span>
-              {variantName && (
+            </div>
+            {variantName && (
+              <div className="pokemon-card__variant-row">
                 <span className="pokemon-card__variant">
                   <Badge accent={variantAccent} size="sm" title={variantName}>
                     <span className="pokemon-card__variant-label">
@@ -237,8 +237,8 @@ export function PokemonCardView({
                     </span>
                   </Badge>
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="pokemon-card__pricing">

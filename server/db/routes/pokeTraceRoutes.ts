@@ -7,6 +7,11 @@ import { toPokemonCard } from "../../services/pokeTraceCardView.js";
 import { gzip } from "node:zlib";
 import { promisify } from "node:util";
 import { loadPokeTraceCatalog } from "../../services/pokeTraceCatalog.js";
+import {
+  loadMarketPriceHistory,
+  PokeTracePriceHistoryUnavailableError,
+  type MarketPriceHistory,
+} from "../../services/pokeTraceMarketPriceHistory.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
@@ -221,6 +226,46 @@ export function createPokeTracePriceHistoryHandler(
   };
 }
 
+type MarketPriceHistoryHandlerDependencies = {
+  loadHistory: (cardId: string) => Promise<MarketPriceHistory | null>;
+  reportError: (context: string, error: unknown) => void;
+};
+
+export function createMarketPriceHistoryHandler(
+  dependencies: Partial<MarketPriceHistoryHandlerDependencies> = {},
+): RequestHandler {
+  const loadHistory = dependencies.loadHistory ?? loadMarketPriceHistory;
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (req, res) => {
+    const cardId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    if (!isValidCardId(cardId)) {
+      res.status(400).json({ error: "Invalid card ID" });
+      return;
+    }
+
+    try {
+      const history = await loadHistory(cardId);
+      if (!history) {
+        res.status(404).json({ error: "Card not found" });
+        return;
+      }
+      res.json(history);
+    } catch (error) {
+      reportError("Failed to fetch marketplace price history", error);
+      const unavailable =
+        error instanceof PokeTracePriceHistoryUnavailableError;
+      res.status(unavailable ? 503 : 502).json({
+        error: unavailable
+          ? "Price history is unavailable"
+          : "Failed to fetch price history",
+      });
+    }
+  };
+}
+
 router.get("/search", async (req, res) => {
   const pokemonName =
     typeof req.query.pokemonName === "string"
@@ -333,6 +378,7 @@ router.get("/", async (_req, res) => {
 });
 
 router.get("/:id/price-history", createPokeTracePriceHistoryHandler());
+router.get("/:id/market-price-history", createMarketPriceHistoryHandler());
 
 router.get("/:id", async (req, res) => {
   const id = req.params.id;

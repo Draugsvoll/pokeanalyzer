@@ -166,13 +166,14 @@
  */
 .explore-search-shell__submit {
   --feature-accent: var(--custom-color-blue);
+  --search-solid-accent: color-mix(in srgb, var(--feature-accent) 83%, black);
 
   align-items: center;
-  background: var(--feature-accent);
-  border: 1px solid var(--feature-accent);
+  background: var(--search-solid-accent);
+  border: 1px solid var(--search-solid-accent);
   border-radius: calc(var(--search-radius) - 2px);
   box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--feature-accent) 18%, transparent);
+    color-mix(in srgb, var(--search-solid-accent) 18%, transparent);
   color: var(--button-font-color);
   cursor: pointer;
   display: inline-flex;
@@ -194,12 +195,11 @@
     filter var(--delay-short) ease;
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--feature-accent) 92%, white);
-    border-color: color-mix(in srgb, var(--feature-accent) 92%, white);
+    background: color-mix(in srgb, var(--search-solid-accent) 95%, white);
+    border-color: color-mix(in srgb, var(--search-solid-accent) 95%, white);
     box-shadow: 0 0 0 2px
-      color-mix(in srgb, var(--feature-accent) 24%, transparent);
+      color-mix(in srgb, var(--search-solid-accent) 24%, transparent);
     color: var(--button-font-color);
-    filter: brightness(1.02);
   }
 
   &:focus-visible {
@@ -261,6 +261,48 @@
 .search-results {
   max-width: 100%;
   width: 100%;
+}
+
+@keyframes search-result-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-results--grid .pokemon-card-view {
+  animation: search-result-card-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.search-results--grid .pokemon-card-view:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.search-results--grid .pokemon-card-view:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.search-results--grid .pokemon-card-view:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+.search-results--grid .pokemon-card-view:nth-child(5) {
+  animation-delay: 140ms;
+}
+
+.search-results--grid .pokemon-card-view:nth-child(6) {
+  animation-delay: 175ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-results--grid .pokemon-card-view {
+    animation: none;
+  }
 }
 
 .explore-results-toolbar {

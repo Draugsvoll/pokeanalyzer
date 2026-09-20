@@ -11,7 +11,7 @@
     align-items: center;
     color: var(--feature-accent);
     display: inline-flex;
-    font-size: 0.9rem;
+    font-size: var(--font-size-paragraph-sm);
     font-weight: var(--font-weight-bold);
     gap: 0.45rem;
     letter-spacing: var(--font-tracking-wider);
@@ -19,8 +19,8 @@
 
     svg {
       flex: 0 0 auto;
-      height: 0.9rem;
-      width: 0.9rem;
+      height: var(--font-size-paragraph-sm);
+      width: var(--font-size-paragraph-sm);
     }
   }
 
@@ -30,11 +30,11 @@
     gap: var(--space-1);
     align-items: center;
     justify-content: center;
-    margin-top: 0.5rem;
+    margin-top: 0.7rem;
     width: 100%;
 
     button {
-      min-width: 7rem;
+      min-width: 6.5rem;
     }
   }
 
