@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Eye } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import "./WelcomeView.scss";
 import { INFO_CARDS } from "../../data/infoCards";
@@ -39,7 +39,7 @@ export const WelcomeView: React.FC = () => {
 
       <div className="welcome-view__demo">
         <span className="welcome-view__demo-icon" aria-hidden="true">
-          <Eye size={20} strokeWidth={1.8} />
+          <Play size={19} strokeWidth={2} />
         </span>
         <div className="welcome-view__demo-copy">
           <span className="welcome-view__demo-eyebrow">Free demo</span>

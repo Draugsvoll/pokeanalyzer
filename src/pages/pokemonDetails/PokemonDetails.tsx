@@ -56,7 +56,6 @@ import {
   CardFeatureHeader,
   CARD_FEATURE_HEADER_ACTION_LABEL,
 } from "./components/CardFeatureHeader";
-import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { signInWithGoogle } from "../../services/auth";
 import { useAuth } from "../../context/authContextValue";
@@ -567,8 +566,23 @@ function PokemonDetailsForCard() {
 
   if (loading) {
     return (
-      <div className="card-view card-view--status ui-render-fade">
-        <LoadingState>Loading Pokémon...</LoadingState>
+      <div className="card-view card-view--poketrace ui-render-fade">
+        <div className="card-view__panel-wrap">
+          <div className="card-view__shell default-container">
+            <div className="card-view__details">
+              <div aria-hidden="true" className="card-view__loading-image" />
+              <div className="card-view__info-side">
+                <PokeTraceMarketPrices
+                  data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
+                  loadingMarketData
+                  onVariantChange={() => undefined}
+                  selectedVariantId=""
+                  variants={[]}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -782,6 +796,7 @@ function PokemonDetailsForCard() {
                 </div>
                 <PokeTraceMarketPrices
                   data={card.pokeTrace}
+                  loadingMarketData={refreshingCard}
                   loadingVariantId={loadingVariantId}
                   onVariantChange={(variantId) => {
                     void handleVariantChange(variantId);

@@ -276,7 +276,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           /* Embedded (card switch) uses the same grid cards as /search */
           const resultsNode = (
             <div
-              className="search-results search-results--grid ui-render-fade"
+              className="search-results search-results--grid ui-card-grid-enter ui-render-fade"
               key={resultRenderKey}
             >
               {!embedded && results.length > 0 && (

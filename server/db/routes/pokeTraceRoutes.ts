@@ -12,6 +12,17 @@ import {
   PokeTracePriceHistoryUnavailableError,
   type MarketPriceHistory,
 } from "../../services/pokeTraceMarketPriceHistory.js";
+import {
+  MARKET_MOVER_DIRECTIONS,
+  POKETRACE_GAMES,
+  POKETRACE_MARKETS,
+  type MarketMoversQuery,
+  type MarketMoversResponse,
+} from "../../../shared/marketMovers.js";
+import {
+  loadPokeTraceMarketMovers,
+  PokeTraceMoversUnavailableError,
+} from "../../services/pokeTraceMarketMovers.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
@@ -68,6 +79,107 @@ type PokeTracePriceHistory = {
     sourceUpdatedAt: string | null;
   }>;
 };
+
+type MarketMoversHandlerDependencies = {
+  loadMovers: (query: MarketMoversQuery) => Promise<MarketMoversResponse>;
+  reportError: (context: string, error: unknown) => void;
+};
+
+function singleQueryValue(value: unknown) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function optionalNumber(value: unknown) {
+  const raw = singleQueryValue(value);
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string" || !raw.trim()) return Number.NaN;
+  return Number(raw);
+}
+
+function optionalBoolean(value: unknown) {
+  const raw = singleQueryValue(value);
+  if (raw === undefined) return undefined;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
+}
+
+function optionalMoverFilter(value: unknown) {
+  const raw = singleQueryValue(value);
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string") return null;
+  const normalized = raw.trim();
+  return /^[a-z0-9_-]{1,40}$/i.test(normalized) ? normalized : null;
+}
+
+export function createMarketMoversHandler(
+  dependencies: Partial<MarketMoversHandlerDependencies> = {},
+): RequestHandler {
+  const loadMovers = dependencies.loadMovers ?? loadPokeTraceMarketMovers;
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (req, res) => {
+    const direction = singleQueryValue(req.query.direction) ?? "gainers";
+    const market = singleQueryValue(req.query.market) ?? "US";
+    const game = singleQueryValue(req.query.game) ?? "pokemon";
+    const rawLimit = singleQueryValue(req.query.limit) ?? "6";
+    const limit =
+      typeof rawLimit === "string" && /^\d+$/.test(rawLimit)
+        ? Number(rawLimit)
+        : Number.NaN;
+    const minPrice = optionalNumber(req.query.minPrice);
+    const maxDiff = optionalNumber(req.query.maxDiff);
+    const hasGraded = optionalBoolean(req.query.hasGraded);
+    const source = optionalMoverFilter(req.query.source);
+    const tier = optionalMoverFilter(req.query.tier);
+
+    if (
+      typeof direction !== "string" ||
+      !MARKET_MOVER_DIRECTIONS.includes(
+        direction as (typeof MARKET_MOVER_DIRECTIONS)[number],
+      ) ||
+      typeof market !== "string" ||
+      !POKETRACE_MARKETS.includes(
+        market as (typeof POKETRACE_MARKETS)[number],
+      ) ||
+      typeof game !== "string" ||
+      !POKETRACE_GAMES.includes(game as (typeof POKETRACE_GAMES)[number]) ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 20 ||
+      (minPrice !== undefined &&
+        (!Number.isFinite(minPrice) || minPrice < 0)) ||
+      (maxDiff !== undefined && (!Number.isFinite(maxDiff) || maxDiff < 0)) ||
+      hasGraded === null ||
+      source === null ||
+      tier === null
+    ) {
+      res.status(400).json({ error: "Invalid market movers query" });
+      return;
+    }
+
+    const query: MarketMoversQuery = {
+      direction: direction as MarketMoversQuery["direction"],
+      game: game as MarketMoversQuery["game"],
+      limit,
+      market: market as MarketMoversQuery["market"],
+      ...(hasGraded !== undefined && { hasGraded }),
+      ...(maxDiff !== undefined && { maxDiff }),
+      ...(minPrice !== undefined && { minPrice }),
+      ...(source !== undefined && { source }),
+      ...(tier !== undefined && { tier }),
+    };
+
+    try {
+      res.json(await loadMovers(query));
+    } catch (error) {
+      reportError("Failed to fetch PokeTrace market movers", error);
+      res
+        .status(error instanceof PokeTraceMoversUnavailableError ? 503 : 502)
+        .json({ error: "Failed to fetch market movers" });
+    }
+  };
+}
 
 function isValidCardId(id: unknown): id is string {
   return typeof id === "string" && POKETRACE_CARD_ID_PATTERN.test(id);
@@ -356,6 +468,8 @@ router.get("/catalog", async (req, res) => {
     res.status(500).json({ error: "Failed to load card catalog" });
   }
 });
+
+router.get("/movers", createMarketMoversHandler());
 
 router.get("/", async (_req, res) => {
   try {

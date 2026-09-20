@@ -135,7 +135,7 @@ export const Header: React.FC = () => {
               `nav-links__item${isActive ? " nav-links__item--active" : ""}`
             }
           >
-            Dashboard
+            Home
           </NavLink>
           <NavLink
             to="/search"

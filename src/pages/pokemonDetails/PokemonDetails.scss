@@ -98,6 +98,16 @@
     width: 100%;
   }
 
+  &__loading-image {
+    align-self: start;
+    aspect-ratio: 245 / 342;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    max-width: 17.5rem;
+    width: 100%;
+  }
+
   /* Full-screen card switcher rendered through a body portal. */
   &__search-overlay {
     backdrop-filter: blur(8px);

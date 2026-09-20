@@ -59,7 +59,7 @@
           "median3d": 344.56,
           "median7d": 344.56,
           "median30d": 407.5,
-          "saleCount": 148,
+          "saleCount": 149,
           "approxSaleCount": true
         },
         "MODERATELY_PLAYED": {
@@ -87,7 +87,7 @@
           "median3d": 779.995,
           "median7d": 779.995,
           "median30d": 683.67,
-          "saleCount": 66,
+          "saleCount": 69,
           "approxSaleCount": true
         },
         "ACE_1": {
@@ -479,7 +479,7 @@
           "median3d": 377.73,
           "median7d": 377.73,
           "median30d": 377.73,
-          "saleCount": 19,
+          "saleCount": 20,
           "approxSaleCount": true
         },
         "CGC_5_5": {
@@ -525,17 +525,17 @@
           "approxSaleCount": true
         },
         "CGC_7": {
-          "avg": 600,
-          "low": 600,
-          "high": 600,
-          "lastUpdated": "2026-09-07T00:00:00.000Z",
-          "avg1d": 482.56,
-          "avg7d": 541.28,
-          "avg30d": 541.28,
-          "median3d": 600,
-          "median7d": 541.28,
-          "median30d": 541.28,
-          "saleCount": 29,
+          "avg": 650,
+          "low": 650,
+          "high": 650,
+          "lastUpdated": "2026-09-09T00:00:00.000Z",
+          "avg1d": 600,
+          "avg7d": 577.52,
+          "avg30d": 577.52,
+          "median3d": 625,
+          "median7d": 625,
+          "median30d": 600,
+          "saleCount": 30,
           "approxSaleCount": true
         },
         "CGC_7_5": {
@@ -563,7 +563,7 @@
           "median3d": 897.5,
           "median7d": 834.5,
           "median30d": 884.995,
-          "saleCount": 62,
+          "saleCount": 63,
           "approxSaleCount": true
         },
         "CGC_8_5": {
@@ -619,7 +619,7 @@
           "median3d": 380,
           "median7d": 399.99,
           "median30d": 387.5,
-          "saleCount": 130,
+          "saleCount": 131,
           "approxSaleCount": true
         },
         "PSA_1_5": {
@@ -787,7 +787,7 @@
           "median3d": 780,
           "median7d": 780,
           "median30d": 780,
-          "saleCount": 346,
+          "saleCount": 347,
           "approxSaleCount": true
         },
         "PSA_8": {
@@ -1179,7 +1179,7 @@
         "name": "Holofoil"
       }
     ],
-    "lastUpdated": "2026-09-19T07:30:22.506Z"
+    "lastUpdated": "2026-09-19T23:28:15.672Z"
   },
   "grok": {
     "market_analysis": {
@@ -8613,6 +8613,107 @@
       },
       "request_query": "Charizard (004/102,4/102,4) Base Set",
       "timestamp": "2026-09-17T12:11:26.016Z"
+    },
+    "worth_grading": {
+      "variants": [
+        {
+          "card": {
+            "name": "Charizard",
+            "set": "Base Set",
+            "number": "4/102",
+            "variant_name": "Unlimited Holofoil"
+          },
+          "attractiveness_level": {
+            "score": "78",
+            "reasoning": [
+              "This score reflects the card's status as one of the most recognized and demanded Pokemon cards ever produced, which supports consistent buyer interest across conditions and grades. Liquidity remains strong on major marketplaces due to the iconic artwork and historical significance of the Base Set release.",
+              "Factors that pulled the score higher include the wide price spreads between raw and graded copies along with active sales volume at multiple grade levels. The holofoil nature and vintage production era create natural scarcity in higher grades relative to modern cards.",
+              "Elements that limited the score include the very large existing graded population, which can temper upside for mid-grades, and the inherent condition risks of 1990s holofoil cards such as surface scratches, whitening, and centering issues that make top grades less predictable without professional pre-screening."
+            ]
+          },
+          "raw_sale_today": {
+            "gross_sale_usd": 462.9,
+            "estimated_fees_usd": 61.73,
+            "net_proceeds_usd": 401.17,
+            "time_to_sell": "7-21 days"
+          },
+          "graded_scenarios": [
+            {
+              "grade": "PSA 7",
+              "expected_sale_price_usd": 765,
+              "grading_tier": "Standard",
+              "grading_tier_justification": "Selected Standard at $59.99 because the expected sale price of $765 falls under the $1,000 maximum insured value for this tier. Higher tiers would add unnecessary cost given the value level, and lower Value tiers remain paused.",
+              "psa_grading_fee_usd": 59.99,
+              "shipping_and_insurance_usd": 50,
+              "ebay_fees_usd": 101.76,
+              "ebay_fee_model": "Trading cards category: 13.25% on total amount of the sale up to $7,500 plus $0.40 per-order fee (no store subscription assumed, free shipping)",
+              "roi_vs_raw_net_percent": 37.9,
+              "net_profit_vs_raw_usd": 152.08,
+              "turnaround_time": "90-100 business days",
+              "psa_note": null
+            },
+            {
+              "grade": "PSA 8",
+              "expected_sale_price_usd": 1397.9,
+              "grading_tier": "Priority",
+              "grading_tier_justification": "Selected Priority at $79.99 because the expected sale price of approximately $1,398 falls under the $1,500 maximum insured value. Standard maxes at $1,000 which is insufficient, while Express would be excessive for this value.",
+              "psa_grading_fee_usd": 79.99,
+              "shipping_and_insurance_usd": 60,
+              "ebay_fees_usd": 185.62,
+              "ebay_fee_model": "Trading cards category: 13.25% on total amount of the sale up to $7,500 plus $0.40 per-order fee (no store subscription assumed, free shipping)",
+              "roi_vs_raw_net_percent": 167.3,
+              "net_profit_vs_raw_usd": 671.12,
+              "turnaround_time": "70-80 business days",
+              "psa_note": null
+            },
+            {
+              "grade": "PSA 9",
+              "expected_sale_price_usd": 2850,
+              "grading_tier": "Super Express",
+              "grading_tier_justification": "Selected Super Express at $349 because the expected sale price of $2,850 exceeds the $2,500 maximum insured value of Express. Super Express covers up to $5,000 and provides faster service appropriate for this value range.",
+              "psa_grading_fee_usd": 349,
+              "shipping_and_insurance_usd": 80,
+              "ebay_fees_usd": 378.02,
+              "ebay_fee_model": "Trading cards category: 13.25% on total amount of the sale up to $7,500 plus $0.40 per-order fee (no store subscription assumed, free shipping)",
+              "roi_vs_raw_net_percent": 409.3,
+              "net_profit_vs_raw_usd": 1641.81,
+              "turnaround_time": "10-15 business days",
+              "psa_note": null
+            },
+            {
+              "grade": "PSA 10",
+              "expected_sale_price_usd": 12275,
+              "grading_tier": "Premium 1",
+              "grading_tier_justification": "Selected Premium 1 at $999 because the expected sale price of $12,275 exceeds the $10,000 maximum insured value of Premier. Premium 1 covers up to $25,000 and is the appropriate open tier for this value.",
+              "psa_grading_fee_usd": 999,
+              "shipping_and_insurance_usd": 150,
+              "ebay_fees_usd": 1106.36,
+              "ebay_fee_model": "Trading cards category: 13.25% on the portion up to $7,500 then 2.35% on the portion over $7,500 plus $0.40 per-order fee (no store subscription assumed, free shipping)",
+              "roi_vs_raw_net_percent": 2397.6,
+              "net_profit_vs_raw_usd": 9618.47,
+              "turnaround_time": "5-7 business days",
+              "psa_note": null
+            }
+          ],
+          "psa_population": {
+            "source": "https://www.pricecharting.com/pop/item/pokemon-base-set/charizard-4",
+            "psa_population_total": 99246,
+            "psa_population_psa10": 486,
+            "psa_population_psa9": 8455,
+            "psa_population_psa8": 15931,
+            "psa_population_psa7": 16980,
+            "psa_population_psa6": 17851
+          },
+          "potential": "very high",
+          "headline": "Iconic Base Set Charizard Unlimited Holofoil offers strong grading appeal due to demand and grade premiums despite large population.",
+          "bottom_line": "Grading makes sense when the card has strong eye appeal and clean surfaces that support PSA 8 or higher, as mid-to-high grades produce meaningful paper profits over raw after all costs. Lower outcomes near PSA 7 still show modest paper profit but leave less margin for error in fees and time. Submission is most practical for copies that appear better than average raw examples.",
+          "risk_profile": {
+            "label": "high",
+            "explanation": "The label is high because Base Set holofoil Charizards are sensitive to surface wear, print lines, centering, and edge whitening that frequently limit grades below expectations. The large existing population means additional mid-grade copies face more competition, and the long production history increases the chance of previously unnoticed flaws appearing under professional review."
+          }
+        }
+      ],
+      "timestamp": "2026-09-19T13:42:30.299Z"
     }
   }
 }

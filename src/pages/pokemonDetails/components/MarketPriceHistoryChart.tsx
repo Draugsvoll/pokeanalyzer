@@ -76,10 +76,17 @@ export function MarketPriceHistoryLoading() {
       className="poketrace-market__history poketrace-market__history--loading default-container-inner"
       role="status"
     >
-      <span
-        aria-hidden="true"
-        className="app-loading-spinner poketrace-market__history-loading-indicator"
-      />
+      <header className="poketrace-market__history-header">
+        <div className="poketrace-market__history-title">
+          <h3>Price history</h3>
+        </div>
+      </header>
+      <div className="poketrace-market__history-loading-body">
+        <span
+          aria-hidden="true"
+          className="app-loading-spinner poketrace-market__history-loading-indicator"
+        />
+      </div>
     </section>
   );
 }

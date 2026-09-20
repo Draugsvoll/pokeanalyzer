@@ -106,11 +106,13 @@ function formatSalesLabel(price: TierPrice) {
 
 function MarketplaceColumn({
   currency,
+  loading = false,
   prices,
   source,
   url,
 }: {
   currency: string;
+  loading?: boolean;
   prices: MarketplacePrices;
   source: string;
   url?: string;
@@ -122,12 +124,17 @@ function MarketplaceColumn({
     ? "NEAR_MINT"
     : (entries[0]?.[0] ?? "");
   const [selectedCondition, setSelectedCondition] = useState(defaultCondition);
+  const activeCondition = entries.some(
+    ([condition]) => condition === selectedCondition,
+  )
+    ? selectedCondition
+    : defaultCondition;
   const selected =
-    entries.find(([condition]) => condition === selectedCondition) ??
-    entries[0];
+    entries.find(([condition]) => condition === activeCondition) ?? entries[0];
   const [condition, price] = selected ?? ["", {}];
   const conditionGroup = useId();
   const sales = formatSales(price);
+  const isLoading = loading && entries.length === 0;
 
   return (
     <article className="poketrace-market__marketplace default-container-inner">
@@ -137,69 +144,88 @@ function MarketplaceColumn({
         >
           {sourceLabel(source)}
         </h4>
-        <div
-          className={`poketrace-market__condition-tabs poketrace-market__condition-tabs--${source.toLowerCase()}`}
-          role="radiogroup"
-          aria-label={`${sourceLabel(source)} card condition`}
-        >
-          {entries.map(([candidate]) => (
-            <label key={candidate} title={conditionLabel(candidate)}>
-              <input
-                checked={candidate === condition}
-                name={conditionGroup}
-                onChange={() => setSelectedCondition(candidate)}
-                type="radio"
-                value={candidate}
-              />
-              <span>
-                {CONDITION_ABBREVIATIONS[candidate] ??
-                  conditionLabel(candidate)}
-              </span>
-            </label>
-          ))}
-        </div>
+        {entries.length > 0 && (
+          <div
+            className={`poketrace-market__condition-tabs poketrace-market__condition-tabs--${source.toLowerCase()}`}
+            role="radiogroup"
+            aria-label={`${sourceLabel(source)} card condition`}
+          >
+            {entries.map(([candidate]) => (
+              <label key={candidate} title={conditionLabel(candidate)}>
+                <input
+                  checked={candidate === condition}
+                  name={conditionGroup}
+                  onChange={() => setSelectedCondition(candidate)}
+                  type="radio"
+                  value={candidate}
+                />
+                <span>
+                  {CONDITION_ABBREVIATIONS[candidate] ??
+                    conditionLabel(candidate)}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div
-        aria-live="polite"
-        className="poketrace-market__condition-data ui-render-fade"
-        key={condition}
-      >
-        <div className="poketrace-market__primary">
-          <div className="poketrace-market__quote">
-            <div className="poketrace-market__price-row">
-              <strong>{formatPrice(price.avg, currency)}</strong>
-              {url && (
-                <a
-                  aria-label={`Buy on ${sourceLabel(source)}`}
-                  className={`poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
-                  href={url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Buy
-                  <ExternalLink aria-hidden="true" />
-                </a>
-              )}
+      {isLoading ? (
+        <div
+          aria-label={`Loading ${sourceLabel(source)} prices`}
+          className="poketrace-market__marketplace-loading"
+          role="status"
+        >
+          <span aria-hidden="true" className="app-loading-spinner" />
+        </div>
+      ) : entries.length === 0 ? (
+        <p
+          className="poketrace-market__marketplace-unavailable ui-render-fade"
+          role="status"
+        >
+          Price data unavailable.
+        </p>
+      ) : (
+        <div
+          aria-live="polite"
+          className="poketrace-market__condition-data ui-render-fade"
+          key={condition}
+        >
+          <div className="poketrace-market__primary">
+            <div className="poketrace-market__quote">
+              <div className="poketrace-market__price-row">
+                <strong>{formatPrice(price.avg, currency)}</strong>
+                {url && (
+                  <a
+                    aria-label={`Buy on ${sourceLabel(source)}`}
+                    className={`poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
+                    href={url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Buy
+                    <ExternalLink aria-hidden="true" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <dl className="poketrace-market__range">
-          <div>
-            <dt>Low</dt>
-            <dd>{formatPrice(price.low, currency)}</dd>
-          </div>
-          <div>
-            <dt>High</dt>
-            <dd>{formatPrice(price.high, currency)}</dd>
-          </div>
-          <div>
-            <dt>Sales</dt>
-            <dd>{sales}</dd>
-          </div>
-        </dl>
-      </div>
+          <dl className="poketrace-market__range">
+            <div>
+              <dt>Low</dt>
+              <dd>{formatPrice(price.low, currency)}</dd>
+            </div>
+            <div>
+              <dt>High</dt>
+              <dd>{formatPrice(price.high, currency)}</dd>
+            </div>
+            <div>
+              <dt>Sales</dt>
+              <dd>{sales}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
     </article>
   );
 }
@@ -207,9 +233,11 @@ function MarketplaceColumn({
 function GradedEbayPrices({
   currency,
   entries,
+  loading = false,
 }: {
   currency: string;
   entries: Array<[string, TierPrice]>;
+  loading?: boolean;
 }) {
   const groups = new Map<string, Array<[string, TierPrice]>>();
   for (const entry of entries) {
@@ -226,8 +254,7 @@ function GradedEbayPrices({
     : defaultGrader;
   const visibleEntries = groups.get(activeGrader) ?? [];
   const graderGroup = useId();
-
-  if (entries.length === 0) return null;
+  const isLoading = loading && entries.length === 0;
 
   return (
     <section
@@ -236,43 +263,62 @@ function GradedEbayPrices({
     >
       <header className="poketrace-market__graded-header">
         <h3 id="poketrace-graded-title">Graded</h3>
-        <div
-          aria-label="Grading company"
-          className="poketrace-market__condition-tabs poketrace-market__condition-tabs--graded poketrace-market__grader-tabs"
-          role="radiogroup"
-        >
-          {graders.map((grader) => (
-            <label key={grader}>
-              <input
-                checked={grader === activeGrader}
-                name={graderGroup}
-                onChange={() => setSelectedGrader(grader)}
-                type="radio"
-                value={grader}
-              />
-              <span>{grader}</span>
-            </label>
-          ))}
-        </div>
+        {graders.length > 0 && (
+          <div
+            aria-label="Grading company"
+            className="poketrace-market__condition-tabs poketrace-market__condition-tabs--graded poketrace-market__grader-tabs"
+            role="radiogroup"
+          >
+            {graders.map((grader) => (
+              <label key={grader}>
+                <input
+                  checked={grader === activeGrader}
+                  name={graderGroup}
+                  onChange={() => setSelectedGrader(grader)}
+                  type="radio"
+                  value={grader}
+                />
+                <span>{grader}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </header>
-      <div
-        className="poketrace-market__graded-grid ui-render-fade"
-        key={activeGrader}
-      >
-        {visibleEntries.map(([grade, price]) => {
-          const label = gradeLabel(grade);
+      {isLoading ? (
+        <div
+          aria-label="Loading graded prices"
+          className="poketrace-market__graded-loading"
+          role="status"
+        >
+          <span aria-hidden="true" className="app-loading-spinner" />
+        </div>
+      ) : entries.length === 0 ? (
+        <p
+          className="poketrace-market__graded-unavailable ui-render-fade"
+          role="status"
+        >
+          Graded price data unavailable.
+        </p>
+      ) : (
+        <div
+          className="poketrace-market__graded-grid ui-render-fade"
+          key={activeGrader}
+        >
+          {visibleEntries.map(([grade, price]) => {
+            const label = gradeLabel(grade);
 
-          return (
-            <div className="poketrace-market__graded-price" key={grade}>
-              <span>
-                {label.grader} {label.score}
-              </span>
-              <strong>{formatPrice(price.avg, currency)}</strong>
-              <small>{formatSalesLabel(price)}</small>
-            </div>
-          );
-        })}
-      </div>
+            return (
+              <div className="poketrace-market__graded-price" key={grade}>
+                <span>
+                  {label.grader} {label.score}
+                </span>
+                <strong>{formatPrice(price.avg, currency)}</strong>
+                <small>{formatSalesLabel(price)}</small>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -285,7 +331,7 @@ function PriceHistory({ cardId }: { cardId: string }) {
   const isDemo = cardId === "demo";
 
   useEffect(() => {
-    if (isDemo) return;
+    if (!cardId || isDemo) return;
 
     const controller = new AbortController();
     void fetchMarketPriceHistory(cardId, controller.signal)
@@ -300,23 +346,36 @@ function PriceHistory({ cardId }: { cardId: string }) {
   }, [cardId, isDemo]);
 
   if (isDemo) return null;
+  if (!cardId) return <MarketPriceHistoryLoading />;
   if (!history && !unavailable) return <MarketPriceHistoryLoading />;
   if (history) return <MarketPriceHistoryChart history={history} />;
   return (
-    <p className="poketrace-market__history-unavailable">
-      Price history is temporarily unavailable.
-    </p>
+    <section className="poketrace-market__history default-container-inner">
+      <header className="poketrace-market__history-header">
+        <div className="poketrace-market__history-title">
+          <h3>Price history</h3>
+        </div>
+      </header>
+      <p
+        className="poketrace-market__history-unavailable ui-render-fade"
+        role="status"
+      >
+        Price history is unavailable.
+      </p>
+    </section>
   );
 }
 
 export function PokeTraceMarketPrices({
   data,
+  loadingMarketData = false,
   loadingVariantId,
   onVariantChange,
   selectedVariantId,
   variants,
 }: {
   data: NonNullable<PokemonCard["pokeTrace"]>;
+  loadingMarketData?: boolean;
   loadingVariantId?: string | null;
   onVariantChange: (id: string) => void;
   selectedVariantId: string;
@@ -326,40 +385,42 @@ export function PokeTraceMarketPrices({
   const prices = data.prices as Record<string, MarketplacePrices>;
   const urls = data.marketplaceUrls as Record<string, unknown>;
   const ebayGradedEntries = gradedEntries(prices.ebay);
-  const sources = ["tcgplayer", "ebay"].filter(
-    (source) => prices[source] && sortedEntries(prices[source]).length > 0,
-  );
+  const loading = loadingMarketData || Boolean(loadingVariantId);
+  const sources = ["tcgplayer", "ebay"];
 
   return (
     <section aria-label="Market prices" className="poketrace-market">
-      <header className="poketrace-market__header">
-        <div
-          aria-label="Card variant"
-          className="poketrace-market__condition-tabs poketrace-market__variant-tabs"
-          role="radiogroup"
-        >
-          {variants.map((variant) => (
-            <label key={variant.id}>
-              <input
-                checked={variant.id === selectedVariantId}
-                disabled={Boolean(loadingVariantId)}
-                name={variantGroup}
-                onChange={() => onVariantChange(variant.id)}
-                type="radio"
-                value={variant.id}
-              />
-              <span>{conditionLabel(variant.name)}</span>
-            </label>
-          ))}
-        </div>
-      </header>
+      {variants.length > 0 && (
+        <header className="poketrace-market__header">
+          <div
+            aria-label="Card variant"
+            className="poketrace-market__condition-tabs poketrace-market__variant-tabs"
+            role="radiogroup"
+          >
+            {variants.map((variant) => (
+              <label key={variant.id}>
+                <input
+                  checked={variant.id === selectedVariantId}
+                  disabled={Boolean(loadingVariantId)}
+                  name={variantGroup}
+                  onChange={() => onVariantChange(variant.id)}
+                  type="radio"
+                  value={variant.id}
+                />
+                <span>{conditionLabel(variant.name)}</span>
+              </label>
+            ))}
+          </div>
+        </header>
+      )}
 
       <div className="poketrace-market__grid">
         {sources.map((source) => (
           <MarketplaceColumn
             currency={data.currency}
             key={source}
-            prices={prices[source]}
+            loading={loading}
+            prices={prices[source] ?? {}}
             source={source}
             url={typeof urls[source] === "string" ? urls[source] : undefined}
           />
@@ -368,7 +429,11 @@ export function PokeTraceMarketPrices({
 
       <PriceHistory cardId={selectedVariantId} key={selectedVariantId} />
 
-      <GradedEbayPrices currency={data.currency} entries={ebayGradedEntries} />
+      <GradedEbayPrices
+        currency={data.currency}
+        entries={ebayGradedEntries}
+        loading={loading}
+      />
     </section>
   );
 }

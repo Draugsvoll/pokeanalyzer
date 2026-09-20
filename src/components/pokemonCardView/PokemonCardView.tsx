@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, ImageOff, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Star } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
@@ -22,17 +22,47 @@ const money = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+function currencySymbolFor(currency: string) {
+  try {
+    return (
+      new Intl.NumberFormat("en-US", {
+        currency,
+        currencyDisplay: "narrowSymbol",
+        style: "currency",
+      })
+        .formatToParts(0)
+        .find((part) => part.type === "currency")?.value ?? `${currency} `
+    );
+  } catch {
+    return `${currency} `;
+  }
+}
+
 export type PokemonCardViewProps = {
   card: PokemonCardType;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
-  priceChangeLabel?: string;
   hidePortfolioButtonUntilHover?: boolean;
+  marketDisplay?: {
+    changeLabel?: string;
+    changePercent?: number;
+    currency: string;
+    marketLabel?: string;
+    price: number;
+    priceLabel?: string;
+  };
   onPortfolioChanged?: (saved: boolean) => void;
+  priceChangeLabel?: string;
 };
 
 function formatPriceChange(value: number) {
-  if (value === 0) return "0.0%";
-  return `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(1)}%`;
+  if (value === 0) return "0%";
+  return `${Math.abs(value).toFixed(1)}%`;
+}
+
+function priceChangeDirectionLabel(tone: "up" | "down" | "flat") {
+  if (tone === "up") return "Price increased";
+  if (tone === "down") return "Price decreased";
+  return "Price unchanged";
 }
 
 function getVariantBadgeAccent(variant?: string) {
@@ -49,9 +79,10 @@ function getVariantBadgeAccent(variant?: string) {
 export function PokemonCardView({
   card,
   comparisonPriceSnapshot,
-  priceChangeLabel,
   hidePortfolioButtonUntilHover = false,
+  marketDisplay,
   onPortfolioChanged,
+  priceChangeLabel,
 }: PokemonCardViewProps) {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -64,12 +95,13 @@ export function PokemonCardView({
   const activeOption = resolvePokeTraceCardPrice(card);
   const imageSrc = card.images?.small;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
-  const displayedPrice = activeOption?.price;
+  const displayedPrice = marketDisplay?.price ?? activeOption?.price;
   const comparisonPrice = comparisonPriceSnapshot?.marketPrice;
   const calculatedPriceChangePercent =
-    displayedPrice != null && comparisonPrice != null
+    marketDisplay?.changePercent ??
+    (displayedPrice != null && comparisonPrice != null
       ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
-      : null;
+      : null);
   const normalizedPriceChangePercent = calculatedPriceChangePercent;
   const displayedPriceChangePercent =
     normalizedPriceChangePercent != null &&
@@ -88,13 +120,21 @@ export function PokemonCardView({
         : displayedPriceChangePercent < 0
           ? "down"
           : "flat";
-  const showPriceChange = comparisonPriceSnapshot != null;
+  const showPriceChange =
+    marketDisplay?.changePercent != null || comparisonPriceSnapshot != null;
   const priceChangeTitle =
+    marketDisplay?.changeLabel ??
     priceChangeLabel ??
     (comparisonPriceSnapshot
       ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
       : "Price change");
-  const currencySymbol = activeOption?.currencySymbol ?? "$";
+  const displayedCurrency =
+    marketDisplay?.currency ??
+    activeOption?.currency ??
+    card.pokeTrace.currency;
+  const displayedCurrencySymbol = marketDisplay
+    ? currencySymbolFor(displayedCurrency)
+    : (activeOption?.currencySymbol ?? currencySymbolFor(displayedCurrency));
   const printedCardNumber = formatCardNumber(card);
   const variantName = card.pokeTrace.variant?.trim().replaceAll("_", " ");
   const variantAccent = getVariantBadgeAccent(card.pokeTrace.variant);
@@ -202,9 +242,7 @@ export function PokemonCardView({
               aria-label="Card image unavailable"
               className="pokemon-card__image-placeholder"
               role="img"
-            >
-              <ImageOff aria-hidden="true" />
-            </span>
+            />
           )}
         </div>
 
@@ -245,9 +283,12 @@ export function PokemonCardView({
             <div className="pokemon-card__price">
               <div className="pokemon-card__price-row">
                 <div className="pokemon-card__price-current">
-                  <span className="pokemon-card__price-value">
+                  <span
+                    className="pokemon-card__price-value"
+                    title={marketDisplay?.priceLabel}
+                  >
                     {displayedPrice != null
-                      ? `${currencySymbol}${money.format(displayedPrice)}`
+                      ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
                       : "-"}
                   </span>
                   {showPriceChange &&
@@ -255,8 +296,20 @@ export function PokemonCardView({
                       <span
                         className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
                         title={priceChangeTitle}
-                        aria-label={`${formattedPriceChange} ${priceChangeTitle.toLowerCase()}`}
+                        aria-label={`${priceChangeDirectionLabel(priceChangeTone)} by ${formattedPriceChange}. ${priceChangeTitle}`}
                       >
+                        {priceChangeTone === "up" && (
+                          <span
+                            aria-hidden="true"
+                            className="pokemon-card__price-change-arrow"
+                          />
+                        )}
+                        {priceChangeTone === "down" && (
+                          <span
+                            aria-hidden="true"
+                            className="pokemon-card__price-change-arrow"
+                          />
+                        )}
                         {formattedPriceChange}
                       </span>
                     ) : (
@@ -268,6 +321,14 @@ export function PokemonCardView({
                         -
                       </span>
                     ))}
+                  {marketDisplay?.marketLabel && (
+                    <span
+                      className="pokemon-card__market-label"
+                      title={marketDisplay.priceLabel}
+                    >
+                      {marketDisplay.marketLabel}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

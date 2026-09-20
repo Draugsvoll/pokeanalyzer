@@ -4,8 +4,9 @@ import { createClient } from "@libsql/client";
 import express from "express";
 import {
   acceptsGzip,
-  createPokeTracePriceHistoryHandler,
   createMarketPriceHistoryHandler,
+  createMarketMoversHandler,
+  createPokeTracePriceHistoryHandler,
   loadPokeTracePriceHistory,
   selectUnambiguousVariants,
 } from "./pokeTraceRoutes.js";
@@ -18,6 +19,67 @@ test("catalog gzip negotiation respects an explicit zero quality", () => {
   assert.equal(acceptsGzip("gzip; q=1.0, br"), true);
   assert.equal(acceptsGzip("gzip;q=0, br"), false);
   assert.equal(acceptsGzip(undefined), false);
+});
+
+test("market movers forwards validated customizable filters", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/movers",
+    createMarketMoversHandler({
+      loadMovers: async (query) => {
+        assert.deepEqual(query, {
+          direction: "losers",
+          game: "pokemon",
+          hasGraded: false,
+          limit: 8,
+          market: "US",
+          maxDiff: 75,
+          minPrice: 20,
+          source: "tcgplayer",
+          tier: "NEAR_MINT",
+        });
+        return {
+          fetchedAt: "2026-09-20T12:00:00.000Z",
+          items: [],
+          query,
+          stale: false,
+        };
+      },
+      reportError: () => {
+        assert.fail("The successful request must not be logged as an error");
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/movers?direction=losers&limit=8&market=US&game=pokemon&minPrice=20&maxDiff=75&hasGraded=false&source=tcgplayer&tier=NEAR_MINT",
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(((await response.json()) as { stale: boolean }).stale, false);
+});
+
+test("market movers rejects unsupported filters before loading", async () => {
+  const app = express();
+  let calls = 0;
+  app.get(
+    "/api/cards/movers",
+    createMarketMoversHandler({
+      loadMovers: async () => {
+        calls += 1;
+        throw new Error("must not load");
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/movers?direction=sideways&limit=200",
+  );
+
+  assert.equal(response.status, 400);
+  assert.equal(calls, 0);
 });
 
 test("variant selection keeps exact and unambiguous card identities", () => {
@@ -236,6 +298,8 @@ test("GET /api/cards/:id/market-price-history returns available provider series"
             {
               date: "2026-09-18",
               avg: 420,
+              median7d: null,
+              median30d: null,
               low: 400,
               high: 440,
               saleCount: 12,

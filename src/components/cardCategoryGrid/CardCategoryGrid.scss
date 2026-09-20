@@ -1,0 +1,19 @@
+.card-category-grid {
+  min-width: 0;
+  width: 100%;
+}
+
+.card-category-grid__state {
+  align-items: center;
+  color: var(--font-color-muted);
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: center;
+  margin: 0;
+  min-height: 8rem;
+  text-align: center;
+}
+
+.card-category-grid__state--error {
+  color: var(--font-color-error);
+}
