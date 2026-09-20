@@ -19,8 +19,9 @@ type MarketMoversGridProps = {
 const GRADER_LABELS = new Set(["ACE", "BGS", "CGC", "PSA", "SGC", "TAG"]);
 
 function sourceLabel(value: string) {
-  if (value.toLowerCase() === "tcgplayer") return "TCGPlayer";
-  if (value.toLowerCase() === "ebay") return "eBay";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "tcgplayer") return "TCG";
+  if (normalized === "ebay") return "eBay";
   return value;
 }
 

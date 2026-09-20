@@ -61,5 +61,5 @@ test("loads a configurable mover category and maps it to grid cards", async () =
     ),
   );
   expect(loadMovers).toHaveBeenCalledWith(expect.any(AbortSignal));
-  expect(screen.getByText(/Charizard NM.*TCGPlayer 120/)).toBeVisible();
+  expect(screen.getByText(/Charizard NM.*TCG 120/)).toBeVisible();
 });
