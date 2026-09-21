@@ -44,11 +44,20 @@ The refresher groups cards with TCGPlayer IDs into lookups of up to 20 IDs and
 uses individual requests for cards without a usable reference. Successful cards
 receive a new `price_refreshed_at` value and move to the back of the queue.
 Failed cards receive an exponential retry delay, so they do not block other
-cards. Daily history stores exactly one value per card and UTC date: TCGPlayer's
-Near Mint market price. It does not store low/high values, sales counts, eBay,
-Cardmarket, graded prices, or other conditions. Rerunning the job on the same
-UTC date replaces that day's value instead of duplicating it. History older
-than 40 days is removed by default.
+cards. The existing daily history stores exactly one value per card and UTC
+date: TCGPlayer's Near Mint market price. Rerunning the job on the same UTC date
+replaces that day's value instead of duplicating it. History older than 40 days
+is removed by default.
+
+The same refresh also writes one supplemental `poketrace_market_snapshots` row
+per card and UTC date. Its `tcg` and `ebay` JSON fields preserve the complete
+Near Mint objects returned by PokeTrace, including values such as `avg`, `low`,
+`high`, `saleCount`, and `approxSaleCount` when available. A missing source is
+stored as `NULL`, and no supplemental row is written when both sources are
+missing. These snapshots contain no locally calculated market values, are
+replaced when the same card is refreshed again on the same UTC date, and are
+removed after 35 days. Cardmarket, graded prices, and other conditions are not
+included.
 
 After each successful card refresh, the card row also receives a compact
 `tcg_market_comparisons` cache for 1, 7, and 30 days. Each entry contains the

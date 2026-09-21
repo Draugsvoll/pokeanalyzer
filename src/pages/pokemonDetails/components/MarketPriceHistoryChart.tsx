@@ -4,6 +4,7 @@ import type {
   MarketPriceHistoryPoint,
   MarketPriceHistorySource,
 } from "../../../services/cardApi";
+import { MarketDataUnavailable } from "./MarketDataUnavailable";
 
 const WIDTH = 800;
 const HEIGHT = 268;
@@ -111,9 +112,16 @@ export function MarketPriceHistoryChart({
   if (!activeSource || points.length === 0) {
     return (
       <section className="poketrace-market__history default-container-inner">
-        <p className="poketrace-market__history-empty">
-          No price history is available yet.
-        </p>
+        <header className="poketrace-market__history-header">
+          <div className="poketrace-market__history-title">
+            <h3>Price history</h3>
+          </div>
+        </header>
+        <MarketDataUnavailable
+          className="poketrace-market__history-empty"
+          description="Historical prices are not available for this card yet."
+          title="No price history"
+        />
       </section>
     );
   }

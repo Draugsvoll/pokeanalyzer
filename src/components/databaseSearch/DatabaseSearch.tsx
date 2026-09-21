@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
-import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { SearchHero } from "../searchHero/SearchHero";
 import { searchCachedPokeTraceCatalog } from "../../services/pokeTraceCatalog";
+import {
+  SearchResultsToolbar,
+  type SearchSortDirection,
+} from "./SearchResultsToolbar";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -31,13 +34,6 @@ type DatabaseSearchBarProps = {
   pokemonName: string;
   setName: string;
 };
-
-type SearchSortDirection = "price-high-low" | "price-low-high";
-
-const SEARCH_SORT_OPTIONS: { value: SearchSortDirection; label: string }[] = [
-  { value: "price-high-low", label: "Price: high to low" },
-  { value: "price-low-high", label: "Price: low to high" },
-];
 
 export function DatabaseSearchBar({
   autoFocusName,
@@ -279,42 +275,16 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
               className="search-results search-results--grid ui-card-grid-enter ui-render-fade"
               key={resultRenderKey}
             >
-              {!embedded && results.length > 0 && (
-                <div className="explore-results-toolbar">
-                  <div className="explore-results-toolbar__copy">
-                    <p className="explore-results-toolbar__meta">
-                      {results.length} card
-                      {results.length === 1 ? "" : "s"} matching
-                      {activeQueryLabel ? (
-                        <> &ldquo;{activeQueryLabel}&rdquo;</>
-                      ) : null}
-                    </p>
-                  </div>
-                  <div className="explore-results-toolbar__actions">
-                    <label className="explore-sort-control">
-                      <SelectDropdown
-                        ariaLabel="Sort search results"
-                        className="explore-sort-control__dropdown"
-                        options={SEARCH_SORT_OPTIONS}
-                        value={sortDirection}
-                        onChange={setSortDirection}
-                      />
-                    </label>
-                    <button
-                      aria-label="Close search results"
-                      className="explore-results-toolbar__close"
-                      onClick={() => {
-                        setResults([]);
-                        setActiveQueryLabel("");
-                      }}
-                      title="Close results"
-                      type="button"
-                    >
-                      <X aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <SearchResultsToolbar
+                activeQueryLabel={activeQueryLabel}
+                onClose={() => {
+                  setResults([]);
+                  setActiveQueryLabel("");
+                }}
+                onSortChange={setSortDirection}
+                resultCount={results.length}
+                sortDirection={sortDirection}
+              />
               {results.length > 0 && (
                 <GridView>
                   {sortedResults.map((card) => (

@@ -8,8 +8,10 @@ import {
   cardRefreshFailureUpdate,
   cardRefreshSuccessUpdate,
   cardMarketComparisonsUpdate,
+  dailyMarketSnapshotUpserts,
   dailyTcgMarketPriceUpserts,
   expiredDailyPricesDelete,
+  expiredMarketSnapshotsDelete,
 } from "./pokeTraceStore.js";
 
 async function createDatabase() {
@@ -39,6 +41,18 @@ async function createDatabase() {
       recorded_at TEXT NOT NULL,
       market_price REAL NOT NULL,
       currency TEXT,
+      source_updated_at TEXT,
+      captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (card_id, recorded_at)
+    )
+  `);
+  await database.execute(`
+    CREATE TABLE poketrace_market_snapshots (
+      card_id TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      currency TEXT,
+      tcg TEXT,
+      ebay TEXT,
       source_updated_at TEXT,
       captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (card_id, recorded_at)
@@ -74,7 +88,7 @@ const card: PokeTraceCard = {
   },
 };
 
-test("stores only the TCGPlayer Near Mint market price with the refreshed card", async () => {
+test("stores the existing TCG price and the additional market snapshot", async () => {
   const database = await createDatabase();
   await database.batch(
     cardAndDailyPriceUpserts(card, "2026-09-17", "2026-09-17T08:30:00.000Z"),
@@ -83,11 +97,33 @@ test("stores only the TCGPlayer Near Mint market price with the refreshed card",
 
   const result = await database.execute(
     `
+      SELECT card_id, recorded_at, currency, tcg, ebay, source_updated_at
+      FROM poketrace_market_snapshots
+    `,
+  );
+  assert.deepEqual(result.rows, [
+    {
+      card_id: card.id,
+      recorded_at: "2026-09-17",
+      currency: "USD",
+      tcg: JSON.stringify({ avg: 420, low: 380, high: 480 }),
+      ebay: JSON.stringify({
+        avg: 410,
+        low: 370,
+        high: 470,
+        saleCount: 12,
+        approxSaleCount: true,
+      }),
+      source_updated_at: card.lastUpdated,
+    },
+  ]);
+  const existingSnapshot = await database.execute(
+    `
       SELECT card_id, recorded_at, market_price, currency, source_updated_at
       FROM poketrace_tcg_market_prices
     `,
   );
-  assert.deepEqual(result.rows, [
+  assert.deepEqual(existingSnapshot.rows, [
     {
       card_id: card.id,
       recorded_at: "2026-09-17",
@@ -116,9 +152,9 @@ test("stores only the TCGPlayer Near Mint market price with the refreshed card",
 
 test("rerunning a date replaces its snapshot instead of duplicating it", async () => {
   const database = await createDatabase();
-  await database.batch(dailyTcgMarketPriceUpserts(card, "2026-09-17"), "write");
+  await database.batch(dailyMarketSnapshotUpserts(card, "2026-09-17"), "write");
   await database.batch(
-    dailyTcgMarketPriceUpserts(
+    dailyMarketSnapshotUpserts(
       {
         ...card,
         prices: { tcgplayer: { NEAR_MINT: { avg: 425 } } },
@@ -129,10 +165,11 @@ test("rerunning a date replaces its snapshot instead of duplicating it", async (
   );
 
   const result = await database.execute(
-    "SELECT market_price FROM poketrace_tcg_market_prices",
+    "SELECT tcg, ebay FROM poketrace_market_snapshots",
   );
   assert.equal(result.rows.length, 1);
-  assert.equal(result.rows[0]?.market_price, 425);
+  assert.deepEqual(JSON.parse(String(result.rows[0]?.tcg)), { avg: 425 });
+  assert.equal(result.rows[0]?.ebay, null);
   database.close();
 });
 
@@ -215,9 +252,10 @@ test("stores null when no snapshot exists inside a comparison window", async () 
   database.close();
 });
 
-test("does not create history without a TCGPlayer Near Mint market price", () => {
-  assert.deepEqual(
-    dailyTcgMarketPriceUpserts(
+test("stores a snapshot when only eBay Near Mint data is available", async () => {
+  const database = await createDatabase();
+  await database.batch(
+    dailyMarketSnapshotUpserts(
       {
         ...card,
         prices: {
@@ -227,8 +265,17 @@ test("does not create history without a TCGPlayer Near Mint market price", () =>
       },
       "2026-09-17",
     ),
-    [],
+    "write",
   );
+  const result = await database.execute(
+    "SELECT tcg, ebay FROM poketrace_market_snapshots",
+  );
+  assert.equal(result.rows[0]?.tcg, null);
+  assert.deepEqual(JSON.parse(String(result.rows[0]?.ebay)), {
+    avg: 410,
+    saleCount: 12,
+  });
+  database.close();
 });
 
 test("catalogue upserts preserve saved responses and price refresh state", async () => {
@@ -266,7 +313,7 @@ test("catalogue upserts preserve saved responses and price refresh state", async
 
 test("rejects ambiguous snapshot dates", () => {
   assert.throws(
-    () => dailyTcgMarketPriceUpserts(card, "17-09-2026"),
+    () => dailyMarketSnapshotUpserts(card, "17-09-2026"),
     /YYYY-MM-DD/,
   );
 });
@@ -292,7 +339,20 @@ test("failed refreshes are deferred without changing the last successful time", 
   database.close();
 });
 
-test("daily price retention removes only expired dates", async () => {
+test("daily market snapshot retention removes only expired dates", async () => {
+  const database = await createDatabase();
+  await database.batch(dailyMarketSnapshotUpserts(card, "2026-08-12"), "write");
+  await database.batch(dailyMarketSnapshotUpserts(card, "2026-08-13"), "write");
+  await database.execute(expiredMarketSnapshotsDelete("2026-09-17", 35));
+
+  const result = await database.execute(
+    "SELECT recorded_at FROM poketrace_market_snapshots ORDER BY recorded_at",
+  );
+  assert.deepEqual(result.rows, [{ recorded_at: "2026-08-13" }]);
+  database.close();
+});
+
+test("existing daily TCG price retention remains unchanged", async () => {
   const database = await createDatabase();
   await database.batch(dailyTcgMarketPriceUpserts(card, "2026-08-07"), "write");
   await database.batch(dailyTcgMarketPriceUpserts(card, "2026-08-08"), "write");

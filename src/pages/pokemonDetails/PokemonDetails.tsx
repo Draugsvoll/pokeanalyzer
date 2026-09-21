@@ -676,46 +676,6 @@ function PokemonDetailsForCard() {
           <div className="card-view__details">
             <div className="card-view__image-side">
               <div className="card-view__image-frame">
-                {authUser && !isDemo && (
-                  <button
-                    type="button"
-                    className={`portfolio-toggle-button card-view__portfolio-toggle${
-                      cardIsSaved ? " is-saved" : ""
-                    }`}
-                    disabled={portfolioBusy || portfolioUnavailable}
-                    onClick={handlePortfolioToggle}
-                    aria-label={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                    aria-pressed={cardIsSaved}
-                    aria-busy={portfolioBusy}
-                    title={
-                      portfolioUnavailable
-                        ? "Portfolio is unavailable"
-                        : updatingPortfolio
-                          ? "Updating portfolio"
-                          : loadingPortfolioReferences
-                            ? "Checking portfolio"
-                            : cardIsSaved
-                              ? "Remove from portfolio"
-                              : "Add to portfolio"
-                    }
-                  >
-                    {portfolioBusy ? (
-                      <span className="app-btn__spinner" aria-hidden="true" />
-                    ) : (
-                      <Star aria-hidden="true" />
-                    )}
-                  </button>
-                )}
                 {cardImageSrc && failedCardImageSrc !== cardImageSrc ? (
                   <img
                     key={card.id}
@@ -732,6 +692,44 @@ function PokemonDetailsForCard() {
                 )}
               </div>
               <div className="card-view__image-controls">
+                {authUser && !isDemo && (
+                  <Button
+                    fill="solid"
+                    fullWidth
+                    disabled={portfolioBusy || portfolioUnavailable}
+                    onClick={handlePortfolioToggle}
+                    aria-label={
+                      portfolioUnavailable
+                        ? "Portfolio is unavailable"
+                        : updatingPortfolio
+                          ? "Updating portfolio"
+                          : loadingPortfolioReferences
+                            ? "Checking portfolio"
+                            : cardIsSaved
+                              ? "Remove from portfolio"
+                              : "Add to portfolio"
+                    }
+                    aria-pressed={cardIsSaved}
+                    aria-busy={portfolioBusy}
+                  >
+                    {portfolioBusy ? (
+                      <span className="app-btn__spinner" aria-hidden="true" />
+                    ) : (
+                      <Star aria-hidden="true" />
+                    )}
+                    <span>
+                      {portfolioUnavailable
+                        ? "Portfolio unavailable"
+                        : updatingPortfolio
+                          ? "Updating Portfolio"
+                          : loadingPortfolioReferences
+                            ? "Checking Portfolio"
+                            : cardIsSaved
+                              ? "Remove from Portfolio"
+                              : "Add to Portfolio"}
+                    </span>
+                  </Button>
+                )}
                 <div className="card-view__change-card">
                   <Button
                     fill="ghost"

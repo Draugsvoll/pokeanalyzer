@@ -114,6 +114,21 @@ async function initializePokeTraceDatabase() {
   await pokeTraceDb.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_tcg_market_prices_date ON poketrace_tcg_market_prices(recorded_at, card_id)",
   );
+  await pokeTraceDb.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_market_snapshots (
+      card_id TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      currency TEXT,
+      tcg TEXT CHECK (tcg IS NULL OR json_valid(tcg)),
+      ebay TEXT CHECK (ebay IS NULL OR json_valid(ebay)),
+      source_updated_at TEXT,
+      captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (card_id, recorded_at)
+    )
+  `);
+  await pokeTraceDb.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_market_snapshots_date ON poketrace_market_snapshots(recorded_at, card_id)",
+  );
 }
 
 export function ensurePokeTraceReady() {

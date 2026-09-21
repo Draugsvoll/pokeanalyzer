@@ -10,6 +10,7 @@
 
   &__eyebrow {
     margin: 0;
+    margin-bottom: 0.3rem;
   }
 
   &__title {
@@ -26,7 +27,7 @@
     color: var(--font-color-muted);
     font-size: var(--font-size-paragraph-sm);
     line-height: var(--font-leading-relaxed);
-    margin: 0.5rem auto 2rem;
+    margin: 0.2rem auto 2rem;
     max-width: 32rem;
     font-weight: 500;
   }

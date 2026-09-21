@@ -121,7 +121,7 @@
 
   &__search-modal {
     box-sizing: border-box;
-    margin: calc(50dvh - 5.75rem) auto 3rem;
+    margin: 30vh auto 3rem;
     max-width: 72rem;
     width: calc(100% - 2rem);
 
@@ -161,6 +161,10 @@
     margin-top: auto;
     max-width: 100%;
     width: 17.5rem;
+
+    .app-btn {
+      height: 2.5rem;
+    }
   }
 
   &__image {
@@ -686,27 +690,6 @@
     }
   }
 
-  .portfolio-toggle-button.card-view__portfolio-toggle {
-    height: 2.5rem;
-    opacity: 1;
-    position: absolute;
-    right: 0.25rem;
-    top: 0.25rem;
-    visibility: visible;
-    width: 2.5rem;
-    z-index: 5;
-
-    svg {
-      height: 1.25rem;
-      width: 1.25rem;
-    }
-
-    .app-btn__spinner {
-      height: 1.25rem;
-      width: 1.25rem;
-    }
-  }
-
   /*
    * Active feature view host — always fills the shell column.
    * Nested view roots and panels inherit width via max-width: 100%.
@@ -826,11 +809,6 @@
   .card-view__image {
     border-radius: 16px;
     box-shadow: none;
-  }
-
-  .portfolio-toggle-button.card-view__portfolio-toggle {
-    right: 1rem;
-    top: 1rem;
   }
 
   .card-view__identity {

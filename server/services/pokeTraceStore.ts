@@ -12,6 +12,12 @@ const recordOrEmpty = (value: unknown): Record<string, unknown> =>
 const finiteNumberOrNull = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
+function nearMintSnapshot(value: unknown) {
+  const source = recordOrEmpty(value);
+  const nearMint = recordOrEmpty(source.NEAR_MINT);
+  return Object.keys(nearMint).length === 0 ? null : nearMint;
+}
+
 export function cardUpsert(card: PokeTraceCard) {
   return {
     sql: `
@@ -56,6 +62,45 @@ export function cardRefreshSuccessUpdate(cardId: string, refreshedAt: string) {
     `,
     args: [refreshedAt, cardId],
   };
+}
+
+export function dailyMarketSnapshotUpserts(
+  card: PokeTraceCard,
+  recordedAt: string,
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(recordedAt)) {
+    throw new Error("PokeTrace snapshot date must use YYYY-MM-DD");
+  }
+
+  const prices = recordOrEmpty(card.prices);
+  const tcg = nearMintSnapshot(prices.tcgplayer);
+  const ebay = nearMintSnapshot(prices.ebay);
+  if (tcg === null && ebay === null) return [];
+
+  return [
+    {
+      sql: `
+        INSERT INTO poketrace_market_snapshots
+          (card_id, recorded_at, currency, tcg, ebay, source_updated_at,
+           captured_at)
+        VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
+        ON CONFLICT(card_id, recorded_at) DO UPDATE SET
+          currency = excluded.currency,
+          tcg = excluded.tcg,
+          ebay = excluded.ebay,
+          source_updated_at = excluded.source_updated_at,
+          captured_at = excluded.captured_at
+      `,
+      args: [
+        card.id,
+        recordedAt,
+        textOrNull(card.currency),
+        tcg === null ? null : JSON.stringify(tcg),
+        ebay === null ? null : JSON.stringify(ebay),
+        textOrNull(card.lastUpdated),
+      ],
+    },
+  ];
 }
 
 export function dailyTcgMarketPriceUpserts(
@@ -104,6 +149,7 @@ export function cardAndDailyPriceUpserts(
   return [
     cardUpsert(card),
     ...dailyTcgMarketPriceUpserts(card, recordedAt),
+    ...dailyMarketSnapshotUpserts(card, recordedAt),
     cardMarketComparisonsUpdate(card.id, recordedAt),
     cardRefreshSuccessUpdate(card.id, refreshedAt),
   ];
@@ -208,6 +254,25 @@ export function cardRefreshFailureUpdate(
       WHERE id = ?
     `,
     args: [failures, new Date(now + delayMs).toISOString(), cardId],
+  };
+}
+
+export function expiredMarketSnapshotsDelete(
+  recordedAt: string,
+  retentionDays: number,
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(recordedAt)) {
+    throw new Error("PokeTrace snapshot date must use YYYY-MM-DD");
+  }
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 31) {
+    throw new Error("PokeTrace history retention must be at least 31 days");
+  }
+  return {
+    sql: `
+      DELETE FROM poketrace_market_snapshots
+      WHERE recorded_at < date(?, '-' || ? || ' days')
+    `,
+    args: [recordedAt, retentionDays],
   };
 }
 

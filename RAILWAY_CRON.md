@@ -49,14 +49,19 @@ price history containing only its TCGPlayer Near Mint market price. Failed cards
 receive a bounded retry delay and do not block the rest of the queue.
 The same refresh stores ready-to-read 1-day, 7-day, and 30-day comparisons on
 the card row, using an exact snapshot or the nearest allowed date within one
-day.
+day. It also writes a supplemental `poketrace_market_snapshots` row containing
+the complete TCGPlayer and eBay Near Mint objects returned by PokeTrace. Missing
+sources are stored as `NULL`; no locally calculated market values are added.
+Supplemental snapshots older than 35 days are removed automatically.
 
 Set `POKETRACE_DAILY_CARD_LIMIT` to the maximum number of cards for one run.
 The default and maximum are 50,000, which covers the whole current catalogue.
 Set
 `POKETRACE_PRICE_HISTORY_RETENTION_DAYS` to control retention; the default is 40
-days and the minimum is 31. `POKETRACE_REQUEST_GAP_MS` defaults to 2,100 ms for
-the free-tier burst limit and can be lowered to match a paid plan.
+days and the minimum is 31 for the existing TCGPlayer price history. The
+supplemental market snapshot retention is fixed at 35 days.
+`POKETRACE_REQUEST_GAP_MS` defaults to 2,100 ms for the free-tier burst limit
+and can be lowered to match a paid plan.
 
 ## Required variables
 

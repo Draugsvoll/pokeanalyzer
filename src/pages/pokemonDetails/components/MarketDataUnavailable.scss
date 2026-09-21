@@ -1,0 +1,30 @@
+.market-data-unavailable {
+  align-items: center;
+  color: var(--font-color-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+}
+
+.market-data-unavailable__copy {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+
+  strong {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.25;
+  }
+
+  span {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    line-height: 1.4;
+    max-width: 18rem;
+  }
+}

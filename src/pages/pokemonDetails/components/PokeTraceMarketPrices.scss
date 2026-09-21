@@ -2,6 +2,10 @@
   border-top: 1px solid var(--border-divider);
   margin-top: 1rem;
 
+  .default-container-inner {
+    background: var(--default-container-inner-bg2);
+  }
+
   &__header {
     align-items: baseline;
     display: flex;
@@ -18,15 +22,6 @@
     }
   }
 
-  &__variant-tabs {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-
-    span {
-      font-size: var(--font-size-paragraph-sm);
-    }
-  }
-
   &__grid {
     display: grid;
     gap: 1rem;
@@ -34,8 +29,14 @@
   }
 
   &__marketplace {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     padding: 1.25rem 1.5rem;
+  }
+
+  &__marketplace-unavailable {
+    flex: 1;
   }
 
   &__source-heading {
@@ -164,22 +165,11 @@
   }
 
   &__marketplace-loading,
-  &__marketplace-unavailable,
-  &__graded-loading,
-  &__graded-unavailable {
+  &__graded-loading {
     align-items: center;
     display: flex;
     justify-content: center;
     min-height: 7.8rem;
-  }
-
-  &__marketplace-unavailable,
-  &__graded-unavailable,
-  &__history-unavailable {
-    color: var(--font-color-muted);
-    font-size: var(--font-size-label);
-    margin: 0;
-    text-align: center;
   }
 
   &__marketplace-loading,
@@ -268,7 +258,10 @@
     margin-bottom: 0.85rem;
   }
 
-  &__graded-loading,
+  &__graded-loading {
+    min-height: 6.5rem;
+  }
+
   &__graded-unavailable {
     min-height: 6.5rem;
   }
@@ -287,7 +280,6 @@
 
   &__graded-price {
     background: color-mix(in srgb, var(--surface2) 62%, transparent);
-    border: 1px solid var(--border-divider);
     border-radius: var(--border-radius);
     display: grid;
     flex: 0 0 auto;
@@ -435,13 +427,13 @@
   }
 
   &__history-grid-line {
-    opacity: 0.48;
+    opacity: 0.66;
     stroke: var(--border-divider);
     stroke-dasharray: 3 4;
     stroke-width: 1;
 
     &--vertical {
-      opacity: 0.4;
+      opacity: 0.58;
     }
   }
 
@@ -508,10 +500,8 @@
   }
 
   &__history-empty {
-    color: var(--font-color-muted);
-    font-size: var(--font-size-label);
-    margin: 0;
-    padding-bottom: 1.3rem;
+    min-height: 10rem;
+    padding: 1rem 0 0;
   }
 }
 

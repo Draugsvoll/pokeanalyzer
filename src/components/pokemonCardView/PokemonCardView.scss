@@ -86,6 +86,7 @@
   min-width: 0;
   padding-inline: 0.2rem;
   width: 100%;
+  margin-top: 0.3rem;
 }
 
 .pokemon-card__identity {
@@ -233,6 +234,8 @@
   padding: 0;
   position: relative;
   width: 100%;
+  margin-top: 3px;
+  margin-bottom: 2px;
 }
 
 .pokemon-card__price {
@@ -255,7 +258,7 @@
 }
 
 .pokemon-card__price-current {
-  align-items: flex-end;
+  align-items: baseline;
   display: flex;
   flex: 1 1 auto;
   gap: 0.35rem;
@@ -276,7 +279,6 @@
 }
 
 .pokemon-card__price-value {
-  align-self: flex-end;
   color: var(--font-color-primary);
   flex: 0 0 auto;
   font-family: var(--font-family-price);
@@ -284,7 +286,7 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-tight);
-  transform: translateY(0.12em);
+  line-height: 1.15;
   white-space: nowrap;
 }
 

@@ -15,8 +15,10 @@ import {
 import {
   cardAndDailyPriceUpserts,
   cardRefreshFailureUpdate,
+  dailyMarketSnapshotUpserts,
   dailyTcgMarketPriceUpserts,
   expiredDailyPricesDelete,
+  expiredMarketSnapshotsDelete,
 } from "../services/pokeTraceStore.js";
 import {
   loadOldestPokeTraceRefreshCandidates,
@@ -47,6 +49,7 @@ function integerSetting(
 
 let limit = 50_000;
 let retentionDays = 40;
+const marketSnapshotRetentionDays = 35;
 let requestGapMs = 2_100;
 const recordedAt = new Date().toISOString().slice(0, 10);
 const startedAt = Date.now();
@@ -59,6 +62,7 @@ const stats = {
   selected: 0,
   refreshed: 0,
   snapshots: 0,
+  marketSnapshots: 0,
   withoutMarketPrice: 0,
   withoutTcgplayerRef: 0,
   batchFallbacks: 0,
@@ -164,6 +168,7 @@ function printSummary(result: string) {
   console.log(`Selected: ${stats.selected}`);
   console.log(`Updated: ${stats.refreshed}`);
   console.log(`TCG market snapshots saved: ${stats.snapshots}`);
+  console.log(`Additional market snapshots saved: ${stats.marketSnapshots}`);
   console.log(`Updated without TCG market price: ${stats.withoutMarketPrice}`);
   console.log(
     `Selected without TCGPlayer reference: ${stats.withoutTcgplayerRef}`,
@@ -197,7 +202,9 @@ function mustStop(error: unknown) {
 }
 
 async function saveCards(cards: PokeTraceCard[]) {
-  if (cards.length === 0) return { cards: 0, snapshots: 0 };
+  if (cards.length === 0) {
+    return { cards: 0, marketSnapshots: 0, snapshots: 0 };
+  }
   const refreshedAt = new Date().toISOString();
   const statements = cards.map((card) =>
     cardAndDailyPriceUpserts(card, recordedAt, refreshedAt),
@@ -206,7 +213,10 @@ async function saveCards(cards: PokeTraceCard[]) {
   const snapshots = cards.filter(
     (card) => dailyTcgMarketPriceUpserts(card, recordedAt).length > 0,
   ).length;
-  return { cards: cards.length, snapshots };
+  const marketSnapshots = cards.filter(
+    (card) => dailyMarketSnapshotUpserts(card, recordedAt).length > 0,
+  ).length;
+  return { cards: cards.length, marketSnapshots, snapshots };
 }
 
 async function deferCandidates(
@@ -316,6 +326,7 @@ try {
         const saved = await saveCards([...found.values()]);
         stats.refreshed += saved.cards;
         stats.snapshots += saved.snapshots;
+        stats.marketSnapshots += saved.marketSnapshots;
         stats.withoutMarketPrice += saved.cards - saved.snapshots;
         logProgress();
         const missing = group.filter((row) => !found.has(row.id));
@@ -345,6 +356,7 @@ try {
         const saved = await saveCards([card]);
         stats.refreshed += saved.cards;
         stats.snapshots += saved.snapshots;
+        stats.marketSnapshots += saved.marketSnapshots;
         stats.withoutMarketPrice += saved.cards - saved.snapshots;
         logProgress();
       } catch (error) {
@@ -355,6 +367,9 @@ try {
 
     await pokeTraceDb.execute(
       expiredDailyPricesDelete(recordedAt, retentionDays),
+    );
+    await pokeTraceDb.execute(
+      expiredMarketSnapshotsDelete(recordedAt, marketSnapshotRetentionDays),
     );
     logProgress(true);
     if (rows.length > 0 && stats.refreshed === 0 && stats.deferred > 0) {

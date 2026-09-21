@@ -9,6 +9,7 @@ import {
   MarketPriceHistoryChart,
   MarketPriceHistoryLoading,
 } from "./MarketPriceHistoryChart";
+import { MarketDataUnavailable } from "./MarketDataUnavailable";
 import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
@@ -178,12 +179,11 @@ function MarketplaceColumn({
           <span aria-hidden="true" className="app-loading-spinner" />
         </div>
       ) : entries.length === 0 ? (
-        <p
-          className="poketrace-market__marketplace-unavailable ui-render-fade"
-          role="status"
-        >
-          Price data unavailable.
-        </p>
+        <MarketDataUnavailable
+          className="poketrace-market__marketplace-unavailable"
+          description={`No recent ${sourceLabel(source)} prices were found.`}
+          title="No price data"
+        />
       ) : (
         <div
           aria-live="polite"
@@ -293,12 +293,11 @@ function GradedEbayPrices({
           <span aria-hidden="true" className="app-loading-spinner" />
         </div>
       ) : entries.length === 0 ? (
-        <p
-          className="poketrace-market__graded-unavailable ui-render-fade"
-          role="status"
-        >
-          Graded price data unavailable.
-        </p>
+        <MarketDataUnavailable
+          className="poketrace-market__graded-unavailable"
+          description="Graded sales have not been recorded for this card."
+          title="No graded prices"
+        />
       ) : (
         <div
           className="poketrace-market__graded-grid ui-render-fade"
@@ -356,12 +355,11 @@ function PriceHistory({ cardId }: { cardId: string }) {
           <h3>Price history</h3>
         </div>
       </header>
-      <p
-        className="poketrace-market__history-unavailable ui-render-fade"
-        role="status"
-      >
-        Price history is unavailable.
-      </p>
+      <MarketDataUnavailable
+        className="poketrace-market__history-unavailable"
+        description="Historical prices are not available for this card yet."
+        title="No price history"
+      />
     </section>
   );
 }
@@ -392,25 +390,26 @@ export function PokeTraceMarketPrices({
     <section aria-label="Market prices" className="poketrace-market">
       {variants.length > 0 && (
         <header className="poketrace-market__header">
-          <div
+          <fieldset
             aria-label="Card variant"
-            className="poketrace-market__condition-tabs poketrace-market__variant-tabs"
-            role="radiogroup"
+            className="radio-group variant-badge-group"
           >
-            {variants.map((variant) => (
-              <label key={variant.id}>
-                <input
-                  checked={variant.id === selectedVariantId}
-                  disabled={Boolean(loadingVariantId)}
-                  name={variantGroup}
-                  onChange={() => onVariantChange(variant.id)}
-                  type="radio"
-                  value={variant.id}
-                />
-                <span>{conditionLabel(variant.name)}</span>
-              </label>
-            ))}
-          </div>
+            <div>
+              {variants.map((variant) => (
+                <label key={variant.id}>
+                  <input
+                    checked={variant.id === selectedVariantId}
+                    disabled={Boolean(loadingVariantId)}
+                    name={variantGroup}
+                    onChange={() => onVariantChange(variant.id)}
+                    type="radio"
+                    value={variant.id}
+                  />
+                  <span>{conditionLabel(variant.name)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </header>
       )}
 
