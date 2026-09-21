@@ -74,6 +74,9 @@ const card: PokeTraceCard = {
     tcgplayer: {
       NEAR_MINT: { avg: 420, low: 380, high: 480 },
       LIGHTLY_PLAYED: { avg: 350 },
+      MODERATELY_PLAYED: { avg: 300 },
+      DAMAGED: { avg: 180 },
+      HEAVILY_PLAYED: { avg: 240 },
     },
     ebay: {
       NEAR_MINT: {
@@ -83,6 +86,9 @@ const card: PokeTraceCard = {
         saleCount: 12,
         approxSaleCount: true,
       },
+      LIGHTLY_PLAYED: { avg: 340, saleCount: 8 },
+      MODERATELY_PLAYED: { avg: 290, saleCount: 5 },
+      DAMAGED: { avg: 170, saleCount: 3 },
       PSA_10: { avg: 5_000, saleCount: 4 },
     },
   },
@@ -106,13 +112,23 @@ test("stores the existing TCG price and the additional market snapshot", async (
       card_id: card.id,
       recorded_at: "2026-09-17",
       currency: "USD",
-      tcg: JSON.stringify({ avg: 420, low: 380, high: 480 }),
+      tcg: JSON.stringify({
+        NEAR_MINT: { avg: 420, low: 380, high: 480 },
+        LIGHTLY_PLAYED: { avg: 350 },
+        MODERATELY_PLAYED: { avg: 300 },
+        DAMAGED: { avg: 180 },
+      }),
       ebay: JSON.stringify({
-        avg: 410,
-        low: 370,
-        high: 470,
-        saleCount: 12,
-        approxSaleCount: true,
+        NEAR_MINT: {
+          avg: 410,
+          low: 370,
+          high: 470,
+          saleCount: 12,
+          approxSaleCount: true,
+        },
+        LIGHTLY_PLAYED: { avg: 340, saleCount: 8 },
+        MODERATELY_PLAYED: { avg: 290, saleCount: 5 },
+        DAMAGED: { avg: 170, saleCount: 3 },
       }),
       source_updated_at: card.lastUpdated,
     },
@@ -168,7 +184,9 @@ test("rerunning a date replaces its snapshot instead of duplicating it", async (
     "SELECT tcg, ebay FROM poketrace_market_snapshots",
   );
   assert.equal(result.rows.length, 1);
-  assert.deepEqual(JSON.parse(String(result.rows[0]?.tcg)), { avg: 425 });
+  assert.deepEqual(JSON.parse(String(result.rows[0]?.tcg)), {
+    NEAR_MINT: { avg: 425 },
+  });
   assert.equal(result.rows[0]?.ebay, null);
   database.close();
 });
@@ -252,7 +270,7 @@ test("stores null when no snapshot exists inside a comparison window", async () 
   database.close();
 });
 
-test("stores a snapshot when only eBay Near Mint data is available", async () => {
+test("stores each available supported condition by source", async () => {
   const database = await createDatabase();
   await database.batch(
     dailyMarketSnapshotUpserts(
@@ -270,10 +288,11 @@ test("stores a snapshot when only eBay Near Mint data is available", async () =>
   const result = await database.execute(
     "SELECT tcg, ebay FROM poketrace_market_snapshots",
   );
-  assert.equal(result.rows[0]?.tcg, null);
+  assert.deepEqual(JSON.parse(String(result.rows[0]?.tcg)), {
+    LIGHTLY_PLAYED: { avg: 350 },
+  });
   assert.deepEqual(JSON.parse(String(result.rows[0]?.ebay)), {
-    avg: 410,
-    saleCount: 12,
+    NEAR_MINT: { avg: 410, saleCount: 12 },
   });
   database.close();
 });

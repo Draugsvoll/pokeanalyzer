@@ -50,8 +50,10 @@ receive a bounded retry delay and do not block the rest of the queue.
 The same refresh stores ready-to-read 1-day, 7-day, and 30-day comparisons on
 the card row, using an exact snapshot or the nearest allowed date within one
 day. It also writes a supplemental `poketrace_market_snapshots` row containing
-the complete TCGPlayer and eBay Near Mint objects returned by PokeTrace. Missing
-sources are stored as `NULL`; no locally calculated market values are added.
+the complete TCGPlayer and eBay Near Mint, Lightly Played, Moderately Played,
+and Damaged objects returned by PokeTrace. Conditions that PokeTrace does not
+return are omitted, missing sources are stored as `NULL`, and no locally
+calculated market values are added.
 Supplemental snapshots older than 35 days are removed automatically.
 
 Set `POKETRACE_DAILY_CARD_LIMIT` to the maximum number of cards for one run.

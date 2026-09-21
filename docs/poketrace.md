@@ -51,13 +51,15 @@ is removed by default.
 
 The same refresh also writes one supplemental `poketrace_market_snapshots` row
 per card and UTC date. Its `tcg` and `ebay` JSON fields preserve the complete
-Near Mint objects returned by PokeTrace, including values such as `avg`, `low`,
-`high`, `saleCount`, and `approxSaleCount` when available. A missing source is
-stored as `NULL`, and no supplemental row is written when both sources are
-missing. These snapshots contain no locally calculated market values, are
-replaced when the same card is refreshed again on the same UTC date, and are
-removed after 35 days. Cardmarket, graded prices, and other conditions are not
-included.
+Near Mint, Lightly Played, Moderately Played, and Damaged objects returned by
+PokeTrace. Each available condition remains nested under its upstream condition
+name and preserves values such as `avg`, `low`, `high`, `saleCount`, and
+`approxSaleCount`. A missing source is stored as `NULL`, and unavailable
+conditions are omitted. No supplemental row is written when neither source has
+one of the supported conditions. These snapshots contain no locally calculated
+market values, are replaced when the same card is refreshed again on the same
+UTC date, and are removed after 35 days. Cardmarket, graded prices, Mint, and
+Heavily Played are not included.
 
 After each successful card refresh, the card row also receives a compact
 `tcg_market_comparisons` cache for 1, 7, and 30 days. Each entry contains the

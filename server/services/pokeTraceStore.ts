@@ -12,10 +12,23 @@ const recordOrEmpty = (value: unknown): Record<string, unknown> =>
 const finiteNumberOrNull = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
-function nearMintSnapshot(value: unknown) {
+const SNAPSHOT_CONDITIONS = [
+  "NEAR_MINT",
+  "LIGHTLY_PLAYED",
+  "MODERATELY_PLAYED",
+  "DAMAGED",
+] as const;
+
+function marketConditionsSnapshot(value: unknown) {
   const source = recordOrEmpty(value);
-  const nearMint = recordOrEmpty(source.NEAR_MINT);
-  return Object.keys(nearMint).length === 0 ? null : nearMint;
+  const conditions: Record<string, Record<string, unknown>> = {};
+
+  for (const condition of SNAPSHOT_CONDITIONS) {
+    const price = recordOrEmpty(source[condition]);
+    if (Object.keys(price).length > 0) conditions[condition] = price;
+  }
+
+  return Object.keys(conditions).length === 0 ? null : conditions;
 }
 
 export function cardUpsert(card: PokeTraceCard) {
@@ -73,8 +86,8 @@ export function dailyMarketSnapshotUpserts(
   }
 
   const prices = recordOrEmpty(card.prices);
-  const tcg = nearMintSnapshot(prices.tcgplayer);
-  const ebay = nearMintSnapshot(prices.ebay);
+  const tcg = marketConditionsSnapshot(prices.tcgplayer);
+  const ebay = marketConditionsSnapshot(prices.ebay);
   if (tcg === null && ebay === null) return [];
 
   return [
