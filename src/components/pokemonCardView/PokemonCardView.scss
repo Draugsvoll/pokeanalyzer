@@ -38,8 +38,7 @@
   }
 
   &:hover {
-    background: var(--bg-card);
-    border-color: var(--border-color-strong);
+    background: color-mix(in srgb, var(--bg-card) 97%, white);
     box-shadow: var(--hover-shadow);
     transform: translateY(var(--hover-lift));
   }
