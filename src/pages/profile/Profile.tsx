@@ -397,16 +397,16 @@ export default function Profile() {
                     <span className="profile__purchase-name">{plan.name}</span>
                     <strong>
                       {isFreePlan
-                        ? `${plan.credits} credits / month`
+                        ? `${plan.credits} credits`
                         : `${plan.credits} credits`}
                     </strong>
                     <small>
                       {isFreePlan
-                        ? "No monthly fee · No subscription"
+                        ? "Renews monthly · Free forever"
                         : `${plan.price} ${plan.currency} / month`}
                     </small>
                     <Button
-                      fill="solid"
+                      fill="ghost"
                       fitContent
                       size="medium"
                       style={getCustomColors(planAccent)}
@@ -466,7 +466,7 @@ export default function Profile() {
                 </span>
                 <div className="profile__top-up-copy">
                   <span className="profile__purchase-name">Credit top-up</span>
-                  <strong>100 extra credits</strong>
+                  <strong>20 extra credits</strong>
                   <small>One-time payment · No subscription</small>
                 </div>
                 <Button

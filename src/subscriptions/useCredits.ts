@@ -17,13 +17,13 @@ export function useCredits(subscription: UserSubscription | null) {
       creditActionInProgressRef.current = true;
       setUpdatingCredits(true);
       setCreditMessage(null);
-      const response = await createTopUpCheckout(user, "credits_100");
+      const response = await createTopUpCheckout(user, "credits_20");
       window.location.assign(response.checkoutUrl);
       return true;
     } catch (error) {
       logClientError("Failed to top up credits", error);
       setCreditMessage(
-        error instanceof Error ? error.message : "Could not top up credits"
+        error instanceof Error ? error.message : "Could not top up credits",
       );
       creditActionInProgressRef.current = false;
       setUpdatingCredits(false);
@@ -46,8 +46,9 @@ export function useCredits(subscription: UserSubscription | null) {
       (subscription?.membershipCreditsUsed ?? 0) +
       (subscription?.bonusCreditsUsed ?? 0),
     hasCredits:
-      ((subscription?.membershipCreditsRemaining ?? 0) +
-        (subscription?.bonusCreditsRemaining ?? 0)) > 0,
+      (subscription?.membershipCreditsRemaining ?? 0) +
+        (subscription?.bonusCreditsRemaining ?? 0) >
+      0,
     membershipCreditsRemaining: subscription?.membershipCreditsRemaining ?? 0,
     membershipCreditsTotal: subscription?.membershipCreditsTotal ?? 0,
     membershipCreditsUsed: subscription?.membershipCreditsUsed ?? 0,

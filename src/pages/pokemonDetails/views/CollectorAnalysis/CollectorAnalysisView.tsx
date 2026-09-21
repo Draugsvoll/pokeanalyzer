@@ -14,7 +14,7 @@ import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { Badge } from "../../../../components/ui/Badge";
-import { FeatureAnalysisPanel } from "../../components/FeatureAnalysisPanel";
+import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
 import { GrokLoadingState } from "../../components/GrokLoadingState";
 import "./CollectorAnalysisView.scss";
 
@@ -189,21 +189,24 @@ export default function CollectorAnalysis({
         </div>
       </fieldset>
       <div
-        className="collector-ranking__content default-container ui-render-fade"
+        className="collector-ranking__content ui-render-fade"
         key={`${responseKey}-${activeVariantIndex}`}
       >
-        <FeatureAnalysisPanel
+        <FeatureAnalysisHero
           badge={
             <Badge accent="blue" weight="strong">
               {scoreTone}
             </Badge>
           }
-          eyebrow="Collector score"
+          eyebrow="Collector's score"
           headline={analysis.verdict}
           score={totalScore}
           scoreLabel="Overall collector score"
-          summary={analysis.overview}
-        />
+        >
+          <p className="feature-analysis-summary feature-analysis-summary-text">
+            {analysis.overview}
+          </p>
+        </FeatureAnalysisHero>
 
         <div className="collector-ranking__categories">
           {analysis.categories.map((category, index) => {

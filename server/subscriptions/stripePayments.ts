@@ -26,6 +26,12 @@ const MEMBERSHIP_PRICE_ENV: Record<
 };
 
 const TOP_UP_PACKAGES = {
+  credits_20: {
+    amount: 3.99,
+    credits: 20,
+    currency: "USD",
+    priceEnv: "STRIPE_TOPUP_20_PRICE_ID",
+  },
   credits_100: {
     amount: 3.99,
     credits: 100,
@@ -35,6 +41,7 @@ const TOP_UP_PACKAGES = {
 } as const;
 
 type TopUpPackageId = keyof typeof TOP_UP_PACKAGES;
+const CURRENT_TOP_UP_PACKAGE_ID: TopUpPackageId = "credits_20";
 type StripeEventContext = Pick<Stripe.Event, "created" | "id">;
 
 class PaymentHttpError extends Error {
@@ -1123,7 +1130,7 @@ export async function createTopUpCheckout(req: Request, res: Response) {
     const packageId = req.body?.packageId as TopUpPackageId | undefined;
     const requestId =
       typeof req.body?.requestId === "string" ? req.body.requestId : "";
-    if (!packageId || !(packageId in TOP_UP_PACKAGES)) {
+    if (packageId !== CURRENT_TOP_UP_PACKAGE_ID) {
       throw new PaymentHttpError("Invalid top-up package", 400);
     }
     if (
@@ -1158,7 +1165,9 @@ export async function createTopUpCheckout(req: Request, res: Response) {
 
     const topUp = TOP_UP_PACKAGES[packageId];
     const customer = await getOrCreateCustomer(uid);
-    const priceId = getRequiredEnv(topUp.priceEnv);
+    const priceId =
+      process.env[topUp.priceEnv]?.trim() ||
+      getRequiredEnv("STRIPE_TOPUP_100_PRICE_ID");
     await validateTopUpPrice(priceId, packageId);
     const metadata = {
       credits: String(topUp.credits),

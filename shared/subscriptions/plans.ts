@@ -24,7 +24,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     price: 3.99,
     currency: "USD",
     billingInterval: "month",
-    credits: 100,
+    credits: 20,
   },
   {
     id: "pro",
@@ -32,7 +32,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     price: 11.99,
     currency: "USD",
     billingInterval: "month",
-    credits: 300,
+    credits: 60,
   },
 ];
 

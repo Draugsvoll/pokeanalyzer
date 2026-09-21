@@ -632,7 +632,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                     </Badge>
                   ) : undefined
                 }
-                eyebrow="Overall Score"
+                eyebrow="overall grading score"
                 headline={activeVariant.headline?.trim() || undefined}
                 score={attractivenessScore}
                 scoreLabel="Grading attractiveness score"
