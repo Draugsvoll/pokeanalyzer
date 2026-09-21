@@ -261,6 +261,10 @@
     font-weight: var(--font-weight-medium);
   }
 
+  &__rarity-badge .app-badge:not(.app-badge--accent-neutral) {
+    background: transparent;
+  }
+
   &__title-number {
     justify-self: start;
     margin-bottom: -0.15rem;
@@ -279,7 +283,7 @@
     border-radius: var(--border-radius);
     box-sizing: border-box;
     display: grid;
-    gap: 0;
+    gap: 0.25rem;
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
     max-width: 100%;
@@ -315,30 +319,14 @@
         height: 1.35rem;
         opacity: 0.75;
         position: absolute;
-        right: -1px;
+        right: -0.125rem;
         top: 50%;
         transform: translateY(-50%);
         width: 1px;
       }
 
-      &::after {
-        background: var(--feature-accent);
-        border-radius: var(--border-radius-pill);
-        bottom: 0.4rem;
-        content: "";
-        height: 2px;
-        left: 0.9rem;
-        opacity: 0;
-        position: absolute;
-        right: 0.9rem;
-        transform: scaleX(0.65);
-        transition:
-          opacity var(--delay-short) ease,
-          transform var(--delay-short) ease;
-      }
-
       &:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--feature-accent) 7%, transparent);
+        background: rgba(255, 255, 255, 0.03);
         border-color: transparent;
         box-shadow: none;
         color: var(--font-color-primary);
@@ -346,7 +334,7 @@
       }
 
       &.is-active {
-        background: color-mix(in srgb, var(--feature-accent) 7%, transparent);
+        background: rgba(255, 255, 255, 0.03);
         color: var(--font-color-primary);
       }
 
@@ -361,7 +349,6 @@
     }
 
     .feature-button__icon {
-      background: color-mix(in srgb, var(--feature-accent) 13%, transparent);
       border: 1px solid
         color-mix(in srgb, var(--feature-accent) 24%, transparent);
       border-radius: var(--border-radius-sm);
@@ -378,7 +365,6 @@
 
     .feature-button:hover:not(:disabled) .feature-button__icon,
     .feature-button.is-active .feature-button__icon {
-      background: color-mix(in srgb, var(--feature-accent) 18%, transparent);
       border-color: color-mix(in srgb, var(--feature-accent) 36%, transparent);
       color: color-mix(in srgb, var(--feature-accent) 62%, white);
     }

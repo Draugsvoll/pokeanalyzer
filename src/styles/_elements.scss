@@ -335,17 +335,8 @@ input[type="radio"] {
   --feature-analysis-accent: var(--feature-accent, var(--custom-color-blue));
 
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   justify-items: center;
-
-  &__eyebrow {
-    color: var(--feature-analysis-accent);
-    display: block;
-    font-size: var(--font-size-caption);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--font-tracking-wider);
-    text-transform: uppercase;
-  }
 
   &__badge {
     display: block;
@@ -751,6 +742,10 @@ input[type="radio"] {
   font-size: var(--font-size-paragraph-sm);
   min-width: 7rem;
   padding: 0.6rem 1.1rem;
+}
+
+.variant-badge-group.variant-badge-group input:checked + span {
+  background: color-mix(in srgb, var(--radio-accent) 7%, transparent);
 }
 
 .app-loading-spinner {

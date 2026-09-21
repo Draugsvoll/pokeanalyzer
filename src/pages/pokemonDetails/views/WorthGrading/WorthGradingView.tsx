@@ -3,6 +3,7 @@ import { parseScoreString } from "../../../../../shared/analysisScores";
 import { useState, type ReactNode } from "react";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
+import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
 import { GrokLoadingState } from "../../components/GrokLoadingState";
 import { isValidWorthGradingResponse } from "../../../../../shared/validateWorthGrading";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -578,40 +579,42 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
     <section className="worth-grading-view ui-render-fade">
       <article className="worth-grading-view__card">
         <div className="worth-grading-view__body">
-          <fieldset
-            aria-label="Grading recommendation variant"
-            className="worth-grading-view__variant-selector radio-group variant-badge-group"
-          >
-            <div>
-              {variants.map((variant, variantIndex) => {
-                const variantName =
-                  variant.card?.variant_name ||
-                  variant.card?.name ||
-                  `Variant ${variantIndex + 1}`;
+          <CardFeatureHeaderVariants>
+            <fieldset
+              aria-label="Grading recommendation variant"
+              className="worth-grading-view__variant-selector radio-group variant-badge-group"
+            >
+              <div>
+                {variants.map((variant, variantIndex) => {
+                  const variantName =
+                    variant.card?.variant_name ||
+                    variant.card?.name ||
+                    `Variant ${variantIndex + 1}`;
 
-                return (
-                  <label key={`${variantName}-${variantIndex}`}>
-                    <input
-                      checked={activeVariantIndex === variantIndex}
-                      name="worth-grading-variant"
-                      onChange={() =>
-                        setSelectedVariant({
-                          index: variantIndex,
-                          responseKey,
-                        })
-                      }
-                      type="radio"
-                      value={variantIndex}
-                    />
-                    <span>
-                      <Layers3 aria-hidden="true" />
-                      <strong>{variantName}</strong>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
+                  return (
+                    <label key={`${variantName}-${variantIndex}`}>
+                      <input
+                        checked={activeVariantIndex === variantIndex}
+                        name="worth-grading-variant"
+                        onChange={() =>
+                          setSelectedVariant({
+                            index: variantIndex,
+                            responseKey,
+                          })
+                        }
+                        type="radio"
+                        value={variantIndex}
+                      />
+                      <span>
+                        <Layers3 aria-hidden="true" />
+                        <strong>{variantName}</strong>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </CardFeatureHeaderVariants>
 
           <div
             className="worth-grading-view__variant-content ui-render-fade"
@@ -632,7 +635,6 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                     </Badge>
                   ) : undefined
                 }
-                eyebrow="overall grading score"
                 headline={activeVariant.headline?.trim() || undefined}
                 score={attractivenessScore}
                 scoreLabel="Grading attractiveness score"

@@ -21,7 +21,6 @@ type FeatureAnalysisPanelProps = {
 type FeatureAnalysisHeroProps = {
   badge?: ReactNode;
   children?: ReactNode;
-  eyebrow: string;
   headline?: string;
   score?: number | null;
   scoreLabel?: string;
@@ -62,14 +61,12 @@ export function FeatureAnalysisScoreMeter({
 export function FeatureAnalysisHero({
   badge,
   children,
-  eyebrow,
   headline,
   score,
   scoreLabel,
 }: FeatureAnalysisHeroProps) {
   return (
     <section className="feature-analysis-hero default-container">
-      <span className="feature-analysis-hero__eyebrow">{eyebrow}</span>
       {score != null && (
         <div className="feature-analysis-score-block">
           <FeatureAnalysisScoreMeter

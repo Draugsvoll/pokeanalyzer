@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
   getCustomColors,
@@ -10,6 +11,25 @@ import { formatCardNumber } from "../../../../shared/formatCardNumber";
 import "./CardFeatureHeader.scss";
 
 export const CARD_FEATURE_HEADER_ACTION_LABEL = "1 Credit";
+const CARD_FEATURE_HEADER_VARIANTS_ID = "card-feature-header-variants";
+
+export function CardFeatureHeaderVariants({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [host, setHost] = useState<HTMLElement | null>(() =>
+    typeof document === "undefined"
+      ? null
+      : document.getElementById(CARD_FEATURE_HEADER_VARIANTS_ID),
+  );
+
+  useLayoutEffect(() => {
+    setHost(document.getElementById(CARD_FEATURE_HEADER_VARIANTS_ID));
+  }, []);
+
+  return host ? createPortal(children, host) : children;
+}
 
 type CardFeatureHeaderProps = {
   card: PokemonCard;
@@ -68,6 +88,10 @@ export function CardFeatureHeader({
           </div>
         )}
       </div>
+      <div
+        className="card-feature-header__variants"
+        id={CARD_FEATURE_HEADER_VARIANTS_ID}
+      />
       {authActions ? (
         <div className="card-feature-header__auth">{authActions}</div>
       ) : (
@@ -75,7 +99,7 @@ export function CardFeatureHeader({
         !actionHidden && (
           <div className="card-feature-header__action">
             <Button
-              fill="solid"
+              fill="ghost"
               fitContent
               style={getCustomColors(color)}
               onClick={onAction}

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Layers3 } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
   fetchMarketPriceHistory,
@@ -415,7 +415,10 @@ export function PokeTraceMarketPrices({
                     type="radio"
                     value={variant.id}
                   />
-                  <span>{conditionLabel(variant.name)}</span>
+                  <span>
+                    <Layers3 aria-hidden="true" />
+                    <strong>{conditionLabel(variant.name)}</strong>
+                  </span>
                 </label>
               ))}
             </div>

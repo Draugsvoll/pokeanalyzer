@@ -1,4 +1,6 @@
 .poketrace-market {
+  --poketrace-panel-gap: 0.7rem;
+
   border-top: 1px solid var(--border-divider);
   margin-top: 1rem;
 
@@ -24,7 +26,7 @@
 
   &__grid {
     display: grid;
-    gap: 1rem;
+    gap: var(--poketrace-panel-gap);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -241,7 +243,7 @@
   }
 
   &__graded {
-    margin-top: 1rem;
+    margin-top: var(--poketrace-panel-gap);
 
     h3 {
       color: var(--font-color-secondary);
@@ -316,7 +318,7 @@
     --poketrace-history-padding: 1rem;
     --history-accent: var(--custom-color-orange);
 
-    margin-top: 1rem;
+    margin-top: var(--poketrace-panel-gap);
     overflow: hidden;
     padding: 1.3rem var(--poketrace-history-padding) 0;
 

@@ -15,6 +15,7 @@ import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
+import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
 import { GrokLoadingState } from "../../components/GrokLoadingState";
 import "./CollectorAnalysisView.scss";
 
@@ -165,29 +166,31 @@ export default function CollectorAnalysis({
 
   return (
     <div className="collector-ranking ui-render-fade">
-      <fieldset
-        aria-label="Collector analysis variant"
-        className="collector-ranking__variant-selector radio-group variant-badge-group"
-      >
-        <div>
-          {analyses.map((variantAnalysis, variantIndex) => (
-            <label key={`${variantAnalysis.variantName}-${variantIndex}`}>
-              <input
-                checked={activeVariantIndex === variantIndex}
-                name="collector-analysis-variant"
-                onChange={() =>
-                  setSelectedVariant({ index: variantIndex, responseKey })
-                }
-                type="radio"
-              />
-              <span>
-                <Layers3 aria-hidden="true" />
-                <strong>{variantAnalysis.variantName}</strong>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <CardFeatureHeaderVariants>
+        <fieldset
+          aria-label="Collector analysis variant"
+          className="collector-ranking__variant-selector radio-group variant-badge-group"
+        >
+          <div>
+            {analyses.map((variantAnalysis, variantIndex) => (
+              <label key={`${variantAnalysis.variantName}-${variantIndex}`}>
+                <input
+                  checked={activeVariantIndex === variantIndex}
+                  name="collector-analysis-variant"
+                  onChange={() =>
+                    setSelectedVariant({ index: variantIndex, responseKey })
+                  }
+                  type="radio"
+                />
+                <span>
+                  <Layers3 aria-hidden="true" />
+                  <strong>{variantAnalysis.variantName}</strong>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </CardFeatureHeaderVariants>
       <div
         className="collector-ranking__content ui-render-fade"
         key={`${responseKey}-${activeVariantIndex}`}
@@ -198,7 +201,6 @@ export default function CollectorAnalysis({
               {scoreTone}
             </Badge>
           }
-          eyebrow="Collector's score"
           headline={analysis.verdict}
           score={totalScore}
           scoreLabel="Overall collector score"
@@ -247,7 +249,7 @@ export default function CollectorAnalysis({
           <div className="feature-analysis-card-header">
             <h4>
               <FileText size={19} aria-hidden="true" />
-              Overview
+              Summary
             </h4>
           </div>
           {analysis.finalNote.map((paragraph, index) => (

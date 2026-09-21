@@ -768,18 +768,20 @@ function PokemonDetailsForCard() {
                       )}
                       <h2 className="card-view__title">{card.name}</h2>
                       <div className="card-view__product-meta">
-                        <Badge
-                          accent={getRarityBadgeAccent(displayRarity)}
-                          size="md"
-                          weight="strong"
-                        >
-                          {displayRarity}
-                        </Badge>
                         {card.set?.name && (
                           <span className="card-view__product-set">
                             {card.set.name}
                           </span>
                         )}
+                        <span className="card-view__rarity-badge">
+                          <Badge
+                            accent={getRarityBadgeAccent(displayRarity)}
+                            size="md"
+                            weight="strong"
+                          >
+                            {displayRarity}
+                          </Badge>
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import {
   FeatureAnalysisHero,
   FeatureAnalysisScoreMeter,
 } from "../../components/FeatureAnalysisPanel";
+import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
 import { GrokLoadingState } from "../../components/GrokLoadingState";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./MarketAnalysisView.scss";
@@ -71,23 +72,29 @@ export function MarketAnalysisView({
   return (
     <section className="market-analysis-report ui-render-fade">
       <div className="market-analysis-report__hero-group">
-        <fieldset
-          aria-label="Market analysis variant"
-          className="market-analysis-report__variant-selector radio-group variant-badge-group"
-        >
-          <div>
-            <label>
-              <input checked name="market-analysis-variant" readOnly type="radio" />
-              <span>
-                <Layers3 aria-hidden="true" />
-                <strong>{data.variantName}</strong>
-              </span>
-            </label>
-          </div>
-        </fieldset>
+        <CardFeatureHeaderVariants>
+          <fieldset
+            aria-label="Market analysis variant"
+            className="market-analysis-report__variant-selector radio-group variant-badge-group"
+          >
+            <div>
+              <label>
+                <input
+                  checked
+                  name="market-analysis-variant"
+                  readOnly
+                  type="radio"
+                />
+                <span>
+                  <Layers3 aria-hidden="true" />
+                  <strong>{data.variantName}</strong>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+        </CardFeatureHeaderVariants>
 
         <FeatureAnalysisHero
-          eyebrow="Market Health"
           headline={data.headline}
           score={data.score}
           scoreLabel="Market health score"

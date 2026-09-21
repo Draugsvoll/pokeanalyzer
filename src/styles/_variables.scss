@@ -4,7 +4,7 @@
 
 :root {
   /* ----- Palette (mock DevTools) ----- */
-  --bg: #0b0d14; /* slightly less dark than #080a0f */
+  --bg: #0a0c12; /* slightly less dark than #080a0f */
   --bg2: #0e111a;
   --surface: #10141c;
   --surface2: #151a24;
@@ -83,7 +83,7 @@
   /* ----- Radii (mock: rounded-square controls, not full pills) ----- */
   --radius-xs: 6px;
   --radius-sm: 8px;
-  --radius-md: 12px; /* buttons, inputs, search, chips */
+  --radius-md: 8px; /* buttons, inputs, search, chips */
   --radius-lg: 18px; /* cards / panels */
   --radius-xl: 22px;
   --radius-control: 12px; /* primary control radius — mock “square” */
@@ -98,8 +98,8 @@
   --border-radius: var(--radius-md);
   --border-radius-sm: var(--radius-sm);
   --border-radius-md: var(--radius-md);
-  --border-radius-lg: var(--radius-lg);
-  --border-radius-card: var(--radius-lg);
+  --border-radius-lg: var(--radius-md);
+  --border-radius-card: var(--radius-md);
   --border-radius-control: var(--radius-control);
   --border-radius-pill: var(--radius-pill);
   --border-radius-round: var(--radius-round);
@@ -128,7 +128,7 @@
   --search-btn-min-width: 86px;
   --search-btn-pad-x: 18px;
   --search-icon-gap: 8px;
-  --search-radius: 14px;
+  --search-radius: 12px;
   --btn-height: 40px;
   --btn-height-sm: 34px;
   --header-height: 64px;
@@ -151,7 +151,7 @@
   --page-pad-x-xl: 40px;
   --page-pad-y: 32px;
   --section-gap: 140px;
-  --card-gap: 22px;
+  --card-gap: 17px;
   --card-pad: 10px;
 
   /* Section headings (e.g. “Search results”) + card type */
