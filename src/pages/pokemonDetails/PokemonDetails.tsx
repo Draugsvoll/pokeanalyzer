@@ -694,8 +694,8 @@ function PokemonDetailsForCard() {
               <div className="card-view__image-controls">
                 {authUser && !isDemo && (
                   <Button
-                    fill="solid"
                     fullWidth
+                    variant="portfolio"
                     disabled={portfolioBusy || portfolioUnavailable}
                     onClick={handlePortfolioToggle}
                     aria-label={
@@ -715,19 +715,11 @@ function PokemonDetailsForCard() {
                     {portfolioBusy ? (
                       <span className="app-btn__spinner" aria-hidden="true" />
                     ) : (
-                      <Star aria-hidden="true" />
+                      <>
+                        <Star aria-hidden="true" />
+                        <span>Portfolio</span>
+                      </>
                     )}
-                    <span>
-                      {portfolioUnavailable
-                        ? "Portfolio unavailable"
-                        : updatingPortfolio
-                          ? "Updating Portfolio"
-                          : loadingPortfolioReferences
-                            ? "Checking Portfolio"
-                            : cardIsSaved
-                              ? "Remove from Portfolio"
-                              : "Add to Portfolio"}
-                    </span>
                   </Button>
                 )}
                 <div className="card-view__change-card">

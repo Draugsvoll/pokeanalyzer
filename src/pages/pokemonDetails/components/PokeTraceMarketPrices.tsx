@@ -322,7 +322,13 @@ function GradedEbayPrices({
   );
 }
 
-function PriceHistory({ cardId }: { cardId: string }) {
+function PriceHistory({
+  cardId,
+  demoHistory,
+}: {
+  cardId: string;
+  demoHistory?: MarketPriceHistoryResponse;
+}) {
   const [history, setHistory] = useState<MarketPriceHistoryResponse | null>(
     null,
   );
@@ -344,7 +350,10 @@ function PriceHistory({ cardId }: { cardId: string }) {
     return () => controller.abort();
   }, [cardId, isDemo]);
 
-  if (isDemo) return null;
+  if (isDemo)
+    return demoHistory ? (
+      <MarketPriceHistoryChart history={demoHistory} />
+    ) : null;
   if (!cardId) return <MarketPriceHistoryLoading />;
   if (!history && !unavailable) return <MarketPriceHistoryLoading />;
   if (history) return <MarketPriceHistoryChart history={history} />;
@@ -353,6 +362,7 @@ function PriceHistory({ cardId }: { cardId: string }) {
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
+          <span>Near Mint</span>
         </div>
       </header>
       <MarketDataUnavailable
@@ -426,7 +436,11 @@ export function PokeTraceMarketPrices({
         ))}
       </div>
 
-      <PriceHistory cardId={selectedVariantId} key={selectedVariantId} />
+      <PriceHistory
+        cardId={selectedVariantId}
+        demoHistory={data.marketPriceHistory}
+        key={selectedVariantId}
+      />
 
       <GradedEbayPrices
         currency={data.currency}

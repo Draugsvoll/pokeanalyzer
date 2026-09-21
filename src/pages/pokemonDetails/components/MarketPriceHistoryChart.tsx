@@ -80,13 +80,11 @@ export function MarketPriceHistoryLoading() {
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
+          <span>Near Mint</span>
         </div>
       </header>
       <div className="poketrace-market__history-loading-body">
-        <span
-          aria-hidden="true"
-          className="app-loading-spinner poketrace-market__history-loading-indicator"
-        />
+        <span aria-hidden="true" className="app-loading-spinner" />
       </div>
     </section>
   );
@@ -115,6 +113,7 @@ export function MarketPriceHistoryChart({
         <header className="poketrace-market__history-header">
           <div className="poketrace-market__history-title">
             <h3>Price history</h3>
+            <span>Near Mint</span>
           </div>
         </header>
         <MarketDataUnavailable
@@ -191,6 +190,7 @@ export function MarketPriceHistoryChart({
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
+          <span>Near Mint</span>
         </div>
         <div className="poketrace-market__history-meta">
           <div
@@ -254,7 +254,7 @@ export function MarketPriceHistoryChart({
               width="120%"
               height="140%"
             >
-              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feGaussianBlur stdDeviation="1.15" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />

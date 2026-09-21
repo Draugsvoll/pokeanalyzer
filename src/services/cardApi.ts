@@ -1,5 +1,11 @@
 import type { PokemonCard } from "../types/pokemon";
 
+import type {
+  PokeTraceMarketHistory,
+  PokeTraceMarketHistoryPoint,
+  PokeTraceMarketHistorySource,
+} from "../types/pokemon";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 export type CardPriceHistorySnapshot = {
@@ -16,28 +22,9 @@ export type CardPriceHistoryResponse = {
   snapshots: CardPriceHistorySnapshot[];
 };
 
-export type MarketPriceHistorySource = "tcgplayer" | "ebay";
-
-export type MarketPriceHistoryPoint = {
-  date: string;
-  avg: number;
-  median7d: number | null;
-  median30d: number | null;
-  low: number | null;
-  high: number | null;
-  saleCount: number | null;
-  approxSaleCount: boolean | null;
-};
-
-export type MarketPriceHistoryResponse = {
-  cardId: string;
-  condition: "NEAR_MINT";
-  period: "90d";
-  currency: string;
-  fetchedAt: string;
-  stale: boolean;
-  series: Partial<Record<MarketPriceHistorySource, MarketPriceHistoryPoint[]>>;
-};
+export type MarketPriceHistorySource = PokeTraceMarketHistorySource;
+export type MarketPriceHistoryPoint = PokeTraceMarketHistoryPoint;
+export type MarketPriceHistoryResponse = PokeTraceMarketHistory;
 
 type JsonRecord = Record<string, unknown>;
 

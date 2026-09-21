@@ -17,6 +17,7 @@
     "db:init": "tsx server/db/init.ts",
     "poketrace:import-catalog": "tsx server/scripts/importPokeTraceCatalog.ts",
     "poketrace:import-card": "tsx server/scripts/importPokeTraceCard.ts",
+    "poketrace:export-demo": "tsx server/scripts/exportPokeTraceDemo.ts",
     "poketrace:refresh-oldest": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
     "poketrace:refresh-daily": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
     "news:generate": "tsx server/scripts/generateNews.ts",

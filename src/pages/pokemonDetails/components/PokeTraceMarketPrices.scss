@@ -165,7 +165,8 @@
   }
 
   &__marketplace-loading,
-  &__graded-loading {
+  &__graded-loading,
+  &__history-loading-body {
     align-items: center;
     display: flex;
     justify-content: center;
@@ -173,7 +174,8 @@
   }
 
   &__marketplace-loading,
-  &__graded-loading {
+  &__graded-loading,
+  &__history-loading-body {
     .app-loading-spinner {
       border-width: 2px;
       height: 1rem;
@@ -271,10 +273,9 @@
   }
 
   &__graded-grid {
-    align-items: start;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     gap: 0.75rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 0.25rem 0 0;
   }
 
@@ -282,9 +283,8 @@
     background: color-mix(in srgb, var(--surface2) 62%, transparent);
     border-radius: var(--border-radius);
     display: grid;
-    flex: 0 0 auto;
     justify-items: center;
-    min-width: 6rem;
+    min-width: 0;
     padding: 0.7rem 0.75rem;
     text-align: center;
 
@@ -323,18 +323,6 @@
     &--ebay {
       --history-accent: var(--custom-color-teal);
     }
-
-    &--loading {
-      min-height: 12rem;
-      padding-bottom: 1rem;
-    }
-  }
-
-  &__history-loading-body {
-    align-items: center;
-    display: flex;
-    justify-content: center;
-    min-height: 8rem;
   }
 
   &__history-unavailable {
@@ -377,6 +365,19 @@
     }
   }
 
+  &__history-title {
+    align-items: baseline;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    > span {
+      color: var(--font-color-faint);
+      font-size: var(--font-size-label);
+      font-weight: var(--font-weight-medium);
+    }
+  }
+
   &__history-source-tabs {
     align-self: center;
     justify-content: flex-start;
@@ -402,12 +403,6 @@
         background: var(--custom-color-teal);
       }
     }
-  }
-
-  &__history-loading-indicator {
-    border-width: 2px;
-    height: 1rem;
-    width: 1rem;
   }
 
   &__history-chart {
@@ -459,7 +454,7 @@
     stroke: var(--history-accent);
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 2.35;
+    stroke-width: 2;
   }
 
   &__history-point-halo {
@@ -529,6 +524,10 @@
 
     &__history {
       padding: 1rem var(--poketrace-history-padding) 0;
+    }
+
+    &__graded-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 }

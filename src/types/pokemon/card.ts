@@ -2,6 +2,31 @@ import type { CardSet } from "./set";
 import type { CardImages } from "./images";
 import type { PokeTraceMarketComparisons } from "../../../shared/pokeTraceMarketComparisons";
 
+export type PokeTraceMarketHistorySource = "tcgplayer" | "ebay";
+
+export type PokeTraceMarketHistoryPoint = {
+  date: string;
+  avg: number;
+  median7d: number | null;
+  median30d: number | null;
+  low: number | null;
+  high: number | null;
+  saleCount: number | null;
+  approxSaleCount: boolean | null;
+};
+
+export type PokeTraceMarketHistory = {
+  cardId: string;
+  condition: "NEAR_MINT";
+  period: "90d";
+  currency: string;
+  fetchedAt: string;
+  stale: boolean;
+  series: Partial<
+    Record<PokeTraceMarketHistorySource, PokeTraceMarketHistoryPoint[]>
+  >;
+};
+
 export type PokemonCard = {
   id: string;
   name: string;
@@ -27,5 +52,6 @@ export type PokemonCard = {
     }>;
     lastUpdated?: string;
     marketComparisons?: PokeTraceMarketComparisons;
+    marketPriceHistory?: PokeTraceMarketHistory;
   };
 };
