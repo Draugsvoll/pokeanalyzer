@@ -130,7 +130,7 @@ textarea::placeholder {
 }
 
 /*
- * Mock control chrome: rounded-square (12px), not full pills.
+ * Shared control chrome: same 8px radius used by buttons, inputs, and dropdowns.
  */
 button,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
@@ -915,14 +915,14 @@ input[type="radio"] {
 }
 
 .app-badge:not(.app-badge--accent-neutral) {
-  background: color-mix(in srgb, var(--app-badge-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--app-badge-accent) 5%, transparent);
   border-color: color-mix(in srgb, var(--app-badge-accent) 26%, transparent);
   color: color-mix(in srgb, var(--app-badge-accent) 78%, white);
 }
 
 .app-badge--sm {
   font-size: 0.68rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.3rem 0.5rem;
 }
 
 .app-badge--lg {

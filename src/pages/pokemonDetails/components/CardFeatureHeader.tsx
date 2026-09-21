@@ -99,7 +99,7 @@ export function CardFeatureHeader({
         !actionHidden && (
           <div className="card-feature-header__action">
             <Button
-              fill="ghost"
+              fill="solid"
               fitContent
               style={getCustomColors(color)}
               onClick={onAction}

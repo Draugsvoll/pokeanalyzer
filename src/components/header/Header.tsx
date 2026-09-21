@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "./Header.scss";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { Search } from "lucide-react";
 import LoginModal from "../loginmodal/Loginmodal";
 import Button from "../button/Button";
 import { useAuth } from "../../context/authContextValue";
@@ -73,20 +72,6 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        navigate("/search");
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate]);
-
-  const isMac =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
       <div className="nav-container">
@@ -156,17 +141,6 @@ export const Header: React.FC = () => {
         </nav>
 
         <div className="btn-container">
-          <button
-            type="button"
-            className="header__search-btn"
-            onClick={() => navigate("/search")}
-            aria-label="Search cards"
-          >
-            <Search size={15} strokeWidth={2} aria-hidden="true" />
-            <span>Search cards</span>
-            <kbd className="header__kbd">{isMac ? "⌘K" : "Ctrl K"}</kbd>
-          </button>
-
           {user ? (
             <>
               <Link

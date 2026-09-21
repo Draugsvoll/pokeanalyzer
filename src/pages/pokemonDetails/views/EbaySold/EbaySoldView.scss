@@ -9,7 +9,7 @@
 
   &__surface {
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-5);
     margin-bottom: var(--space-5);
   }
 
@@ -33,6 +33,7 @@
     gap: 1rem;
     justify-content: space-between;
     min-width: 0;
+    margin-bottom: 0.5rem;
   }
 
   &__sorting {
@@ -85,16 +86,28 @@
       font-size: var(--font-size-caption);
       min-height: 2.45rem;
       padding: 0.55rem 0.8rem 0.55rem 2.2rem;
+      transition:
+        background-color var(--delay-short) ease,
+        border-color var(--delay-short) ease;
       width: 100%;
 
       &::placeholder {
         color: var(--font-color-muted);
       }
 
+      &:hover {
+        background: color-mix(
+          in srgb,
+          var(--surface) 98%,
+          var(--font-color-primary)
+        );
+        border-color: var(--border-color-strong);
+      }
+
       &:focus-visible {
-        border-color: color-mix(in srgb, var(--ebay-accent) 55%, transparent);
-        outline: 2px solid
-          color-mix(in srgb, var(--ebay-accent) 24%, transparent);
+        border-color: color-mix(in srgb, var(--ebay-accent) 34%, transparent);
+        outline: 1px solid
+          color-mix(in srgb, var(--ebay-accent) 10%, transparent);
         outline-offset: 1px;
       }
     }
@@ -172,12 +185,9 @@
   }
 
   &__results {
-    background: color-mix(in srgb, var(--surface) 84%, var(--bg2));
-    border: var(--border);
-    border-radius: var(--border-radius);
+    background: transparent;
     display: grid;
     gap: 0;
-    overflow: hidden;
 
     &:empty {
       display: none;
@@ -258,13 +268,14 @@
   &__result {
     background: transparent;
     border: 0;
+    border-top: 1px solid var(--border-divider);
     border-radius: 0;
     box-shadow: none;
     display: grid;
     gap: 0.8rem;
     grid-template-columns: 4.25rem minmax(0, 1fr);
     overflow: hidden;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0rem;
     position: relative;
     text-align: left;
     align-items: center;
@@ -272,7 +283,12 @@
     cursor: pointer;
 
     &.card-hover:hover {
-      background-color: var(--surface2);
+      background-color: color-mix(
+        in srgb,
+        var(--font-color-primary) 2.5%,
+        transparent
+      );
+      border-color: var(--border-divider);
       box-shadow: none;
       transform: none;
     }
@@ -281,10 +297,6 @@
       transition:
         background-color var(--delay-short) ease,
         border-color var(--delay-short) ease;
-    }
-
-    & + & {
-      border-top: 1px solid var(--border-divider);
     }
   }
 

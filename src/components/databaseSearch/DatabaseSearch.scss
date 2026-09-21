@@ -5,10 +5,6 @@
   /* Horizontal pad comes from .main-content shell — only vertical here */
   padding: 0 var(--space-11);
   width: 100%;
-
-  @media (min-width: 1024px) {
-    padding: 0 0 var(--space-9);
-  }
 }
 
 .explore-page__inner {
@@ -173,7 +169,7 @@
   border: 1px solid var(--search-solid-accent);
   border-radius: calc(var(--search-radius) - 2px);
   box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--search-solid-accent) 18%, transparent);
+    color-mix(in srgb, var(--search-solid-accent) 10%, transparent);
   color: var(--button-font-color);
   cursor: pointer;
   display: inline-flex;
@@ -198,13 +194,13 @@
     background: color-mix(in srgb, var(--search-solid-accent) 95%, white);
     border-color: color-mix(in srgb, var(--search-solid-accent) 95%, white);
     box-shadow: 0 0 0 2px
-      color-mix(in srgb, var(--search-solid-accent) 24%, transparent);
+      color-mix(in srgb, var(--search-solid-accent) 15%, transparent);
     color: var(--button-font-color);
   }
 
   &:focus-visible {
     box-shadow: 0 0 0 3px
-      color-mix(in srgb, var(--feature-accent) 22%, transparent);
+      color-mix(in srgb, var(--feature-accent) 16%, transparent);
     outline: none;
   }
 

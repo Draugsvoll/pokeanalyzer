@@ -1,4 +1,8 @@
 .homepage {
   display: grid;
   gap: var(--space-10);
+
+  .explore-page {
+    padding-bottom: 0;
+  }
 }

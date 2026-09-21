@@ -3,8 +3,7 @@
    ========================================================================== */
 
 :root {
-  /* ----- Palette (mock DevTools) ----- */
-  --bg: #0a0c12; /* slightly less dark than #080a0f */
+  --bg: #0a0c12;
   --bg2: #0e111a;
   --surface: #10141c;
   --surface2: #151a24;
@@ -38,9 +37,9 @@
   --search-surface: #10141c;
   --search-border: rgba(100, 150, 220, 0.38);
   --search-border-focus: rgba(110, 165, 255, 0.55);
-  /* Unfocused: slight outer ring; focused: only a notch stronger */
-  --search-ring: 0 0 0 2px rgba(78, 168, 255, 0.12);
-  --search-ring-focus: 0 0 0 3px rgba(78, 168, 255, 0.15);
+  /* Restrained outer definition; focus remains visible without a glow-heavy edge. */
+  --search-ring: 0 0 0 1px rgba(78, 168, 255, 0.06);
+  --search-ring-focus: 0 0 0 2px rgba(78, 168, 255, 0.1);
   --search-divider: rgba(255, 255, 255, 0.12);
   --bg-nav-active: rgba(255, 255, 255, 0.08);
   --bg-header: var(--bg);
@@ -86,7 +85,7 @@
   --radius-md: 8px; /* buttons, inputs, search, chips */
   --radius-lg: 18px; /* cards / panels */
   --radius-xl: 22px;
-  --radius-control: 12px; /* primary control radius — mock “square” */
+  --radius-control: var(--radius-md);
   --radius-pill: 999px; /* badges / chips — full pill */
   --radius-round: 50%; /* avatars / dots only */
   --glow-dot-size: 0.3rem;
@@ -128,7 +127,7 @@
   --search-btn-min-width: 86px;
   --search-btn-pad-x: 18px;
   --search-icon-gap: 8px;
-  --search-radius: 12px;
+  --search-radius: var(--radius-md);
   --btn-height: 40px;
   --btn-height-sm: 34px;
   --header-height: 64px;
@@ -180,7 +179,7 @@
   --dropdown-menu-border: var(--border);
   --dropdown-menu-radius: var(--radius-md);
   --dropdown-menu-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-  --dropdown-trigger-radius: var(--radius-control);
+  --dropdown-trigger-radius: var(--radius-md);
   --dropdown-trigger-height: var(--btn-height);
   --dropdown-option-radius: var(--radius-sm);
   --dropdown-option-hover-bg: var(--hover-accent-bg);

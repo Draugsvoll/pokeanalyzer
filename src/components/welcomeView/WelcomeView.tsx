@@ -36,24 +36,28 @@ export const WelcomeView: React.FC = () => {
           })}
         </div>
       </section>
+    </div>
+  );
+};
 
-      <div className="welcome-view__demo">
-        <span className="welcome-view__demo-icon" aria-hidden="true">
-          <Play size={19} strokeWidth={2} />
-        </span>
-        <div className="welcome-view__demo-copy">
-          <span className="welcome-view__demo-eyebrow">Free demo</span>
-          <strong>Base Set Charizard</strong>
-          <p>
-            Explore saved market analysis, Collector's Value, grading, and eBay
-            comps.
-          </p>
-        </div>
-        <Link className="welcome-view__demo-link" to="/card/demo">
-          Explore demo
-          <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
-        </Link>
+export const WelcomeDemo: React.FC = () => {
+  return (
+    <div className="welcome-view__demo">
+      <span className="welcome-view__demo-icon" aria-hidden="true">
+        <Play size={19} strokeWidth={2} />
+      </span>
+      <div className="welcome-view__demo-copy">
+        <span className="welcome-view__demo-eyebrow">Free demo</span>
+        <strong>Base Set Charizard</strong>
+        <p>
+          Explore Market analysis, Collector's value, Grading insights, and eBay
+          comps.
+        </p>
       </div>
+      <Link className="welcome-view__demo-link" to="/card/demo">
+        Explore demo
+        <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
+      </Link>
     </div>
   );
 };

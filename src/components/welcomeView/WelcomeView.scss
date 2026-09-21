@@ -5,14 +5,14 @@
   &__demo {
     align-items: center;
     background: var(--bg2);
-    border: 1px solid
-      color-mix(in srgb, var(--custom-color-blue) 28%, var(--border-color));
+    border: var(--border);
     border-radius: var(--radius-md);
     display: flex;
     gap: var(--space-4);
     margin: 0 auto;
     padding: var(--space-4);
     text-align: left;
+    width: 100%;
   }
 
   &__demo-icon {
@@ -56,9 +56,9 @@
 
   &__demo-link {
     align-items: center;
-    background: color-mix(in srgb, var(--custom-color-blue) 13%, transparent);
+    background: transparent;
     border: 1px solid
-      color-mix(in srgb, var(--custom-color-blue) 35%, transparent);
+      color-mix(in srgb, var(--custom-color-blue) 34%, transparent);
     border-radius: var(--radius-sm);
     color: color-mix(in srgb, var(--custom-color-blue) 55%, white);
     display: inline-flex;
@@ -71,13 +71,19 @@
     white-space: nowrap;
 
     &:hover {
-      background: color-mix(in srgb, var(--custom-color-blue) 21%, transparent);
-      border-color: var(--custom-color-blue);
+      background: color-mix(in srgb, var(--custom-color-blue) 10%, transparent);
+      border-color: color-mix(
+        in srgb,
+        var(--custom-color-blue) 48%,
+        transparent
+      );
+      color: color-mix(in srgb, var(--custom-color-blue) 42%, white);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--custom-color-blue);
-      outline-offset: 2px;
+      box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--custom-color-blue) 16%, transparent);
+      outline: none;
     }
   }
 

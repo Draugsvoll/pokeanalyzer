@@ -96,7 +96,7 @@ export function NewsLane() {
   return (
     <section className="news-lane" aria-label="News">
       <header className="news-lane__header grid-header">
-        <h2 className="news-lane__title">Market News</h2>
+        <h3 className="news-lane__title">Market News</h3>
         {availableCategories.length > 1 && (
           <SegmentedRadioGroup
             ariaLabel="News category"

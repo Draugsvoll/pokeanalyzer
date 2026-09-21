@@ -12,7 +12,7 @@ export function GridView({ children, subtitle, title }: GridViewProps) {
     <div className="grid-view">
       {(title || subtitle) && (
         <header className="grid-header">
-          {title && <h2>{title}</h2>}
+          {title && <h3>{title}</h3>}
           {subtitle && (
             <small>
               <b>{subtitle}</b>
