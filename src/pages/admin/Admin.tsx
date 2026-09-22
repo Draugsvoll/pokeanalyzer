@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { NEWS_FEATURES } from "../../../shared/newsFeatures";
 import Button from "../../components/button/Button";
 import { useAuth } from "../../context/authContextValue";
 import { askGrok } from "../../utils/grok/grokClient";
 import {
-  biggestMoversInput,
-  biggestMoversInstructions,
   generalNewsInput,
   generalNewsInstructions,
 } from "../../utils/grok/grokPrompts";
@@ -24,10 +21,6 @@ export default function Admin() {
   const [generatedNews, setGeneratedNews] = useState("");
   const [newsMessage, setNewsMessage] = useState("");
   const [newsError, setNewsError] = useState("");
-  const [generatingMovers, setGeneratingMovers] = useState(false);
-  const [generatedMovers, setGeneratedMovers] = useState("");
-  const [moversMessage, setMoversMessage] = useState("");
-  const [moversError, setMoversError] = useState("");
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -102,42 +95,6 @@ export default function Admin() {
     }
   };
 
-  const generateMovers = async () => {
-    if (generatingMovers) return;
-
-    setGeneratingMovers(true);
-    setGeneratedMovers("");
-    setMoversMessage("");
-    setMoversError("");
-
-    const result = await askGrok("market_news", {
-      userInput: biggestMoversInput,
-      instructions: biggestMoversInstructions,
-    });
-
-    if (!result.ok) {
-      setMoversError(result.error);
-    } else {
-      setGeneratedMovers(result.text);
-      setMoversMessage("Biggest movers generated successfully.");
-    }
-
-    setGeneratingMovers(false);
-  };
-
-  const copyMovers = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedMovers);
-      setMoversError("");
-      setMoversMessage("JSON copied to clipboard.");
-    } catch {
-      setMoversMessage("");
-      setMoversError(
-        "Could not copy the JSON. Select the text and copy it manually.",
-      );
-    }
-  };
-
   if (authLoading) {
     return (
       <main className="admin-page admin-page--status">
@@ -207,47 +164,6 @@ export default function Admin() {
           </header>
           <pre>
             <code>{generatedNews}</code>
-          </pre>
-        </section>
-      )}
-
-      {NEWS_FEATURES.biggestMovers && (
-        <section
-          className="admin-page__tool default-container"
-          aria-labelledby="movers-tool"
-        >
-          <div>
-            <h2 id="movers-tool">Biggest movers</h2>
-            <p>Generate the biggest weekly movers shown on the homepage.</p>
-          </div>
-          <Button disabled={generatingMovers} onClick={generateMovers}>
-            {generatingMovers ? "Generating..." : "Get biggest movers"}
-          </Button>
-        </section>
-      )}
-
-      {NEWS_FEATURES.biggestMovers && moversMessage && (
-        <p className="admin-page__message" role="status">
-          {moversMessage}
-        </p>
-      )}
-      {NEWS_FEATURES.biggestMovers && moversError && (
-        <p className="admin-page__error" role="alert">
-          {moversError}
-        </p>
-      )}
-
-      {NEWS_FEATURES.biggestMovers && generatedMovers && (
-        <section
-          className="admin-page__output"
-          aria-labelledby="generated-movers-heading"
-        >
-          <header className="admin-page__output-header">
-            <h2 id="generated-movers-heading">Biggest movers JSON</h2>
-            <Button onClick={copyMovers}>Copy JSON</Button>
-          </header>
-          <pre>
-            <code>{generatedMovers}</code>
           </pre>
         </section>
       )}

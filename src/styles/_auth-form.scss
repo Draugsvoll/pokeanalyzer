@@ -1,6 +1,6 @@
 .auth-card {
   background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: var(--border-radius-card);
   box-shadow:
     0 1.75rem 5rem rgba(0, 0, 0, 0.45),
@@ -34,7 +34,7 @@
 }
 
 .auth-card__eyebrow {
-  color: color-mix(in srgb, var(--custom-color-blue) 72%, #ffffff);
+  color: color-mix(in srgb, var(--blue) 72%, white);
   font-size: var(--font-size-overline);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-wider);
@@ -78,8 +78,8 @@
   }
 
   input {
-    background: rgba(10, 10, 16, 0.58);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    border: 1px solid var(--border-color-strong);
     border-radius: var(--border-radius-control);
     color: var(--font-color-primary);
     font: inherit;
@@ -93,8 +93,8 @@
     width: 100%;
 
     &:focus {
-      background: rgba(10, 10, 16, 0.78);
-      border-color: var(--custom-color-blue);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      border-color: var(--blue);
       box-shadow: 0 0 0 3px
         color-mix(in srgb, var(--custom-color-blue) 14%, transparent);
     }
@@ -114,14 +114,14 @@
   padding: 0.65rem 0.75rem;
 
   &--error {
-    background: rgba(248, 113, 113, 0.08);
-    border: 1px solid rgba(248, 113, 113, 0.2);
+    background: color-mix(in srgb, var(--red) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--red) 22%, transparent);
     color: var(--font-color-error);
   }
 
   &--success {
-    background: rgba(52, 211, 153, 0.08);
-    border: 1px solid rgba(52, 211, 153, 0.2);
+    background: color-mix(in srgb, var(--green) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--green) 22%, transparent);
     color: var(--font-color-success);
   }
 }

@@ -3,7 +3,6 @@
 .explore-page {
   background: transparent;
   /* Horizontal pad comes from .main-content shell — only vertical here */
-  padding: 0 var(--space-11);
   width: 100%;
 }
 
@@ -158,7 +157,7 @@
 
 /*
  * Search submit — solid blue (same as default .app-btn-pill).
- * --feature-accent → --custom-color-blue (#4ea8ff).
+ * --feature-accent → --custom-color-blue.
  */
 .explore-search-shell__submit {
   --feature-accent: var(--custom-color-blue);
@@ -237,7 +236,7 @@
 /* ----- Results (full shell width, left-aligned text) ----- */
 
 .search-results {
-  margin: var(--space-5) 0 0;
+  margin: var(--space-8) 0 0;
   max-width: 100%;
   width: 100%;
 }

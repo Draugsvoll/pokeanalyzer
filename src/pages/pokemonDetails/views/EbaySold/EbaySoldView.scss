@@ -26,7 +26,7 @@
     text-align: center;
   }
 
-  &__listing-toggle {
+  &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--ebay-accent);
     display: flex;
     justify-self: center;

@@ -4,12 +4,9 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  biggestMoversInput,
-  biggestMoversInstructions,
   generalNewsInput,
   generalNewsInstructions,
 } from "../../src/utils/grok/grokPrompts.js";
-import { NEWS_FEATURES } from "../../shared/newsFeatures.js";
 import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
 import {
   assertNewsContentSchemaCompatible,
@@ -17,10 +14,7 @@ import {
   saveNewsFeed,
 } from "../db/newsStore.js";
 import { chat, chatWithRawResponse } from "../services/xaiService.js";
-import {
-  parseBiggestMoversResponse,
-  parseGeneralNewsResponse,
-} from "./newsGeneration.js";
+import { parseGeneralNewsResponse } from "./newsGeneration.js";
 import {
   acquireScriptLock,
   ensureScriptLockTable,
@@ -198,62 +192,32 @@ async function main(): Promise<void> {
       (payload) => `${payload.items.length} items`,
     );
     await renewNewsLock(lock);
-    const biggestMoversResult = NEWS_FEATURES.biggestMovers
-      ? await runGeneration(
-          "biggest_movers",
-          biggestMoversInput,
-          biggestMoversInstructions,
-          parseBiggestMoversResponse,
-          (payload) => `${payload.cards.length} cards`,
-        )
-      : null;
-    if (!NEWS_FEATURES.biggestMovers) {
-      console.log(
-        "Skipping biggest_movers because the news feature is disabled",
-      );
-    }
+
+    const saveError = await saveGeneration(
+      "latest_news",
+      generalNewsResult,
+      dryRun,
+      (payload) => saveNewsFeed(NEWS_FEEDS.generalNews, payload),
+    );
     await renewNewsLock(lock);
 
-    const taskErrors = (
-      await Promise.all([
-        saveGeneration("latest_news", generalNewsResult, dryRun, (payload) =>
-          saveNewsFeed(NEWS_FEEDS.generalNews, payload),
-        ),
-        ...(biggestMoversResult
-          ? [
-              saveGeneration(
-                "biggest_movers",
-                biggestMoversResult,
-                dryRun,
-                (payload) => saveNewsFeed(NEWS_FEEDS.biggestMovers, payload),
-              ),
-            ]
-          : []),
-      ])
-    ).filter((error): error is Error => error !== null);
-    await renewNewsLock(lock);
-
-    const taskCount = NEWS_FEATURES.biggestMovers ? 2 : 1;
-    if (taskErrors.length > 0) {
-      const successfulTasks = taskCount - taskErrors.length;
+    if (saveError) {
       console.warn(
-        `NEWS WARNING [news_generation]: ${taskErrors.length} of ${taskCount} task(s) failed; ${
-          dryRun
-            ? "no database rows were changed"
-            : `${successfulTasks} database row(s) were updated`
-        }`,
+        `NEWS WARNING [news_generation]: latest news failed; ${dryRun ? "no database rows were changed" : "the database row was not updated"}`,
       );
       throw new AggregateError(
-        taskErrors,
+        [saveError],
         "News generation finished with errors",
-        { cause: taskErrors[0] },
+        {
+          cause: saveError,
+        },
       );
     }
 
     console.log(
       dryRun
-        ? `Dry run complete; ${taskCount} news task(s) passed and no database rows changed`
-        : `News generation finished successfully; ${taskCount} news row(s) updated`,
+        ? "Dry run complete; latest news passed and no database rows changed"
+        : "News generation finished successfully; latest news was updated",
     );
   } finally {
     const released = await releaseScriptLock(lock);

@@ -188,7 +188,7 @@ input[type="radio"] {
     transform var(--delay-short) ease;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.13);
+    border-color: var(--border-color-strong);
     box-shadow: var(--hover-shadow);
     transform: translateY(var(--hover-lift));
   }

@@ -16,7 +16,7 @@
 }
 
 .card-grader__upload-side {
-  --width:23rem;
+  --width: 23rem;
   display: grid;
   flex: 0 1 var(--width);
   max-width: var(--width);
@@ -32,7 +32,7 @@
 
 .card-grader__dropzone {
   aspect-ratio: 2.5 / 3.5;
-  border: 1px dashed #475569;
+  border: 1px dashed var(--border-color-strong);
   border-radius: var(--border-radius);
   color: var(--muted);
   cursor: pointer;
@@ -69,8 +69,8 @@
 }
 
 .card-grader__dropzone--dragging {
-  background: rgba(52, 211, 153, 0.08);
-  border-color: #34d399;
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: var(--green);
 }
 
 .card-grader__upload-prompt {
@@ -85,11 +85,11 @@
 
 .card-grader__clear {
   backdrop-filter: blur(4px);
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: color-mix(in srgb, var(--surface2) 72%, transparent);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--border-radius-round);
   bottom: 0.6rem;
-  color: #e2e8f0;
+  color: var(--text);
   cursor: pointer;
   display: grid;
   height: 2rem;
@@ -107,8 +107,8 @@
   }
 
   &:hover {
-    background: rgba(30, 41, 59, 0.95);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: var(--surface3);
+    border-color: color-mix(in srgb, var(--border-color-strong) 70%, white);
   }
 }
 
@@ -169,9 +169,14 @@
   }
 }
 
-.card-grader__upload { margin-top: 0; padding: 0; }
+.card-grader__upload {
+  margin-top: 0;
+  padding: 0;
+}
 
-.card-grader__upload-side { gap: 0.75rem; }
+.card-grader__upload-side {
+  gap: 0.75rem;
+}
 
 .card-grader__side-heading {
   align-items: center;
@@ -180,18 +185,26 @@
   min-height: 1.5rem;
 }
 
-
 .card-grader__dropzone {
   background: rgba(255, 255, 255, 0.025);
-  border: 2px dashed #3f4652;
+  border: 2px dashed var(--border-color-strong);
   border-radius: var(--border-radius);
 }
 
 .card-grader__upload-prompt {
   text-align: center;
 
-  strong { color: var(--text); font-size: 1rem; }
-  em { color: #34d399; font-size: 0.72rem; font-style: normal; font-weight: 500; margin-top: 0.25rem; }
+  strong {
+    color: var(--text);
+    font-size: 1rem;
+  }
+  em {
+    color: var(--green);
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 500;
+    margin-top: 0.25rem;
+  }
 }
 
 .card-grader__upload-icon {
@@ -202,7 +215,10 @@
   place-items: center;
   width: 3rem;
 
-  svg { height: 1.6rem; width: 1.6rem; }
+  svg {
+    height: 1.6rem;
+    width: 1.6rem;
+  }
 }
 
 @media (max-width: 44rem) {

@@ -171,7 +171,7 @@
   &__filter-input {
     appearance: none;
     background: var(--bg2);
-    border: 1px solid rgba(255, 255, 255, 0.11);
+    border: 1px solid var(--border-color-strong);
     border-radius: var(--border-radius-pill);
     box-sizing: border-box;
     color: var(--font-color-primary);
@@ -185,7 +185,7 @@
     width: 100%;
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: color-mix(in srgb, var(--border-color-strong) 72%, white);
     }
 
     &:focus {
@@ -293,7 +293,7 @@
 
   &__empty {
     background: var(--bg2);
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: 2rem;
     text-align: center;

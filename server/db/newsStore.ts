@@ -1,17 +1,12 @@
 import type {
-  BiggestMoversPayload,
   GeneralNewsPayload,
   NewsFeedsResponse,
 } from "../../src/types/news.js";
-import {
-  parseBiggestMoversResponse,
-  parseGeneralNewsResponse,
-} from "../scripts/newsGeneration.js";
+import { parseGeneralNewsResponse } from "../scripts/newsGeneration.js";
 import { dbAll, dbExecute } from "./db.js";
 import { findMissingColumns } from "./schemaValidationPolicy.js";
 
 export const NEWS_FEEDS = {
-  biggestMovers: "biggest_movers",
   generalNews: "general_news",
 } as const;
 
@@ -69,29 +64,18 @@ export async function assertNewsContentSchemaCompatible(): Promise<void> {
 }
 
 export async function saveNewsFeed(
-  feed: typeof NEWS_FEEDS.generalNews,
-  payload: GeneralNewsPayload,
-): Promise<void>;
-export async function saveNewsFeed(
-  feed: typeof NEWS_FEEDS.biggestMovers,
-  payload: BiggestMoversPayload,
-): Promise<void>;
-export async function saveNewsFeed(
   feed: NewsFeed,
-  payload: GeneralNewsPayload | BiggestMoversPayload,
+  payload: GeneralNewsPayload,
 ): Promise<void> {
-  const sourceDate = "date" in payload ? payload.date : null;
-
   await dbExecute(NEWS_CONTENT_UPSERT_SQL, [
     feed,
     JSON.stringify(payload),
-    sourceDate,
+    payload.date,
   ]);
 }
 
 export function parseStoredNewsRows(rows: NewsContentRow[]): NewsFeedsResponse {
   let generalNews: GeneralNewsPayload | null = null;
-  let biggestMovers: BiggestMoversPayload | null = null;
   const seenFeeds = new Set<string>();
 
   for (const row of rows) {
@@ -107,14 +91,12 @@ export function parseStoredNewsRows(rows: NewsContentRow[]): NewsFeedsResponse {
 
     if (feed === NEWS_FEEDS.generalNews) {
       generalNews = parseGeneralNewsResponse(row.payload_json);
-    } else if (feed === NEWS_FEEDS.biggestMovers) {
-      biggestMovers = parseBiggestMoversResponse(row.payload_json);
     } else {
       throw new Error(`Unknown stored news feed: ${feed}`);
     }
   }
 
-  return { generalNews, biggestMovers };
+  return { generalNews };
 }
 
 export async function getNewsFeeds(): Promise<NewsFeedsResponse> {
@@ -122,9 +104,9 @@ export async function getNewsFeeds(): Promise<NewsFeedsResponse> {
     `
       SELECT feed, payload_json
       FROM news_content
-      WHERE feed IN (?, ?)
+      WHERE feed = ?
     `,
-    [NEWS_FEEDS.generalNews, NEWS_FEEDS.biggestMovers],
+    [NEWS_FEEDS.generalNews],
   );
 
   return parseStoredNewsRows(rows);

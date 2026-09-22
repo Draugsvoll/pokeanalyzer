@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  parseBiggestMoversResponse,
-  parseGeneralNewsResponse,
-} from "./newsGeneration.js";
+import { parseGeneralNewsResponse } from "./newsGeneration.js";
 
 test("validates the latest-news shape produced by the admin prompt", () => {
   const result = parseGeneralNewsResponse(`{
@@ -63,39 +60,6 @@ test("rejects malformed non-empty latest-news URLs", () => {
   );
 });
 
-test("accepts the admin movers shape and assigns ranks by card order", () => {
-  const result = parseBiggestMoversResponse(`{
-    "date": "2026-07-08",
-    "report_link": "https://www.tcgplayer.com/content/article/example/abc/",
-    "cards": [
-      {
-        "card_name": "Salamence",
-        "summary": "The card moved substantially."
-      },
-      {
-        "card_name": "Pikachu",
-        "summary": "The card also moved."
-      }
-    ]
-  }`);
-
-  assert.deepEqual(result, {
-    report_link: "https://www.tcgplayer.com/content/article/example/abc/",
-    cards: [
-      {
-        rank: "1",
-        card_name: "Salamence",
-        summary: "The card moved substantially.",
-      },
-      {
-        rank: "2",
-        card_name: "Pikachu",
-        summary: "The card also moved.",
-      },
-    ],
-  });
-});
-
 test("rejects JSON wrapped in markdown or additional text", () => {
   const payload = `{
     "date": "2026-07-28",
@@ -119,10 +83,6 @@ test("rejects JSON wrapped in markdown or additional text", () => {
 });
 
 test("rejects malformed payloads instead of overwriting news files", () => {
-  assert.throws(
-    () => parseBiggestMoversResponse('{"report_link":"","cards":[]}'),
-    /at least one card/,
-  );
   assert.throws(
     () => parseGeneralNewsResponse('{"date":"2026-07-28","items":[]}'),
     /at least one item/,

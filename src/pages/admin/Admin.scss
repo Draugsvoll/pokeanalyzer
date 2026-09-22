@@ -68,7 +68,7 @@
   }
 
   &__output {
-    background: rgba(10, 10, 16, 0.72);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
     border: var(--border);
     border-radius: var(--border-radius);
     margin-top: 1.25rem;

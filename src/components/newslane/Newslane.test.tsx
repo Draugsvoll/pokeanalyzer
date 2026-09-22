@@ -24,7 +24,6 @@ const cachedFeeds: NewsFeedsResponse = {
       },
     ],
   },
-  biggestMovers: null,
 };
 
 const freshFeeds: NewsFeedsResponse = {
@@ -40,7 +39,6 @@ const freshFeeds: NewsFeedsResponse = {
       },
     ],
   },
-  biggestMovers: null,
 };
 
 beforeEach(() => {

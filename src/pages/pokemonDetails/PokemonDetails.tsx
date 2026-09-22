@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
-  BadgeDollarSign,
+  CircleDollarSign,
   Coins,
   Gem,
   LineChart,
@@ -431,7 +431,7 @@ function PokemonDetailsForCard() {
       view: "ebay_sold",
       title: "eBay Comps",
       description: "Show completed sales & active listings.",
-      icon: BadgeDollarSign,
+      icon: CircleDollarSign,
       color: "teal",
       featureKey: "ebay_sold",
       onOpen: openEbayAnalysis,
@@ -676,6 +676,11 @@ function PokemonDetailsForCard() {
   return (
     <div className="card-view card-view--poketrace ui-render-fade">
       <div className="card-view__panel-wrap">
+        {isDemo && (
+          <aside className="card-view__demo-disclaimer" role="note">
+            This is a demo - prices and analyses are not live.
+          </aside>
+        )}
         <div
           aria-busy={Boolean(loadingVariantId) || refreshingCard}
           className="card-view__shell default-container"
@@ -752,7 +757,7 @@ function PokemonDetailsForCard() {
                           strokeWidth={2.25}
                           aria-hidden="true"
                         />
-                        <span>New Card</span>
+                        <span>Next Card</span>
                       </>
                     )}
                   </Button>
@@ -880,13 +885,7 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      {isDemo ? (
-        <aside className="card-view__credit-bar" role="note">
-          <span className="card-view__credit-note card-view__credit-note--demo">
-            Demo snapshot: prices and analyses are not live data.
-          </span>
-        </aside>
-      ) : (
+      {!isDemo && (
         <div className="card-view__credit-bar">
           <div
             className={`card-view__credit-note${
@@ -941,7 +940,7 @@ function PokemonDetailsForCard() {
       )}
 
       <section className="card-view__analysis-panel">
-        <div className="card-view__actions feature-buttons__row">
+        <div className="card-view__actions">
           {aiFeatures.map((aiFeature) => {
             const Icon = aiFeature.icon;
             const isFeatureLoading =

@@ -1,8 +1,53 @@
 .homepage {
   display: grid;
-  gap: var(--space-10);
+  gap: 0;
+
+  &__features {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  &__features-action {
+    display: flex;
+    justify-content: center;
+  }
+
+  .welcome-view + &__features {
+    margin-top: var(--space-9);
+  }
+
+  .welcome-view + .card-category-grid {
+    margin-top: var(--space-8);
+  }
+
+  &__features + .card-category-grid {
+    margin-top: var(--space-8);
+  }
+
+  .card-category-grid + .news-lane {
+    margin-top: var(--space-10);
+  }
 
   .explore-page {
     padding-bottom: 0;
+  }
+
+  @media (max-width: 40rem) {
+    .welcome-view + .homepage__features {
+      margin-top: var(--space-7);
+    }
+
+    .welcome-view + .card-category-grid {
+      margin-top: var(--space-7);
+    }
+
+    .homepage__features + .card-category-grid {
+      margin-top: var(--space-8);
+    }
+
+    .card-category-grid + .news-lane {
+      margin-top: var(--space-9);
+    }
   }
 }

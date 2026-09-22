@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 0.65rem var(--space-4);
+  padding: calc(0.65rem - 1px) var(--space-4) calc(0.65rem + 1px);
   /* Mock: all app buttons use full-pill control radius */
   border-radius: var(--border-radius-control);
   font-size: var(--font-size-button);
@@ -49,13 +49,13 @@
 }
 
 .app-btn--danger {
-  background: rgba(248, 113, 113, 0.07);
-  border: 1px solid rgba(248, 113, 113, 0.16);
-  color: #fca5a5;
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
+  color: color-mix(in srgb, var(--red) 74%, white);
 
   &:hover:not(:disabled) {
-    background: rgba(248, 113, 113, 0.11);
-    border-color: rgba(248, 113, 113, 0.22);
+    background: color-mix(in srgb, var(--red) 13%, transparent);
+    border-color: color-mix(in srgb, var(--red) 30%, transparent);
   }
 }
 
@@ -185,15 +185,15 @@
 .app-btn--auth {
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--custom-color-blue) 88%, #075985),
-    color-mix(in srgb, var(--custom-color-blue) 80%, #0c4a6e)
+    color-mix(in srgb, var(--blue) 86%, var(--surface3)),
+    color-mix(in srgb, var(--blue) 72%, var(--surface3))
   );
-  border: 1px solid rgba(147, 197, 253, 0.24);
+  border: 1px solid color-mix(in srgb, var(--blue) 32%, transparent);
   color: var(--button-font-color);
 
   &:hover:not(:disabled) {
-    border-color: rgba(147, 197, 253, 0.3);
-    box-shadow: 0 0.45rem 1rem rgba(59, 130, 246, 0.1);
+    border-color: color-mix(in srgb, var(--blue) 44%, transparent);
+    box-shadow: 0 0.45rem 1rem color-mix(in srgb, var(--blue) 12%, transparent);
     color: var(--button-font-color);
     filter: brightness(1.025);
   }
@@ -292,7 +292,7 @@
 .app-btn-pill__avatar {
   align-items: center;
   background: var(--bg2);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--border-radius-round);
   color: var(--font-color-primary);
   display: inline-flex;
@@ -314,9 +314,9 @@
 }
 
 .app-btn--warning {
-  background: rgba(245, 158, 11, 0.13);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fcd34d;
+  background: color-mix(in srgb, var(--yellow) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
+  color: var(--yellow);
 }
 
 .app-btn--small {

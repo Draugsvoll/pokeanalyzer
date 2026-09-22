@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS sync_locks (
 
 CREATE TABLE IF NOT EXISTS news_content (
     feed TEXT PRIMARY KEY
-        CHECK (feed IN ('general_news', 'biggest_movers')),
+        CHECK (feed = 'general_news'),
     payload_json TEXT NOT NULL
         CHECK (json_valid(payload_json)),
     source_date TEXT,

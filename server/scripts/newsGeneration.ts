@@ -1,11 +1,8 @@
-import type {
-  BiggestMoversPayload,
-  GeneralNewsPayload,
-} from "../../src/types/news.js";
+import type { GeneralNewsPayload } from "../../src/types/news.js";
 
 type JsonRecord = Record<string, unknown>;
 
-export type { BiggestMoversPayload, GeneralNewsPayload };
+export type { GeneralNewsPayload };
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -81,39 +78,6 @@ export function parseGeneralNewsResponse(
           requiredString(action, `items[${index}].action[${actionIndex}]`),
         ),
         url: optionalUrl(item.url, `items[${index}].url`),
-      };
-    }),
-  };
-}
-
-export function parseBiggestMoversResponse(
-  responseText: string,
-): BiggestMoversPayload {
-  const payload = parseJsonResponse(responseText);
-  if (!isRecord(payload)) {
-    throw new Error("biggest movers response must be a JSON object");
-  }
-
-  if (!Array.isArray(payload.cards) || payload.cards.length === 0) {
-    throw new Error("biggest movers response must contain at least one card");
-  }
-
-  const reportLink = requiredUrl(payload.report_link, "report_link");
-  if (new URL(reportLink).hostname !== "www.tcgplayer.com") {
-    throw new Error("report_link must point to www.tcgplayer.com");
-  }
-
-  return {
-    report_link: reportLink,
-    cards: payload.cards.map((card, index) => {
-      if (!isRecord(card)) {
-        throw new Error(`cards[${index}] must be an object`);
-      }
-
-      return {
-        rank: String(index + 1),
-        card_name: requiredString(card.card_name, `cards[${index}].card_name`),
-        summary: requiredString(card.summary, `cards[${index}].summary`),
       };
     }),
   };

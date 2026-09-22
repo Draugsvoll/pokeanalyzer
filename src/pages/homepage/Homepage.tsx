@@ -1,21 +1,33 @@
 import { NewsLane } from "../../components/newslane/Newslane";
 import { MarketMoversGrid } from "../../components/marketMoversGrid/MarketMoversGrid";
+import { HomeFeatureRow } from "../../components/homeFeatureRow/HomeFeatureRow";
 import {
-  WelcomeDemo,
+  WelcomeDemoLink,
   WelcomeView,
 } from "../../components/welcomeView/WelcomeView";
-import { weeklyGainersTcgNearMint } from "../../services/marketMoversApi";
+import { useAuth } from "../../context/authContextValue";
+import { dailyTcgNearMintGainers } from "../../services/staticMarketCategories";
 import "./Homepage.scss";
 
 export default function Homepage() {
+  const { user, loading: authLoading } = useAuth();
+
   return (
     <div className="page-container homepage">
       <WelcomeView />
-      <WelcomeDemo />
+      {!authLoading && !user && (
+        <div className="homepage__features">
+          <div className="homepage__features-action">
+            <WelcomeDemoLink />
+          </div>
+          <HomeFeatureRow />
+        </div>
+      )}
       <MarketMoversGrid
-        loadMovers={weeklyGainersTcgNearMint}
+        changeLabel="Change since the previous daily TCGPlayer Near Mint snapshot"
+        loadMovers={dailyTcgNearMintGainers}
         subtitle=""
-        title="Weekly Gainers"
+        title="Daily Gainers"
       />
       <NewsLane />
     </div>

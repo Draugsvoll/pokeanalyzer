@@ -29,6 +29,21 @@
     width: 100%;
   }
 
+  &__demo-disclaimer {
+    background: color-mix(in srgb, var(--custom-color-yellow) 6%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-yellow) 20%, transparent);
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
+    color: color-mix(in srgb, var(--custom-color-yellow) 68%, white);
+    font-size: var(--font-size-caption);
+    line-height: var(--font-leading-normal);
+    margin-bottom: var(--space-4);
+    padding: 0.7rem 1rem;
+    text-align: center;
+    width: 100%;
+  }
+
   &__shell {
     background: var(--bg2);
     backdrop-filter: blur(16px);
@@ -111,7 +126,7 @@
   /* Full-screen card switcher rendered through a body portal. */
   &__search-overlay {
     backdrop-filter: blur(8px);
-    background: rgba(2, 4, 9, 0.84);
+    background: rgba(0, 0, 0, 0.88);
     inset: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -157,10 +172,6 @@
     margin-top: auto;
     max-width: 100%;
     width: 17.5rem;
-
-    .app-btn {
-      height: 2.5rem;
-    }
   }
 
   &__image {
@@ -171,9 +182,9 @@
     object-fit: contain;
     border-radius: var(--border-radius);
     box-shadow:
-      0 0 0.65rem rgba(250, 204, 21, 0.06),
-      0 0 1.45rem rgba(250, 204, 21, 0.04),
-      0 0 2.4rem rgba(250, 204, 21, 0.025);
+      0 0 0.65rem color-mix(in srgb, var(--yellow) 6%, transparent),
+      0 0 1.45rem color-mix(in srgb, var(--yellow) 4%, transparent),
+      0 0 2.4rem color-mix(in srgb, var(--yellow) 2.5%, transparent);
   }
 
   &__image-placeholder {
@@ -254,7 +265,7 @@
     width: 100%;
   }
 
-  &__variant-selector {
+  &__variant-selector.segmented-radio-group {
     background: transparent;
     border: 0;
     gap: 0;
@@ -335,13 +346,17 @@
     }
 
     .feature-button {
+      --feature-accent: var(--blue);
+
       align-items: center;
       background: transparent;
       border: 0;
       border-radius: calc(var(--border-radius) - 4px);
       box-shadow: none;
       color: var(--font-color-secondary);
+      cursor: pointer;
       display: inline-flex;
+      font: inherit;
       gap: 0.5rem;
       justify-content: center;
       max-width: none;
@@ -349,6 +364,9 @@
       min-width: 0;
       padding: 1.1rem 0.95rem;
       position: relative;
+      text-align: left;
+      transition: background-color var(--animation-duration-fast)
+        var(--animation-ease-standard);
       width: auto;
 
       &:not(:last-child)::before {
@@ -381,18 +399,29 @@
         transform: scaleX(1);
       }
 
+      &:focus-visible {
+        outline: 2px solid var(--feature-accent);
+        outline-offset: 2px;
+      }
+
       &:disabled {
+        cursor: not-allowed;
         opacity: 0.55;
+        transform: none;
       }
     }
 
     .feature-button__icon {
+      align-items: center;
       border: 1px solid
         color-mix(in srgb, var(--feature-accent) 24%, transparent);
       border-radius: var(--border-radius-sm);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
       color: color-mix(in srgb, var(--feature-accent) 70%, white);
+      display: grid;
+      flex-shrink: 0;
       height: 1.75rem;
+      place-items: center;
       width: 1.75rem;
 
       svg {
@@ -408,6 +437,13 @@
     }
 
     .feature-button__spinner {
+      animation: feature-button-spin 0.75s linear infinite;
+      border: 2px solid
+        color-mix(in srgb, var(--feature-accent) 22%, transparent);
+      border-radius: var(--radius-round);
+      border-top-color: var(--feature-accent);
+      box-sizing: border-box;
+      display: block;
       height: 0.9rem;
       width: 0.9rem;
     }
@@ -421,12 +457,19 @@
       color: inherit;
       font-size: var(--font-size-paragraph-sm);
       font-weight: var(--font-weight-bold);
+      letter-spacing: var(--font-tracking-normal);
       line-height: 1;
       white-space: nowrap;
     }
 
     .feature-button__description {
       display: none;
+    }
+  }
+
+  @keyframes feature-button-spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 
@@ -528,10 +571,6 @@
         }
       }
     }
-  }
-
-  &__credit-note--demo {
-    color: var(--custom-color-yellow);
   }
 
   &__credit-cost {
@@ -815,8 +854,8 @@
 
   .card-view__details {
     align-items: start;
-    gap: clamp(1.5rem, 2.5vw, 2.5rem);
-    grid-template-columns: minmax(15rem, 19.5rem) minmax(0, 1fr);
+    gap: clamp(1.25rem, 2vw, 2rem);
+    grid-template-columns: minmax(14rem, 17.5rem) minmax(0, 1fr);
     padding: 0;
   }
 
@@ -828,7 +867,7 @@
   .card-view__image-controls,
   .card-view__image,
   .card-view__image-placeholder {
-    width: 19.5rem;
+    width: 17.5rem;
   }
 
   .card-view__image {
@@ -868,7 +907,7 @@
   .card-view__title {
     font-size: clamp(1.85rem, 3.3vw, 2.5rem);
     letter-spacing: -0.045em;
-    line-height: 1;
+    line-height: 1.1;
     text-transform: none;
   }
 

@@ -10,6 +10,7 @@ import {
 } from "../cardCategoryGrid/CardCategoryGrid";
 
 type MarketMoversGridProps = {
+  changeLabel?: string;
   emptyMessage?: ReactNode;
   loadMovers: MarketMoversFetcher;
   subtitle?: ReactNode;
@@ -48,7 +49,10 @@ function compactTierLabel(value: string) {
   return labels[normalized] ?? tierLabel(value);
 }
 
-function toGridItem(item: MarketMoverItem): CardCategoryGridItem {
+function toGridItem(
+  item: MarketMoverItem,
+  changeLabel?: string,
+): CardCategoryGridItem {
   const image = item.image ?? "";
   const card: PokemonCard = {
     id: item.cardId,
@@ -68,7 +72,7 @@ function toGridItem(item: MarketMoverItem): CardCategoryGridItem {
   return {
     card,
     marketDisplay: {
-      changeLabel: `Change from the 7-day ${marketName} average`,
+      changeLabel: changeLabel ?? `Change from the 7-day ${marketName} average`,
       changePercent: item.changePct,
       currency: item.currency,
       marketLabel: `${compactTierLabel(item.tier)} · ${sourceLabel(item.source)}`,
@@ -79,6 +83,7 @@ function toGridItem(item: MarketMoverItem): CardCategoryGridItem {
 }
 
 export function MarketMoversGrid({
+  changeLabel,
   emptyMessage,
   loadMovers,
   subtitle,
@@ -98,7 +103,7 @@ export function MarketMoversGrid({
         if (controller.signal.aborted) return;
         setResult({
           error: null,
-          items: response.items.map(toGridItem),
+          items: response.items.map((item) => toGridItem(item, changeLabel)),
           loading: false,
         });
       })
@@ -113,7 +118,7 @@ export function MarketMoversGrid({
       });
 
     return () => controller.abort();
-  }, [loadMovers]);
+  }, [changeLabel, loadMovers]);
 
   return (
     <CardCategoryGrid

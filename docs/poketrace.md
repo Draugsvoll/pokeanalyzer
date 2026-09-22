@@ -61,6 +61,33 @@ market values, are replaced when the same card is refreshed again on the same
 UTC date, and are removed after 35 days. Cardmarket, graded prices, Mint, and
 Heavily Played are not included.
 
+## Static market categories
+
+Generate all configured market categories independently of the refresh job with:
+
+```sh
+npm run poketrace:generate-market-categories
+```
+
+The command reads existing snapshots without changing the database and writes
+`public/market-categories.json`. Configure categories in
+`server/config/marketCategories.ts`. Each `priceGainers` category supports a
+market source, condition, comparison period in days, minimum current and prior
+price, minimum absolute and percentage change, result limit, and percentage or
+absolute sorting. Duplicate the definition to publish several categories in the
+same JSON file.
+
+The `mostSold` category sums the latest reported `saleCount` across all stored
+conditions. Its `source` can be `tcgplayer`, `ebay`, or `both`; `both` adds the
+two source totals per card. `minimumPrice` is applied to each source/condition
+bucket before its `saleCount` is included. These are upstream reported
+sales-window counts, not locally calculated lifetime sales.
+
+Set `MARKET_CATEGORIES_OUTPUT_PATH` to write somewhere else. The generator is a
+standalone process: run it manually or assign its npm command to a separate cron
+schedule whenever the JSON should be refreshed. It is intentionally not invoked
+by the daily price refresh.
+
 After each successful card refresh, the card row also receives a compact
 `tcg_market_comparisons` cache for 1, 7, and 30 days. Each entry contains the
 target date, the actual snapshot date, the market price, and the upstream

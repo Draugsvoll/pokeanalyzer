@@ -14,26 +14,7 @@
   min-width: 0;
 }
 
-.news-lane__nav {
-  margin-left: auto;
-}
-
 .news-lane__panel {
   min-width: 0;
   width: 100%;
-}
-
-.news-lane__view[hidden] {
-  display: none;
-}
-
-@media (max-width: 40rem) {
-  .news-lane__header {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .news-lane__nav {
-    margin-left: 0;
-  }
 }

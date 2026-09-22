@@ -83,7 +83,7 @@
         linear-gradient(
           90deg,
           color-mix(in srgb, var(--collector-accent) 46%, var(--bg2)),
-          color-mix(in srgb, var(--collector-accent) 72%, #c2c8d3ba)
+          color-mix(in srgb, var(--collector-accent) 72%, var(--secondary))
         );
       border-radius: var(--border-radius-pill);
       box-shadow: none;

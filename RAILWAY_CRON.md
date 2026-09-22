@@ -65,6 +65,22 @@ supplemental market snapshot retention is fixed at 35 days.
 `POKETRACE_REQUEST_GAP_MS` defaults to 2,100 ms for the free-tier burst limit
 and can be lowered to match a paid plan.
 
+## Static market categories
+
+Start Command:
+
+```sh
+npm run poketrace:generate-market-categories
+```
+
+This independent read-only job generates every category configured in
+`server/config/marketCategories.ts` and writes them together to
+`public/market-categories.json`. Give it its own cron schedule if desired. It is
+not automatically coupled to the daily price refresh. A separate Railway cron
+service has an isolated filesystem, so use a persistent/shared deployment target
+or another publishing step if a different web service must serve the generated
+file.
+
 ## Required variables
 
 Set the production variables each cron service needs:

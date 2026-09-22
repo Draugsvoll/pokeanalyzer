@@ -14,7 +14,7 @@ export type CachedNewsFeeds = {
 };
 
 export function hasNewsFeeds(feeds: NewsFeedsResponse): boolean {
-  return Boolean(feeds.generalNews || feeds.biggestMovers);
+  return Boolean(feeds.generalNews);
 }
 
 export function readCachedNewsFeeds(): CachedNewsFeeds | null {
@@ -26,21 +26,16 @@ export function readCachedNewsFeeds(): CachedNewsFeeds | null {
       cachedAt?: unknown;
       feeds?: Partial<NewsFeedsResponse>;
       generalNews?: NewsFeedsResponse["generalNews"];
-      biggestMovers?: NewsFeedsResponse["biggestMovers"];
     };
     const storedFeeds = parsed.feeds ?? parsed;
     const generalNews = storedFeeds.generalNews ?? null;
-    const biggestMovers = storedFeeds.biggestMovers ?? null;
     const validGeneralNews =
       generalNews === null ||
       (typeof generalNews === "object" && Array.isArray(generalNews.items));
-    const validBiggestMovers =
-      biggestMovers === null ||
-      (typeof biggestMovers === "object" && Array.isArray(biggestMovers.cards));
 
-    if (!validGeneralNews || !validBiggestMovers) return null;
+    if (!validGeneralNews) return null;
 
-    const feeds = { generalNews, biggestMovers };
+    const feeds = { generalNews };
     if (!hasNewsFeeds(feeds)) return null;
 
     const cachedAt = typeof parsed.cachedAt === "number" ? parsed.cachedAt : 0;
@@ -81,6 +76,5 @@ export async function fetchNewsFeeds(
 
   return {
     generalNews: data.generalNews ?? null,
-    biggestMovers: data.biggestMovers ?? null,
   };
 }

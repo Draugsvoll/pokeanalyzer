@@ -154,16 +154,20 @@ body {
   isolation: isolate;
 }
 
-/* Soft top bloom */
+/* Fixed app background */
 .app-background {
   background-color: var(--bg);
-  background-image: radial-gradient(
-    1200px 520px at 50% var(--space-10),
-    rgba(46, 60, 98, 0.17) 0%,
-    rgba(24, 32, 54, 0.06) 42%,
-    transparent 70%
-  );
-  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(
+      circle at 86% 72%,
+      color-mix(in srgb, var(--blue) 1.25%, transparent) 0,
+      transparent 34rem
+    ),
+    linear-gradient(
+      160deg,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg2) 35%, var(--bg)) 100%
+    );
   inset: var(--space-10) 0 0;
   pointer-events: none;
   position: fixed;

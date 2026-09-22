@@ -1,7 +1,7 @@
 .login-overlay {
   align-items: center;
   backdrop-filter: blur(0.7rem);
-  background: rgba(10, 8, 18, 0.78);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
   display: flex;
   inset: 0;
   justify-content: center;

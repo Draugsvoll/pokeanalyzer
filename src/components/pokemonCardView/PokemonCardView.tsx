@@ -47,8 +47,9 @@ export type PokemonCardViewProps = {
     changePercent?: number;
     currency: string;
     marketLabel?: string;
-    price: number;
+    price?: number;
     priceLabel?: string;
+    primaryText?: string;
   };
   onPortfolioChanged?: (saved: boolean) => void;
   priceChangeLabel?: string;
@@ -270,9 +271,7 @@ export function PokemonCardView({
               <div className="pokemon-card__variant-row">
                 <span className="pokemon-card__variant">
                   <Badge accent={variantAccent} size="sm" title={variantName}>
-                    <span className="pokemon-card__variant-label">
-                      {variantName}
-                    </span>
+                    {variantName}
                   </Badge>
                 </span>
               </div>
@@ -287,9 +286,10 @@ export function PokemonCardView({
                     className="pokemon-card__price-value"
                     title={marketDisplay?.priceLabel}
                   >
-                    {displayedPrice != null
-                      ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
-                      : "-"}
+                    {marketDisplay?.primaryText ??
+                      (displayedPrice != null
+                        ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
+                        : "-")}
                   </span>
                   {showPriceChange &&
                     (formattedPriceChange && priceChangeTone ? (

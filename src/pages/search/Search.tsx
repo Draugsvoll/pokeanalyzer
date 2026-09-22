@@ -1,5 +1,6 @@
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import { MarketMoversGrid } from "../../components/marketMoversGrid/MarketMoversGrid";
+import { MostSoldGrid } from "../../components/mostSoldGrid/MostSoldGrid";
 import {
   weeklyGainersTcgNearMint,
   weeklyLosersTcgNearMint,
@@ -10,6 +11,7 @@ export default function Search() {
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName />
+      <MostSoldGrid />
       <MarketMoversGrid
         loadMovers={weeklyGainersTcgNearMint}
         subtitle=""

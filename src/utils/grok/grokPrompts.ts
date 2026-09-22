@@ -498,36 +498,6 @@ Never use the raw sale price directly as the baseline without subtracting its se
 
 `.trim();
 
-export const biggestMoversInput: string = `
-Please summarize all the cards in "The Biggest Price Spikes in Pokemon this Week" article from
-TCG website.
-
-`.trim();
-
-export const biggestMoversInstructions: string = `
-Use the most recent article you can find. Respond using the JSON format provided below.
-
-### Strict Process Rules
-1. Identify all the cards that are individual pokemons and mentioned both by their name and a set name.
-2. Summarize the identified cards in the article by including all price-values and price-movements mentioned in the article,
-  include the explanation for the spike if it is mentioned.
-
-
-- report_link is url to the report you used.
-
-{
-  "date": "Publication date of the report",
-  "report_link": "",
-  "cards": [
-    {
-      "card_name": "",
-      "summary": ""
-    }
-  ]
-}
-
-`.trim();
-
 export const generalNewsInput: string = `
 You are a researcher for Pokemon TCG collectors and investors. Your job is to collect the most important and valueable news.
 `.trim();

@@ -21,17 +21,6 @@ const generalNews = {
   ],
 };
 
-const biggestMovers = {
-  report_link: "https://www.tcgplayer.com/content/article/example/abc/",
-  cards: [
-    {
-      rank: "1",
-      card_name: "Salamence",
-      summary: "The card moved substantially.",
-    },
-  ],
-};
-
 test("news schema keeps one valid JSON row per feed", async () => {
   const client = createClient({ url: "file::memory:" });
 
@@ -81,12 +70,6 @@ test("news schema keeps one valid JSON row per feed", async () => {
         args: ["unknown_feed", "{}", null],
       }),
     );
-    await assert.rejects(
-      client.execute({
-        sql: NEWS_CONTENT_UPSERT_SQL,
-        args: [NEWS_FEEDS.biggestMovers, "not json", null],
-      }),
-    );
   } finally {
     client.close();
   }
@@ -102,13 +85,11 @@ test("stored news rows are validated and missing feeds stay null", () => {
     ]),
     {
       generalNews,
-      biggestMovers: null,
     },
   );
 
   assert.deepEqual(parseStoredNewsRows([]), {
     generalNews: null,
-    biggestMovers: null,
   });
 });
 
@@ -117,19 +98,8 @@ test("malformed, unknown, and duplicate stored feeds are rejected", () => {
     () =>
       parseStoredNewsRows([
         {
-          feed: NEWS_FEEDS.biggestMovers,
-          payload_json: '{"cards":[]}',
-        },
-      ]),
-    /at least one card/,
-  );
-
-  assert.throws(
-    () =>
-      parseStoredNewsRows([
-        {
           feed: "unknown_feed",
-          payload_json: JSON.stringify(biggestMovers),
+          payload_json: JSON.stringify(generalNews),
         },
       ]),
     /Unknown stored news feed/,
@@ -139,12 +109,12 @@ test("malformed, unknown, and duplicate stored feeds are rejected", () => {
     () =>
       parseStoredNewsRows([
         {
-          feed: NEWS_FEEDS.biggestMovers,
-          payload_json: JSON.stringify(biggestMovers),
+          feed: NEWS_FEEDS.generalNews,
+          payload_json: JSON.stringify(generalNews),
         },
         {
-          feed: NEWS_FEEDS.biggestMovers,
-          payload_json: JSON.stringify(biggestMovers),
+          feed: NEWS_FEEDS.generalNews,
+          payload_json: JSON.stringify(generalNews),
         },
       ]),
     /Duplicate stored news feed/,
