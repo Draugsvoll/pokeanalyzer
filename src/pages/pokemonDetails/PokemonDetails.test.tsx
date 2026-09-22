@@ -115,6 +115,7 @@ vi.mock("../../components/loginmodal/Loginmodal", () => ({
 
 vi.mock("./components/CardFeatureHeader", () => ({
   CARD_FEATURE_HEADER_ACTION_LABEL: "Open",
+  CARD_FEATURE_VARIANTS_ID: "card-feature-variants",
   CardFeatureHeader: ({
     actionDisabled,
     actionHidden,

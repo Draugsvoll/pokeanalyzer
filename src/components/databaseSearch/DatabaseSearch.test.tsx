@@ -78,3 +78,26 @@ test("falls back to the search API when the browser catalog is unavailable", asy
     "http://localhost:3001/api/cards/search?pokemonName=charizard",
   );
 });
+
+test("closes an embedded search from the results toolbar", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+    card("card-local", "Local Charizard"),
+  ]);
+  const onClose = vi.fn();
+
+  render(
+    <MemoryRouter>
+      <DatabaseSearch embedded onClose={onClose} />
+    </MemoryRouter>,
+  );
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "charizard" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Close search results" }),
+  );
+
+  expect(onClose).toHaveBeenCalledOnce();
+});

@@ -95,6 +95,7 @@ export function MarketAnalysisView({
         </CardFeatureHeaderVariants>
 
         <FeatureAnalysisHero
+          eyebrow="Market Health"
           headline={data.headline}
           score={data.score}
           scoreLabel="Market health score"

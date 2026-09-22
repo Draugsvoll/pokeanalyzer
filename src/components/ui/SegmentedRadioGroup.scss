@@ -22,6 +22,10 @@
   position: relative;
 }
 
+.segmented-radio-group__option--disabled {
+  cursor: not-allowed;
+}
+
 .segmented-radio-group__option input {
   height: 1px;
   opacity: 0;
@@ -45,6 +49,11 @@
     background-color var(--delay-short) ease,
     color var(--delay-short) ease;
   width: 100%;
+}
+
+.segmented-radio-group__option input:disabled + span {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .segmented-radio-group__option:hover > span {

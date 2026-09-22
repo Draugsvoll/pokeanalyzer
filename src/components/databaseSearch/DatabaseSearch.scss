@@ -237,6 +237,7 @@
 /* ----- Results (full shell width, left-aligned text) ----- */
 
 .search-results {
+  margin: var(--space-5) 0 0;
   max-width: 100%;
   width: 100%;
 }

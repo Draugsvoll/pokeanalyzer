@@ -19,6 +19,7 @@ type DatabaseSearchProps = {
   autoFocusName?: boolean;
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
+  onClose?: () => void;
 };
 
 type DatabaseSearchBarProps = {
@@ -127,6 +128,7 @@ export function DatabaseSearchBar({
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
+  onClose,
 }) => {
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
@@ -280,6 +282,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                 onClose={() => {
                   setResults([]);
                   setActiveQueryLabel("");
+                  onClose?.();
                 }}
                 onSortChange={setSortDirection}
                 resultCount={results.length}

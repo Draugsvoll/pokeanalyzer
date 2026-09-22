@@ -11,7 +11,7 @@ import { formatCardNumber } from "../../../../shared/formatCardNumber";
 import "./CardFeatureHeader.scss";
 
 export const CARD_FEATURE_HEADER_ACTION_LABEL = "1 Credit";
-const CARD_FEATURE_HEADER_VARIANTS_ID = "card-feature-header-variants";
+export const CARD_FEATURE_VARIANTS_ID = "card-feature-variants";
 
 export function CardFeatureHeaderVariants({
   children,
@@ -21,11 +21,11 @@ export function CardFeatureHeaderVariants({
   const [host, setHost] = useState<HTMLElement | null>(() =>
     typeof document === "undefined"
       ? null
-      : document.getElementById(CARD_FEATURE_HEADER_VARIANTS_ID),
+      : document.getElementById(CARD_FEATURE_VARIANTS_ID),
   );
 
   useLayoutEffect(() => {
-    setHost(document.getElementById(CARD_FEATURE_HEADER_VARIANTS_ID));
+    setHost(document.getElementById(CARD_FEATURE_VARIANTS_ID));
   }, []);
 
   return host ? createPortal(children, host) : children;
@@ -88,10 +88,6 @@ export function CardFeatureHeader({
           </div>
         )}
       </div>
-      <div
-        className="card-feature-header__variants"
-        id={CARD_FEATURE_HEADER_VARIANTS_ID}
-      />
       {authActions ? (
         <div className="card-feature-header__auth">{authActions}</div>
       ) : (

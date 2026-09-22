@@ -55,6 +55,7 @@ import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 import {
   CardFeatureHeader,
   CARD_FEATURE_HEADER_ACTION_LABEL,
+  CARD_FEATURE_VARIANTS_ID,
 } from "./components/CardFeatureHeader";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { signInWithGoogle } from "../../services/auth";
@@ -64,6 +65,7 @@ import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
+import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
 
 type ActiveView =
   | "empty_view"
@@ -85,6 +87,13 @@ type AiFeature = {
   featureKey: CreditUsageFeature;
   onOpen: () => Promise<void>;
 };
+
+function formatVariantName(variant: string) {
+  return variant
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 function getDemoFeatureResponse(
   card: PokemonCard,
@@ -573,11 +582,9 @@ function PokemonDetailsForCard() {
               <div aria-hidden="true" className="card-view__loading-image" />
               <div className="card-view__info-side">
                 <PokeTraceMarketPrices
+                  cardId=""
                   data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
                   loadingMarketData
-                  onVariantChange={() => undefined}
-                  selectedVariantId=""
-                  variants={[]}
                 />
               </div>
             </div>
@@ -782,19 +789,32 @@ function PokemonDetailsForCard() {
                             {displayRarity}
                           </Badge>
                         </span>
+                        {pokeTraceVariants.length > 0 && (
+                          <SegmentedRadioGroup
+                            ariaLabel="Card variant"
+                            className="card-view__variant-selector"
+                            disabled={Boolean(loadingVariantId)}
+                            name={`card-variant-${card.id}`}
+                            onChange={(variantId) => {
+                              void handleVariantChange(variantId);
+                            }}
+                            options={pokeTraceVariants.map((variant) => ({
+                              label: formatVariantName(variant.name),
+                              value: variant.id,
+                            }))}
+                            value={card.id}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
                 <PokeTraceMarketPrices
+                  cardId={card.id}
                   data={card.pokeTrace}
-                  loadingMarketData={refreshingCard}
-                  loadingVariantId={loadingVariantId}
-                  onVariantChange={(variantId) => {
-                    void handleVariantChange(variantId);
-                  }}
-                  selectedVariantId={card.id}
-                  variants={pokeTraceVariants}
+                  loadingMarketData={
+                    refreshingCard || Boolean(loadingVariantId)
+                  }
                 />
               </div>
             </div>
@@ -845,7 +865,11 @@ function PokemonDetailsForCard() {
             role="dialog"
           >
             <div className="card-view__search-modal">
-              <DatabaseSearch autoFocusName embedded />
+              <DatabaseSearch
+                autoFocusName
+                embedded
+                onClose={() => setCardSearchCardId(null)}
+              />
             </div>
           </div>,
           document.body,
@@ -974,62 +998,67 @@ function PokemonDetailsForCard() {
               className="card-view__active-feature ui-render-fade"
               style={getCustomColors(activeFeature.color)}
             >
-              <CardFeatureHeader
-                card={card}
-                cardNumber={
-                  activeView === "prices" ? displayedCardNumber : undefined
-                }
-                color={activeFeature.color}
-                icon={activeFeature.icon}
-                label={activeFeature.title}
-                actionLabel={
-                  shouldAddCredits
-                    ? "Add credits"
-                    : CARD_FEATURE_HEADER_ACTION_LABEL
-                }
-                actionLoading={
-                  authLoading || loadingSubscription || isActiveFeatureLoading
-                }
-                actionDisabled={
-                  shouldAddCredits ? false : activeFeatureActionDisabled
-                }
-                actionHidden={activeFeatureHasResponse}
-                onAction={
-                  shouldAddCredits
-                    ? () => navigate("/profile")
-                    : () => void activeFeature.onOpen()
-                }
-                authActions={
-                  !authUser && !authLoading && !loadingSubscription ? (
-                    <>
-                      <div className="card-feature-header__auth-row">
-                        <Button
-                          fill="ghost"
-                          fitContent
-                          style={getCustomColors(activeFeature.color)}
-                          onClick={() => navigate("/signup")}
-                        >
-                          Sign up
-                        </Button>
-                        <Button
-                          fill="solid"
-                          fitContent
-                          style={getCustomColors(activeFeature.color)}
-                          onClick={() => setShowLoginModal(true)}
-                        >
-                          Log in
-                        </Button>
-                      </div>
-                      <span className="card-feature-header__auth-divider">
-                        or
-                      </span>
-                      <GoogleLoginButton
-                        disabled={googleAuthLoading}
-                        onClick={() => void handleGoogleAuth()}
-                      />
-                    </>
-                  ) : undefined
-                }
+              {!activeFeatureHasResponse && (
+                <CardFeatureHeader
+                  card={card}
+                  cardNumber={
+                    activeView === "prices" ? displayedCardNumber : undefined
+                  }
+                  color={activeFeature.color}
+                  icon={activeFeature.icon}
+                  label={activeFeature.title}
+                  actionLabel={
+                    shouldAddCredits
+                      ? "Add credits"
+                      : CARD_FEATURE_HEADER_ACTION_LABEL
+                  }
+                  actionLoading={
+                    authLoading || loadingSubscription || isActiveFeatureLoading
+                  }
+                  actionDisabled={
+                    shouldAddCredits ? false : activeFeatureActionDisabled
+                  }
+                  onAction={
+                    shouldAddCredits
+                      ? () => navigate("/profile")
+                      : () => void activeFeature.onOpen()
+                  }
+                  authActions={
+                    !authUser && !authLoading && !loadingSubscription ? (
+                      <>
+                        <div className="card-feature-header__auth-row">
+                          <Button
+                            fill="ghost"
+                            fitContent
+                            style={getCustomColors(activeFeature.color)}
+                            onClick={() => navigate("/signup")}
+                          >
+                            Sign up
+                          </Button>
+                          <Button
+                            fill="solid"
+                            fitContent
+                            style={getCustomColors(activeFeature.color)}
+                            onClick={() => setShowLoginModal(true)}
+                          >
+                            Log in
+                          </Button>
+                        </div>
+                        <span className="card-feature-header__auth-divider">
+                          or
+                        </span>
+                        <GoogleLoginButton
+                          disabled={googleAuthLoading}
+                          onClick={() => void handleGoogleAuth()}
+                        />
+                      </>
+                    ) : undefined
+                  }
+                />
+              )}
+              <div
+                className="card-view__active-variants card-feature-header__variants"
+                id={CARD_FEATURE_VARIANTS_ID}
               />
               <div className="card-view__active-body">
                 <div hidden={activeView !== "ebay_sold"}>

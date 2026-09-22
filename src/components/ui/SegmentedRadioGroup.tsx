@@ -11,6 +11,7 @@ export type SegmentedRadioOption<T extends string> = {
 type SegmentedRadioGroupProps<T extends string> = {
   ariaLabel: string;
   className?: string;
+  disabled?: boolean;
   name: string;
   onChange: (value: T) => void;
   options: readonly SegmentedRadioOption<T>[];
@@ -20,6 +21,7 @@ type SegmentedRadioGroupProps<T extends string> = {
 export function SegmentedRadioGroup<T extends string>({
   ariaLabel,
   className = "",
+  disabled = false,
   name,
   onChange,
   options,
@@ -37,7 +39,12 @@ export function SegmentedRadioGroup<T extends string>({
         return (
           <label
             key={option.value}
-            className="segmented-radio-group__option"
+            className={[
+              "segmented-radio-group__option",
+              disabled && "segmented-radio-group__option--disabled",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={
               option.color
                 ? ({
@@ -48,6 +55,7 @@ export function SegmentedRadioGroup<T extends string>({
           >
             <input
               checked={checked}
+              disabled={disabled}
               name={name}
               onChange={() => onChange(option.value)}
               type="radio"

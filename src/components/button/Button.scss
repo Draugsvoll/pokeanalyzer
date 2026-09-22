@@ -104,8 +104,8 @@
   --solid-accent: color-mix(in srgb, var(--feature-accent) 83%, black);
 
   background: var(--solid-accent);
-  border: 1px solid var(--solid-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--solid-accent) 18%, transparent);
+  // border: 1px solid var(--solid-accent);
+  // box-shadow: 0 0 0 2px color-mix(in srgb, var(--solid-accent) 18%, transparent);
   color: var(--button-font-color);
 
   &:hover:not(:disabled) {

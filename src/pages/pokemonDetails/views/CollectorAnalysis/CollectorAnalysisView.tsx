@@ -201,6 +201,7 @@ export default function CollectorAnalysis({
               {scoreTone}
             </Badge>
           }
+          eyebrow="Collector's score"
           headline={analysis.verdict}
           score={totalScore}
           scoreLabel="Overall collector score"

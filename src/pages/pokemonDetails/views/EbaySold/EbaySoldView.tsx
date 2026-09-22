@@ -606,6 +606,9 @@ export default function EbaySoldView({
 
   return (
     <div className="ebay-sold-view default-container ui-render-fade">
+      <span className="feature-analysis-eyebrow ebay-sold-view__eyebrow">
+        eBay Sold &amp; Listed
+      </span>
       <div className="ebay-sold-view__surface">
         <SegmentedRadioGroup
           ariaLabel="eBay listing type"

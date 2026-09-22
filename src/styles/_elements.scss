@@ -338,6 +338,15 @@ input[type="radio"] {
   gap: var(--space-4);
   justify-items: center;
 
+  &__eyebrow {
+    color: var(--feature-analysis-accent);
+    display: block;
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wider);
+    text-transform: uppercase;
+  }
+
   &__badge {
     display: block;
   }

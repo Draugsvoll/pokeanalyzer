@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { ExternalLink, Layers3 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
   fetchMarketPriceHistory,
@@ -21,8 +21,6 @@ type TierPrice = {
 };
 
 type MarketplacePrices = Record<string, TierPrice>;
-type VariantOption = { id: string; name: string };
-
 const CONDITION_ORDER = [
   "MINT",
   "NEAR_MINT",
@@ -375,57 +373,22 @@ function PriceHistory({
 }
 
 export function PokeTraceMarketPrices({
+  cardId,
   data,
   loadingMarketData = false,
-  loadingVariantId,
-  onVariantChange,
-  selectedVariantId,
-  variants,
 }: {
+  cardId: string;
   data: NonNullable<PokemonCard["pokeTrace"]>;
   loadingMarketData?: boolean;
-  loadingVariantId?: string | null;
-  onVariantChange: (id: string) => void;
-  selectedVariantId: string;
-  variants: VariantOption[];
 }) {
-  const variantGroup = useId();
   const prices = data.prices as Record<string, MarketplacePrices>;
   const urls = data.marketplaceUrls as Record<string, unknown>;
   const ebayGradedEntries = gradedEntries(prices.ebay);
-  const loading = loadingMarketData || Boolean(loadingVariantId);
+  const loading = loadingMarketData;
   const sources = ["tcgplayer", "ebay"];
 
   return (
     <section aria-label="Market prices" className="poketrace-market">
-      {variants.length > 0 && (
-        <header className="poketrace-market__header">
-          <fieldset
-            aria-label="Card variant"
-            className="radio-group variant-badge-group"
-          >
-            <div>
-              {variants.map((variant) => (
-                <label key={variant.id}>
-                  <input
-                    checked={variant.id === selectedVariantId}
-                    disabled={Boolean(loadingVariantId)}
-                    name={variantGroup}
-                    onChange={() => onVariantChange(variant.id)}
-                    type="radio"
-                    value={variant.id}
-                  />
-                  <span>
-                    <Layers3 aria-hidden="true" />
-                    <strong>{conditionLabel(variant.name)}</strong>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </header>
-      )}
-
       <div className="poketrace-market__grid">
         {sources.map((source) => (
           <MarketplaceColumn
@@ -440,9 +403,9 @@ export function PokeTraceMarketPrices({
       </div>
 
       <PriceHistory
-        cardId={selectedVariantId}
+        cardId={cardId}
         demoHistory={data.marketPriceHistory}
-        key={selectedVariantId}
+        key={cardId}
       />
 
       <GradedEbayPrices
