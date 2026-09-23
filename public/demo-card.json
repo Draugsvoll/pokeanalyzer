@@ -3,10 +3,7 @@
   "name": "Charizard",
   "number": "004/102",
   "rarity": "Holo Rare",
-  "images": {
-    "small": "https://cdn.poketrace.com/cards/d64defcfc64ff4ea.webp",
-    "large": "https://cdn.poketrace.com/cards/d64defcfc64ff4ea.webp"
-  },
+  "image": "https://cdn.poketrace.com/cards/d64defcfc64ff4ea.webp",
   "set": {
     "id": "base-set",
     "name": "Base Set"

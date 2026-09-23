@@ -13,7 +13,7 @@ import type {
 } from "../../types/portfolio";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
-import { navigateToPokemonCard } from "../../utils/selectedPokemonCache";
+import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./PokemonCardView.scss";
 
@@ -94,7 +94,7 @@ export function PokemonCardView({
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const activeOption = resolvePokeTraceCardPrice(card);
-  const imageSrc = card.images?.small;
+  const imageSrc = card.image;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
   const displayedPrice = marketDisplay?.price ?? activeOption?.price;
   const comparisonPrice = comparisonPriceSnapshot?.marketPrice;

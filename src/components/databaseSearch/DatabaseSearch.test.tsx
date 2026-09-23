@@ -19,7 +19,7 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
 function card(id: string, name: string): PokemonCard {
   return {
     id,
-    images: { large: "", small: "" },
+    image: "",
     name,
     pokeTrace: { currency: "USD", marketplaceUrls: {}, prices: {} },
     set: { id: "base-set", name: "Base Set" },

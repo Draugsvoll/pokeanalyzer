@@ -5,7 +5,7 @@ import { resolvePokeTraceCardPrice } from "./pokeTracePricing";
 function cardWithPrices(prices: Record<string, unknown>): PokemonCard {
   return {
     id: "card-1",
-    images: { large: "", small: "" },
+    image: "",
     name: "Pikachu",
     pokeTrace: {
       currency: "USD",

@@ -4,6 +4,19 @@
   border-top: 1px solid var(--border-divider);
   margin-top: 1rem;
   padding-top: 1rem;
+  position: relative;
+
+  &__loading {
+    align-items: center;
+    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: var(--border-radius-card);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: absolute;
+    z-index: 5;
+  }
 
   .default-container-inner {
     background: var(--default-container-inner-bg2);
@@ -173,7 +186,7 @@
     align-items: center;
     display: flex;
     justify-content: center;
-    min-height: 7.8rem;
+    min-height: 6.5rem;
   }
 
   &__marketplace-loading,
@@ -283,8 +296,8 @@
   }
 
   &__graded-price {
-    background: color-mix(in srgb, var(--surface2) 62%, transparent);
     border-radius: var(--border-radius);
+    border: var(--border);
     display: grid;
     justify-items: center;
     min-width: 0;
@@ -472,28 +485,41 @@
 
   &__history-tooltip {
     pointer-events: none;
+    overflow: visible;
+  }
 
-    rect {
-      fill: color-mix(in srgb, var(--surface2) 96%, black);
-      stroke: color-mix(
-        in srgb,
-        var(--history-accent) 38%,
-        var(--border-divider)
-      );
-      stroke-width: 1;
-    }
+  &__history-tooltip-card {
+    background: color-mix(
+      in srgb,
+      var(--default-container-inner-bg2) 88%,
+      transparent
+    );
+    border: 1px solid
+      color-mix(in srgb, var(--history-accent) 18%, var(--border-color));
+    border-radius: 6px;
+    box-shadow: 0 0.35rem 0.8rem rgba(0, 0, 0, 0.32);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin-inline: auto;
+    padding: 0.55rem 0.8rem;
+    width: fit-content;
 
-    text:first-of-type {
-      fill: var(--font-color-primary);
+    strong {
+      color: var(--font-color-primary);
       font-family: var(--font-family-price);
       font-size: 14px;
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
+      line-height: 1.15;
+      white-space: nowrap;
     }
 
-    text:last-of-type {
-      fill: var(--font-color-muted);
+    span {
+      color: var(--font-color-muted);
       font-size: 12px;
+      line-height: 1.3;
+      white-space: nowrap;
     }
   }
 

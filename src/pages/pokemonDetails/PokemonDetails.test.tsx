@@ -13,10 +13,8 @@ const mocks = vi.hoisted(() => ({
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
   fetchMarketPriceHistory: vi.fn(),
-  getSelectedPokemonFromCache: vi.fn(),
   hasSubscription: true,
   loadingSubscription: false,
-  setSelectedPokemonCache: vi.fn(),
   updateSubscription: vi.fn(),
 }));
 
@@ -36,7 +34,7 @@ const subscription = {
 function buildCard(id: string, name: string): PokemonCard {
   return {
     id,
-    images: { large: `${id}-large.png`, small: `${id}-small.png` },
+    image: `${id}.png`,
     name,
     number: "58/102",
     rarity: "Common",
@@ -66,11 +64,6 @@ vi.mock("../../utils/grok/grokClient", async (importOriginal) => {
 vi.mock("../../services/cardApi", () => ({
   fetchCardById: mocks.fetchCardById,
   fetchMarketPriceHistory: mocks.fetchMarketPriceHistory,
-}));
-
-vi.mock("../../utils/selectedPokemonCache", () => ({
-  getSelectedPokemonFromCache: mocks.getSelectedPokemonFromCache,
-  setSelectedPokemonCache: mocks.setSelectedPokemonCache,
 }));
 
 vi.mock("../../context/authContextValue", () => ({
@@ -243,9 +236,6 @@ beforeEach(() => {
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
   mocks.fetchMarketPriceHistory.mockReset();
-  mocks.getSelectedPokemonFromCache.mockReset();
-  mocks.getSelectedPokemonFromCache.mockReturnValue(null);
-  mocks.setSelectedPokemonCache.mockReset();
   mocks.hasSubscription = true;
   mocks.loadingSubscription = false;
   mocks.updateSubscription.mockReset();
@@ -358,9 +348,14 @@ test("shows market loading while fetching a variant and reuses the result", asyn
   await screen.findByRole("heading", { name: "Pikachu" });
   fireEvent.click(screen.getByRole("radio", { name: "Holofoil" }));
   expect(screen.getByRole("heading", { name: "Pikachu" })).toBeInTheDocument();
+  const variantLoading = screen.getByRole("status", {
+    name: "Loading market data",
+  });
+  expect(variantLoading).toBeInTheDocument();
+  expect(variantLoading.closest(".poketrace-market")).not.toBeNull();
   expect(
-    screen.getByRole("status", { name: "Loading variant" }),
-  ).toBeInTheDocument();
+    screen.queryByRole("status", { name: "Loading eBay prices" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
   resolveCardB(cardB);
@@ -371,11 +366,13 @@ test("shows market loading while fetching a variant and reuses the result", asyn
   ).toHaveLength(1);
 });
 
-test("keeps cached details visible while the complete card loads", async () => {
-  const cachedCard = buildCard("card-a", "Cached Pikachu");
+test("keeps navigation details visible while the complete card loads", async () => {
+  const navigationCard = buildCard("card-a", "Cached Pikachu");
+  navigationCard.pokeTrace.prices = {
+    tcgplayer: { NEAR_MINT: { avg: 10 } },
+  };
   const completeCard = buildCard("card-a", "Complete Pikachu");
   let resolveRequest!: (card: PokemonCard) => void;
-  mocks.getSelectedPokemonFromCache.mockReturnValue(cachedCard);
   mocks.fetchCardById.mockReturnValue(
     new Promise<PokemonCard>((resolve) => {
       resolveRequest = resolve;
@@ -383,7 +380,11 @@ test("keeps cached details visible while the complete card loads", async () => {
   );
 
   render(
-    <MemoryRouter initialEntries={["/card/card-a"]}>
+    <MemoryRouter
+      initialEntries={[
+        { pathname: "/card/card-a", state: { card: navigationCard } },
+      ]}
+    >
       <TestRoutes />
     </MemoryRouter>,
   );
@@ -394,6 +395,18 @@ test("keeps cached details visible while the complete card loads", async () => {
   expect(
     screen.getByRole("status", { name: "Loading complete card details" }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("status", { name: "Loading market data" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("$10.00")).toBeInTheDocument();
+  expect(
+    screen.getByRole("status", { name: "Loading eBay prices" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("status", { name: "Loading graded prices" }),
+  ).toBeInTheDocument();
+  expect(screen.queryAllByText("No price data")).toHaveLength(0);
+  expect(screen.queryByText("No graded prices")).not.toBeInTheDocument();
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
   resolveRequest(completeCard);
@@ -401,6 +414,43 @@ test("keeps cached details visible while the complete card loads", async () => {
   expect(
     screen.queryByRole("status", { name: "Loading complete card details" }),
   ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("status", { name: "Loading market data" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByText("No price data")).toHaveLength(2);
+  expect(screen.getByText("No graded prices")).toBeInTheDocument();
+});
+
+test("keeps navigation data and offers retry when complete card loading fails", async () => {
+  const navigationCard = buildCard("card-a", "Cached Pikachu");
+  navigationCard.pokeTrace.prices = {
+    tcgplayer: { NEAR_MINT: { avg: 10 } },
+  };
+  const completeCard = buildCard("card-a", "Complete Pikachu");
+  mocks.fetchCardById
+    .mockRejectedValueOnce(new Error("Temporary failure"))
+    .mockResolvedValueOnce(completeCard);
+
+  render(
+    <MemoryRouter
+      initialEntries={[
+        { pathname: "/card/card-a", state: { card: navigationCard } },
+      ]}
+    >
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Couldn't refresh complete card data.",
+  );
+  expect(screen.getByText("$10.00")).toBeInTheDocument();
+  expect(screen.queryAllByText("No price data")).toHaveLength(0);
+
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+  await screen.findByRole("heading", { name: "Complete Pikachu" });
+  expect(mocks.fetchCardById).toHaveBeenCalledTimes(2);
 });
 
 test("Market Analysis fetches the stored market report", async () => {

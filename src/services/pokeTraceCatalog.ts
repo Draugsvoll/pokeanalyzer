@@ -311,10 +311,7 @@ function toPokemonCard(card: PokeTraceCatalogCard): PokemonCard {
     name: card.name,
     ...(card.number && { number: card.number }),
     ...(card.rarity && { rarity: card.rarity }),
-    images: {
-      large: card.image ?? "",
-      small: card.image ?? "",
-    },
+    image: card.image,
     set: { id: "", name: card.setName },
     pokeTrace: {
       currency: card.currency,

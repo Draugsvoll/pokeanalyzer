@@ -48,10 +48,7 @@ test("PokeTrace cards are mapped to the app card model", () => {
   assert.equal(card.id, "019bff77-bef8-74a5-99d8-6e90eedb5803");
   assert.equal("tcgplayer" in card, false);
   assert.equal(card.number, "001/102");
-  assert.deepEqual(card.images, {
-    small: "https://example.test/alakazam.webp",
-    large: "https://example.test/alakazam.webp",
-  });
+  assert.equal(card.image, "https://example.test/alakazam.webp");
   assert.equal(
     (card.pokeTrace.prices.tcgplayer as { NEAR_MINT: { avg: number } })
       .NEAR_MINT.avg,

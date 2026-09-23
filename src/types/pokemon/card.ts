@@ -1,5 +1,4 @@
 import type { CardSet } from "./set";
-import type { CardImages } from "./images";
 import type { PokeTraceMarketComparisons } from "../../../shared/pokeTraceMarketComparisons";
 
 export type PokeTraceMarketHistorySource = "tcgplayer" | "ebay";
@@ -33,7 +32,7 @@ export type PokemonCard = {
   set: CardSet;
   number?: string;
   rarity?: string;
-  images: CardImages;
+  image?: string;
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };
     market_analysis?: Record<string, unknown> & { timestamp: string };

@@ -28,7 +28,7 @@ function toGridItem(
     name: item.name,
     ...(item.cardNumber && { number: item.cardNumber }),
     ...(item.rarity && { rarity: item.rarity }),
-    images: { large: image, small: image },
+    image,
     set: { id: setName, name: setName },
     pokeTrace: {
       currency: "USD",

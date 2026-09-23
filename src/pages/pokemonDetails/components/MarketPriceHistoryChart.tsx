@@ -168,11 +168,11 @@ export function MarketPriceHistoryChart({
   const active = points[activeIndex];
   const activeX = x(activeIndex);
   const activeY = y(chartValue(active, activeSource));
-  const tooltipWidth = 128;
-  const tooltipHeight = 46;
+  const tooltipViewportWidth = 160;
+  const tooltipHeight = 54;
   const tooltipX = Math.min(
-    WIDTH - PADDING.right - tooltipWidth,
-    Math.max(PADDING.left, activeX - tooltipWidth / 2),
+    WIDTH - PADDING.right - tooltipViewportWidth,
+    Math.max(PADDING.left, activeX - tooltipViewportWidth / 2),
   );
   const tooltipY = Math.max(PADDING.top + 6, activeY - tooltipHeight - 12);
 
@@ -319,24 +319,23 @@ export function MarketPriceHistoryChart({
             r="4"
           />
           {hoverIndex !== null && (
-            <g className="poketrace-market__history-tooltip">
-              <rect
-                height={tooltipHeight}
-                rx="6"
-                width={tooltipWidth}
-                x={tooltipX}
-                y={tooltipY}
-              />
-              <text x={tooltipX + 10} y={tooltipY + 19}>
-                {formatPrice(
-                  chartValue(active, activeSource),
-                  history.currency,
-                )}
-              </text>
-              <text x={tooltipX + 10} y={tooltipY + 36}>
-                {formatDate(active.date)}
-              </text>
-            </g>
+            <foreignObject
+              className="poketrace-market__history-tooltip"
+              height={tooltipHeight}
+              width={tooltipViewportWidth}
+              x={tooltipX}
+              y={tooltipY}
+            >
+              <div className="poketrace-market__history-tooltip-card">
+                <strong>
+                  {formatPrice(
+                    chartValue(active, activeSource),
+                    history.currency,
+                  )}
+                </strong>
+                <span>{formatDate(active.date)}</span>
+              </div>
+            </foreignObject>
           )}
           {dateTickIndexes.map((index) => (
             <text

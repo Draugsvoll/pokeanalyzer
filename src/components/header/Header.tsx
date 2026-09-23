@@ -164,10 +164,14 @@ export const Header: React.FC = () => {
             </>
           ) : (
             <>
-              <Button fill="ghost" onClick={() => navigate("/signup")}>
+              <Button
+                fill="ghost"
+                size="large"
+                onClick={() => navigate("/signup")}
+              >
                 Sign up
               </Button>
-              <Button fill="ghost" onClick={() => setOpen(true)}>
+              <Button fill="ghost" size="large" onClick={() => setOpen(true)}>
                 Log in
               </Button>
             </>

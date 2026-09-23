@@ -43,7 +43,7 @@ export function toPokemonCard(
     name: text(raw.name)!,
     number: text(raw.cardNumber),
     rarity: text(raw.rarity),
-    images: { small: image, large: image },
+    image,
     set: {
       id: text(set?.slug) ?? text(set?.name) ?? "",
       name: text(set?.name) ?? "Unknown set",

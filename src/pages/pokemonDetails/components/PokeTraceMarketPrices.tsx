@@ -105,13 +105,15 @@ function formatSalesLabel(price: TierPrice) {
 
 function MarketplaceColumn({
   currency,
-  loading = false,
+  dataPending = false,
+  dataRequestFailed = false,
   prices,
   source,
   url,
 }: {
   currency: string;
-  loading?: boolean;
+  dataPending?: boolean;
+  dataRequestFailed?: boolean;
   prices: MarketplacePrices;
   source: string;
   url?: string;
@@ -133,7 +135,10 @@ function MarketplaceColumn({
   const [condition, price] = selected ?? ["", {}];
   const conditionGroup = useId();
   const sales = formatSales(price);
-  const isLoading = loading && entries.length === 0;
+  const hasPrices = entries.length > 0;
+  const showLoader = source.toLowerCase() === "ebay" && dataPending;
+  const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
+  const showPrices = hasPrices && !showLoader;
 
   return (
     <article className="poketrace-market__marketplace default-container-inner">
@@ -168,7 +173,7 @@ function MarketplaceColumn({
         )}
       </div>
 
-      {isLoading ? (
+      {showLoader && (
         <div
           aria-label={`Loading ${sourceLabel(source)} prices`}
           className="poketrace-market__marketplace-loading"
@@ -176,13 +181,15 @@ function MarketplaceColumn({
         >
           <span aria-hidden="true" className="app-loading-spinner" />
         </div>
-      ) : entries.length === 0 ? (
+      )}
+      {showEmptyState && (
         <MarketDataUnavailable
           className="poketrace-market__marketplace-unavailable"
           description={`No recent ${sourceLabel(source)} prices were found.`}
           title="No price data"
         />
-      ) : (
+      )}
+      {showPrices && (
         <div
           aria-live="polite"
           className="poketrace-market__condition-data ui-render-fade"
@@ -230,12 +237,14 @@ function MarketplaceColumn({
 
 function GradedEbayPrices({
   currency,
+  dataPending = false,
+  dataRequestFailed = false,
   entries,
-  loading = false,
 }: {
   currency: string;
+  dataPending?: boolean;
+  dataRequestFailed?: boolean;
   entries: Array<[string, TierPrice]>;
-  loading?: boolean;
 }) {
   const groups = new Map<string, Array<[string, TierPrice]>>();
   for (const entry of entries) {
@@ -252,7 +261,10 @@ function GradedEbayPrices({
     : defaultGrader;
   const visibleEntries = groups.get(activeGrader) ?? [];
   const graderGroup = useId();
-  const isLoading = loading && entries.length === 0;
+  const hasPrices = entries.length > 0;
+  const showLoader = dataPending;
+  const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
+  const showPrices = hasPrices && !dataPending;
 
   return (
     <section
@@ -282,7 +294,7 @@ function GradedEbayPrices({
           </div>
         )}
       </header>
-      {isLoading ? (
+      {showLoader && (
         <div
           aria-label="Loading graded prices"
           className="poketrace-market__graded-loading"
@@ -290,13 +302,15 @@ function GradedEbayPrices({
         >
           <span aria-hidden="true" className="app-loading-spinner" />
         </div>
-      ) : entries.length === 0 ? (
+      )}
+      {showEmptyState && (
         <MarketDataUnavailable
           className="poketrace-market__graded-unavailable"
           description="Graded sales have not been recorded for this card."
           title="No graded prices"
         />
-      ) : (
+      )}
+      {showPrices && (
         <div
           className="poketrace-market__graded-grid ui-render-fade"
           key={activeGrader}
@@ -322,9 +336,11 @@ function GradedEbayPrices({
 
 function PriceHistory({
   cardId,
+  dataPending = false,
   demoHistory,
 }: {
   cardId: string;
+  dataPending?: boolean;
   demoHistory?: MarketPriceHistoryResponse;
 }) {
   const [history, setHistory] = useState<MarketPriceHistoryResponse | null>(
@@ -348,6 +364,7 @@ function PriceHistory({
     return () => controller.abort();
   }, [cardId, isDemo]);
 
+  if (dataPending) return <MarketPriceHistoryLoading />;
   if (isDemo)
     return demoHistory ? (
       <MarketPriceHistoryChart history={demoHistory} />
@@ -375,26 +392,34 @@ function PriceHistory({
 export function PokeTraceMarketPrices({
   cardId,
   data,
-  loadingMarketData = false,
+  dataPending = false,
+  dataRequestFailed = false,
+  variantLoading = false,
 }: {
   cardId: string;
   data: NonNullable<PokemonCard["pokeTrace"]>;
-  loadingMarketData?: boolean;
+  dataPending?: boolean;
+  dataRequestFailed?: boolean;
+  variantLoading?: boolean;
 }) {
   const prices = data.prices as Record<string, MarketplacePrices>;
   const urls = data.marketplaceUrls as Record<string, unknown>;
   const ebayGradedEntries = gradedEntries(prices.ebay);
-  const loading = loadingMarketData;
   const sources = ["tcgplayer", "ebay"];
 
   return (
-    <section aria-label="Market prices" className="poketrace-market">
+    <section
+      aria-busy={variantLoading}
+      aria-label="Market prices"
+      className="poketrace-market"
+    >
       <div className="poketrace-market__grid">
         {sources.map((source) => (
           <MarketplaceColumn
             currency={data.currency}
+            dataPending={dataPending}
+            dataRequestFailed={dataRequestFailed}
             key={source}
-            loading={loading}
             prices={prices[source] ?? {}}
             source={source}
             url={typeof urls[source] === "string" ? urls[source] : undefined}
@@ -404,15 +429,27 @@ export function PokeTraceMarketPrices({
 
       <PriceHistory
         cardId={cardId}
+        dataPending={dataPending}
         demoHistory={data.marketPriceHistory}
         key={cardId}
       />
 
       <GradedEbayPrices
         currency={data.currency}
+        dataPending={dataPending}
+        dataRequestFailed={dataRequestFailed}
         entries={ebayGradedEntries}
-        loading={loading}
       />
+
+      {variantLoading && (
+        <div
+          aria-label="Loading market data"
+          className="poketrace-market__loading"
+          role="status"
+        >
+          <span aria-hidden="true" className="app-loading-spinner" />
+        </div>
+      )}
     </section>
   );
 }

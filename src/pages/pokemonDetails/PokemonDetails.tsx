@@ -24,10 +24,6 @@ import {
 import "./PokemonDetails.scss";
 import "../../components/welcomeView/WelcomeView.scss";
 import type { PokemonCard } from "../../types/pokemon";
-import {
-  getSelectedPokemonFromCache,
-  setSelectedPokemonCache,
-} from "../../utils/selectedPokemonCache";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
@@ -105,7 +101,7 @@ function getDemoFeatureResponse(
   return undefined;
 }
 
-function getPrefetchedVariantCard(
+function getNavigationCard(
   state: unknown,
   cardId: string | undefined,
 ): PokemonCard | null {
@@ -116,10 +112,7 @@ function getPrefetchedVariantCard(
     navigationSource?: string;
   };
 
-  return navigationState.navigationSource === "card-variant" &&
-    navigationState.card?.id === cardId
-    ? navigationState.card
-    : null;
+  return navigationState.card?.id === cardId ? navigationState.card : null;
 }
 
 function PokemonDetailsForCard() {
@@ -131,37 +124,36 @@ function PokemonDetailsForCard() {
   const variantRequestSequenceRef = useRef(0);
   const variantRequestAbortRef = useRef<AbortController | null>(null);
   const routeCardIdRef = useRef(id);
-  const prefetchedVariantCard = useMemo(
-    () => getPrefetchedVariantCard(location.state, id),
+  const navigationCard = useMemo(
+    () => getNavigationCard(location.state, id),
     [id, location.state],
   );
-  const cachedCard = useMemo(
-    () =>
-      prefetchedVariantCard ??
-      (id && !isDemo ? getSelectedPokemonFromCache(id) : null),
-    [id, isDemo, prefetchedVariantCard],
-  );
-  const skipInitialCardRequestRef = useRef(prefetchedVariantCard?.id);
+  const prefetchedVariantCard =
+    location.state &&
+    typeof location.state === "object" &&
+    "navigationSource" in location.state &&
+    location.state.navigationSource === "card-variant"
+      ? navigationCard
+      : null;
   const [cardRequestState, setCardRequestState] = useState<{
     card: PokemonCard | null;
     cardId: string | undefined;
     loading: boolean;
   }>(() => ({
-    card: cachedCard,
+    card: navigationCard,
     cardId: id,
-    loading: !cachedCard && Boolean(id),
+    loading: Boolean(id && !prefetchedVariantCard),
   }));
-  const [refreshingCard, setRefreshingCard] = useState(
-    Boolean(cachedCard && id && !prefetchedVariantCard),
-  );
+  const [cardLoadErrorId, setCardLoadErrorId] = useState<string | null>(null);
+  const [cardRequestAttempt, setCardRequestAttempt] = useState(0);
   const cardStateMatchesRoute = cardRequestState.cardId === id;
-  const card = cardStateMatchesRoute ? cardRequestState.card : cachedCard;
-  const loading = cardStateMatchesRoute
+  const card = cardStateMatchesRoute ? cardRequestState.card : navigationCard;
+  const cardRequestPending = cardStateMatchesRoute
     ? cardRequestState.loading
-    : Boolean(id) && !cachedCard;
-  const [cardImageSrc, setCardImageSrc] = useState<string | undefined>(
-    cachedCard?.images?.large ?? cachedCard?.images?.small,
-  );
+    : Boolean(id && !prefetchedVariantCard);
+  const loading = cardRequestPending && !card;
+  const refreshingCard = cardRequestPending && Boolean(card);
+  const cardLoadFailed = cardLoadErrorId === id;
   const [failedCardImageSrc, setFailedCardImageSrc] = useState<string | null>(
     null,
   );
@@ -204,6 +196,16 @@ function PokemonDetailsForCard() {
     setCardSearchCardId(id ?? null);
   }
 
+  function retryCardRequest() {
+    setCardLoadErrorId(null);
+    setCardRequestState((current) => ({
+      ...current,
+      cardId: id,
+      loading: true,
+    }));
+    setCardRequestAttempt((attempt) => attempt + 1);
+  }
+
   async function handleVariantChange(variantId: string) {
     if (variantId === card?.id) return;
 
@@ -222,11 +224,6 @@ function PokemonDetailsForCard() {
         return;
       }
 
-      try {
-        setSelectedPokemonCache(variantCard);
-      } catch (cacheError) {
-        logClientError("Failed to cache card variant", cacheError);
-      }
       navigate(`/card/${encodeURIComponent(variantId)}`, {
         state: {
           card: variantCard,
@@ -470,13 +467,11 @@ function PokemonDetailsForCard() {
     const requestSequence = ++cardRequestSequenceRef.current;
     if (!id) return;
 
-    if (skipInitialCardRequestRef.current === id) {
-      skipInitialCardRequestRef.current = undefined;
+    if (prefetchedVariantCard) {
       return;
     }
 
     const controller = new AbortController();
-    setRefreshingCard(Boolean(cachedCard));
 
     fetchCardById(id, controller.signal)
       .then((fetchedCard) => {
@@ -493,14 +488,7 @@ function PokemonDetailsForCard() {
           cardId: id,
           loading: false,
         });
-        setRefreshingCard(false);
-        if (!isDemo) {
-          try {
-            setSelectedPokemonCache(fetchedCard);
-          } catch (cacheError) {
-            logClientError("Failed to refresh selected card cache", cacheError);
-          }
-        }
+        setCardLoadErrorId(null);
       })
       .catch((error: unknown) => {
         if (
@@ -511,48 +499,20 @@ function PokemonDetailsForCard() {
           return;
         }
         logClientError("Failed to load card", error);
-        // A background refresh failure must not discard a usable cached card.
+        // A failed refresh must not discard the navigation placeholder.
         setCardRequestState({
-          card: cachedCard,
+          card: navigationCard,
           cardId: id,
           loading: false,
         });
-        setRefreshingCard(false);
+        setCardLoadErrorId(id);
       });
 
     return () => {
       cardRequestSequenceRef.current += 1;
       controller.abort();
     };
-  }, [cachedCard, id, isDemo]);
-
-  useEffect(() => {
-    let image: HTMLImageElement | null = null;
-    const imageTimer = window.setTimeout(() => {
-      if (!card) {
-        setCardImageSrc(undefined);
-        return;
-      }
-
-      const smallImage = card.images?.small;
-      const largeImage = card.images?.large;
-
-      if (!largeImage || largeImage === smallImage) {
-        setCardImageSrc(largeImage ?? smallImage);
-        return;
-      }
-
-      setCardImageSrc(smallImage ?? largeImage);
-      image = new Image();
-      image.onload = () => setCardImageSrc(largeImage);
-      image.src = largeImage;
-    }, 0);
-
-    return () => {
-      window.clearTimeout(imageTimer);
-      if (image) image.onload = null;
-    };
-  }, [card]);
+  }, [cardRequestAttempt, id, navigationCard, prefetchedVariantCard]);
 
   useEffect(() => {
     if (!featureCooldown) return;
@@ -584,7 +544,7 @@ function PokemonDetailsForCard() {
                 <PokeTraceMarketPrices
                   cardId=""
                   data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
-                  loadingMarketData
+                  variantLoading
                 />
               </div>
             </div>
@@ -597,7 +557,16 @@ function PokemonDetailsForCard() {
   if (!card) {
     return (
       <div className="card-view card-view--status ui-render-fade">
-        <p>Couldn't find Pokémon</p>
+        {cardLoadFailed ? (
+          <>
+            <p>Couldn't load card details.</p>
+            <Button fitContent onClick={retryCardRequest}>
+              Retry
+            </Button>
+          </>
+        ) : (
+          <p>Couldn't find Pokémon</p>
+        )}
       </div>
     );
   }
@@ -682,19 +651,71 @@ function PokemonDetailsForCard() {
           </aside>
         )}
         <div
-          aria-busy={Boolean(loadingVariantId) || refreshingCard}
+          aria-busy={refreshingCard}
           className="card-view__shell default-container"
         >
           <div className="card-view__details">
+            <div className="card-view__identity-top">
+              <div className="card-view__title-row">
+                <div className="card-view__title-copy">
+                  <div className="card-view__number-meta-row">
+                    {formattedDisplayedCardNumber && (
+                      <span
+                        className="card-view__title-number card-number-badge"
+                        aria-label={`Card number ${formattedDisplayedCardNumber}`}
+                      >
+                        {formattedDisplayedCardNumber}
+                      </span>
+                    )}
+                    {card.set?.name && (
+                      <span className="card-view__product-set">
+                        {card.set.name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="card-view__name-meta-row">
+                    <h2 className="card-view__title">{card.name}</h2>
+                    <span className="card-view__rarity-badge">
+                      <Badge
+                        accent={getRarityBadgeAccent(displayRarity)}
+                        size="md"
+                        weight="strong"
+                      >
+                        {displayRarity}
+                      </Badge>
+                    </span>
+                  </div>
+                  {pokeTraceVariants.length > 0 && (
+                    <div className="card-view__product-meta">
+                      <SegmentedRadioGroup
+                        ariaLabel="Card variant"
+                        className="card-view__variant-selector"
+                        disabled={Boolean(loadingVariantId)}
+                        name={`card-variant-${card.id}`}
+                        onChange={(variantId) => {
+                          void handleVariantChange(variantId);
+                        }}
+                        options={pokeTraceVariants.map((variant) => ({
+                          label: formatVariantName(variant.name),
+                          value: variant.id,
+                        }))}
+                        value={card.id}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="card-view__image-side">
               <div className="card-view__image-frame">
-                {cardImageSrc && failedCardImageSrc !== cardImageSrc ? (
+                {card.image && failedCardImageSrc !== card.image ? (
                   <img
                     key={card.id}
                     className="card-view__image ui-render-fade"
-                    src={cardImageSrc}
+                    src={card.image}
                     alt={card.name}
-                    onError={() => setFailedCardImageSrc(cardImageSrc)}
+                    onError={() => setFailedCardImageSrc(card.image ?? null)}
                   />
                 ) : (
                   <div className="card-view__image-placeholder" role="img">
@@ -707,6 +728,7 @@ function PokemonDetailsForCard() {
                 {authUser && !isDemo && (
                   <Button
                     fullWidth
+                    size="large"
                     variant="portfolio"
                     disabled={portfolioBusy || portfolioUnavailable}
                     onClick={handlePortfolioToggle}
@@ -738,6 +760,7 @@ function PokemonDetailsForCard() {
                   <Button
                     fill="ghost"
                     fullWidth
+                    size="large"
                     onClick={handleEmbeddedSearchToggle}
                     aria-expanded={showCardSearch}
                   >
@@ -766,77 +789,31 @@ function PokemonDetailsForCard() {
             </div>
 
             <div className="card-view__info-side">
-              <div className="card-view__identity">
-                <div className="card-view__identity-top">
-                  <div className="card-view__title-row">
-                    <div className="card-view__title-copy">
-                      {formattedDisplayedCardNumber && (
-                        <span
-                          className="card-view__title-number card-number-badge"
-                          aria-label={`Card number ${formattedDisplayedCardNumber}`}
-                        >
-                          {formattedDisplayedCardNumber}
-                        </span>
-                      )}
-                      <h2 className="card-view__title">{card.name}</h2>
-                      <div className="card-view__product-meta">
-                        {card.set?.name && (
-                          <span className="card-view__product-set">
-                            {card.set.name}
-                          </span>
-                        )}
-                        <span className="card-view__rarity-badge">
-                          <Badge
-                            accent={getRarityBadgeAccent(displayRarity)}
-                            size="md"
-                            weight="strong"
-                          >
-                            {displayRarity}
-                          </Badge>
-                        </span>
-                        {pokeTraceVariants.length > 0 && (
-                          <SegmentedRadioGroup
-                            ariaLabel="Card variant"
-                            className="card-view__variant-selector"
-                            disabled={Boolean(loadingVariantId)}
-                            name={`card-variant-${card.id}`}
-                            onChange={(variantId) => {
-                              void handleVariantChange(variantId);
-                            }}
-                            options={pokeTraceVariants.map((variant) => ({
-                              label: formatVariantName(variant.name),
-                              value: variant.id,
-                            }))}
-                            value={card.id}
-                          />
-                        )}
-                      </div>
-                    </div>
+              <div className="card-view__market-content">
+                {cardLoadFailed && (
+                  <div className="card-view__data-error" role="alert">
+                    <span>Couldn't refresh complete card data.</span>
+                    <Button
+                      fill="ghost"
+                      fitContent
+                      size="small"
+                      onClick={retryCardRequest}
+                    >
+                      Retry
+                    </Button>
                   </div>
-                </div>
+                )}
                 <PokeTraceMarketPrices
                   cardId={card.id}
                   data={card.pokeTrace}
-                  loadingMarketData={
-                    refreshingCard || Boolean(loadingVariantId)
-                  }
+                  dataPending={refreshingCard}
+                  dataRequestFailed={cardLoadFailed}
+                  variantLoading={Boolean(loadingVariantId)}
                 />
               </div>
             </div>
           </div>
 
-          {loadingVariantId && (
-            <div
-              aria-label="Loading variant"
-              className="card-view__variant-loading"
-              role="status"
-            >
-              <span
-                aria-hidden="true"
-                className="card-view__variant-loading-spinner"
-              />
-            </div>
-          )}
           {refreshingCard && !loadingVariantId && (
             <span
               aria-label="Loading complete card details"
@@ -1028,7 +1005,7 @@ function PokemonDetailsForCard() {
                         <div className="card-feature-header__auth-row">
                           <Button
                             fill="ghost"
-                            fitContent
+                            size="large"
                             style={getCustomColors(activeFeature.color)}
                             onClick={() => navigate("/signup")}
                           >
@@ -1036,7 +1013,7 @@ function PokemonDetailsForCard() {
                           </Button>
                           <Button
                             fill="solid"
-                            fitContent
+                            size="large"
                             style={getCustomColors(activeFeature.color)}
                             onClick={() => setShowLoginModal(true)}
                           >

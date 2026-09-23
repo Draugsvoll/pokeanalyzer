@@ -97,6 +97,7 @@ export function CardFeatureHeader({
             <Button
               fill="solid"
               fitContent
+              size="large"
               style={getCustomColors(color)}
               onClick={onAction}
               disabled={actionDisabled || actionLoading}
