@@ -1,13 +1,19 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
+  clearMarketCategoriesCache,
   dailyTcgNearMintGainers,
   dailyTcgNearMintLosers,
-  fetchStaticMarketCategory,
+  fetchMarketCategory,
   mostSoldCards,
   mostSoldEbayCards,
-} from "./staticMarketCategories";
+} from "./marketCategoriesApi";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  clearMarketCategoriesCache();
+  localStorage.clear();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 const payload = {
   schemaVersion: 1,
@@ -125,7 +131,7 @@ test("loads and maps a generated market category", async () => {
   const result = await dailyTcgNearMintGainers();
 
   expect(fetchMock).toHaveBeenCalledWith(
-    "/market-categories.json",
+    "http://localhost:3001/api/market-categories",
     expect.objectContaining({ cache: "no-store" }),
   );
   expect(result.fetchedAt).toBe(payload.generatedAt);
@@ -143,8 +149,8 @@ test("loads and maps a generated market category", async () => {
 test("rejects a missing category", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
 
-  await expect(fetchStaticMarketCategory("missing")).rejects.toThrow(
-    "Static market category not found",
+  await expect(fetchMarketCategory("missing")).rejects.toThrow(
+    "Market category not found",
   );
 });
 
@@ -248,4 +254,54 @@ test("accepts nullable category metadata without rejecting the whole category", 
     set: { name: "Unknown set", slug: "unknown-set" },
   });
   expect(mostSold.items[0]?.setName).toBeNull();
+});
+
+test("reuses the complete browser cache until its 24-hour TTL expires", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-24T12:00:00.000Z"));
+  const fetchMock = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      Response.json({
+        ...payload,
+        generatedAt: new Date().toISOString(),
+      }),
+    ),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  await dailyTcgNearMintGainers();
+  await mostSoldEbayCards();
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).not.toBeNull();
+
+  vi.advanceTimersByTime(24 * 60 * 60 * 1_000);
+  await dailyTcgNearMintLosers();
+
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("falls back to the server when the browser cache is corrupt", async () => {
+  localStorage.setItem("pokelyzer:market-categories:v1", "not-json");
+  const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const result = await dailyTcgNearMintGainers();
+
+  expect(result.items[0]?.name).toBe("Charizard");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("shares one server request across categories", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await Promise.all([
+    dailyTcgNearMintGainers(),
+    dailyTcgNearMintLosers(),
+    mostSoldCards(),
+    mostSoldEbayCards(),
+  ]);
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });

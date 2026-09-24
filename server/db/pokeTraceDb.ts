@@ -1,6 +1,7 @@
 import "dotenv/config";
 import path from "node:path";
 import { createClient } from "@libsql/client";
+import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
 
 const localFileUrl = `file:${path.resolve("server/db/poketrace.sqlite")}`;
 
@@ -129,6 +130,7 @@ async function initializePokeTraceDatabase() {
   await pokeTraceDb.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_market_snapshots_date ON poketrace_market_snapshots(recorded_at, card_id)",
   );
+  await ensureMarketCategoriesStore(pokeTraceDb);
 }
 
 export function ensurePokeTraceReady() {

@@ -58,10 +58,10 @@ name and preserves values such as `avg`, `low`, `high`, `saleCount`, and
 conditions are omitted. No supplemental row is written when neither source has
 one of the supported conditions. These snapshots contain no locally calculated
 market values, are replaced when the same card is refreshed again on the same
-UTC date, and are removed after 35 days. Cardmarket, graded prices, Mint, and
-Heavily Played are not included.
+UTC date, and are removed after 35 days. Cardmarket, graded prices, and Mint are
+not included.
 
-## Static market categories
+## Market categories
 
 Generate all configured market categories independently of the refresh job with:
 
@@ -69,24 +69,22 @@ Generate all configured market categories independently of the refresh job with:
 npm run poketrace:generate-market-categories
 ```
 
-The command reads existing snapshots without changing the database and writes
-`public/market-categories.json`. Configure categories in
-`server/config/marketCategories.ts`. Each `priceGainers` category supports a
-market source, condition, comparison period in days, minimum current and prior
-price, minimum absolute and percentage change, result limit, and percentage or
-absolute sorting. Duplicate the definition to publish several categories in the
-same JSON file.
+The command reads existing snapshots, generates every definition in
+`server/config/marketCategories.ts`, and upserts the complete payload as one row
+in the PokeTrace database. Price-mover categories support a direction, source,
+condition, comparison period, minimum price movement, minimum current sales,
+minimum new sales, result limit, and percentage or absolute sorting.
 
-The `mostSold` category sums the latest reported `saleCount` across all stored
-conditions. Its `source` can be `tcgplayer`, `ebay`, or `both`; `both` adds the
-two source totals per card. `minimumPrice` is applied to each source/condition
-bucket before its `saleCount` is included. These are upstream reported
-sales-window counts, not locally calculated lifetime sales.
+The `mostSold` query compares the combined `saleCount` totals across the selected
+conditions for one source and period. A negative combined difference becomes
+zero. These are changes in upstream reported sales-window counts, not locally
+calculated lifetime sales.
 
-Set `MARKET_CATEGORIES_OUTPUT_PATH` to write somewhere else. The generator is a
-standalone process: run it manually or assign its npm command to a separate cron
-schedule whenever the JSON should be refreshed. It is intentionally not invoked
-by the daily price refresh.
+The backend serves the stored payload from `GET /api/market-categories`.
+Homepage and Explore cache the complete response in browser storage for 24
+hours; missing, expired, or invalid cached data is fetched from the server. Run
+the generator manually or assign its npm command to a separate cron schedule. It
+is intentionally not invoked by the daily price refresh.
 
 After each successful card refresh, the card row also receives a compact
 `tcg_market_comparisons` cache for 1, 7, and 30 days. Each entry contains the

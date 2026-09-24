@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { MostSoldGrid } from "./MostSoldGrid";
 
-vi.mock("../../services/staticMarketCategories", () => ({
+vi.mock("../../services/marketCategoriesApi", () => ({
   mostSoldCards: vi.fn().mockResolvedValue({
     comparisonSnapshotDate: "2026-09-21",
     condition: "ALL",

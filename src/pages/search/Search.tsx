@@ -5,7 +5,7 @@ import {
   dailyTcgNearMintGainers,
   dailyTcgNearMintLosers,
   mostSoldEbayCards,
-} from "../../services/staticMarketCategories";
+} from "../../services/marketCategoriesApi";
 import "./Search.scss";
 
 export default function Search() {

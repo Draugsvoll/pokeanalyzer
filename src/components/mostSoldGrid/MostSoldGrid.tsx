@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import {
   mostSoldCards,
-  type StaticMostSoldItem,
-  type StaticMostSoldResponse,
-} from "../../services/staticMarketCategories";
+  type MostSoldItem,
+  type MostSoldResponse,
+} from "../../services/marketCategoriesApi";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
 import {
@@ -12,22 +12,20 @@ import {
   type CardCategoryGridItem,
 } from "../cardCategoryGrid/CardCategoryGrid";
 
-type MostSoldFetcher = (
-  signal?: AbortSignal,
-) => Promise<StaticMostSoldResponse>;
+type MostSoldFetcher = (signal?: AbortSignal) => Promise<MostSoldResponse>;
 
 type MostSoldGridProps = {
   loadCards?: MostSoldFetcher;
   title?: ReactNode;
 };
 
-function sourceLabel(source: StaticMostSoldResponse["source"]) {
+function sourceLabel(source: MostSoldResponse["source"]) {
   return source === "tcgplayer" ? "TCGPlayer" : "eBay";
 }
 
 function toGridItem(
-  item: StaticMostSoldItem,
-  response: StaticMostSoldResponse,
+  item: MostSoldItem,
+  response: MostSoldResponse,
 ): CardCategoryGridItem {
   const image = item.image ?? "";
   const setName = item.setName ?? "Unknown set";

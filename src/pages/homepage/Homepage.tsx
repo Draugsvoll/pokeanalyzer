@@ -6,7 +6,7 @@ import {
   WelcomeView,
 } from "../../components/welcomeView/WelcomeView";
 import { useAuth } from "../../context/authContextValue";
-import { dailyTcgNearMintGainers } from "../../services/staticMarketCategories";
+import { dailyTcgNearMintGainers } from "../../services/marketCategoriesApi";
 import "./Homepage.scss";
 
 export default function Homepage() {
