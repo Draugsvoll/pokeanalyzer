@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { MarketMoverItem } from "../../../shared/marketMovers";
+import type {
+  MarketMoverItem,
+  MarketMoversResponse,
+} from "../../../shared/marketMovers";
 import { isAbortError } from "../../hooks/useAbortableRequest";
-import type { MarketMoversFetcher } from "../../services/marketMoversApi";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
 import {
@@ -9,10 +11,15 @@ import {
   type CardCategoryGridItem,
 } from "../cardCategoryGrid/CardCategoryGrid";
 
+type MarketMoversFetcher = (
+  signal?: AbortSignal,
+) => Promise<MarketMoversResponse>;
+
 type MarketMoversGridProps = {
   changeLabel?: string;
   emptyMessage?: ReactNode;
   loadMovers: MarketMoversFetcher;
+  showMarketLabel?: boolean;
   subtitle?: ReactNode;
   title: ReactNode;
 };
@@ -52,6 +59,7 @@ function compactTierLabel(value: string) {
 function toGridItem(
   item: MarketMoverItem,
   changeLabel?: string,
+  showMarketLabel = true,
 ): CardCategoryGridItem {
   const image = item.image ?? "";
   const priceSource = item.source.trim().toLowerCase();
@@ -84,7 +92,9 @@ function toGridItem(
       changeLabel: changeLabel ?? `Change from the 7-day ${marketName} average`,
       changePercent: item.changePct,
       currency: item.currency,
-      marketLabel: `${compactTierLabel(item.tier)} · ${sourceLabel(item.source)}`,
+      ...(showMarketLabel && {
+        marketLabel: `${compactTierLabel(item.tier)} · ${sourceLabel(item.source)}`,
+      }),
       price: item.currentPrice,
       priceLabel: marketName,
     },
@@ -95,6 +105,7 @@ export function MarketMoversGrid({
   changeLabel,
   emptyMessage,
   loadMovers,
+  showMarketLabel = true,
   subtitle,
   title,
 }: MarketMoversGridProps) {
@@ -112,7 +123,9 @@ export function MarketMoversGrid({
         if (controller.signal.aborted) return;
         setResult({
           error: null,
-          items: response.items.map((item) => toGridItem(item, changeLabel)),
+          items: response.items.map((item) =>
+            toGridItem(item, changeLabel, showMarketLabel),
+          ),
           loading: false,
         });
       })
@@ -127,7 +140,7 @@ export function MarketMoversGrid({
       });
 
     return () => controller.abort();
-  }, [changeLabel, loadMovers]);
+  }, [changeLabel, loadMovers, showMarketLabel]);
 
   return (
     <CardCategoryGrid

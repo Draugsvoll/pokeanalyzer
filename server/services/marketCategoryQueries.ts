@@ -1,31 +1,36 @@
 import type { Client } from "@libsql/client";
 
 export const MARKET_SOURCES = ["tcgplayer", "ebay"] as const;
-export const MOST_SOLD_SOURCES = ["tcgplayer", "ebay", "both"] as const;
 export const MARKET_CONDITIONS = [
   "NEAR_MINT",
   "LIGHTLY_PLAYED",
   "MODERATELY_PLAYED",
+  "HEAVILY_PLAYED",
   "DAMAGED",
 ] as const;
+export const MOST_SOLD_CONDITIONS = ["ALL", ...MARKET_CONDITIONS] as const;
 
 export type MarketSource = (typeof MARKET_SOURCES)[number];
-export type MostSoldSource = (typeof MOST_SOLD_SOURCES)[number];
 export type MarketCondition = (typeof MARKET_CONDITIONS)[number];
-export type PriceGainersSort = "absolute" | "percentage";
+export type MostSoldCondition = (typeof MOST_SOLD_CONDITIONS)[number];
+export type PriceMoverDirection = "gainers" | "losers";
+export type PriceMoversSort = "absolute" | "percentage";
 
-export type PriceGainersOptions = {
+export type PriceMoversOptions = {
   condition: MarketCondition;
+  direction: PriceMoverDirection;
   limit: number;
   minimumChange: number;
   minimumChangePercent: number;
   minimumPrice: number;
+  minimumSales: number;
+  minimumSalesIncrease: number;
   periodDays: number;
-  sortBy: PriceGainersSort;
+  sortBy: PriceMoversSort;
   source: MarketSource;
 };
 
-export type PriceGainer = {
+export type PriceMover = {
   cardId: string;
   cardNumber: string | null;
   change: number;
@@ -43,42 +48,46 @@ export type PriceGainer = {
   variant: string | null;
 };
 
-export type PriceGainersResult = {
+export type PriceMoversResult = {
   comparisonSnapshotDate: string | null;
   currentSnapshotDate: string | null;
-  items: PriceGainer[];
-  parameters: PriceGainersOptions;
+  items: PriceMover[];
+  parameters: PriceMoversOptions;
   status: "insufficient_history" | "ready";
 };
 
 export type MostSoldOptions = {
+  condition: MostSoldCondition;
   limit: number;
+  minimumNewSales: number;
   minimumPrice: number;
-  minimumSales: number;
-  source: MostSoldSource;
+  periodDays: number;
+  source: MarketSource;
 };
 
 export type MostSoldItem = {
   cardId: string;
   cardNumber: string | null;
-  ebaySales: number;
+  currency: string | null;
+  currentPrice: number;
   image: string | null;
   name: string;
+  newSales: number;
+  prices: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
-  tcgplayerSales: number;
-  totalSales: number;
   variant: string | null;
 };
 
 export type MostSoldResult = {
+  comparisonSnapshotDate: string | null;
+  currentSnapshotDate: string | null;
   items: MostSoldItem[];
   parameters: MostSoldOptions;
-  snapshotDate: string | null;
   status: "insufficient_history" | "ready";
 };
 
-type PriceGainerRow = {
+type PriceMoverRow = {
   card_id: unknown;
   card_number: unknown;
   change_abs: unknown;
@@ -94,22 +103,27 @@ type PriceGainerRow = {
   variant: unknown;
 };
 
-const DEFAULT_OPTIONS: PriceGainersOptions = {
+const DEFAULT_OPTIONS: PriceMoversOptions = {
   condition: "NEAR_MINT",
+  direction: "gainers",
   limit: 10,
   minimumChange: 0,
   minimumChangePercent: 0,
   minimumPrice: 20,
+  minimumSales: 0,
+  minimumSalesIncrease: 0,
   periodDays: 1,
   sortBy: "percentage",
   source: "tcgplayer",
 };
 
 const DEFAULT_MOST_SOLD_OPTIONS: MostSoldOptions = {
+  condition: "ALL",
   limit: 10,
+  minimumNewSales: 1,
   minimumPrice: 0,
-  minimumSales: 1,
-  source: "both",
+  periodDays: 1,
+  source: "tcgplayer",
 };
 
 function finiteNumber(value: unknown, label: string, minimum: number) {
@@ -138,9 +152,9 @@ function integer(
   return value;
 }
 
-export function normalizePriceGainersOptions(
-  options: Partial<PriceGainersOptions> = {},
-): PriceGainersOptions {
+export function normalizePriceMoversOptions(
+  options: Partial<PriceMoversOptions> = {},
+): PriceMoversOptions {
   const merged = { ...DEFAULT_OPTIONS, ...options };
   if (!MARKET_SOURCES.includes(merged.source)) {
     throw new Error(`Unsupported market source: ${String(merged.source)}`);
@@ -150,11 +164,15 @@ export function normalizePriceGainersOptions(
       `Unsupported market condition: ${String(merged.condition)}`,
     );
   }
+  if (!(["gainers", "losers"] as const).includes(merged.direction)) {
+    throw new Error(`Unsupported mover direction: ${String(merged.direction)}`);
+  }
   if (!(["absolute", "percentage"] as const).includes(merged.sortBy)) {
-    throw new Error(`Unsupported gainers sort: ${String(merged.sortBy)}`);
+    throw new Error(`Unsupported movers sort: ${String(merged.sortBy)}`);
   }
   return {
     condition: merged.condition,
+    direction: merged.direction,
     limit: integer(merged.limit, "limit", 1, 100),
     minimumChange: finiteNumber(merged.minimumChange, "minimumChange", 0),
     minimumChangePercent: finiteNumber(
@@ -163,6 +181,13 @@ export function normalizePriceGainersOptions(
       0,
     ),
     minimumPrice: finiteNumber(merged.minimumPrice, "minimumPrice", 0),
+    minimumSales: integer(merged.minimumSales, "minimumSales", 0, 1_000_000),
+    minimumSalesIncrease: integer(
+      merged.minimumSalesIncrease,
+      "minimumSalesIncrease",
+      0,
+      1_000_000,
+    ),
     periodDays: integer(merged.periodDays, "periodDays", 1, 365),
     sortBy: merged.sortBy,
     source: merged.source,
@@ -173,13 +198,25 @@ export function normalizeMostSoldOptions(
   options: Partial<MostSoldOptions> = {},
 ): MostSoldOptions {
   const merged = { ...DEFAULT_MOST_SOLD_OPTIONS, ...options };
-  if (!MOST_SOLD_SOURCES.includes(merged.source)) {
+  if (!MARKET_SOURCES.includes(merged.source)) {
     throw new Error(`Unsupported most-sold source: ${String(merged.source)}`);
   }
+  if (!MOST_SOLD_CONDITIONS.includes(merged.condition)) {
+    throw new Error(
+      `Unsupported most-sold condition: ${String(merged.condition)}`,
+    );
+  }
   return {
+    condition: merged.condition,
     limit: integer(merged.limit, "limit", 1, 100),
+    minimumNewSales: integer(
+      merged.minimumNewSales,
+      "minimumNewSales",
+      0,
+      1_000_000,
+    ),
     minimumPrice: finiteNumber(merged.minimumPrice, "minimumPrice", 0),
-    minimumSales: finiteNumber(merged.minimumSales, "minimumSales", 0),
+    periodDays: integer(merged.periodDays, "periodDays", 1, 365),
     source: merged.source,
   };
 }
@@ -194,11 +231,11 @@ function optionalText(value: unknown) {
   return typeof value === "string" && value ? value : null;
 }
 
-function toPriceGainer(
+function toPriceMover(
   rawRow: Record<string, unknown>,
-  options: PriceGainersOptions,
-): PriceGainer {
-  const row = rawRow as PriceGainerRow;
+  options: PriceMoversOptions,
+): PriceMover {
+  const row = rawRow as PriceMoverRow;
   return {
     cardId: String(row.card_id),
     cardNumber: optionalText(row.card_number),
@@ -241,8 +278,32 @@ async function snapshotDateExists(
   return result.rows.length > 0;
 }
 
-function dedicatedNearMintQuery(sortBy: PriceGainersSort) {
-  const order = sortBy === "absolute" ? "change_abs" : "change_pct";
+function movementFilter(direction: PriceMoverDirection) {
+  return direction === "gainers"
+    ? `current.market_price > previous.market_price
+      AND current.market_price - previous.market_price >= ?
+      AND 100.0 * (current.market_price - previous.market_price)
+        / previous.market_price >= ?`
+    : `previous.market_price > current.market_price
+      AND previous.market_price - current.market_price >= ?
+      AND 100.0 * (previous.market_price - current.market_price)
+        / previous.market_price >= ?`;
+}
+
+function movementOrder(
+  direction: PriceMoverDirection,
+  sortBy: PriceMoversSort,
+) {
+  const column = sortBy === "absolute" ? "change_abs" : "change_pct";
+  return `${column} ${direction === "gainers" ? "DESC" : "ASC"}`;
+}
+
+function dedicatedNearMintQuery(
+  direction: PriceMoverDirection,
+  sortBy: PriceMoversSort,
+) {
+  const movement = movementFilter(direction);
+  const order = movementOrder(direction, sortBy);
   return `
     SELECT
       cards.id AS card_id,
@@ -261,26 +322,51 @@ function dedicatedNearMintQuery(sortBy: PriceGainersSort) {
           / previous.market_price,
         2
       ) AS change_pct,
-      NULL AS sale_count
+      CAST(
+        json_extract(current_snapshot.tcg, '$.NEAR_MINT.saleCount') AS REAL
+      ) AS sale_count
     FROM poketrace_tcg_market_prices AS current
     INNER JOIN poketrace_tcg_market_prices AS previous
       ON previous.card_id = current.card_id
       AND previous.recorded_at = ?
     INNER JOIN poketrace_cards AS cards ON cards.id = current.card_id
+    LEFT JOIN poketrace_market_snapshots AS current_snapshot
+      ON current_snapshot.card_id = current.card_id
+      AND current_snapshot.recorded_at = current.recorded_at
+    LEFT JOIN poketrace_market_snapshots AS previous_snapshot
+      ON previous_snapshot.card_id = previous.card_id
+      AND previous_snapshot.recorded_at = previous.recorded_at
     WHERE current.recorded_at = ?
       AND current.market_price >= ?
       AND previous.market_price >= ?
-      AND current.market_price - previous.market_price >= ?
-      AND 100.0 * (current.market_price - previous.market_price)
-        / previous.market_price >= ?
-    ORDER BY ${order} DESC, change_abs DESC, cards.id
+      AND ${movement}
+      AND (
+        ? = 0
+        OR CAST(
+          json_extract(current_snapshot.tcg, '$.NEAR_MINT.saleCount') AS REAL
+        ) >= ?
+      )
+      AND (
+        ? = 0
+        OR CAST(
+          json_extract(current_snapshot.tcg, '$.NEAR_MINT.saleCount') AS REAL
+        ) - CAST(
+          json_extract(previous_snapshot.tcg, '$.NEAR_MINT.saleCount') AS REAL
+        ) >= ?
+      )
+    ORDER BY ${order}, change_abs ${direction === "gainers" ? "DESC" : "ASC"}, cards.id
     LIMIT ?
   `;
 }
 
-function marketSnapshotQuery(source: MarketSource, sortBy: PriceGainersSort) {
+function marketSnapshotQuery(
+  source: MarketSource,
+  direction: PriceMoverDirection,
+  sortBy: PriceMoversSort,
+) {
   const marketColumn = source === "tcgplayer" ? "tcg" : "ebay";
-  const order = sortBy === "absolute" ? "change_abs" : "change_pct";
+  const movement = movementFilter(direction);
+  const order = movementOrder(direction, sortBy);
   return `
     WITH current_prices AS (
       SELECT
@@ -294,7 +380,8 @@ function marketSnapshotQuery(source: MarketSource, sortBy: PriceGainersSort) {
     previous_prices AS (
       SELECT
         card_id,
-        CAST(json_extract(${marketColumn}, ?) AS REAL) AS market_price
+        CAST(json_extract(${marketColumn}, ?) AS REAL) AS market_price,
+        CAST(json_extract(${marketColumn}, ?) AS REAL) AS sale_count
       FROM poketrace_market_snapshots
       WHERE recorded_at = ?
     )
@@ -321,19 +408,22 @@ function marketSnapshotQuery(source: MarketSource, sortBy: PriceGainersSort) {
     INNER JOIN poketrace_cards AS cards ON cards.id = current.card_id
     WHERE current.market_price >= ?
       AND previous.market_price >= ?
-      AND current.market_price - previous.market_price >= ?
-      AND 100.0 * (current.market_price - previous.market_price)
-        / previous.market_price >= ?
-    ORDER BY ${order} DESC, change_abs DESC, cards.id
+      AND ${movement}
+      AND (? = 0 OR current.sale_count >= ?)
+      AND (
+        ? = 0
+        OR current.sale_count - previous.sale_count >= ?
+      )
+    ORDER BY ${order}, change_abs ${direction === "gainers" ? "DESC" : "ASC"}, cards.id
     LIMIT ?
   `;
 }
 
-export async function findPriceGainers(
+export async function findPriceMovers(
   database: Pick<Client, "execute">,
-  requestedOptions: Partial<PriceGainersOptions> = {},
-): Promise<PriceGainersResult> {
-  const parameters = normalizePriceGainersOptions(requestedOptions);
+  requestedOptions: Partial<PriceMoversOptions> = {},
+): Promise<PriceMoversResult> {
+  const parameters = normalizePriceMoversOptions(requestedOptions);
   const useDedicatedHistory =
     parameters.source === "tcgplayer" && parameters.condition === "NEAR_MINT";
   const historyTable = useDedicatedHistory
@@ -363,20 +453,29 @@ export async function findPriceGainers(
     parameters.minimumPrice,
     parameters.minimumChange,
     parameters.minimumChangePercent,
+    parameters.minimumSales,
+    parameters.minimumSales,
+    parameters.minimumSalesIncrease,
+    parameters.minimumSalesIncrease,
     parameters.limit,
   ];
   const result = useDedicatedHistory
     ? await database.execute({
-        sql: dedicatedNearMintQuery(parameters.sortBy),
+        sql: dedicatedNearMintQuery(parameters.direction, parameters.sortBy),
         args: [comparisonSnapshotDate, currentSnapshotDate, ...commonArgs],
       })
     : await database.execute({
-        sql: marketSnapshotQuery(parameters.source, parameters.sortBy),
+        sql: marketSnapshotQuery(
+          parameters.source,
+          parameters.direction,
+          parameters.sortBy,
+        ),
         args: [
           `$.${parameters.condition}.avg`,
           `$.${parameters.condition}.saleCount`,
           currentSnapshotDate,
           `$.${parameters.condition}.avg`,
+          `$.${parameters.condition}.saleCount`,
           comparisonSnapshotDate,
           ...commonArgs,
         ],
@@ -385,24 +484,36 @@ export async function findPriceGainers(
   return {
     comparisonSnapshotDate,
     currentSnapshotDate,
-    items: result.rows.map((row) => toPriceGainer(row, parameters)),
+    items: result.rows.map((row) => toPriceMover(row, parameters)),
     parameters,
     status: "ready",
   };
 }
 
-function salesExpression(column: "ebay" | "tcg") {
-  return MARKET_CONDITIONS.map(
-    (condition) =>
-      `CASE
-        WHEN CAST(json_extract(${column}, '$.${condition}.avg') AS REAL) >= ?
-        THEN COALESCE(
-          CAST(json_extract(${column}, '$.${condition}.saleCount') AS REAL),
-          0
+function newSalesExpression(
+  column: "ebay" | "tcg",
+  conditions: readonly MarketCondition[],
+) {
+  const comparableSales = (snapshot: "current" | "previous") =>
+    conditions
+      .map(
+        (condition) => `CASE
+        WHEN json_type(current.${column}, '$.${condition}.saleCount')
+               IN ('integer', 'real')
+          AND json_type(previous.${column}, '$.${condition}.saleCount')
+               IN ('integer', 'real')
+        THEN CAST(
+          json_extract(${snapshot}.${column}, '$.${condition}.saleCount') AS REAL
         )
         ELSE 0
       END`,
-  ).join(" + ");
+      )
+      .join(" + ");
+
+  return `MAX(
+    (${comparableSales("current")}) - (${comparableSales("previous")}),
+    0
+  )`;
 }
 
 export async function findMostSold(
@@ -410,41 +521,53 @@ export async function findMostSold(
   requestedOptions: Partial<MostSoldOptions> = {},
 ): Promise<MostSoldResult> {
   const parameters = normalizeMostSoldOptions(requestedOptions);
-  const snapshotDate = await latestDate(database, "poketrace_market_snapshots");
-  if (!snapshotDate) {
+  const currentSnapshotDate = await latestDate(
+    database,
+    "poketrace_market_snapshots",
+  );
+  const comparisonSnapshotDate = currentSnapshotDate
+    ? dateDaysBefore(currentSnapshotDate, parameters.periodDays)
+    : null;
+  if (
+    !currentSnapshotDate ||
+    !comparisonSnapshotDate ||
+    !(await snapshotDateExists(
+      database,
+      "poketrace_market_snapshots",
+      comparisonSnapshotDate,
+    ))
+  ) {
     return {
+      comparisonSnapshotDate,
+      currentSnapshotDate,
       items: [],
       parameters,
-      snapshotDate: null,
       status: "insufficient_history",
     };
   }
 
-  const tcgplayerSales = salesExpression("tcg");
-  const ebaySales = salesExpression("ebay");
-  const selectedSales =
-    parameters.source === "tcgplayer"
-      ? "tcgplayer_sales"
-      : parameters.source === "ebay"
-        ? "ebay_sales"
-        : "tcgplayer_sales + ebay_sales";
+  const column = parameters.source === "tcgplayer" ? "tcg" : "ebay";
+  const conditions =
+    parameters.condition === "ALL" ? MARKET_CONDITIONS : [parameters.condition];
+  const priceCondition =
+    parameters.condition === "ALL" ? "NEAR_MINT" : parameters.condition;
+  const newSales = newSalesExpression(column, conditions);
   const result = await database.execute({
     sql: `
       WITH sales_by_card AS (
         SELECT
-          card_id,
-          ${tcgplayerSales} AS tcgplayer_sales,
-          ${ebaySales} AS ebay_sales
-        FROM poketrace_market_snapshots
-        WHERE recorded_at = ?
-      ),
-      selected_sales AS (
-        SELECT
-          card_id,
-          tcgplayer_sales,
-          ebay_sales,
-          ${selectedSales} AS total_sales
-        FROM sales_by_card
+          current.card_id,
+          current.currency,
+          current.${column} AS prices,
+          CAST(
+            json_extract(current.${column}, '$.${priceCondition}.avg') AS REAL
+          ) AS current_price,
+          ${newSales} AS new_sales
+        FROM poketrace_market_snapshots AS current
+        INNER JOIN poketrace_market_snapshots AS previous
+          ON previous.card_id = current.card_id
+          AND previous.recorded_at = ?
+        WHERE current.recorded_at = ?
       )
       SELECT
         cards.id AS card_id,
@@ -454,39 +577,43 @@ export async function findMostSold(
         cards.rarity,
         cards.variant,
         cards.image_url,
-        selected.tcgplayer_sales,
-        selected.ebay_sales,
-        selected.total_sales
-      FROM selected_sales AS selected
+        selected.currency,
+        selected.prices,
+        selected.current_price,
+        selected.new_sales
+      FROM sales_by_card AS selected
       INNER JOIN poketrace_cards AS cards ON cards.id = selected.card_id
-      WHERE selected.total_sales >= ?
-      ORDER BY selected.total_sales DESC, cards.id
+      WHERE selected.current_price >= ?
+        AND selected.new_sales >= ?
+      ORDER BY selected.new_sales DESC, cards.id
       LIMIT ?
     `,
     args: [
-      ...MARKET_CONDITIONS.map(() => parameters.minimumPrice),
-      ...MARKET_CONDITIONS.map(() => parameters.minimumPrice),
-      snapshotDate,
-      parameters.minimumSales,
+      comparisonSnapshotDate,
+      currentSnapshotDate,
+      parameters.minimumPrice,
+      parameters.minimumNewSales,
       parameters.limit,
     ],
   });
 
   return {
+    comparisonSnapshotDate,
+    currentSnapshotDate,
     items: result.rows.map((row) => ({
       cardId: String(row.card_id),
       cardNumber: optionalText(row.card_number),
-      ebaySales: Number(row.ebay_sales),
+      currency: optionalText(row.currency),
+      currentPrice: Number(row.current_price),
       image: optionalText(row.image_url),
       name: String(row.name),
+      newSales: Number(row.new_sales),
+      prices: JSON.parse(String(row.prices)) as Record<string, unknown>,
       rarity: optionalText(row.rarity),
       setName: optionalText(row.set_name),
-      tcgplayerSales: Number(row.tcgplayer_sales),
-      totalSales: Number(row.total_sales),
       variant: optionalText(row.variant),
     })),
     parameters,
-    snapshotDate,
     status: "ready",
   };
 }

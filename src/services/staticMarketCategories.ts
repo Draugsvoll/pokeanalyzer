@@ -10,21 +10,31 @@ type JsonRecord = Record<string, unknown>;
 export type StaticMostSoldItem = {
   cardId: string;
   cardNumber: string | null;
-  ebaySales: number;
+  currency: string;
+  currentPrice: number;
   image: string | null;
   name: string;
+  newSales: number;
+  prices: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
-  tcgplayerSales: number;
-  totalSales: number;
   variant: string | null;
 };
 
 export type StaticMostSoldResponse = {
+  comparisonSnapshotDate: string | null;
+  condition:
+    | "ALL"
+    | "NEAR_MINT"
+    | "LIGHTLY_PLAYED"
+    | "MODERATELY_PLAYED"
+    | "HEAVILY_PLAYED"
+    | "DAMAGED";
+  currentSnapshotDate: string | null;
   fetchedAt: string;
   items: StaticMostSoldItem[];
-  snapshotDate: string | null;
-  source: "both" | "ebay" | "tcgplayer";
+  periodDays: number;
+  source: "ebay" | "tcgplayer";
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -105,15 +115,23 @@ function parseCategoryFile(
   const category = value.categories.find(
     (candidate) => isRecord(candidate) && candidate.id === categoryId,
   );
-  if (!isRecord(category) || !Array.isArray(category.items)) {
+  if (
+    !isRecord(category) ||
+    !Array.isArray(category.items) ||
+    !isRecord(category.parameters)
+  ) {
     throw new Error(`Static market category not found: ${categoryId}`);
+  }
+  const direction = category.parameters.direction;
+  if (direction !== "gainers" && direction !== "losers") {
+    throw new Error("Invalid static market category direction");
   }
 
   return {
     fetchedAt: value.generatedAt,
     items: category.items.map(parseItem),
     query: {
-      direction: "gainers",
+      direction,
       game: "pokemon",
       limit: category.items.length,
       market: "US",
@@ -140,36 +158,57 @@ function parseMostSoldFile(
     !isRecord(category) ||
     !Array.isArray(category.items) ||
     !isRecord(category.parameters) ||
-    (category.snapshotDate !== null &&
-      typeof category.snapshotDate !== "string")
+    (category.currentSnapshotDate !== null &&
+      typeof category.currentSnapshotDate !== "string") ||
+    (category.comparisonSnapshotDate !== null &&
+      typeof category.comparisonSnapshotDate !== "string")
   ) {
     throw new Error(`Static market category not found: ${categoryId}`);
   }
   const source = category.parameters.source;
-  if (source !== "tcgplayer" && source !== "ebay" && source !== "both") {
+  if (source !== "tcgplayer" && source !== "ebay") {
     throw new Error("Invalid most-sold market source");
   }
+  const condition = category.parameters.condition;
+  if (
+    condition !== "ALL" &&
+    condition !== "NEAR_MINT" &&
+    condition !== "LIGHTLY_PLAYED" &&
+    condition !== "MODERATELY_PLAYED" &&
+    condition !== "HEAVILY_PLAYED" &&
+    condition !== "DAMAGED"
+  ) {
+    throw new Error("Invalid most-sold market condition");
+  }
+  const periodDays = finiteNumber(category.parameters.periodDays, "periodDays");
 
   return {
+    comparisonSnapshotDate: category.comparisonSnapshotDate,
+    condition,
+    currentSnapshotDate: category.currentSnapshotDate,
     fetchedAt: value.generatedAt,
     items: category.items.map((item) => {
       if (!isRecord(item)) {
         throw new Error("Invalid most-sold category item");
       }
+      if (!isRecord(item.prices)) {
+        throw new Error("Invalid most-sold category prices");
+      }
       return {
         cardId: text(item.cardId, "cardId"),
         cardNumber: nullableText(item.cardNumber),
-        ebaySales: finiteNumber(item.ebaySales, "ebaySales"),
+        currency: nullableText(item.currency) ?? "USD",
+        currentPrice: finiteNumber(item.currentPrice, "currentPrice"),
         image: nullableText(item.image),
         name: text(item.name, "name"),
+        newSales: finiteNumber(item.newSales, "newSales"),
+        prices: item.prices,
         rarity: nullableText(item.rarity),
         setName: nullableText(item.setName),
-        tcgplayerSales: finiteNumber(item.tcgplayerSales, "tcgplayerSales"),
-        totalSales: finiteNumber(item.totalSales, "totalSales"),
         variant: nullableText(item.variant),
       };
     }),
-    snapshotDate: category.snapshotDate,
+    periodDays,
     source,
   };
 }
@@ -198,6 +237,14 @@ export function dailyTcgNearMintGainers(signal?: AbortSignal) {
   return fetchStaticMarketCategory("daily-tcg-near-mint-gainers", signal);
 }
 
+export function dailyTcgNearMintLosers(signal?: AbortSignal) {
+  return fetchStaticMarketCategory("daily-tcg-near-mint-losers", signal);
+}
+
 export async function mostSoldCards(signal?: AbortSignal) {
   return parseMostSoldFile(await fetchCategoryFile(signal), "most-sold");
+}
+
+export async function mostSoldEbayCards(signal?: AbortSignal) {
+  return parseMostSoldFile(await fetchCategoryFile(signal), "most-sold-ebay");
 }

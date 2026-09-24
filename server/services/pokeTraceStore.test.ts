@@ -116,6 +116,7 @@ test("stores the existing TCG price and the additional market snapshot", async (
         NEAR_MINT: { avg: 420, low: 380, high: 480 },
         LIGHTLY_PLAYED: { avg: 350 },
         MODERATELY_PLAYED: { avg: 300 },
+        HEAVILY_PLAYED: { avg: 240 },
         DAMAGED: { avg: 180 },
       }),
       ebay: JSON.stringify({

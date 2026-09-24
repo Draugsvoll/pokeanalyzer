@@ -62,7 +62,9 @@ test("loads a configurable mover category and maps it to grid cards", async () =
     stale: false,
   });
 
-  render(<MarketMoversGrid loadMovers={loadMovers} title="Category" />);
+  const { rerender } = render(
+    <MarketMoversGrid loadMovers={loadMovers} title="Category" />,
+  );
 
   await waitFor(() =>
     expect(screen.getByLabelText("Mover grid")).toHaveAttribute(
@@ -74,4 +76,16 @@ test("loads a configurable mover category and maps it to grid cards", async () =
   const card = screen.getByText(/Charizard NM.*TCG 120/);
   expect(card).toBeVisible();
   expect(card).toHaveAttribute("data-preview-price", "120");
+
+  rerender(
+    <MarketMoversGrid
+      loadMovers={loadMovers}
+      showMarketLabel={false}
+      title="Category"
+    />,
+  );
+
+  await waitFor(() =>
+    expect(screen.queryByText(/NM.*TCG/)).not.toBeInTheDocument(),
+  );
 });

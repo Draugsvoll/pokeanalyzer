@@ -1,8 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
   dailyTcgNearMintGainers,
+  dailyTcgNearMintLosers,
   fetchStaticMarketCategory,
   mostSoldCards,
+  mostSoldEbayCards,
 } from "./staticMarketCategories";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -32,25 +34,86 @@ const payload = {
           variant: "Holofoil",
         },
       ],
+      parameters: { direction: "gainers" },
     },
     {
+      id: "daily-tcg-near-mint-losers",
+      items: [
+        {
+          cardId: "card-4",
+          cardNumber: "8/102",
+          change: -20,
+          changePercent: -20,
+          condition: "NEAR_MINT",
+          currency: "USD",
+          currentPrice: 80,
+          image: "https://example.com/loser.webp",
+          name: "Machamp",
+          previousPrice: 100,
+          rarity: "Holo Rare",
+          saleCount: 30,
+          setName: "Base Set",
+          source: "tcgplayer",
+          variant: "Holofoil",
+        },
+      ],
+      parameters: { direction: "losers" },
+    },
+    {
+      comparisonSnapshotDate: "2026-09-21",
+      currentSnapshotDate: "2026-09-22",
       id: "most-sold",
       items: [
         {
           cardId: "card-2",
           cardNumber: "10/102",
-          ebaySales: 20,
+          currency: "USD",
+          currentPrice: 25,
           image: null,
           name: "Pikachu",
+          newSales: 7,
+          prices: { NEAR_MINT: { avg: 25, saleCount: 37 } },
           rarity: "Common",
           setName: "Base Set",
-          tcgplayerSales: 30,
-          totalSales: 50,
           variant: "Normal",
         },
       ],
-      parameters: { limit: 10, minimumSales: 1, source: "both" },
-      snapshotDate: "2026-09-22",
+      parameters: {
+        condition: "ALL",
+        limit: 10,
+        minimumNewSales: 1,
+        minimumPrice: 20,
+        periodDays: 1,
+        source: "tcgplayer",
+      },
+    },
+    {
+      comparisonSnapshotDate: "2026-09-21",
+      currentSnapshotDate: "2026-09-22",
+      id: "most-sold-ebay",
+      items: [
+        {
+          cardId: "card-3",
+          cardNumber: "2/102",
+          currency: "USD",
+          currentPrice: 40,
+          image: null,
+          name: "Blastoise",
+          newSales: 5,
+          prices: { NEAR_MINT: { avg: 40, saleCount: 15 } },
+          rarity: "Holo Rare",
+          setName: "Base Set",
+          variant: "Holofoil",
+        },
+      ],
+      parameters: {
+        condition: "ALL",
+        limit: 10,
+        minimumNewSales: 1,
+        minimumPrice: 20,
+        periodDays: 1,
+        source: "ebay",
+      },
     },
   ],
 };
@@ -74,6 +137,7 @@ test("loads and maps a generated market category", async () => {
     set: { name: "Base Set", slug: "base-set" },
     tier: "NEAR_MINT",
   });
+  expect(result.query.direction).toBe("gainers");
 });
 
 test("rejects a missing category", async () => {
@@ -84,17 +148,33 @@ test("rejects a missing category", async () => {
   );
 });
 
+test("loads and maps the generated daily losers category", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
+
+  const result = await dailyTcgNearMintLosers();
+
+  expect(result.items[0]).toMatchObject({
+    cardId: "card-4",
+    changeAbs: -20,
+    changePct: -20,
+    currentPrice: 80,
+  });
+  expect(result.query.direction).toBe("losers");
+});
+
 test("loads the most-sold category with its configured source", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
 
   const result = await mostSoldCards();
 
-  expect(result.source).toBe("both");
-  expect(result.snapshotDate).toBe("2026-09-22");
+  expect(result.source).toBe("tcgplayer");
+  expect(result.condition).toBe("ALL");
+  expect(result.currentSnapshotDate).toBe("2026-09-22");
+  expect(result.comparisonSnapshotDate).toBe("2026-09-21");
   expect(result.items[0]).toMatchObject({
-    ebaySales: 20,
-    tcgplayerSales: 30,
-    totalSales: 50,
+    currentPrice: 25,
+    newSales: 7,
+    prices: { NEAR_MINT: { avg: 25, saleCount: 37 } },
   });
 });
 
@@ -105,8 +185,9 @@ test("accepts a most-sold category before snapshots are available", async () => 
       category.id === "most-sold"
         ? {
             ...category,
+            comparisonSnapshotDate: null,
+            currentSnapshotDate: null,
             items: [],
-            snapshotDate: null,
             status: "insufficient_history",
           }
         : category,
@@ -119,8 +200,22 @@ test("accepts a most-sold category before snapshots are available", async () => 
 
   const result = await mostSoldCards();
 
-  expect(result.snapshotDate).toBeNull();
+  expect(result.currentSnapshotDate).toBeNull();
+  expect(result.comparisonSnapshotDate).toBeNull();
   expect(result.items).toEqual([]);
+});
+
+test("loads the eBay most-sold category", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
+
+  const result = await mostSoldEbayCards();
+
+  expect(result.source).toBe("ebay");
+  expect(result.items[0]).toMatchObject({
+    currentPrice: 40,
+    name: "Blastoise",
+    newSales: 5,
+  });
 });
 
 test("accepts nullable category metadata without rejecting the whole category", async () => {

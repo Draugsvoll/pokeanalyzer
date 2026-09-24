@@ -4,23 +4,27 @@ import { MostSoldGrid } from "./MostSoldGrid";
 
 vi.mock("../../services/staticMarketCategories", () => ({
   mostSoldCards: vi.fn().mockResolvedValue({
+    comparisonSnapshotDate: "2026-09-21",
+    condition: "ALL",
+    currentSnapshotDate: "2026-09-22",
     fetchedAt: "2026-09-22T12:00:00.000Z",
     items: [
       {
         cardId: "card-1",
         cardNumber: "4/102",
-        ebaySales: 20,
+        currency: "USD",
+        currentPrice: 120,
         image: null,
         name: "Charizard",
+        newSales: 20,
+        prices: { NEAR_MINT: { avg: 120, saleCount: 50 } },
         rarity: "Holo Rare",
         setName: null,
-        tcgplayerSales: 30,
-        totalSales: 50,
         variant: "Holofoil",
       },
     ],
-    snapshotDate: "2026-09-22",
-    source: "both",
+    periodDays: 1,
+    source: "tcgplayer",
   }),
 }));
 
@@ -31,22 +35,22 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   }: {
     items: Array<{
       card: { name: string; set: { name: string } };
-      marketDisplay?: { marketLabel?: string; primaryText?: string };
+      marketDisplay?: { marketLabel?: string; price?: number };
     }>;
     loading: boolean;
   }) => (
     <div aria-label="Most sold grid" data-loading={loading}>
       {items.map((item) => (
         <span key={item.card.name}>
-          {item.card.name} {item.card.set.name}{" "}
-          {item.marketDisplay?.primaryText} {item.marketDisplay?.marketLabel}
+          {item.card.name} {item.card.set.name} {item.marketDisplay?.price}{" "}
+          {item.marketDisplay?.marketLabel}
         </span>
       ))}
     </div>
   ),
 }));
 
-test("renders reported sales in a normal card category grid", async () => {
+test("renders the current price with the number of new sales", async () => {
   render(<MostSoldGrid />);
 
   await waitFor(() =>
@@ -56,6 +60,6 @@ test("renders reported sales in a normal card category grid", async () => {
     ),
   );
   expect(
-    screen.getByText(/Charizard Unknown set 50 sales · TCG \+ eBay/),
+    screen.getByText(/Charizard Unknown set 120 20 new sales/),
   ).toBeVisible();
 });

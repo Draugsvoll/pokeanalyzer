@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import {
   mostSoldCards,
@@ -12,14 +12,22 @@ import {
   type CardCategoryGridItem,
 } from "../cardCategoryGrid/CardCategoryGrid";
 
+type MostSoldFetcher = (
+  signal?: AbortSignal,
+) => Promise<StaticMostSoldResponse>;
+
+type MostSoldGridProps = {
+  loadCards?: MostSoldFetcher;
+  title?: ReactNode;
+};
+
 function sourceLabel(source: StaticMostSoldResponse["source"]) {
-  if (source === "both") return "TCG + eBay";
-  return source === "tcgplayer" ? "TCG" : "eBay";
+  return source === "tcgplayer" ? "TCGPlayer" : "eBay";
 }
 
 function toGridItem(
   item: StaticMostSoldItem,
-  source: StaticMostSoldResponse["source"],
+  response: StaticMostSoldResponse,
 ): CardCategoryGridItem {
   const image = item.image ?? "";
   const setName = item.setName ?? "Unknown set";
@@ -31,25 +39,33 @@ function toGridItem(
     image,
     set: { id: setName, name: setName },
     pokeTrace: {
-      currency: "USD",
+      currency: item.currency,
       marketplaceUrls: {},
-      prices: {},
+      prices: { [response.source]: item.prices },
       ...(item.variant && { variant: item.variant }),
     },
   };
-  const market = sourceLabel(source);
+  const market = sourceLabel(response.source);
+  const salesLabel = `${item.newSales.toLocaleString("en-US")} new ${item.newSales === 1 ? "sale" : "sales"}`;
+  const condition =
+    response.condition === "ALL"
+      ? "all stored conditions"
+      : response.condition.toLowerCase().replaceAll("_", " ");
   return {
     card,
     marketDisplay: {
-      currency: "USD",
-      marketLabel: `sales · ${market}`,
-      priceLabel: `${item.totalSales.toLocaleString("en-US")} reported sales across all stored conditions on ${market}`,
-      primaryText: item.totalSales.toLocaleString("en-US"),
+      currency: item.currency,
+      marketLabel: salesLabel,
+      price: item.currentPrice,
+      priceLabel: `${salesLabel} on ${market} across ${condition} during the last ${response.periodDays} ${response.periodDays === 1 ? "day" : "days"}`,
     },
   };
 }
 
-export function MostSoldGrid() {
+export function MostSoldGrid({
+  loadCards = mostSoldCards,
+  title = "Most Sold",
+}: MostSoldGridProps = {}) {
   const [result, setResult] = useState<{
     error: string | null;
     items: CardCategoryGridItem[];
@@ -58,14 +74,12 @@ export function MostSoldGrid() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void mostSoldCards(controller.signal)
+    void loadCards(controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return;
         setResult({
           error: null,
-          items: response.items.map((item) =>
-            toGridItem(item, response.source),
-          ),
+          items: response.items.map((item) => toGridItem(item, response)),
           loading: false,
         });
       })
@@ -79,7 +93,7 @@ export function MostSoldGrid() {
         });
       });
     return () => controller.abort();
-  }, []);
+  }, [loadCards]);
 
   return (
     <CardCategoryGrid
@@ -88,7 +102,7 @@ export function MostSoldGrid() {
       items={result.items}
       loading={result.loading}
       subtitle=""
-      title="Most Sold"
+      title={title}
     />
   );
 }

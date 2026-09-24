@@ -6,7 +6,7 @@ import {
   MARKET_CATEGORY_DEFINITIONS,
   type MarketCategoryDefinition,
 } from "../config/marketCategories.js";
-import { findMostSold, findPriceGainers } from "./marketCategoryQueries.js";
+import { findMostSold, findPriceMovers } from "./marketCategoryQueries.js";
 
 export const DEFAULT_MARKET_CATEGORIES_PATH = path.resolve(
   "public/market-categories.json",
@@ -43,8 +43,8 @@ export async function generateMarketCategories(
     ids.add(definition.id);
 
     const result =
-      definition.query === "priceGainers"
-        ? await findPriceGainers(database, definition.parameters)
+      definition.query === "priceMovers"
+        ? await findPriceMovers(database, definition.parameters)
         : await findMostSold(database, definition.parameters);
     categories.push({
       id: definition.id,
