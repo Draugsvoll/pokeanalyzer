@@ -8,14 +8,24 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
     loading,
   }: {
     items: Array<{
-      card: { name: string };
+      card: {
+        name: string;
+        pokeTrace: {
+          prices: Record<string, Record<string, { avg?: number }>>;
+        };
+      };
       marketDisplay?: { marketLabel?: string; price: number };
     }>;
     loading: boolean;
   }) => (
     <div aria-label="Mover grid" data-loading={loading}>
       {items.map((item) => (
-        <span key={item.card.name}>
+        <span
+          data-preview-price={
+            item.card.pokeTrace.prices.tcgplayer?.NEAR_MINT?.avg
+          }
+          key={item.card.name}
+        >
           {item.card.name} {item.marketDisplay?.marketLabel}{" "}
           {item.marketDisplay?.price}
         </span>
@@ -61,5 +71,7 @@ test("loads a configurable mover category and maps it to grid cards", async () =
     ),
   );
   expect(loadMovers).toHaveBeenCalledWith(expect.any(AbortSignal));
-  expect(screen.getByText(/Charizard NM.*TCG 120/)).toBeVisible();
+  const card = screen.getByText(/Charizard NM.*TCG 120/);
+  expect(card).toBeVisible();
+  expect(card).toHaveAttribute("data-preview-price", "120");
 });

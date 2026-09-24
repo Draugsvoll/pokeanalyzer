@@ -54,6 +54,7 @@ function toGridItem(
   changeLabel?: string,
 ): CardCategoryGridItem {
   const image = item.image ?? "";
+  const priceSource = item.source.trim().toLowerCase();
   const card: PokemonCard = {
     id: item.cardId,
     name: item.name,
@@ -64,7 +65,15 @@ function toGridItem(
     pokeTrace: {
       currency: item.currency,
       marketplaceUrls: {},
-      prices: {},
+      prices: {
+        [priceSource]: {
+          [item.tier]: {
+            approxSaleCount: item.approxSaleCount,
+            avg: item.currentPrice,
+            saleCount: item.saleCount,
+          },
+        },
+      },
       ...(item.variant && { variant: item.variant }),
     },
   };
