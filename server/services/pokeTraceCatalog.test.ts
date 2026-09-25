@@ -12,7 +12,11 @@ test("builds a compact browser card from PokeTrace data", () => {
     variant: "Unlimited Holofoil",
     image_url: "https://example.test/charizard.webp",
     currency: "USD",
-    market_price: 420,
+    near_mint_price: 420,
+    lightly_played_price: 380,
+    moderately_played_price: 340,
+    heavily_played_price: null,
+    damaged_price: 250,
     tcg_market_comparisons: JSON.stringify({
       asOf: "2026-09-18",
       comparisons: {
@@ -42,7 +46,12 @@ test("builds a compact browser card from PokeTrace data", () => {
     variant: "Unlimited Holofoil",
     image: "https://example.test/charizard.webp",
     currency: "USD",
-    marketPrice: 420,
+    conditionPrices: {
+      NEAR_MINT: 420,
+      LIGHTLY_PLAYED: 380,
+      MODERATELY_PLAYED: 340,
+      DAMAGED: 250,
+    },
     priceSnapshots: { "1d": 410, "7d": null, "30d": 390 },
   });
 });

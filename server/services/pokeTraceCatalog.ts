@@ -5,6 +5,7 @@ import {
   type PokeTraceCatalogResponse,
 } from "../../shared/pokeTraceCatalog.js";
 import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketComparisons.js";
+import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 
 type CatalogDatabase = Pick<Client, "execute">;
@@ -17,6 +18,23 @@ function optionalText(value: unknown) {
 function positiveNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+const CONDITION_PRICE_COLUMNS = [
+  ["NEAR_MINT", "near_mint_price"],
+  ["LIGHTLY_PLAYED", "lightly_played_price"],
+  ["MODERATELY_PLAYED", "moderately_played_price"],
+  ["HEAVILY_PLAYED", "heavily_played_price"],
+  ["DAMAGED", "damaged_price"],
+] as const satisfies readonly [PokeTraceRawCondition, string][];
+
+function conditionPrices(row: CatalogRow) {
+  const prices: PokeTraceCatalogCard["conditionPrices"] = {};
+  for (const [condition, column] of CONDITION_PRICE_COLUMNS) {
+    const price = positiveNumber(row[column]);
+    if (price !== null) prices[condition] = price;
+  }
+  return prices;
 }
 
 export function toPokeTraceCatalogCard(row: CatalogRow): PokeTraceCatalogCard {
@@ -35,7 +53,7 @@ export function toPokeTraceCatalogCard(row: CatalogRow): PokeTraceCatalogCard {
     ...(optionalText(row.variant) && { variant: optionalText(row.variant) }),
     ...(optionalText(row.image_url) && { image: optionalText(row.image_url) }),
     currency: optionalText(row.currency) ?? "USD",
-    marketPrice: positiveNumber(row.market_price),
+    conditionPrices: conditionPrices(row),
     priceSnapshots: {
       "1d": comparisons?.comparisons["1d"]?.marketPrice ?? null,
       "7d": comparisons?.comparisons["7d"]?.marketPrice ?? null,
@@ -59,7 +77,11 @@ export async function loadPokeTraceCatalog(
       variant,
       image_url,
       json_extract(raw_json, '$.currency') AS currency,
-      json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS market_price,
+      json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS near_mint_price,
+      json_extract(raw_json, '$.prices.tcgplayer.LIGHTLY_PLAYED.avg') AS lightly_played_price,
+      json_extract(raw_json, '$.prices.tcgplayer.MODERATELY_PLAYED.avg') AS moderately_played_price,
+      json_extract(raw_json, '$.prices.tcgplayer.HEAVILY_PLAYED.avg') AS heavily_played_price,
+      json_extract(raw_json, '$.prices.tcgplayer.DAMAGED.avg') AS damaged_price,
       tcg_market_comparisons
     FROM poketrace_cards
     ORDER BY name, set_name, card_number, variant, id

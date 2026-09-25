@@ -831,17 +831,8 @@ function PokemonDetailsForCard() {
             aria-modal="true"
             className="card-view__search-overlay ui-render-fade"
             onMouseDown={(event) => {
-              const target = event.target;
-              const clickedScrollbar =
-                target === event.currentTarget &&
-                event.clientX >= event.currentTarget.clientWidth;
-              if (clickedScrollbar) return;
-              if (
-                target instanceof Element &&
-                target.closest(".database-search-bar, .search-results")
-              ) {
-                return;
-              }
+              if (event.target !== event.currentTarget) return;
+              if (event.clientX >= event.currentTarget.clientWidth) return;
               setCardSearchCardId(null);
             }}
             role="dialog"

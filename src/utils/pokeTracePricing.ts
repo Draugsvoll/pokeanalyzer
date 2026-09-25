@@ -1,4 +1,5 @@
 import type { PokemonCard } from "../types/pokemon";
+import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -24,11 +25,14 @@ function currencySymbol(currency: string) {
   }
 }
 
-export function resolvePokeTraceCardPrice(card: PokemonCard) {
+export function resolvePokeTraceCardPrice(
+  card: PokemonCard,
+  condition: PokeTraceRawCondition = "NEAR_MINT",
+) {
   const prices = record(card.pokeTrace.prices);
   const tcgplayer = record(prices?.tcgplayer);
-  const nearMint = record(tcgplayer?.NEAR_MINT);
-  const price = nearMint?.avg;
+  const conditionPrice = record(tcgplayer?.[condition]);
+  const price = conditionPrice?.avg;
   if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
     return undefined;
   }

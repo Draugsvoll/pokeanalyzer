@@ -1,16 +1,20 @@
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { PokeTraceCatalogCard } from "../../shared/pokeTraceCatalog";
+import {
+  POKETRACE_CATALOG_SCHEMA_VERSION,
+  type PokeTraceCatalogCard,
+} from "../../shared/pokeTraceCatalog";
 
 function catalogCard(id: string, name: string): PokeTraceCatalogCard {
   return {
     id,
     name,
     number: "004/102",
+    rarity: "Holo Rare",
     setName: "Base Set",
     variant: "Unlimited Holofoil",
     currency: "USD",
-    marketPrice: 420,
+    conditionPrices: { NEAR_MINT: 420, LIGHTLY_PLAYED: 350 },
     priceSnapshots: { "1d": 410, "7d": 400, "30d": 390 },
   };
 }
@@ -18,7 +22,7 @@ function catalogCard(id: string, name: string): PokeTraceCatalogCard {
 function responsePayload(card: PokeTraceCatalogCard) {
   return {
     json: async () => ({
-      schemaVersion: 1,
+      schemaVersion: POKETRACE_CATALOG_SCHEMA_VERSION,
       generatedAt: new Date(Date.now()).toISOString(),
       cards: [card],
     }),
@@ -53,9 +57,17 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
 
     const firstLoad = await import("./pokeTraceCatalog");
     await firstLoad.initializePokeTraceCatalog();
-    expect(firstLoad.searchCachedPokeTraceCatalog(search)?.[0]?.id).toBe(
-      "card-1",
-    );
+    const firstResult = firstLoad.searchCachedPokeTraceCatalog(search)?.[0];
+    expect(firstResult?.id).toBe("card-1");
+    expect(firstResult?.pokeTrace.prices).toEqual({
+      tcgplayer: {
+        LIGHTLY_PLAYED: { avg: 350 },
+        NEAR_MINT: { avg: 420 },
+      },
+    });
+    expect(await firstLoad.loadPokeTraceCatalogRarities()).toEqual([
+      "Holo Rare",
+    ]);
 
     vi.resetModules();
     fetchMock.mockRejectedValue(new Error("network should not be used"));

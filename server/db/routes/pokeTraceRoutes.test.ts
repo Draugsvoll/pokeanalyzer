@@ -6,6 +6,7 @@ import {
   acceptsGzip,
   createMarketPriceHistoryHandler,
   createMarketMoversHandler,
+  createPokeTraceSearchHandler,
   createPokeTracePriceHistoryHandler,
   loadPokeTracePriceHistory,
   selectUnambiguousVariants,
@@ -79,6 +80,76 @@ test("market movers rejects unsupported filters before loading", async () => {
   );
 
   assert.equal(response.status, 400);
+  assert.equal(calls, 0);
+});
+
+test("card search forwards validated filters, sorting, and pagination", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/search",
+    createPokeTraceSearchHandler({
+      loadSearch: async (query) => {
+        assert.deepEqual(query, {
+          cardId: "",
+          cardNumber: "",
+          maxPrice: 30,
+          minPrice: 20,
+          offset: 50,
+          pokemonName: "",
+          rarity: "Common",
+          setName: "",
+          sort: "price-low-high",
+        });
+        return { hasMore: false, items: [], nextOffset: null, total: 73 };
+      },
+      reportError: () => {
+        assert.fail("The successful request must not be logged as an error");
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&offset=50&sort=price-low-high",
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    hasMore: false,
+    items: [],
+    nextOffset: null,
+    total: 73,
+  });
+});
+
+test("card search rejects invalid filters before querying the database", async () => {
+  const app = express();
+  let calls = 0;
+  app.get(
+    "/api/cards/search",
+    createPokeTraceSearchHandler({
+      loadSearch: async () => {
+        calls += 1;
+        throw new Error("must not load");
+      },
+    }),
+  );
+
+  for (const query of [
+    "",
+    "condition=LIGHTLY_PLAYED",
+    "pokemonName=pikachu&minPrice=30&maxPrice=20",
+    "pokemonName=pikachu&offset=-1",
+    "pokemonName=pikachu&offset=2000",
+    "pokemonName=pikachu&sort=name",
+  ]) {
+    const response = await requestFromTestServer(
+      app,
+      `/api/cards/search${query ? `?${query}` : ""}`,
+    );
+    assert.equal(response.status, 400);
+  }
+
   assert.equal(calls, 0);
 });
 

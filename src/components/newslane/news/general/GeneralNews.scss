@@ -18,7 +18,7 @@
   align-items: start;
   display: grid;
   gap: var(--space-5);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   width: 100%;
 }
 
@@ -118,12 +118,6 @@
   height: var(--glow-dot-size);
   opacity: var(--glow-dot-opacity);
   width: var(--glow-dot-size);
-}
-
-.general-news__link {
-  --app-link-color: color-mix(in srgb, var(--trend-accent) 82%, white);
-
-  margin-top: var(--space-4);
 }
 
 @media (max-width: 58rem) {

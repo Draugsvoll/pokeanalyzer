@@ -3,6 +3,14 @@ import {
   type PokeTraceCatalogCard,
   type PokeTraceCatalogResponse,
 } from "../../shared/pokeTraceCatalog";
+import {
+  isPokeTraceRawCondition,
+  type PokeTraceRawCondition,
+} from "../../shared/pokeTraceMarketConditions";
+import {
+  POKETRACE_SEARCH_RESULT_LIMIT,
+  type PokeTraceSearchSort,
+} from "../../shared/pokeTraceSearch";
 import type { PokemonCard } from "../types/pokemon";
 import { logClientError } from "../utils/logClientError";
 
@@ -31,9 +39,33 @@ type CatalogChunk = {
 
 let memoryCatalog: PokeTraceCatalogCard[] | null = null;
 let memoryCatalogSavedAt = 0;
+let memoryCatalogRarities: string[] = [];
 let initializationPromise: Promise<void> | null = null;
 let indexedDbUnavailable = false;
 let retryAfter = 0;
+
+function collectCatalogRarities(cards: PokeTraceCatalogCard[]) {
+  const rarities = new Map<string, string>();
+  for (const card of cards) {
+    const rarity = card.rarity?.trim();
+    if (rarity) rarities.set(rarity.toLocaleLowerCase("en-US"), rarity);
+  }
+  return [...rarities.values()].sort((left, right) =>
+    left.localeCompare(right, "en-US"),
+  );
+}
+
+function setMemoryCatalog(cards: PokeTraceCatalogCard[], savedAt: number) {
+  memoryCatalog = cards;
+  memoryCatalogSavedAt = savedAt;
+  memoryCatalogRarities = collectCatalogRarities(cards);
+}
+
+function clearMemoryCatalog() {
+  memoryCatalog = null;
+  memoryCatalogSavedAt = 0;
+  memoryCatalogRarities = [];
+}
 
 function requestResult<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
@@ -93,6 +125,19 @@ function isOptionalText(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
 }
 
+function isConditionPrices(
+  value: unknown,
+): value is PokeTraceCatalogCard["conditionPrices"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.entries(value).every(
+    ([condition, price]) =>
+      isPokeTraceRawCondition(condition) &&
+      typeof price === "number" &&
+      Number.isFinite(price) &&
+      price > 0,
+  );
+}
+
 function isCatalogCard(value: unknown): value is PokeTraceCatalogCard {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const card = value as Partial<PokeTraceCatalogCard>;
@@ -110,7 +155,7 @@ function isCatalogCard(value: unknown): value is PokeTraceCatalogCard {
     isOptionalText(card.rarity) &&
     isOptionalText(card.variant) &&
     isOptionalText(card.image) &&
-    isNullablePrice(card.marketPrice) &&
+    isConditionPrices(card.conditionPrices) &&
     snapshots &&
     typeof snapshots === "object" &&
     !Array.isArray(snapshots) &&
@@ -223,17 +268,14 @@ async function downloadCatalog() {
 async function loadOrRefreshCatalog() {
   const stored = await readStoredCatalog();
   if (stored) {
-    memoryCatalog = stored.cards;
-    memoryCatalogSavedAt = stored.savedAt;
+    setMemoryCatalog(stored.cards, stored.savedAt);
     return;
   }
 
-  memoryCatalog = null;
-  memoryCatalogSavedAt = 0;
+  clearMemoryCatalog();
   const downloaded = await downloadCatalog();
   const savedAt = await storeCatalog(downloaded.cards);
-  memoryCatalog = downloaded.cards;
-  memoryCatalogSavedAt = savedAt;
+  setMemoryCatalog(downloaded.cards, savedAt);
 }
 
 export function initializePokeTraceCatalog() {
@@ -250,8 +292,7 @@ export function initializePokeTraceCatalog() {
 
   initializationPromise = loadOrRefreshCatalog()
     .catch((error: unknown) => {
-      memoryCatalog = null;
-      memoryCatalogSavedAt = 0;
+      clearMemoryCatalog();
       retryAfter = Date.now() + RETRY_DELAY_MS;
       logClientError("PokeTrace browser catalog unavailable", error);
     })
@@ -276,6 +317,11 @@ export type PokeTraceCatalogSearch = {
   pokemonName: string;
   setName: string;
   cardNumber: string;
+  condition?: PokeTraceRawCondition | "";
+  maxPrice?: number;
+  minPrice?: number;
+  rarity?: string;
+  sort?: PokeTraceSearchSort;
 };
 
 export function searchPokeTraceCatalogCards(
@@ -285,6 +331,8 @@ export function searchPokeTraceCatalogCards(
   const pokemonName = normalized(search.pokemonName);
   const setName = normalized(search.setName);
   const cardNumber = normalized(search.cardNumber);
+  const rarity = normalized(search.rarity ?? "");
+  const condition = search.condition || "NEAR_MINT";
 
   const results: PokeTraceCatalogCard[] = [];
   for (const card of cards) {
@@ -299,13 +347,52 @@ export function searchPokeTraceCatalogCards(
         continue;
       }
     }
+    if (rarity && normalized(card.rarity ?? "") !== rarity) continue;
+    const conditionPrice = card.conditionPrices[condition] ?? null;
+    if (search.condition && conditionPrice === null) continue;
+    if (
+      search.minPrice !== undefined &&
+      (conditionPrice === null || conditionPrice < search.minPrice)
+    ) {
+      continue;
+    }
+    if (
+      search.maxPrice !== undefined &&
+      (conditionPrice === null || conditionPrice > search.maxPrice)
+    ) {
+      continue;
+    }
     results.push(card);
-    if (results.length === 50) break;
   }
-  return results;
+  if (search.sort) {
+    results.sort((left, right) => {
+      const leftPrice = left.conditionPrices[condition] ?? null;
+      const rightPrice = right.conditionPrices[condition] ?? null;
+      if (leftPrice === null && rightPrice !== null) return 1;
+      if (leftPrice !== null && rightPrice === null) return -1;
+      if (
+        leftPrice !== null &&
+        rightPrice !== null &&
+        leftPrice !== rightPrice
+      ) {
+        return search.sort === "price-high-low"
+          ? rightPrice - leftPrice
+          : leftPrice - rightPrice;
+      }
+      return left.id.localeCompare(right.id);
+    });
+  }
+  return results.slice(0, POKETRACE_SEARCH_RESULT_LIMIT);
 }
 
 function toPokemonCard(card: PokeTraceCatalogCard): PokemonCard {
+  const tcgplayerPrices = Object.fromEntries(
+    Object.entries(card.conditionPrices).map(([condition, price]) => [
+      condition,
+      { avg: price },
+    ]),
+  );
+
   return {
     id: card.id,
     name: card.name,
@@ -317,9 +404,9 @@ function toPokemonCard(card: PokeTraceCatalogCard): PokemonCard {
       currency: card.currency,
       marketplaceUrls: {},
       prices:
-        card.marketPrice == null
-          ? {}
-          : { tcgplayer: { NEAR_MINT: { avg: card.marketPrice } } },
+        Object.keys(tcgplayerPrices).length > 0
+          ? { tcgplayer: tcgplayerPrices }
+          : {},
       ...(card.variant && { variant: card.variant }),
     },
   };
@@ -329,10 +416,21 @@ export function searchCachedPokeTraceCatalog(
   search: PokeTraceCatalogSearch,
 ): PokemonCard[] | null {
   if (!memoryCatalog || !isFresh(memoryCatalogSavedAt)) {
-    memoryCatalog = null;
-    memoryCatalogSavedAt = 0;
+    clearMemoryCatalog();
     void initializePokeTraceCatalog();
     return null;
   }
   return searchPokeTraceCatalogCards(memoryCatalog, search).map(toPokemonCard);
+}
+
+export async function searchInitializedPokeTraceCatalog(
+  search: PokeTraceCatalogSearch,
+) {
+  await initializePokeTraceCatalog();
+  return searchCachedPokeTraceCatalog(search);
+}
+
+export async function loadPokeTraceCatalogRarities() {
+  await initializePokeTraceCatalog();
+  return memoryCatalog ? [...memoryCatalogRarities] : null;
 }

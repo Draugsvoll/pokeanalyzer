@@ -1,5 +1,4 @@
 import React, { type ComponentProps, type CSSProperties } from "react";
-import { ExternalLink } from "lucide-react";
 import type { GeneralNewsPayload } from "../../../../types/news";
 import { Badge } from "../../../ui/Badge";
 import {
@@ -96,18 +95,6 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
                         <li key={`${point}-${pointIndex}`}>{point}</li>
                       ))}
                     </ul>
-                  )}
-
-                  {item.url && (
-                    <a
-                      className="app-link general-news__link"
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Read more
-                      <ExternalLink aria-hidden="true" />
-                    </a>
                   )}
                 </div>
               </article>

@@ -262,6 +262,35 @@ beforeEach(() => {
   }));
 });
 
+test("keeps the embedded card search open while using its controls", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole("heading", { name: "Pikachu" });
+  fireEvent.click(screen.getByRole("button", { name: "Next Card" }));
+
+  const dialog = await screen.findByRole("dialog", { name: "Switch card" });
+  const filtersButton = screen.getByRole("button", {
+    name: "Search filters",
+  });
+  fireEvent.mouseDown(filtersButton);
+  fireEvent.click(filtersButton);
+
+  const minimumPrice = screen.getByRole("spinbutton", {
+    name: "Minimum price",
+  });
+  fireEvent.change(minimumPrice, { target: { value: "25" } });
+  const clearFilters = screen.getByRole("button", { name: "Clear all" });
+  fireEvent.mouseDown(clearFilters);
+  fireEvent.click(clearFilters);
+
+  expect(minimumPrice).toHaveValue(null);
+  expect(dialog).toBeInTheDocument();
+});
+
 test("enables feature actions after authentication and subscription loading", async () => {
   mocks.authLoading = true;
   mocks.authUser = null;

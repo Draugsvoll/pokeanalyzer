@@ -1,23 +1,27 @@
 import { X } from "lucide-react";
+import {
+  POKETRACE_SEARCH_SORTS,
+  type PokeTraceSearchSort,
+} from "../../../shared/pokeTraceSearch";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import "./SearchResultsToolbar.scss";
 
-export type SearchSortDirection = "price-high-low" | "price-low-high";
+const SEARCH_SORT_LABELS: Record<PokeTraceSearchSort, string> = {
+  "price-high-low": "Price: high to low",
+  "price-low-high": "Price: low to high",
+};
 
-const SEARCH_SORT_OPTIONS: {
-  value: SearchSortDirection;
-  label: string;
-}[] = [
-  { value: "price-high-low", label: "Price: high to low" },
-  { value: "price-low-high", label: "Price: low to high" },
-];
+const SEARCH_SORT_OPTIONS = POKETRACE_SEARCH_SORTS.map((value) => ({
+  value,
+  label: SEARCH_SORT_LABELS[value],
+}));
 
 type SearchResultsToolbarProps = {
   activeQueryLabel: string;
   onClose: () => void;
-  onSortChange: (value: SearchSortDirection) => void;
+  onSortChange: (value: PokeTraceSearchSort) => void;
   resultCount: number;
-  sortDirection: SearchSortDirection;
+  sortDirection: PokeTraceSearchSort;
 };
 
 export function SearchResultsToolbar({

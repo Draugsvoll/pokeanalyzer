@@ -33,6 +33,13 @@
 /*
  * Multi-input search — chrome matched to mock left (keep multi-fields)
  */
+.database-search-control {
+  margin: 0 auto;
+  max-width: var(--search-max-width);
+  position: relative;
+  width: 100%;
+}
+
 .database-search-bar {
   align-items: center;
   background: var(--search-surface);
@@ -45,8 +52,8 @@
   gap: 0;
   height: var(--search-height);
   justify-content: center;
-  margin: 0 auto;
-  max-width: var(--search-max-width);
+  margin: 0;
+  max-width: none;
   min-height: var(--search-height);
   padding: var(--search-pad) var(--search-btn-outer-gap) var(--search-pad)
     var(--search-pad);
@@ -137,7 +144,7 @@
   align-items: center;
   display: flex;
   flex: 0 0 auto;
-  gap: 0;
+  gap: var(--space-2);
   height: 100%;
   margin-left: 0;
   padding-left: var(--search-btn-outer-gap);
@@ -153,6 +160,91 @@
     transform: translateY(-50%);
     width: 1px;
   }
+}
+
+.database-search-filter-toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--search-radius) - 2px);
+  box-sizing: border-box;
+  color: var(--font-color-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2);
+  height: var(--dropdown-trigger-height);
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  position: relative;
+  transition:
+    background-color var(--delay-short) ease,
+    border-color var(--delay-short) ease,
+    color var(--delay-short) ease;
+  width: 6.5rem;
+
+  svg {
+    height: 0.95rem;
+    width: 0.95rem;
+  }
+
+  &:hover,
+  &.is-open {
+    background: color-mix(in srgb, var(--bg-input-strong) 70%, transparent);
+    color: var(--font-color-primary);
+  }
+
+  &:focus-visible {
+    border-color: var(--custom-color-blue);
+    box-shadow: var(--dropdown-focus-ring);
+    outline: none;
+  }
+}
+
+.database-search-filter-toolbar {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-3);
+
+  &.is-open {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    justify-content: stretch;
+
+    .database-search-filter-actions {
+      align-self: center;
+    }
+  }
+}
+
+.database-search-filter-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.database-search-filter-toggle__count {
+  align-items: center;
+  background: var(--blue-soft);
+  border: 1px solid color-mix(in srgb, var(--blue) 26%, transparent);
+  border-radius: var(--radius-pill);
+  color: color-mix(in srgb, var(--blue) 62%, white);
+  display: inline-flex;
+  font-size: 0.65rem;
+  height: 1.1rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /*
@@ -213,6 +305,171 @@
   }
 }
 
+.database-search-filters {
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--space-3);
+  min-width: 0;
+  text-align: left;
+}
+
+.database-search-filters__clear {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--font-color-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2);
+  height: var(--dropdown-trigger-height);
+  justify-content: center;
+  margin-left: 0;
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+
+  svg {
+    height: 0.85rem;
+    width: 0.85rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--bg-input-strong);
+    color: var(--font-color-primary);
+  }
+
+  &:focus-visible {
+    border-color: var(--custom-color-blue);
+    box-shadow: var(--dropdown-focus-ring);
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--font-color-faint);
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
+.database-search-filters__grid {
+  align-items: center;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.database-search-filter-field {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+
+  > span:first-child {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  > :last-child {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.database-search-price-input {
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius-control);
+  color: var(--font-color-muted);
+  display: flex;
+  gap: var(--space-2);
+  height: var(--dropdown-trigger-height);
+  padding: 0 var(--space-3);
+  transition:
+    border-color var(--delay-short) ease,
+    box-shadow var(--delay-short) ease;
+
+  &:focus-within {
+    border-color: var(--custom-color-blue);
+    box-shadow: var(--dropdown-focus-ring);
+  }
+
+  &.is-invalid,
+  &.is-invalid:focus-within {
+    border-color: var(--custom-color-red);
+    box-shadow: 0 0 0 1px
+      color-mix(in srgb, var(--custom-color-red) 30%, transparent);
+  }
+
+  input {
+    appearance: textfield;
+    background: transparent;
+    border: 0;
+    color: var(--font-color-primary);
+    font-family: inherit;
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+    min-width: 0;
+    outline: 0;
+    padding: 0 0 0 0.15rem;
+    width: 100%;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+  }
+}
+
+.database-search-rarity-select,
+.database-search-condition-select {
+  min-width: 0;
+  width: 100%;
+
+  .ui-select-dropdown__toggle {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ui-select-dropdown__menu {
+    left: 0;
+    max-height: 18rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    right: auto;
+  }
+}
+
+.database-search-feedback {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-label);
+  margin: var(--space-6) auto 0;
+  text-align: center;
+
+  &--error {
+    color: var(--custom-color-red);
+  }
+}
+
+.database-search-visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .database-search-spinner {
   animation: database-search-spin 0.75s linear infinite;
   border-color: color-mix(in srgb, currentColor 24%, transparent);
@@ -235,9 +492,52 @@
 /* ----- Results (full shell width, left-aligned text) ----- */
 
 .search-results {
-  margin: var(--space-8) 0 0;
   max-width: 100%;
   width: 100%;
+}
+
+.search-results__more {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+.search-results__more-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--font-color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  gap: 0.35rem;
+  padding: 0;
+
+  svg {
+    height: 0.9rem;
+    margin-top: 0.18rem;
+    width: 0.9rem;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: var(--custom-color-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--font-color-muted);
+    cursor: wait;
+    text-decoration: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -249,8 +549,43 @@
     padding: var(--space-2);
   }
 
+  .database-search-fields {
+    min-height: 2.5rem;
+    width: 100%;
+  }
+
+  .explore-search-field {
+    padding-inline: var(--space-3);
+  }
+
+  .database-search-actions {
+    gap: var(--space-2);
+    padding-left: 0;
+    width: 100%;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .database-search-filter-toggle {
+    height: var(--dropdown-trigger-height);
+  }
+
   .explore-search-shell__submit {
     border-radius: 12px;
+    flex: 1 1 auto;
+    height: 2.5rem;
     width: 100%;
+  }
+
+  .database-search-filters__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .database-search-filters__grid {
+    grid-template-columns: 1fr;
   }
 }

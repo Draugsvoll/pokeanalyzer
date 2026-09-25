@@ -23,10 +23,16 @@ import {
   loadPokeTraceMarketMovers,
   PokeTraceMoversUnavailableError,
 } from "../../services/pokeTraceMarketMovers.js";
+import { loadPokeTraceSearchPage } from "../../services/pokeTraceSearch.js";
+import {
+  isPokeTraceSearchSort,
+  POKETRACE_DEFAULT_SEARCH_SORT,
+  POKETRACE_SEARCH_RESULT_LIMIT,
+} from "../../../shared/pokeTraceSearch.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
-const CATALOG_SERVER_CACHE_MS = 5 * 60 * 1000;
+const CATALOG_SERVER_CACHE_MS = 12 * 60 * 60 * 1000;
 type CatalogPayload = { expiresAt: number; json: string; gzip: Buffer };
 let cachedCatalogPayload: CatalogPayload | undefined;
 let catalogBuildPromise: Promise<CatalogPayload> | undefined;
@@ -82,6 +88,11 @@ type PokeTracePriceHistory = {
 
 type MarketMoversHandlerDependencies = {
   loadMovers: (query: MarketMoversQuery) => Promise<MarketMoversResponse>;
+  reportError: (context: string, error: unknown) => void;
+};
+
+type PokeTraceSearchHandlerDependencies = {
+  loadSearch: typeof loadPokeTraceSearchPage;
   reportError: (context: string, error: unknown) => void;
 };
 
@@ -378,79 +389,91 @@ export function createMarketPriceHistoryHandler(
   };
 }
 
-router.get("/search", async (req, res) => {
-  const pokemonName =
-    typeof req.query.pokemonName === "string"
-      ? req.query.pokemonName.trim()
-      : "";
-  const setName =
-    typeof req.query.setName === "string" ? req.query.setName.trim() : "";
-  const cardNumber =
-    typeof req.query.cardNumber === "string" ? req.query.cardNumber.trim() : "";
-  const rarity =
-    typeof req.query.rarity === "string" ? req.query.rarity.trim() : "";
-  const cardId =
-    typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
-  const values = [pokemonName, setName, cardNumber, rarity, cardId];
-  if (values.some((value) => value.length > 100)) {
-    res.status(400).json({ error: "Search value is too long" });
-    return;
-  }
-  if (values.every((value) => !value)) {
-    res.status(400).json({ error: "At least one search field is required" });
-    return;
-  }
-  try {
-    await ensurePokeTraceReady();
-    const result = await pokeTraceDb.execute({
-      sql: `
-        SELECT raw_json, tcg_market_comparisons
-        FROM poketrace_cards
-        WHERE (? = '' OR instr(lower(name), lower(?)) > 0)
-          AND (? = '' OR instr(lower(set_name), lower(?)) > 0)
-          AND (
-            ? = ''
-            OR lower(card_number) = lower(?)
-            OR lower(
-              ltrim(
-                CASE
-                  WHEN instr(card_number, '/') > 0
-                    THEN substr(card_number, 1, instr(card_number, '/') - 1)
-                  ELSE card_number
-                END,
-                '0'
-              )
-            ) = lower(ltrim(?, '0'))
-          )
-          AND (? = '' OR instr(lower(rarity), lower(?)) > 0)
-          AND (? = '' OR instr(lower(id), lower(?)) > 0)
-        ORDER BY name, set_name, card_number, variant
-        LIMIT 50
-      `,
-      args: [
-        pokemonName,
-        pokemonName,
-        setName,
-        setName,
-        cardNumber,
-        cardNumber,
-        cardNumber,
-        rarity,
-        rarity,
-        cardId,
-        cardId,
-      ],
-    });
-    res.json(
-      result.rows.map((row) =>
-        toPokemonCard(row.raw_json, {}, [], row.tcg_market_comparisons),
-      ),
-    );
-  } catch (error) {
-    logError("Failed to search PokeTrace cards", error);
-    res.status(500).json({ error: "Failed to search cards" });
-  }
-});
+export function createPokeTraceSearchHandler(
+  dependencies: Partial<PokeTraceSearchHandlerDependencies> = {},
+): RequestHandler {
+  const loadSearch = dependencies.loadSearch ?? loadPokeTraceSearchPage;
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (req, res) => {
+    const pokemonName =
+      typeof req.query.pokemonName === "string"
+        ? req.query.pokemonName.trim()
+        : "";
+    const setName =
+      typeof req.query.setName === "string" ? req.query.setName.trim() : "";
+    const cardNumber =
+      typeof req.query.cardNumber === "string"
+        ? req.query.cardNumber.trim()
+        : "";
+    const rarity =
+      typeof req.query.rarity === "string" ? req.query.rarity.trim() : "";
+    const cardId =
+      typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
+    const minPrice = optionalNumber(req.query.minPrice);
+    const maxPrice = optionalNumber(req.query.maxPrice);
+    const offset = optionalNumber(req.query.offset) ?? 0;
+    const requestedSort =
+      typeof req.query.sort === "string" ? req.query.sort.trim() : "";
+    const sort = requestedSort || POKETRACE_DEFAULT_SEARCH_SORT;
+    if (req.query.condition !== undefined) {
+      res.status(400).json({ error: "Condition search is available locally" });
+      return;
+    }
+    const values = [pokemonName, setName, cardNumber, rarity, cardId];
+    if (values.some((value) => value.length > 100)) {
+      res.status(400).json({ error: "Search value is too long" });
+      return;
+    }
+    if (!isPokeTraceSearchSort(sort)) {
+      res.status(400).json({ error: "Invalid search sort" });
+      return;
+    }
+    if (
+      (minPrice !== undefined &&
+        (!Number.isFinite(minPrice) || minPrice < 0)) ||
+      (maxPrice !== undefined &&
+        (!Number.isFinite(maxPrice) || maxPrice < 0)) ||
+      (minPrice !== undefined &&
+        maxPrice !== undefined &&
+        minPrice > maxPrice) ||
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset >= POKETRACE_SEARCH_RESULT_LIMIT
+    ) {
+      res.status(400).json({ error: "Invalid search filters" });
+      return;
+    }
+    if (
+      values.every((value) => !value) &&
+      minPrice === undefined &&
+      maxPrice === undefined
+    ) {
+      res.status(400).json({ error: "At least one search field is required" });
+      return;
+    }
+    try {
+      res.json(
+        await loadSearch({
+          cardId,
+          cardNumber,
+          maxPrice,
+          minPrice,
+          offset,
+          pokemonName,
+          rarity,
+          setName,
+          sort,
+        }),
+      );
+    } catch (error) {
+      reportError("Failed to search PokeTrace cards", error);
+      res.status(500).json({ error: "Failed to search cards" });
+    }
+  };
+}
+
+router.get("/search", createPokeTraceSearchHandler());
 
 router.get("/catalog", async (req, res) => {
   try {

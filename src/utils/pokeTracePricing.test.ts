@@ -36,4 +36,15 @@ describe("resolvePokeTraceCardPrice", () => {
 
     expect(resolvePokeTraceCardPrice(card)).toBeUndefined();
   });
+
+  test("reads the requested TCGPlayer condition", () => {
+    const card = cardWithPrices({
+      tcgplayer: {
+        NEAR_MINT: { avg: 42.5 },
+        LIGHTLY_PLAYED: { avg: 30 },
+      },
+    });
+
+    expect(resolvePokeTraceCardPrice(card, "LIGHTLY_PLAYED")?.price).toBe(30);
+  });
 });

@@ -1,4 +1,6 @@
-export const POKETRACE_CATALOG_SCHEMA_VERSION = 1;
+import type { PokeTraceRawCondition } from "./pokeTraceMarketConditions.js";
+
+export const POKETRACE_CATALOG_SCHEMA_VERSION = 2;
 
 export type PokeTraceCatalogPeriod = "1d" | "7d" | "30d";
 
@@ -11,7 +13,7 @@ export type PokeTraceCatalogCard = {
   variant?: string;
   image?: string;
   currency: string;
-  marketPrice: number | null;
+  conditionPrices: Partial<Record<PokeTraceRawCondition, number>>;
   priceSnapshots: Record<PokeTraceCatalogPeriod, number | null>;
 };
 
