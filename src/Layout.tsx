@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { Header } from "./components/header/Header";
+import { Footer } from "./components/footer/Footer";
 
 export default function Layout() {
   const location = useLocation();
@@ -37,6 +38,7 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

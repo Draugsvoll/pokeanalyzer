@@ -9,6 +9,10 @@ import Portfolio from "./pages/portfolio/Portfolio";
 import SignUp from "./pages/signup/Signup";
 import NotFound from "./pages/notfound/NotFound";
 import Admin from "./pages/admin/Admin";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
+import DataDisclaimer from "./pages/legal/DataDisclaimer";
+import Contact from "./pages/contact/Contact";
 import { initializePokeTraceCatalog } from "./services/pokeTraceCatalog";
 
 export default function App() {
@@ -26,6 +30,10 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="portfolio" element={<Portfolio />} />
         <Route path="admin" element={<Admin />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="terms" element={<TermsOfService />} />
+        <Route path="data-disclaimer" element={<DataDisclaimer />} />
+        <Route path="contact" element={<Contact />} />
 
         <Route path="*" element={<NotFound />} />
       </Route>

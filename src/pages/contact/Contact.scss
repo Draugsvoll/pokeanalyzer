@@ -1,0 +1,47 @@
+.contact-page {
+  display: grid;
+  gap: var(--space-7);
+  margin: 0 auto;
+  max-width: 52rem;
+}
+
+.contact-page__header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: var(--space-6);
+
+  h1 {
+    margin-top: var(--space-2);
+  }
+
+  p {
+    color: var(--secondary);
+    line-height: var(--font-leading-relaxed);
+    margin-top: var(--space-5);
+    max-width: var(--max-text-width);
+  }
+}
+
+.contact-page__method {
+  background: var(--default-container-inner-bg);
+  border-radius: var(--border-radius);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+
+  h2 {
+    font-size: var(--font-size-h3);
+  }
+
+  a {
+    color: color-mix(in srgb, var(--blue) 72%, white);
+    font-size: var(--font-size-paragraph-sm);
+    text-underline-offset: 3px;
+    width: fit-content;
+  }
+}
+
+@media (max-width: 36rem) {
+  .contact-page {
+    padding: var(--space-5);
+  }
+}

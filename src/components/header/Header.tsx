@@ -8,6 +8,7 @@ import { useAuth } from "../../context/authContextValue";
 import { db } from "../../firebase";
 import { useInitials } from "../../hooks/useInitials";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
+import { BrandMark } from "../brand/BrandMark";
 
 function formatAccountName(value?: string | null) {
   const name = value?.trim();
@@ -78,35 +79,7 @@ export const Header: React.FC = () => {
         <div className="header__left">
           <Link to="/" className="logo" aria-label="Pokélyzer home">
             <span className="logo__mark" aria-hidden="true">
-              <svg
-                className="logo__mark-svg"
-                viewBox="0 0 32 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Geometric Pokéball — even stroke, optical center */}
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="11.5"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                />
-                <path
-                  d="M4.5 16h7.35M20.15 16H27.5"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                />
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="3.1"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                />
-                <circle cx="16" cy="16" r="1.05" fill="currentColor" />
-              </svg>
+              <BrandMark className="logo__mark-svg" />
             </span>
             <span className="logo__text">Pokélyzer</span>
           </Link>
