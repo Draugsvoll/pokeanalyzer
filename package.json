@@ -20,6 +20,7 @@
     "poketrace:export-demo": "tsx server/scripts/exportPokeTraceDemo.ts",
     "poketrace:refresh-oldest": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
     "poketrace:refresh-daily": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
+    "poketrace:generate-catalog": "tsx server/scripts/generatePokeTraceCatalog.ts",
     "poketrace:generate-market-categories": "tsx server/scripts/generateMarketCategories.ts",
     "news:generate": "tsx server/scripts/generateNews.ts",
     "news:generate:dry-run": "tsx server/scripts/generateNews.ts --dry-run",

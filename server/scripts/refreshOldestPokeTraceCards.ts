@@ -28,6 +28,7 @@ import {
   PokeTraceJobLockLostError,
   withPokeTraceJobLock,
 } from "./pokeTraceJobLock.js";
+import { completePokeTraceDailyRefresh } from "./pokeTraceDailyRefreshJob.js";
 
 const apiKey = process.env.POKETRACE_API_KEY?.trim();
 
@@ -70,6 +71,7 @@ const stats = {
   retryAttempts: 0,
   retries: new Map<string, IssueCount>(),
   errors: new Map<string, IssueCount>(),
+  catalogCards: null as number | null,
   fatalError: null as string | null,
 };
 
@@ -180,6 +182,9 @@ function printSummary(result: string) {
   console.log(`Retry attempts: ${stats.retryAttempts}`);
   printIssueSummary("Retries by cause", stats.retries);
   printIssueSummary("Deferred errors by cause", stats.errors);
+  console.log(
+    `Search catalog: ${stats.catalogCards === null ? "not generated" : `${stats.catalogCards} cards saved`}`,
+  );
   if (stats.fatalError) console.log(`Fatal error: ${stats.fatalError}`);
   console.log(`Duration: ${Math.round((Date.now() - startedAt) / 1000)}s`);
   console.log("=================================");
@@ -377,7 +382,13 @@ try {
         `PokeTrace refresh made no progress; deferred all ${stats.deferred} selected card(s)`,
       );
     }
-    result = stats.deferred > 0 ? "PARTIAL SUCCESS" : "SUCCESS";
+    const completion = await completePokeTraceDailyRefresh(
+      pokeTraceDb,
+      assertHeld,
+      stats.deferred,
+    );
+    stats.catalogCards = completion.catalogCards;
+    result = completion.result;
   });
 
   if (!acquired) {

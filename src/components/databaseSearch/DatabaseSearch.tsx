@@ -15,7 +15,6 @@ import { SearchHero } from "../searchHero/SearchHero";
 import {
   loadPokeTraceCatalogRarities,
   searchCachedPokeTraceCatalog,
-  searchInitializedPokeTraceCatalog,
   type PokeTraceCatalogSearch,
 } from "../../services/pokeTraceCatalog";
 import { SearchResultsToolbar } from "./SearchResultsToolbar";
@@ -28,7 +27,7 @@ import {
 import {
   POKETRACE_DEFAULT_SEARCH_SORT,
   POKETRACE_SEARCH_PAGE_SIZE,
-  type PokeTraceSearchPage,
+  type PokeTraceSearchResponse,
   type PokeTraceSearchSort,
 } from "../../../shared/pokeTraceSearch";
 
@@ -58,8 +57,7 @@ type PriceFilterValidation = {
   message: string;
 };
 
-type ActiveServerSearch = {
-  nextOffset: number | null;
+type ActiveSearchQuery = {
   query: string;
 };
 
@@ -75,6 +73,8 @@ const EMPTY_SEARCH_FILTERS: DatabaseSearchFilters = {
   minPrice: "",
   rarity: "",
 };
+const GENERIC_SEARCH_ERROR_MESSAGE =
+  "Something went wrong. Please try again later.";
 
 const FALLBACK_SEARCH_RARITIES = [
   "Common",
@@ -158,13 +158,11 @@ function activeFilterCount(filters: DatabaseSearchFilters) {
   ].filter(Boolean).length;
 }
 
-async function fetchSearchPage(
+async function fetchServerSearch(
   query: string,
-  offset: number,
   sort: PokeTraceSearchSort,
-): Promise<PokeTraceSearchPage<PokemonCardType>> {
+): Promise<PokeTraceSearchResponse<PokemonCardType>> {
   const params = new URLSearchParams(query);
-  params.set("offset", String(offset));
   params.set("sort", sort);
   const response = await fetch(
     `${API_URL}/api/cards/search?${params.toString()}`,
@@ -178,18 +176,16 @@ async function fetchSearchPage(
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Search returned an invalid response");
   }
-  const page = value as Partial<PokeTraceSearchPage<PokemonCardType>>;
+  const result = value as Partial<PokeTraceSearchResponse<PokemonCardType>>;
   if (
-    !Array.isArray(page.items) ||
-    (page.total !== null &&
-      (!Number.isSafeInteger(page.total) || Number(page.total) < 0)) ||
-    typeof page.hasMore !== "boolean" ||
-    (page.nextOffset !== null && !Number.isSafeInteger(page.nextOffset))
+    !Array.isArray(result.items) ||
+    !Number.isSafeInteger(result.total) ||
+    Number(result.total) < 0
   ) {
     throw new Error("Search returned an invalid response");
   }
 
-  return page as PokeTraceSearchPage<PokemonCardType>;
+  return result as PokeTraceSearchResponse<PokemonCardType>;
 }
 
 type DatabaseSearchBarProps = {
@@ -480,8 +476,8 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     useState<DatabaseSearchFilters>(EMPTY_SEARCH_FILTERS);
   const [results, setResults] = useState<PokemonCardType[]>([]);
   const [totalResultCount, setTotalResultCount] = useState(0);
-  const [activeServerSearch, setActiveServerSearch] =
-    useState<ActiveServerSearch | null>(null);
+  const [activeSearchQuery, setActiveSearchQuery] =
+    useState<ActiveSearchQuery | null>(null);
   const [activeLocalSearch, setActiveLocalSearch] =
     useState<PokeTraceCatalogSearch | null>(null);
   const [activeCondition, setActiveCondition] = useState<
@@ -494,7 +490,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const searchRequestIdRef = useRef(0);
   const searchCooldownTimerRef = useRef<number | undefined>(undefined);
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
   const [sortDirection, setSortDirection] = useState<PokeTraceSearchSort>(
     POKETRACE_DEFAULT_SEARCH_SORT,
@@ -510,12 +505,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       window.clearTimeout(searchCooldownTimerRef.current);
     };
   }, []);
-  const visibleResults = activeServerSearch
-    ? results
-    : results.slice(0, visibleResultCount);
+  const visibleResults = results.slice(0, visibleResultCount);
 
   async function handleSearch() {
-    if (!canSearch || isSearching || isLoadingMore) return;
+    if (!canSearch || isSearching) return;
 
     const trimmedPokemonName = pokemonName.trim();
     const trimmedSetName = setName.trim();
@@ -536,7 +529,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     ) {
       setResults([]);
       setTotalResultCount(0);
-      setActiveServerSearch(null);
+      setActiveSearchQuery(null);
       setActiveLocalSearch(null);
       setActiveQueryLabel("");
       setActiveCondition("");
@@ -560,6 +553,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       if (minPrice !== undefined) params.set("minPrice", String(minPrice));
       if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
       if (rarity) params.set("rarity", rarity);
+      if (condition) params.set("condition", condition);
       const serverQuery = params.toString();
 
       const catalogSearch = {
@@ -572,39 +566,19 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         sort: sortDirection,
         ...(condition && { condition }),
       };
-      const localResults = condition
-        ? await searchInitializedPokeTraceCatalog(catalogSearch)
-        : searchCachedPokeTraceCatalog(catalogSearch);
-      if (requestId !== searchRequestIdRef.current) return;
-      if (condition && localResults === null) {
-        setResults([]);
-        setTotalResultCount(0);
-        setActiveServerSearch(null);
-        setActiveLocalSearch(null);
-        setActiveQueryLabel("");
-        setActiveCondition("");
-        setSearchFeedback({
-          kind: "error",
-          message: "Condition search is temporarily unavailable.",
-        });
-        return;
-      }
-      const serverPage =
+      const localResults = searchCachedPokeTraceCatalog(catalogSearch);
+      const serverResponse =
         localResults !== null
           ? null
-          : await fetchSearchPage(serverQuery, 0, sortDirection);
+          : await fetchServerSearch(serverQuery, sortDirection);
       if (requestId !== searchRequestIdRef.current) return;
-      const data = localResults ?? serverPage?.items ?? [];
+      const data = localResults ?? serverResponse?.items ?? [];
 
       setResults(data);
       setTotalResultCount(
-        localResults !== null ? data.length : (serverPage?.total ?? 0),
+        localResults !== null ? data.length : (serverResponse?.total ?? 0),
       );
-      setActiveServerSearch(
-        serverPage
-          ? { nextOffset: serverPage.nextOffset, query: serverQuery }
-          : null,
-      );
+      setActiveSearchQuery({ query: serverQuery });
       setActiveLocalSearch(localResults !== null ? catalogSearch : null);
       setActiveCondition(condition);
       setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
@@ -637,13 +611,13 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       logClientError("Search failed", error);
       setResults([]);
       setTotalResultCount(0);
-      setActiveServerSearch(null);
+      setActiveSearchQuery(null);
       setActiveLocalSearch(null);
       setActiveQueryLabel("");
       setActiveCondition("");
       setSearchFeedback({
         kind: "error",
-        message: "Search is temporarily unavailable. Please try again.",
+        message: GENERIC_SEARCH_ERROR_MESSAGE,
       });
     } finally {
       if (requestId === searchRequestIdRef.current) {
@@ -666,49 +640,59 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   };
 
   function submitSearch() {
-    if (!canSearch || isSearching || isLoadingMore) return;
+    if (!canSearch || isSearching) return;
 
     handleSearch();
   }
 
   async function handleSortChange(nextSort: PokeTraceSearchSort) {
-    if (nextSort === sortDirection || isSearching || isLoadingMore) return;
+    if (nextSort === sortDirection || isSearching) return;
     const previousSort = sortDirection;
     setSortDirection(nextSort);
     if (activeLocalSearch) {
-      const localResults = searchCachedPokeTraceCatalog({
+      const nextSearch = {
         ...activeLocalSearch,
         sort: nextSort,
-      });
-      if (localResults === null) {
-        setSortDirection(previousSort);
-        setSearchFeedback({
-          kind: "error",
-          message: "The local card catalog is temporarily unavailable.",
-        });
+      };
+      const requestId = ++searchRequestIdRef.current;
+      const cachedResults = searchCachedPokeTraceCatalog(nextSearch);
+      if (cachedResults !== null) {
+        if (requestId !== searchRequestIdRef.current) return;
+        setResults(cachedResults);
+        setTotalResultCount(cachedResults.length);
+        setActiveLocalSearch(nextSearch);
+        setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
+        setResultRenderKey((currentKey) => currentKey + 1);
         return;
       }
-      setResults(localResults);
-      setTotalResultCount(localResults.length);
-      setActiveLocalSearch({ ...activeLocalSearch, sort: nextSort });
-      setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
-      setResultRenderKey((currentKey) => currentKey + 1);
+
+      // Once this result set falls back to the server, keep it there. A catalog
+      // refresh may finish in the background, but it belongs to the next search.
+      setActiveLocalSearch(null);
+    }
+    if (!activeSearchQuery) {
+      setSortDirection(previousSort);
+      setSearchFeedback({
+        kind: "error",
+        message: GENERIC_SEARCH_ERROR_MESSAGE,
+      });
       return;
     }
-    if (!activeServerSearch) return;
 
     setIsSearching(true);
     setSearchFeedback(null);
     const requestId = ++searchRequestIdRef.current;
     try {
-      const page = await fetchSearchPage(activeServerSearch.query, 0, nextSort);
+      const response = await fetchServerSearch(
+        activeSearchQuery.query,
+        nextSort,
+      );
       if (requestId !== searchRequestIdRef.current) return;
-      setResults(page.items);
-      setTotalResultCount(page.total ?? 0);
-      setActiveServerSearch({
-        nextOffset: page.nextOffset,
-        query: activeServerSearch.query,
-      });
+      setResults(response.items);
+      setTotalResultCount(response.total);
+      setActiveSearchQuery({ query: activeSearchQuery.query });
+      setActiveLocalSearch(null);
+      setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
       setResultRenderKey((currentKey) => currentKey + 1);
     } catch (error) {
       if (requestId !== searchRequestIdRef.current) return;
@@ -716,7 +700,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setSortDirection(previousSort);
       setSearchFeedback({
         kind: "error",
-        message: "Could not sort the results. Please try again.",
+        message: GENERIC_SEARCH_ERROR_MESSAGE,
       });
     } finally {
       if (requestId === searchRequestIdRef.current) {
@@ -725,55 +709,14 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     }
   }
 
-  async function handleShowNext() {
-    if (!activeServerSearch) {
-      setVisibleResultCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE);
-      return;
-    }
-    if (
-      activeServerSearch.nextOffset === null ||
-      isLoadingMore ||
-      isSearching
-    ) {
-      return;
-    }
-
-    setIsLoadingMore(true);
-    setSearchFeedback(null);
-    const requestId = ++searchRequestIdRef.current;
-    try {
-      const page = await fetchSearchPage(
-        activeServerSearch.query,
-        activeServerSearch.nextOffset,
-        sortDirection,
-      );
-      if (requestId !== searchRequestIdRef.current) return;
-      setResults((current) => [...current, ...page.items]);
-      if (page.total !== null) {
-        setTotalResultCount(page.total);
-      }
-      setActiveServerSearch({
-        nextOffset: page.nextOffset,
-        query: activeServerSearch.query,
-      });
-    } catch (error) {
-      if (requestId !== searchRequestIdRef.current) return;
-      logClientError("Loading more search results failed", error);
-      setSearchFeedback({
-        kind: "error",
-        message: "Could not load more cards. Please try again.",
-      });
-    } finally {
-      if (requestId === searchRequestIdRef.current) {
-        setIsLoadingMore(false);
-      }
-    }
+  function handleShowNext() {
+    setVisibleResultCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE);
   }
 
   const searchBar = (
     <DatabaseSearchBar
       autoFocusName={autoFocusName}
-      canSearch={canSearch && !isLoadingMore}
+      canSearch={canSearch}
       cardNumber={cardNumber}
       filters={filters}
       isSearching={isSearching}
@@ -822,11 +765,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   searchRequestIdRef.current += 1;
                   window.clearTimeout(searchCooldownTimerRef.current);
                   setIsSearching(false);
-                  setIsLoadingMore(false);
                   setCanSearch(true);
                   setResults([]);
                   setTotalResultCount(0);
-                  setActiveServerSearch(null);
+                  setActiveSearchQuery(null);
                   setActiveLocalSearch(null);
                   setActiveQueryLabel("");
                   setActiveCondition("");
@@ -866,17 +808,14 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   })}
                 </GridView>
               )}
-              {(activeServerSearch
-                ? activeServerSearch.nextOffset !== null
-                : visibleResultCount < results.length) && (
+              {visibleResultCount < results.length && (
                 <div className="search-results__more">
                   <button
                     className="search-results__more-button"
-                    disabled={isLoadingMore || isSearching}
                     onClick={handleShowNext}
                     type="button"
                   >
-                    {isLoadingMore ? "Loading…" : "Show next 50"}
+                    Show next 50
                     <ChevronDown aria-hidden="true" />
                   </button>
                 </div>

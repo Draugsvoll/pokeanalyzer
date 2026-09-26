@@ -83,7 +83,7 @@ test("market movers rejects unsupported filters before loading", async () => {
   assert.equal(calls, 0);
 });
 
-test("card search forwards validated filters, sorting, and pagination", async () => {
+test("card search forwards validated filters and sorting", async () => {
   const app = express();
   app.get(
     "/api/cards/search",
@@ -92,15 +92,15 @@ test("card search forwards validated filters, sorting, and pagination", async ()
         assert.deepEqual(query, {
           cardId: "",
           cardNumber: "",
+          condition: "LIGHTLY_PLAYED",
           maxPrice: 30,
           minPrice: 20,
-          offset: 50,
           pokemonName: "",
           rarity: "Common",
           setName: "",
           sort: "price-low-high",
         });
-        return { hasMore: false, items: [], nextOffset: null, total: 73 };
+        return { items: [], total: 0 };
       },
       reportError: () => {
         assert.fail("The successful request must not be logged as an error");
@@ -110,15 +110,13 @@ test("card search forwards validated filters, sorting, and pagination", async ()
 
   const response = await requestFromTestServer(
     app,
-    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&offset=50&sort=price-low-high",
+    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&condition=LIGHTLY_PLAYED&sort=price-low-high",
   );
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    hasMore: false,
     items: [],
-    nextOffset: null,
-    total: 73,
+    total: 0,
   });
 });
 
@@ -137,10 +135,8 @@ test("card search rejects invalid filters before querying the database", async (
 
   for (const query of [
     "",
-    "condition=LIGHTLY_PLAYED",
+    "condition=MINTY",
     "pokemonName=pikachu&minPrice=30&maxPrice=20",
-    "pokemonName=pikachu&offset=-1",
-    "pokemonName=pikachu&offset=2000",
     "pokemonName=pikachu&sort=name",
   ]) {
     const response = await requestFromTestServer(

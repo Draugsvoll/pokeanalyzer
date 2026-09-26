@@ -10,11 +10,9 @@ export type PokeTraceSearchSort = (typeof POKETRACE_SEARCH_SORTS)[number];
 export const POKETRACE_DEFAULT_SEARCH_SORT: PokeTraceSearchSort =
   "price-high-low";
 
-export type PokeTraceSearchPage<TItem> = {
-  hasMore: boolean;
+export type PokeTraceSearchResponse<TItem> = {
   items: TItem[];
-  nextOffset: number | null;
-  total: number | null;
+  total: number;
 };
 
 export function isPokeTraceSearchSort(

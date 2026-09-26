@@ -6,7 +6,7 @@ import { parsePokeTraceSavedResponses } from "../../../shared/pokeTraceSavedResp
 import { toPokemonCard } from "../../services/pokeTraceCardView.js";
 import { gzip } from "node:zlib";
 import { promisify } from "node:util";
-import { loadPokeTraceCatalog } from "../../services/pokeTraceCatalog.js";
+import { getCachedPokeTraceCatalog } from "../../services/pokeTraceCatalog.js";
 import {
   loadMarketPriceHistory,
   PokeTracePriceHistoryUnavailableError,
@@ -23,19 +23,19 @@ import {
   loadPokeTraceMarketMovers,
   PokeTraceMoversUnavailableError,
 } from "../../services/pokeTraceMarketMovers.js";
-import { loadPokeTraceSearchPage } from "../../services/pokeTraceSearch.js";
+import { loadPokeTraceSearch } from "../../services/pokeTraceSearch.js";
 import {
   isPokeTraceSearchSort,
   POKETRACE_DEFAULT_SEARCH_SORT,
-  POKETRACE_SEARCH_RESULT_LIMIT,
 } from "../../../shared/pokeTraceSearch.js";
+import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditions.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
-const CATALOG_SERVER_CACHE_MS = 12 * 60 * 60 * 1000;
-type CatalogPayload = { expiresAt: number; json: string; gzip: Buffer };
+type CatalogPayload = { generatedAt: string; json: string; gzip: Buffer };
 let cachedCatalogPayload: CatalogPayload | undefined;
-let catalogBuildPromise: Promise<CatalogPayload> | undefined;
+let catalogBuild:
+  { generatedAt: string; promise: Promise<CatalogPayload> } | undefined;
 
 export function acceptsGzip(header: string | undefined) {
   return (header ?? "").split(",").some((encoding) => {
@@ -49,29 +49,31 @@ export function acceptsGzip(header: string | undefined) {
 }
 
 async function getCatalogPayload() {
+  const catalog = await getCachedPokeTraceCatalog();
   const cached = cachedCatalogPayload;
-  if (cached && cached.expiresAt > Date.now()) {
+  if (cached?.generatedAt === catalog.generatedAt) {
     return cached;
   }
-  if (catalogBuildPromise) return catalogBuildPromise;
+  if (catalogBuild?.generatedAt === catalog.generatedAt) {
+    return catalogBuild.promise;
+  }
 
   const build = (async () => {
-    const catalog = await loadPokeTraceCatalog();
     const json = JSON.stringify(catalog);
     const payload = {
-      expiresAt: Date.now() + CATALOG_SERVER_CACHE_MS,
+      generatedAt: catalog.generatedAt,
       json,
       gzip: await gzipAsync(json),
     };
     cachedCatalogPayload = payload;
     return payload;
   })();
-  catalogBuildPromise = build;
+  catalogBuild = { generatedAt: catalog.generatedAt, promise: build };
 
   try {
     return await build;
   } finally {
-    catalogBuildPromise = undefined;
+    if (catalogBuild?.promise === build) catalogBuild = undefined;
   }
 }
 
@@ -92,7 +94,7 @@ type MarketMoversHandlerDependencies = {
 };
 
 type PokeTraceSearchHandlerDependencies = {
-  loadSearch: typeof loadPokeTraceSearchPage;
+  loadSearch: typeof loadPokeTraceSearch;
   reportError: (context: string, error: unknown) => void;
 };
 
@@ -392,7 +394,7 @@ export function createMarketPriceHistoryHandler(
 export function createPokeTraceSearchHandler(
   dependencies: Partial<PokeTraceSearchHandlerDependencies> = {},
 ): RequestHandler {
-  const loadSearch = dependencies.loadSearch ?? loadPokeTraceSearchPage;
+  const loadSearch = dependencies.loadSearch ?? loadPokeTraceSearch;
   const reportError = dependencies.reportError ?? logError;
 
   return async (req, res) => {
@@ -412,12 +414,16 @@ export function createPokeTraceSearchHandler(
       typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
     const minPrice = optionalNumber(req.query.minPrice);
     const maxPrice = optionalNumber(req.query.maxPrice);
-    const offset = optionalNumber(req.query.offset) ?? 0;
     const requestedSort =
       typeof req.query.sort === "string" ? req.query.sort.trim() : "";
     const sort = requestedSort || POKETRACE_DEFAULT_SEARCH_SORT;
-    if (req.query.condition !== undefined) {
-      res.status(400).json({ error: "Condition search is available locally" });
+    const requestedCondition =
+      typeof req.query.condition === "string" ? req.query.condition.trim() : "";
+    const condition = isPokeTraceRawCondition(requestedCondition)
+      ? requestedCondition
+      : undefined;
+    if (req.query.condition !== undefined && condition === undefined) {
+      res.status(400).json({ error: "Invalid search condition" });
       return;
     }
     const values = [pokemonName, setName, cardNumber, rarity, cardId];
@@ -434,12 +440,7 @@ export function createPokeTraceSearchHandler(
         (!Number.isFinite(minPrice) || minPrice < 0)) ||
       (maxPrice !== undefined &&
         (!Number.isFinite(maxPrice) || maxPrice < 0)) ||
-      (minPrice !== undefined &&
-        maxPrice !== undefined &&
-        minPrice > maxPrice) ||
-      !Number.isSafeInteger(offset) ||
-      offset < 0 ||
-      offset >= POKETRACE_SEARCH_RESULT_LIMIT
+      (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice)
     ) {
       res.status(400).json({ error: "Invalid search filters" });
       return;
@@ -447,7 +448,8 @@ export function createPokeTraceSearchHandler(
     if (
       values.every((value) => !value) &&
       minPrice === undefined &&
-      maxPrice === undefined
+      maxPrice === undefined &&
+      condition === undefined
     ) {
       res.status(400).json({ error: "At least one search field is required" });
       return;
@@ -457,9 +459,9 @@ export function createPokeTraceSearchHandler(
         await loadSearch({
           cardId,
           cardNumber,
+          condition,
           maxPrice,
           minPrice,
-          offset,
           pokemonName,
           rarity,
           setName,
@@ -487,7 +489,7 @@ router.get("/catalog", async (req, res) => {
     }
     res.send(payload.json);
   } catch (error) {
-    logError("Failed to build PokeTrace browser catalog", error);
+    logError("Failed to load PokeTrace browser catalog", error);
     res.status(500).json({ error: "Failed to load card catalog" });
   }
 });

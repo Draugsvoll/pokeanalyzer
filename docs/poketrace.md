@@ -49,6 +49,21 @@ date: TCGPlayer's Near Mint market price. Rerunning the job on the same UTC date
 replaces that day's value instead of duplicating it. History older than 40 days
 is removed by default.
 
+At the end of every completed refresh, the job builds the compact browser
+search catalogue and atomically replaces one stored payload in Turso. If
+catalogue generation or storage fails, the job exits with an error and the
+previous payload remains available. The backend reads this stored payload on a
+cold start instead of scanning the complete card table during a user request.
+Generate the same payload immediately from the cards already stored in Turso
+without running a price refresh with:
+
+```sh
+npm run poketrace:generate-catalog
+```
+
+The standalone generator uses the same maintenance lock as import and refresh,
+so it skips safely rather than reading while another catalogue job is writing.
+
 The same refresh also writes one supplemental `poketrace_market_snapshots` row
 per card and UTC date. Its `tcg` and `ebay` JSON fields preserve the complete
 Near Mint, Lightly Played, Moderately Played, and Damaged objects returned by
