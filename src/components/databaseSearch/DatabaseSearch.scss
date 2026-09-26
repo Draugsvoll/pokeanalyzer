@@ -57,6 +57,7 @@
   min-height: var(--search-height);
   padding: var(--search-pad) var(--search-btn-outer-gap) var(--search-pad)
     var(--search-pad);
+  padding: var(--search-pad) 0;
   position: relative;
   transition:
     border-color var(--delay-short) ease,
@@ -279,6 +280,7 @@
   line-height: 1;
   min-width: var(--search-btn-min-width);
   padding: 0.7rem var(--search-btn-pad-x);
+  margin-right: 0.7rem;
   transition:
     background-color var(--delay-short) ease,
     border-color var(--delay-short) ease,
