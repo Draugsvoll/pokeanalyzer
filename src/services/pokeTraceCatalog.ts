@@ -43,6 +43,7 @@ let memoryCatalogSavedAt = 0;
 let memoryCatalogRarities: string[] = [];
 let memoryCatalogSetNames: string[] = [];
 let initializationPromise: Promise<void> | null = null;
+let storedCatalogReadPromise: Promise<boolean> | null = null;
 let indexedDbUnavailable = false;
 let retryAfter = 0;
 
@@ -107,6 +108,7 @@ function openCatalogDatabase() {
       return;
     }
 
+    let settled = false;
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
@@ -117,16 +119,35 @@ function openCatalogDatabase() {
         database.createObjectStore(CHUNK_STORE, { keyPath: "index" });
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
+    request.onsuccess = () => {
+      if (settled) {
+        request.result.close();
+        return;
+      }
+      settled = true;
+      resolve(request.result);
+    };
+    request.onerror = () => {
+      if (settled) return;
+      settled = true;
       reject(request.error ?? new Error("Could not open IndexedDB"));
-    request.onblocked = () =>
+    };
+    request.onblocked = () => {
+      if (settled) return;
+      settled = true;
       reject(new Error("IndexedDB upgrade was blocked"));
+    };
   });
 }
 
 function isFresh(savedAt: number) {
-  return savedAt > 0 && Date.now() - savedAt < POKETRACE_CATALOG_MAX_AGE_MS;
+  const now = Date.now();
+  return (
+    Number.isSafeInteger(savedAt) &&
+    savedAt > 0 &&
+    savedAt <= now &&
+    now - savedAt < POKETRACE_CATALOG_MAX_AGE_MS
+  );
 }
 
 async function readStoredCatalog() {
@@ -152,12 +173,28 @@ async function readStoredCatalog() {
       !metadata ||
       metadata.schemaVersion !== POKETRACE_CATALOG_SCHEMA_VERSION ||
       !isFresh(metadata.savedAt) ||
+      !Number.isSafeInteger(metadata.cardCount) ||
+      metadata.cardCount <= 0 ||
+      !Number.isSafeInteger(metadata.chunkCount) ||
+      metadata.chunkCount <= 0 ||
+      metadata.chunkCount !== Math.ceil(metadata.cardCount / CHUNK_SIZE) ||
       metadata.chunkCount !== chunks.length
     ) {
       return null;
     }
 
     chunks.sort((left, right) => left.index - right.index);
+    if (
+      chunks.some(
+        (chunk, index) =>
+          chunk.index !== index ||
+          !Array.isArray(chunk.cards) ||
+          chunk.cards.length !==
+            Math.min(CHUNK_SIZE, metadata.cardCount - index * CHUNK_SIZE),
+      )
+    ) {
+      return null;
+    }
     const cards = chunks.flatMap((chunk) => chunk.cards);
     if (
       cards.length !== metadata.cardCount ||
@@ -215,17 +252,23 @@ async function downloadCatalog() {
   return parsePokeTraceCatalogResponse(await response.json());
 }
 
-async function loadOrRefreshCatalog() {
+async function hydrateStoredCatalog() {
   const stored = await readStoredCatalog();
   if (stored) {
     setMemoryCatalog(stored.cards, stored.savedAt);
-    return;
+    retryAfter = 0;
+    return true;
   }
 
   clearMemoryCatalog();
+  return false;
+}
+
+async function downloadAndStoreCatalog() {
   const downloaded = await downloadCatalog();
   const savedAt = await storeCatalog(downloaded.cards);
   setMemoryCatalog(downloaded.cards, savedAt);
+  retryAfter = 0;
 }
 
 export function initializePokeTraceCatalog() {
@@ -233,14 +276,20 @@ export function initializePokeTraceCatalog() {
     return Promise.resolve();
   }
   if (initializationPromise) return initializationPromise;
-  if (Date.now() < retryAfter) return Promise.resolve();
 
   if (typeof indexedDB === "undefined") {
     indexedDbUnavailable = true;
     return Promise.resolve();
   }
 
-  initializationPromise = loadOrRefreshCatalog()
+  const canRefreshCatalog = Date.now() >= retryAfter;
+  storedCatalogReadPromise = hydrateStoredCatalog();
+  initializationPromise = storedCatalogReadPromise
+    .then(async (storedCatalogLoaded) => {
+      if (!storedCatalogLoaded && canRefreshCatalog) {
+        await downloadAndStoreCatalog();
+      }
+    })
     .catch((error: unknown) => {
       clearMemoryCatalog();
       retryAfter = Date.now() + RETRY_DELAY_MS;
@@ -248,6 +297,7 @@ export function initializePokeTraceCatalog() {
     })
     .finally(() => {
       initializationPromise = null;
+      storedCatalogReadPromise = null;
     });
   return initializationPromise;
 }
@@ -261,17 +311,28 @@ export function searchPokeTraceCatalogCards(
   });
 }
 
-export function searchCachedPokeTraceCatalog(
+export async function searchCachedPokeTraceCatalog(
   search: PokeTraceCatalogSearch,
-): PokemonCard[] | null {
-  if (!memoryCatalog || !isFresh(memoryCatalogSavedAt)) {
+): Promise<PokemonCard[] | null> {
+  try {
+    if (!memoryCatalog || !isFresh(memoryCatalogSavedAt)) {
+      clearMemoryCatalog();
+      void initializePokeTraceCatalog();
+
+      const storedCatalogRead = storedCatalogReadPromise;
+      if (!storedCatalogRead) return null;
+      if (!(await storedCatalogRead)) return null;
+    }
+
+    if (!memoryCatalog || !isFresh(memoryCatalogSavedAt)) return null;
+    return searchPokeTraceCatalogCards(memoryCatalog, search).map(
+      toPokeTraceCatalogPokemonCard,
+    );
+  } catch (error) {
     clearMemoryCatalog();
-    void initializePokeTraceCatalog();
+    logClientError("PokeTrace browser catalog search unavailable", error);
     return null;
   }
-  return searchPokeTraceCatalogCards(memoryCatalog, search).map(
-    toPokeTraceCatalogPokemonCard,
-  );
 }
 
 export async function loadPokeTraceCatalogRarities() {

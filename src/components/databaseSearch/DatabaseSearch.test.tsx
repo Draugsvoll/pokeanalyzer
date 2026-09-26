@@ -66,9 +66,12 @@ afterEach(() => {
 });
 
 test("uses the browser catalog without calling the search API", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
-    card("card-local", "Local Charizard"),
-  ]);
+  let resolveCatalogRead!: (cards: PokemonCard[]) => void;
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue(
+    new Promise<PokemonCard[]>((resolve) => {
+      resolveCatalogRead = resolve;
+    }),
+  );
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
@@ -79,6 +82,10 @@ test("uses the browser catalog without calling the search API", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(screen.getByLabelText("Searching")).toBeInTheDocument();
+  expect(fetchMock).not.toHaveBeenCalled();
+  await act(async () => {
+    resolveCatalogRead([card("card-local", "Local Charizard")]);
+  });
   expect(await screen.findByText("Local Charizard")).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -378,6 +385,56 @@ test("sorts local results by card number", async () => {
     setName: "",
     sort: "card-number-low-high",
   });
+});
+
+test("ignores a pending local sort after the results are closed", async () => {
+  let resolveLocalSort!: (cards: PokemonCard[]) => void;
+  mocks.searchCachedPokeTraceCatalog
+    .mockReturnValueOnce([card("card-10", "Card 10")])
+    .mockReturnValueOnce(
+      new Promise<PokemonCard[]>((resolve) => {
+        resolveLocalSort = resolve;
+      }),
+    );
+  renderSearch();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "card" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  expect(await screen.findByText("Card 10")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
+
+  await act(async () => {
+    resolveLocalSort([card("card-2", "Card 2")]);
+  });
+
+  expect(screen.queryByText("Card 10")).not.toBeInTheDocument();
+  expect(screen.queryByText("Card 2")).not.toBeInTheDocument();
+});
+
+test("shows empty feedback when a refreshed local catalog changes the matches", async () => {
+  mocks.searchCachedPokeTraceCatalog
+    .mockReturnValueOnce([card("card-10", "Card 10")])
+    .mockReturnValueOnce([]);
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  renderSearch();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "card" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  expect(await screen.findByText("Card 10")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
+
+  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test("ignores a pending server sort after the results are closed", async () => {

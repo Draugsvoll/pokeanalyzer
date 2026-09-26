@@ -57,7 +57,9 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
 
     const firstLoad = await import("./pokeTraceCatalog");
     await firstLoad.initializePokeTraceCatalog();
-    const firstResult = firstLoad.searchCachedPokeTraceCatalog(search)?.[0];
+    const firstResult = (
+      await firstLoad.searchCachedPokeTraceCatalog(search)
+    )?.[0];
     expect(firstResult?.id).toBe("card-1");
     expect(firstResult?.pokeTrace.prices).toEqual({
       tcgplayer: {
@@ -75,10 +77,35 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     vi.resetModules();
     fetchMock.mockRejectedValue(new Error("network should not be used"));
     const secondLoad = await import("./pokeTraceCatalog");
+    const secondInitialization = secondLoad.initializePokeTraceCatalog();
+    expect(
+      (await secondLoad.searchCachedPokeTraceCatalog(search))?.[0]?.id,
+    ).toBe("card-1");
+    await secondInitialization;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("retries IndexedDB reads during the catalog refresh cooldown", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const databaseFactory = globalThis.indexedDB;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(responsePayload(catalogCard("card-1", "Charizard")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstLoad = await import("./pokeTraceCatalog");
+    await firstLoad.initializePokeTraceCatalog();
+
+    vi.resetModules();
+    vi.spyOn(databaseFactory, "open").mockImplementationOnce(() => {
+      throw new Error("temporary IndexedDB error");
+    });
+    const secondLoad = await import("./pokeTraceCatalog");
     await secondLoad.initializePokeTraceCatalog();
-    expect(secondLoad.searchCachedPokeTraceCatalog(search)?.[0]?.id).toBe(
-      "card-1",
-    );
+
+    expect(
+      (await secondLoad.searchCachedPokeTraceCatalog(search))?.[0]?.id,
+    ).toBe("card-1");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -97,13 +124,62 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     fetchMock.mockResolvedValue(
       responsePayload(catalogCard("card-2", "Charizard ex")),
     );
-    expect(service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
     await service.initializePokeTraceCatalog();
 
-    expect(service.searchCachedPokeTraceCatalog(search)?.[0]?.id).toBe(
+    expect((await service.searchCachedPokeTraceCatalog(search))?.[0]?.id).toBe(
       "card-2",
     );
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("rejects a stored catalog with an implausibly future timestamp", async () => {
+    const now = Date.parse("2026-09-19T08:00:00.000Z");
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        responsePayload(catalogCard("card-1", "Charizard")),
+      )
+      .mockResolvedValueOnce(
+        responsePayload(catalogCard("card-2", "Charizard ex")),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstLoad = await import("./pokeTraceCatalog");
+    await firstLoad.initializePokeTraceCatalog();
+
+    dateNow.mockReturnValue(now - 24 * 60 * 60 * 1_000);
+    vi.resetModules();
+    const secondLoad = await import("./pokeTraceCatalog");
+    expect(await secondLoad.searchCachedPokeTraceCatalog(search)).toBeNull();
+    await secondLoad.initializePokeTraceCatalog();
+
+    expect(
+      (await secondLoad.searchCachedPokeTraceCatalog(search))?.[0]?.id,
+    ).toBe("card-2");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("does not make search wait for a missing catalog download", async () => {
+    let resolveDownload!: (response: Response) => void;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveDownload = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const service = await import("./pokeTraceCatalog");
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveDownload(responsePayload(catalogCard("card-1", "Charizard")));
+    await service.initializePokeTraceCatalog();
+    expect((await service.searchCachedPokeTraceCatalog(search))?.[0]?.id).toBe(
+      "card-1",
+    );
   });
 
   test("uses no local catalog when IndexedDB is unavailable", async () => {
@@ -114,7 +190,7 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     const service = await import("./pokeTraceCatalog");
     await service.initializePokeTraceCatalog();
 
-    expect(service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -132,6 +208,6 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     const service = await import("./pokeTraceCatalog");
     await service.initializePokeTraceCatalog();
 
-    expect(service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
   });
 });

@@ -156,14 +156,16 @@
     max-width: 72rem;
     width: calc(100% - 2rem);
 
+    .database-search-control,
+    .database-search-bar {
+      margin-inline: auto;
+      max-width: var(--search-max-width);
+    }
+
     .database-preview {
       min-height: 0;
       padding: 0;
       text-align: left;
-    }
-
-    .database-search-bar {
-      max-width: 42rem;
     }
   }
 

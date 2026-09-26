@@ -22,7 +22,7 @@
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) auto;
-  margin: 0 0 var(--space-5);
+  margin: var(--space-5) 0 var(--space-5);
   padding-bottom: var(--space-3);
   text-align: left;
   width: 100%;

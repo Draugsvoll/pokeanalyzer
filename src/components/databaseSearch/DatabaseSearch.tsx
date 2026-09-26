@@ -282,11 +282,11 @@ export function DatabaseSearchBar({
         >
           <label className="explore-search-field">
             <Search
+              absoluteStrokeWidth
+              aria-hidden="true"
               className="explore-search-field__icon"
               size={16}
               strokeWidth={2}
-              absoluteStrokeWidth
-              aria-hidden="true"
             />
             <input
               ref={pokemonNameInputRef}
@@ -326,6 +326,34 @@ export function DatabaseSearchBar({
           </label>
         </div>
         <div className="database-search-actions">
+          <div className="database-search-filter-entry">
+            <button
+              aria-controls={filterPanelId}
+              aria-expanded={filtersOpen}
+              aria-label={
+                filterCount > 0
+                  ? `Search filters, ${filterCount} active`
+                  : "Search filters"
+              }
+              className={`database-search-filter-toggle${filtersOpen ? " is-open" : ""}`}
+              onClick={() => setFiltersOpen((current) => !current)}
+              type="button"
+            >
+              <span className="database-search-filter-toggle__icon">
+                <SlidersHorizontal aria-hidden="true" />
+                {filterCount > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="database-search-filter-toggle__count"
+                  >
+                    {filterCount}
+                  </span>
+                )}
+              </span>
+              <span>Filter</span>
+            </button>
+          </div>
+
           <button
             type="button"
             className="explore-search-shell__submit"
@@ -346,42 +374,8 @@ export function DatabaseSearchBar({
         </div>
       </div>
 
-      <div
-        className={`database-search-filter-toolbar${filtersOpen ? " is-open" : ""}`}
-      >
-        <div className="database-search-filter-actions">
-          <button
-            type="button"
-            className={`database-search-filter-toggle${filtersOpen ? " is-open" : ""}`}
-            aria-controls={filterPanelId}
-            aria-expanded={filtersOpen}
-            aria-label="Search filters"
-            onClick={() => setFiltersOpen((current) => !current)}
-          >
-            <SlidersHorizontal aria-hidden="true" />
-            <span>Filters</span>
-            {filterCount > 0 && (
-              <span className="database-search-filter-toggle__count">
-                {filterCount}
-              </span>
-            )}
-          </button>
-
-          {filtersOpen && (
-            <button
-              aria-label="Clear all"
-              type="button"
-              className="database-search-filters__clear"
-              disabled={filterCount === 0}
-              onClick={onFiltersClear}
-            >
-              <RotateCcw aria-hidden="true" />
-              <span>Clear all</span>
-            </button>
-          )}
-        </div>
-
-        {filtersOpen && (
+      {filtersOpen && (
+        <div className="database-search-filter-toolbar">
           <div
             className="database-search-filters ui-render-fade"
             id={filterPanelId}
@@ -484,8 +478,21 @@ export function DatabaseSearchBar({
               )}
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="database-search-filter-actions">
+            <button
+              aria-label="Clear all"
+              className="database-search-filters__clear"
+              disabled={filterCount === 0}
+              onClick={onFiltersClear}
+              type="button"
+            >
+              <RotateCcw aria-hidden="true" />
+              <span>Clear all</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -595,7 +602,8 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         ...(setNameExact && { setNameExact: true }),
         ...(condition && { condition }),
       };
-      const localResults = searchCachedPokeTraceCatalog(catalogSearch);
+      const localResults = await searchCachedPokeTraceCatalog(catalogSearch);
+      if (requestId !== searchRequestIdRef.current) return;
       const serverResponse =
         localResults !== null
           ? null
@@ -684,13 +692,18 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         sort: nextSort,
       };
       const requestId = ++searchRequestIdRef.current;
-      const cachedResults = searchCachedPokeTraceCatalog(nextSearch);
+      const cachedResults = await searchCachedPokeTraceCatalog(nextSearch);
+      if (requestId !== searchRequestIdRef.current) return;
       if (cachedResults !== null) {
-        if (requestId !== searchRequestIdRef.current) return;
         setResults(cachedResults);
         setTotalResultCount(cachedResults.length);
         setActiveLocalSearch(nextSearch);
         setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
+        setSearchFeedback(
+          cachedResults.length === 0
+            ? { kind: "empty", message: "No cards found." }
+            : null,
+        );
         setResultRenderKey((currentKey) => currentKey + 1);
         return;
       }
@@ -722,6 +735,11 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setActiveSearchQuery({ query: activeSearchQuery.query });
       setActiveLocalSearch(null);
       setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
+      setSearchFeedback(
+        response.items.length === 0
+          ? { kind: "empty", message: "No cards found." }
+          : null,
+      );
       setResultRenderKey((currentKey) => currentKey + 1);
     } catch (error) {
       if (requestId !== searchRequestIdRef.current) return;
