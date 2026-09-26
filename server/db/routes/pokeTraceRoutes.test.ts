@@ -98,7 +98,7 @@ test("card search forwards validated filters and sorting", async () => {
           pokemonName: "",
           rarity: "Common",
           setName: "",
-          sort: "price-low-high",
+          sort: "card-number-low-high",
         });
         return { items: [], total: 0 };
       },
@@ -110,7 +110,7 @@ test("card search forwards validated filters and sorting", async () => {
 
   const response = await requestFromTestServer(
     app,
-    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&condition=LIGHTLY_PLAYED&sort=price-low-high",
+    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&condition=LIGHTLY_PLAYED&sort=card-number-low-high",
   );
 
   assert.equal(response.status, 200);
@@ -118,6 +118,27 @@ test("card search forwards validated filters and sorting", async () => {
     items: [],
     total: 0,
   });
+});
+
+test("card search forwards an exact set-name selection", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/search",
+    createPokeTraceSearchHandler({
+      loadSearch: async (query) => {
+        assert.equal(query.setName, "Base Set");
+        assert.equal(query.setNameExact, true);
+        return { items: [], total: 0 };
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/search?setName=Base+Set&setNameExact=true",
+  );
+
+  assert.equal(response.status, 200);
 });
 
 test("card search rejects invalid filters before querying the database", async () => {
@@ -136,6 +157,7 @@ test("card search rejects invalid filters before querying the database", async (
   for (const query of [
     "",
     "condition=MINTY",
+    "setName=Base+Set&setNameExact=maybe",
     "pokemonName=pikachu&minPrice=30&maxPrice=20",
     "pokemonName=pikachu&sort=name",
   ]) {

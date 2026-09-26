@@ -14,6 +14,7 @@ import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { SearchHero } from "../searchHero/SearchHero";
 import {
   loadPokeTraceCatalogRarities,
+  loadPokeTraceCatalogSetNames,
   searchCachedPokeTraceCatalog,
   type PokeTraceCatalogSearch,
 } from "../../services/pokeTraceCatalog";
@@ -30,6 +31,7 @@ import {
   type PokeTraceSearchResponse,
   type PokeTraceSearchSort,
 } from "../../../shared/pokeTraceSearch";
+import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -201,7 +203,7 @@ type DatabaseSearchBarProps = {
   onFiltersClear: () => void;
   onSearch: () => void;
   onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onSetNameChange: (value: string) => void;
+  onSetNameChange: (value: string, exact: boolean) => void;
   pokemonName: string;
   setName: string;
 };
@@ -227,6 +229,9 @@ export function DatabaseSearchBar({
   const priceValidationId = `${filterPanelId}-price-validation`;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rarityOptions, setRarityOptions] = useState(FALLBACK_RARITY_OPTIONS);
+  const [setNameOptions, setSetNameOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([]);
   const filterCount = activeFilterCount(filters);
   const hasSearchCriteria = Boolean(
     pokemonName.trim() || setName.trim() || cardNumber.trim() || filterCount,
@@ -248,6 +253,19 @@ export function DatabaseSearchBar({
         { value: "", label: "Any" },
         ...rarities.map((rarity) => ({ label: rarity, value: rarity })),
       ]);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadPokeTraceCatalogSetNames().then((setNames) => {
+      if (!active || !setNames?.length) return;
+      setSetNameOptions(
+        setNames.map((setName) => ({ label: setName, value: setName })),
+      );
     });
     return () => {
       active = false;
@@ -293,13 +311,17 @@ export function DatabaseSearchBar({
           </label>
           <span className="explore-search-shell__divider" aria-hidden="true" />
           <label className="explore-search-field">
-            <input
-              className="database-search"
-              value={setName}
-              onChange={(event) => onSetNameChange(event.target.value)}
+            <AutosuggestCombobox
+              ariaLabel="Set name"
+              className="database-search-set-combobox"
+              inputClassName="database-search"
+              menuLabel="Set name suggestions"
+              onInputChange={(value) => onSetNameChange(value, false)}
               onKeyDown={onSearchKeyDown}
+              onSelect={(value) => onSetNameChange(value, true)}
+              options={setNameOptions}
               placeholder="Set"
-              aria-label="Set name"
+              value={setName}
             />
           </label>
         </div>
@@ -429,11 +451,15 @@ export function DatabaseSearchBar({
 
               <div className="database-search-filter-field">
                 <span>Rarity</span>
-                <SelectDropdown
+                <AutosuggestCombobox
                   ariaLabel="Filter by rarity"
-                  className="database-search-rarity-select"
-                  onChange={(rarity) => onFiltersChange({ rarity })}
+                  className="database-search-rarity-combobox"
+                  menuLabel="Rarity suggestions"
+                  onInputChange={(rarity) => onFiltersChange({ rarity })}
+                  onKeyDown={onSearchKeyDown}
+                  onSelect={(rarity) => onFiltersChange({ rarity })}
                   options={rarityOptions}
+                  placeholder="Any"
                   value={filters.rarity}
                 />
               </div>
@@ -471,6 +497,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
 }) => {
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
+  const [setNameExact, setSetNameExact] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
   const [filters, setFilters] =
     useState<DatabaseSearchFilters>(EMPTY_SEARCH_FILTERS);
@@ -549,6 +576,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       const params = new URLSearchParams();
       if (trimmedPokemonName) params.set("pokemonName", trimmedPokemonName);
       if (trimmedSetName) params.set("setName", trimmedSetName);
+      if (trimmedSetName && setNameExact) params.set("setNameExact", "true");
       if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
       if (minPrice !== undefined) params.set("minPrice", String(minPrice));
       if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
@@ -564,6 +592,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         maxPrice,
         rarity,
         sort: sortDirection,
+        ...(setNameExact && { setNameExact: true }),
         ...(condition && { condition }),
       };
       const localResults = searchCachedPokeTraceCatalog(catalogSearch);
@@ -728,7 +757,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       onPokemonNameChange={setPokemonName}
       onSearch={submitSearch}
       onSearchKeyDown={handleSearchKeyDown}
-      onSetNameChange={setSetName}
+      onSetNameChange={(value, exact) => {
+        setSetName(value);
+        setSetNameExact(exact);
+      }}
       pokemonName={pokemonName}
       priceFilterValidation={priceFilterValidation}
       setName={setName}
@@ -780,7 +812,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                 sortDirection={sortDirection}
               />
               {results.length > 0 && (
-                <GridView>
+                <GridView revealOnScroll={false}>
                   {visibleResults.map((card) => {
                     const selectedPrice = activeCondition
                       ? resolvePokeTraceCardPrice(card, activeCondition)?.price

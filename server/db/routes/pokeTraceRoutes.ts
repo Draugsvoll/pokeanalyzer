@@ -404,6 +404,19 @@ export function createPokeTraceSearchHandler(
         : "";
     const setName =
       typeof req.query.setName === "string" ? req.query.setName.trim() : "";
+    const requestedSetNameExact =
+      typeof req.query.setNameExact === "string"
+        ? req.query.setNameExact.trim()
+        : "";
+    if (
+      requestedSetNameExact &&
+      requestedSetNameExact !== "true" &&
+      requestedSetNameExact !== "false"
+    ) {
+      res.status(400).json({ error: "Invalid exact set-name filter" });
+      return;
+    }
+    const setNameExact = requestedSetNameExact === "true";
     const cardNumber =
       typeof req.query.cardNumber === "string"
         ? req.query.cardNumber.trim()
@@ -465,6 +478,7 @@ export function createPokeTraceSearchHandler(
           pokemonName,
           rarity,
           setName,
+          ...(setNameExact && { setNameExact: true }),
           sort,
         }),
       );

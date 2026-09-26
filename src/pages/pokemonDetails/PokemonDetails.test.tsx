@@ -291,6 +291,71 @@ test("keeps the embedded card search open while using its controls", async () =>
   expect(dialog).toBeInTheDocument();
 });
 
+test("closes the embedded card search with its visible close button", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole("heading", { name: "Pikachu" });
+  const trigger = screen.getByRole("button", { name: "Next Card" });
+  trigger.focus();
+  fireEvent.click(trigger);
+
+  expect(
+    await screen.findByRole("dialog", { name: "Switch card" }),
+  ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
+
+  expect(
+    screen.queryByRole("dialog", { name: "Switch card" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Next Card" })).toHaveFocus();
+});
+
+test("contains focus and lets autocomplete dismiss itself before the dialog", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByRole("heading", { name: "Pikachu" });
+  fireEvent.click(screen.getByRole("button", { name: "Next Card" }));
+
+  const dialog = await screen.findByRole("dialog", { name: "Switch card" });
+  const closeButton = screen.getByRole("button", {
+    name: "Close card search",
+  });
+  const filtersButton = screen.getByRole("button", { name: "Search filters" });
+
+  filtersButton.focus();
+  fireEvent.keyDown(filtersButton, { key: "Tab" });
+  expect(closeButton).toHaveFocus();
+
+  fireEvent.click(filtersButton);
+  const rarityInput = screen.getByRole("combobox", {
+    name: "Filter by rarity",
+  });
+  fireEvent.focus(rarityInput);
+  expect(
+    screen.getByRole("listbox", { name: "Rarity suggestions" }),
+  ).toBeInTheDocument();
+
+  fireEvent.keyDown(rarityInput, { key: "Escape" });
+  expect(dialog).toBeInTheDocument();
+  expect(
+    screen.queryByRole("listbox", { name: "Rarity suggestions" }),
+  ).not.toBeInTheDocument();
+
+  fireEvent.keyDown(rarityInput, { key: "Escape" });
+  expect(
+    screen.queryByRole("dialog", { name: "Switch card" }),
+  ).not.toBeInTheDocument();
+});
+
 test("enables feature actions after authentication and subscription loading", async () => {
   mocks.authLoading = true;
   mocks.authUser = null;

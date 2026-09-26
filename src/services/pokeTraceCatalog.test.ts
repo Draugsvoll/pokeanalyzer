@@ -52,6 +52,30 @@ describe("searchPokeTraceCatalogCards", () => {
     ]);
   });
 
+  test("uses an exact set match when a catalog suggestion was selected", () => {
+    const results = searchPokeTraceCatalogCards(
+      [
+        ...cards,
+        {
+          ...cards[0],
+          id: "base-set-2-card",
+          setName: "Base Set 2",
+        },
+      ],
+      {
+        pokemonName: "",
+        setName: "Base Set",
+        setNameExact: true,
+        cardNumber: "",
+      },
+    );
+
+    expect(results.map((card) => card.id)).toEqual([
+      "charizard-unlimited",
+      "charizard-first-edition",
+    ]);
+  });
+
   test("matches an unpadded numerator without blending other card numbers", () => {
     const results = searchPokeTraceCatalogCards(cards, {
       pokemonName: "",
@@ -171,5 +195,46 @@ describe("searchPokeTraceCatalogCards", () => {
     expect(results).toHaveLength(POKETRACE_SEARCH_RESULT_LIMIT);
     expect(results[0]?.id).toBe("card-2001");
     expect(results.at(-1)?.id).toBe("card-2");
+  });
+
+  test("sorts common card-number formats in natural order", () => {
+    const numberedCards = [
+      { ...cards[0], id: "ten", number: "10" },
+      { ...cards[0], id: "two", number: "2" },
+      { ...cards[0], id: "four-fraction", number: "004/102" },
+      { ...cards[0], id: "tg-twelve", number: "TG12/TG30" },
+      { ...cards[0], id: "tg-two", number: "TG2/TG30" },
+      { ...cards[0], id: "missing", number: undefined },
+    ];
+
+    const ascending = searchPokeTraceCatalogCards(numberedCards, {
+      pokemonName: "",
+      setName: "",
+      cardNumber: "",
+      sort: "card-number-low-high",
+    });
+    const descending = searchPokeTraceCatalogCards(numberedCards, {
+      pokemonName: "",
+      setName: "",
+      cardNumber: "",
+      sort: "card-number-high-low",
+    });
+
+    expect(ascending.map((card) => card.id)).toEqual([
+      "two",
+      "four-fraction",
+      "ten",
+      "tg-two",
+      "tg-twelve",
+      "missing",
+    ]);
+    expect(descending.map((card) => card.id)).toEqual([
+      "tg-twelve",
+      "tg-two",
+      "ten",
+      "four-fraction",
+      "two",
+      "missing",
+    ]);
   });
 });

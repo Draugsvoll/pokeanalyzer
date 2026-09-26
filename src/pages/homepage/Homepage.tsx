@@ -6,17 +6,22 @@ import {
   WelcomeView,
 } from "../../components/welcomeView/WelcomeView";
 import { useAuth } from "../../context/authContextValue";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { dailyTcgNearMintGainers } from "../../services/marketCategoriesApi";
 import "./Homepage.scss";
 
 export default function Homepage() {
   const { user, loading: authLoading } = useAuth();
+  const featuresRevealRef = useScrollReveal<HTMLDivElement>();
 
   return (
     <div className="page-container homepage">
       <WelcomeView />
       {!authLoading && !user && (
-        <div className="homepage__features">
+        <div
+          className="homepage__features ui-scroll-reveal"
+          ref={featuresRevealRef}
+        >
           <div className="homepage__features-action">
             <WelcomeDemoLink />
           </div>

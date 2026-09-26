@@ -63,6 +63,21 @@
   }
 }
 
+.ui-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 0.9rem, 0);
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.ui-scroll-reveal--visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
+}
+
 @keyframes ui-card-grid-enter {
   from {
     opacity: 0;
@@ -116,6 +131,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ui-scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   .ui-card-grid-enter .pokemon-card-view {
     animation: none;
   }

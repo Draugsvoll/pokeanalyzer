@@ -11,6 +11,7 @@ export type PokeTraceCatalogSearch = {
   pokemonName: string;
   rarity?: string;
   setName: string;
+  setNameExact?: boolean;
   sort?: PokeTraceSearchSort;
 };
 
@@ -33,6 +34,25 @@ function compareText(left: string | undefined, right: string | undefined) {
   return (left ?? "").localeCompare(right ?? "", "en-US");
 }
 
+const CARD_NUMBER_COLLATOR = new Intl.Collator("en-US", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function compareCardNumbers(
+  left: string | undefined,
+  right: string | undefined,
+  descending: boolean,
+) {
+  const leftNumber = left?.trim() ?? "";
+  const rightNumber = right?.trim() ?? "";
+  if (!leftNumber && rightNumber) return 1;
+  if (leftNumber && !rightNumber) return -1;
+  if (!leftNumber && !rightNumber) return 0;
+  const comparison = CARD_NUMBER_COLLATOR.compare(leftNumber, rightNumber);
+  return descending ? -comparison : comparison;
+}
+
 export function searchPokeTraceCatalogCards(
   cards: PokeTraceCatalogCard[],
   search: PokeTraceCatalogSearch,
@@ -48,7 +68,16 @@ export function searchPokeTraceCatalogCards(
 
   for (const card of cards) {
     if (pokemonName && !normalized(card.name).includes(pokemonName)) continue;
-    if (setName && !normalized(card.setName).includes(setName)) continue;
+    if (setName) {
+      const cardSetName = normalized(card.setName);
+      if (
+        search.setNameExact
+          ? cardSetName !== setName
+          : !cardSetName.includes(setName)
+      ) {
+        continue;
+      }
+    }
     if (cardId && !normalized(card.id).includes(cardId)) continue;
     if (cardNumber) {
       const storedNumber = normalized(card.number ?? "");
@@ -81,6 +110,23 @@ export function searchPokeTraceCatalogCards(
 
   if (search.sort) {
     results.sort((left, right) => {
+      if (
+        search.sort === "card-number-low-high" ||
+        search.sort === "card-number-high-low"
+      ) {
+        return (
+          compareCardNumbers(
+            left.number,
+            right.number,
+            search.sort === "card-number-high-low",
+          ) ||
+          compareText(left.setName, right.setName) ||
+          compareText(left.name, right.name) ||
+          compareText(left.variant, right.variant) ||
+          compareText(left.id, right.id)
+        );
+      }
+
       const leftPrice = left.conditionPrices[condition] ?? null;
       const rightPrice = right.conditionPrices[condition] ?? null;
       if (leftPrice === null && rightPrice !== null) return 1;

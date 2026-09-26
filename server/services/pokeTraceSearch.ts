@@ -20,6 +20,7 @@ export type PokeTraceSearchQuery = {
   pokemonName: string;
   rarity: string;
   setName: string;
+  setNameExact?: boolean;
   sort: PokeTraceSearchSort;
 };
 

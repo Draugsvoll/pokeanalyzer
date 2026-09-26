@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { isAbortError } from "../../hooks/useAbortableRequest";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import {
   cacheNewsFeeds,
   fetchNewsFeeds,
@@ -15,6 +16,7 @@ function hasVisibleNewsFeeds(feeds: NewsFeedsResponse): boolean {
 }
 
 export function NewsLane() {
+  const revealRef = useScrollReveal<HTMLElement>();
   const [cachedNews] = useState(() => readCachedNewsFeeds());
   const [newsFeeds, setNewsFeeds] = useState<NewsFeedsResponse | null>(() => {
     return cachedNews && hasVisibleNewsFeeds(cachedNews.feeds)
@@ -62,7 +64,11 @@ export function NewsLane() {
   }
 
   return (
-    <section className="news-lane" aria-label="News">
+    <section
+      className="news-lane ui-scroll-reveal"
+      aria-label="News"
+      ref={revealRef}
+    >
       <header className="news-lane__header grid-header">
         <h3 className="news-lane__title">Market News</h3>
       </header>

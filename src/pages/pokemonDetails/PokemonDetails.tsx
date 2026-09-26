@@ -20,6 +20,7 @@ import {
   Star,
   type LucideIcon,
   Wallet,
+  X,
 } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/welcomeView/WelcomeView.scss";
@@ -62,6 +63,7 @@ import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
+import { useModalDialog } from "../../hooks/useModalDialog";
 
 type ActiveView =
   | "empty_view"
@@ -160,6 +162,15 @@ function PokemonDetailsForCard() {
   const [activeView, setActiveView] = useState<ActiveView>("ebay_sold");
   const [cardSearchCardId, setCardSearchCardId] = useState<string | null>(null);
   const showCardSearch = Boolean(id && cardSearchCardId === id);
+  const cardSearchTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeEmbeddedSearch = useCallback(() => {
+    setCardSearchCardId(null);
+  }, []);
+  const cardSearchDialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: showCardSearch,
+    onClose: closeEmbeddedSearch,
+    returnFocusRef: cardSearchTriggerRef,
+  });
   const [grokResponses, setGrokResponses] = useState<
     Partial<Record<CreditUsageFeature, string>>
   >({});
@@ -244,28 +255,12 @@ function PokemonDetailsForCard() {
 
   function handleEmbeddedSearchToggle() {
     if (showCardSearch) {
-      setCardSearchCardId(null);
+      closeEmbeddedSearch();
       return;
     }
 
     openEmbeddedSearch();
   }
-
-  useEffect(() => {
-    if (!showCardSearch) return;
-
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setCardSearchCardId(null);
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [showCardSearch]);
   const { loadingSubscription, subscription, updateSubscription } =
     useMembershipSubscription();
   const { creditMessage, creditsRemaining, updatingCredits } =
@@ -647,7 +642,7 @@ function PokemonDetailsForCard() {
       <div className="card-view__panel-wrap">
         {isDemo && (
           <aside className="card-view__demo-disclaimer" role="note">
-            This is a demo - prices and analyses are not live.
+            Demo - prices and analyses are not live data.
           </aside>
         )}
         <div
@@ -758,6 +753,7 @@ function PokemonDetailsForCard() {
                 )}
                 <div className="card-view__change-card">
                   <Button
+                    ref={cardSearchTriggerRef}
                     fill="ghost"
                     fullWidth
                     size="large"
@@ -833,15 +829,26 @@ function PokemonDetailsForCard() {
             onMouseDown={(event) => {
               if (event.target !== event.currentTarget) return;
               if (event.clientX >= event.currentTarget.clientWidth) return;
-              setCardSearchCardId(null);
+              closeEmbeddedSearch();
             }}
+            ref={cardSearchDialogRef}
             role="dialog"
+            tabIndex={-1}
           >
+            <button
+              aria-label="Close card search"
+              className="card-view__search-close"
+              onClick={closeEmbeddedSearch}
+              title="Close"
+              type="button"
+            >
+              <X aria-hidden="true" size={22} strokeWidth={1.5} />
+            </button>
             <div className="card-view__search-modal">
               <DatabaseSearch
                 autoFocusName
                 embedded
-                onClose={() => setCardSearchCardId(null)}
+                onClose={closeEmbeddedSearch}
               />
             </div>
           </div>,

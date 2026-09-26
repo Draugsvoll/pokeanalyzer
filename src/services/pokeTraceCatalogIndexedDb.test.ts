@@ -68,6 +68,9 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     expect(await firstLoad.loadPokeTraceCatalogRarities()).toEqual([
       "Holo Rare",
     ]);
+    expect(await firstLoad.loadPokeTraceCatalogSetNames()).toEqual([
+      "Base Set",
+    ]);
 
     vi.resetModules();
     fetchMock.mockRejectedValue(new Error("network should not be used"));

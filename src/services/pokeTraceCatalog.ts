@@ -41,6 +41,7 @@ type CatalogChunk = {
 let memoryCatalog: PokeTraceCatalogCard[] | null = null;
 let memoryCatalogSavedAt = 0;
 let memoryCatalogRarities: string[] = [];
+let memoryCatalogSetNames: string[] = [];
 let initializationPromise: Promise<void> | null = null;
 let indexedDbUnavailable = false;
 let retryAfter = 0;
@@ -56,16 +57,29 @@ function collectCatalogRarities(cards: PokeTraceCatalogCard[]) {
   );
 }
 
+function collectCatalogSetNames(cards: PokeTraceCatalogCard[]) {
+  const setNames = new Map<string, string>();
+  for (const card of cards) {
+    const setName = card.setName.trim();
+    if (setName) setNames.set(setName.toLocaleLowerCase("en-US"), setName);
+  }
+  return [...setNames.values()].sort((left, right) =>
+    left.localeCompare(right, "en-US"),
+  );
+}
+
 function setMemoryCatalog(cards: PokeTraceCatalogCard[], savedAt: number) {
   memoryCatalog = cards;
   memoryCatalogSavedAt = savedAt;
   memoryCatalogRarities = collectCatalogRarities(cards);
+  memoryCatalogSetNames = collectCatalogSetNames(cards);
 }
 
 function clearMemoryCatalog() {
   memoryCatalog = null;
   memoryCatalogSavedAt = 0;
   memoryCatalogRarities = [];
+  memoryCatalogSetNames = [];
 }
 
 function requestResult<T>(request: IDBRequest<T>) {
@@ -263,4 +277,9 @@ export function searchCachedPokeTraceCatalog(
 export async function loadPokeTraceCatalogRarities() {
   await initializePokeTraceCatalog();
   return memoryCatalog ? [...memoryCatalogRarities] : null;
+}
+
+export async function loadPokeTraceCatalogSetNames() {
+  await initializePokeTraceCatalog();
+  return memoryCatalog ? [...memoryCatalogSetNames] : null;
 }

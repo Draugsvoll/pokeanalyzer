@@ -7,8 +7,10 @@ import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import "./SearchResultsToolbar.scss";
 
 const SEARCH_SORT_LABELS: Record<PokeTraceSearchSort, string> = {
-  "price-high-low": "Price: high to low",
-  "price-low-high": "Price: low to high",
+  "price-high-low": "Price: high-low",
+  "price-low-high": "Price: low-high",
+  "card-number-low-high": "Number: low-high",
+  "card-number-high-low": "Number: high-low",
 };
 
 const SEARCH_SORT_OPTIONS = POKETRACE_SEARCH_SORTS.map((value) => ({
