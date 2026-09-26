@@ -39,6 +39,7 @@ const search = {
 describe("PokeTrace catalog IndexedDB lifecycle", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.stubEnv("VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG", "true");
     vi.stubGlobal("indexedDB", new IDBFactory());
   });
 
@@ -184,6 +185,33 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
 
   test("uses no local catalog when IndexedDB is unavailable", async () => {
     Reflect.deleteProperty(globalThis, "indexedDB");
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const service = await import("./pokeTraceCatalog");
+    await service.initializePokeTraceCatalog();
+
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("skips download and local search when the browser catalog is disabled", async () => {
+    vi.stubEnv("VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG", "false");
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const service = await import("./pokeTraceCatalog");
+    await service.initializePokeTraceCatalog();
+
+    expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
+    expect(await service.loadPokeTraceCatalogRarities()).toBeNull();
+    expect(await service.loadPokeTraceCatalogSetNames()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("cannot enable the browser catalog outside the test runner", async () => {
+    vi.stubEnv("MODE", "production");
+    vi.stubEnv("VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG", "true");
     const fetchMock = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", fetchMock);
 

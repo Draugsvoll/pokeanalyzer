@@ -16,6 +16,11 @@ import { logClientError } from "../utils/logClientError";
 export type { PokeTraceCatalogSearch };
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+// Keep the legacy browser-catalog lifecycle testable without allowing an
+// application build to download or search it.
+const LOCAL_CATALOG_ENABLED =
+  import.meta.env.MODE === "test" &&
+  import.meta.env.VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG === "true";
 const DATABASE_NAME = "pokelyzer-poketrace-catalog";
 const DATABASE_VERSION = 1;
 const METADATA_STORE = "metadata";
@@ -272,6 +277,7 @@ async function downloadAndStoreCatalog() {
 }
 
 export function initializePokeTraceCatalog() {
+  if (!LOCAL_CATALOG_ENABLED) return Promise.resolve();
   if (indexedDbUnavailable || isFresh(memoryCatalogSavedAt)) {
     return Promise.resolve();
   }
@@ -314,6 +320,7 @@ export function searchPokeTraceCatalogCards(
 export async function searchCachedPokeTraceCatalog(
   search: PokeTraceCatalogSearch,
 ): Promise<PokemonCard[] | null> {
+  if (!LOCAL_CATALOG_ENABLED) return null;
   try {
     if (!memoryCatalog || !isFresh(memoryCatalogSavedAt)) {
       clearMemoryCatalog();
@@ -336,11 +343,13 @@ export async function searchCachedPokeTraceCatalog(
 }
 
 export async function loadPokeTraceCatalogRarities() {
+  if (!LOCAL_CATALOG_ENABLED) return null;
   await initializePokeTraceCatalog();
   return memoryCatalog ? [...memoryCatalogRarities] : null;
 }
 
 export async function loadPokeTraceCatalogSetNames() {
+  if (!LOCAL_CATALOG_ENABLED) return null;
   await initializePokeTraceCatalog();
   return memoryCatalog ? [...memoryCatalogSetNames] : null;
 }
