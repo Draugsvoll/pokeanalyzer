@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createClient } from "@libsql/client";
 import {
@@ -7,6 +6,7 @@ import {
   NEWS_FEEDS,
   parseStoredNewsRows,
 } from "./newsStore.js";
+import { PRIMARY_DATABASE_MIGRATIONS } from "./primaryDatabaseMigrations.js";
 
 const generalNews = {
   date: "2026-07-28",
@@ -25,15 +25,8 @@ test("news schema keeps one valid JSON row per feed", async () => {
   const client = createClient({ url: "file::memory:" });
 
   try {
-    const schema = await readFile(
-      new URL("./migrations/primary/001_initial_schema.sql", import.meta.url),
-      "utf8",
-    );
-    for (const statement of schema
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)) {
-      await client.execute(statement);
+    for (const migration of PRIMARY_DATABASE_MIGRATIONS) {
+      await client.executeMultiple(migration.sql);
     }
 
     await client.execute({

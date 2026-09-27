@@ -33,11 +33,12 @@ perform their explicit migration check before each scheduled task.
 ## Primary database migrations
 
 Primary migrations live in `server/db/migrations/primary` and are registered in
-`server/db/primaryDatabaseMigrations.ts`. Migration `001` is the baseline for
-the current schema. To change the primary schema, add the next numbered SQL
-file and registry entry; never edit or reorder an applied migration. The runner
-stores and verifies each migration's SHA-256 checksum, applies pending versions
-inside a serialized write transaction, and records a version only when its SQL
-and schema validation succeed. Keep `EXPECTED_PRIMARY_TABLES` in
+`server/db/primaryDatabaseMigrations.ts`. Migration `001` is the legacy schema
+baseline and migration `002` removes the obsolete news feed. To change the
+primary schema, add the next numbered SQL file and registry entry; never edit or
+reorder an applied migration. The runner stores and verifies each migration's
+SHA-256 checksum, applies pending versions inside a serialized write
+transaction, and records a version only when its SQL and schema validation
+succeed. Keep `EXPECTED_PRIMARY_TABLES` in
 `server/db/migratePrimaryDatabase.ts` aligned with the schema produced by the
 latest migration.

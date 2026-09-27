@@ -263,14 +263,21 @@ export async function migratePrimaryDatabase(
     for (const migration of PRIMARY_DATABASE_MIGRATIONS) {
       if (appliedVersions.has(migration.version)) continue;
 
-      await transaction.executeMultiple(migration.sql);
-      await transaction.execute({
-        sql: `
-          INSERT INTO primary_schema_migrations (version, name, checksum)
-          VALUES (?, ?, ?)
-        `,
-        args: [migration.version, migration.name, migration.checksum],
-      });
+      try {
+        await transaction.executeMultiple(migration.sql);
+        await transaction.execute({
+          sql: `
+            INSERT INTO primary_schema_migrations (version, name, checksum)
+            VALUES (?, ?, ?)
+          `,
+          args: [migration.version, migration.name, migration.checksum],
+        });
+      } catch (error) {
+        throw new Error(
+          `Primary database migration ${migration.version} (${migration.name}) failed`,
+          { cause: error },
+        );
+      }
       appliedMigration = true;
     }
 

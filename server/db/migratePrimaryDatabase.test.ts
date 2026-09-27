@@ -40,14 +40,19 @@ async function appliedMigrations(database: Client) {
   }));
 }
 
-async function assertInitialMigrationApplied(database: Client) {
+async function assertPrimaryMigrationsApplied(database: Client) {
   const migrations = await appliedMigrations(database);
-  assert.equal(migrations.length, 1);
+  assert.equal(migrations.length, 2);
   assert.deepEqual(
-    { name: migrations[0]?.name, version: migrations[0]?.version },
-    { name: "initial_schema", version: 1 },
+    migrations.map(({ name, version }) => ({ name, version })),
+    [
+      { name: "initial_schema", version: 1 },
+      { name: "remove_legacy_news_feed", version: 2 },
+    ],
   );
-  assert.match(migrations[0]?.checksum ?? "", /^[a-f\d]{64}$/);
+  for (const migration of migrations) {
+    assert.match(migration.checksum, /^[a-f\d]{64}$/);
+  }
 }
 
 test("primary migrations initialize a fresh database and are idempotent", async () => {
@@ -57,7 +62,7 @@ test("primary migrations initialize a fresh database and are idempotent", async 
     await migratePrimaryDatabase(database);
     await migratePrimaryDatabase(database);
 
-    await assertInitialMigrationApplied(database);
+    await assertPrimaryMigrationsApplied(database);
     const tables = await database.execute(`
       SELECT name
       FROM sqlite_master
@@ -82,21 +87,33 @@ test("primary migrations baseline an existing compatible database", async () => 
       INSERT INTO news_content (feed, payload_json, source_date)
       VALUES ('general_news', '{}', '2026-09-27')
     `);
+    await database.execute(`
+      INSERT INTO news_content (feed, payload_json, source_date)
+      VALUES ('biggest_movers', '{}', '2026-08-23')
+    `);
 
     await migratePrimaryDatabase(database);
 
-    await assertInitialMigrationApplied(database);
-    const preserved = await database.execute(
-      "SELECT source_date FROM news_content WHERE feed = 'general_news'",
+    await assertPrimaryMigrationsApplied(database);
+    const preserved = await database.execute(`
+      SELECT feed, source_date
+      FROM news_content
+      ORDER BY feed
+    `);
+    assert.deepEqual(
+      preserved.rows.map((row) => ({
+        feed: row.feed,
+        sourceDate: row.source_date,
+      })),
+      [{ feed: "general_news", sourceDate: "2026-09-27" }],
     );
-    assert.equal(preserved.rows[0]?.source_date, "2026-09-27");
   } finally {
     database.close();
   }
 });
 
-test("primary migrations reject an existing schema that only matches by column name", async () => {
-  const database = createTestDatabase("incompatible-existing");
+test("primary migrations rebuild an existing schema with missing constraints", async () => {
+  const database = createTestDatabase("constraint-repair");
 
   try {
     await database.execute(`
@@ -108,11 +125,16 @@ test("primary migrations reject an existing schema that only matches by column n
       )
     `);
 
+    await migratePrimaryDatabase(database);
+
+    await assertPrimaryMigrationsApplied(database);
     await assert.rejects(
-      migratePrimaryDatabase(database),
-      /schema is incompatible/,
+      database.execute(`
+        INSERT INTO news_content (feed, payload_json)
+        VALUES ('biggest_movers', '{}')
+      `),
+      /constraint/i,
     );
-    assert.deepEqual(await appliedMigrations(database), []);
   } finally {
     database.close();
   }
@@ -145,7 +167,7 @@ test("primary migrations reject a non-contiguous migration history", async () =>
     await migratePrimaryDatabase(database);
     await database.execute(`
       UPDATE primary_schema_migrations
-      SET version = 2
+      SET version = 3
       WHERE version = 1
     `);
 
@@ -166,7 +188,7 @@ test("a failed migration does not record its version", async () => {
 
     await assert.rejects(
       migratePrimaryDatabase(database),
-      /schema is incompatible/,
+      /migration 2 \(remove_legacy_news_feed\) failed/,
     );
 
     assert.deepEqual(await appliedMigrations(database), []);
@@ -192,7 +214,7 @@ test("concurrent primary migration runners serialize safely", async () => {
       migratePrimaryDatabase(second),
     ]);
 
-    await assertInitialMigrationApplied(first);
+    await assertPrimaryMigrationsApplied(first);
   } finally {
     first.close();
     second.close();
