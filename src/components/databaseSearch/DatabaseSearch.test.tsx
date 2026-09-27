@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
@@ -38,6 +44,25 @@ function card(id: string, name: string): PokemonCard {
     pokeTrace: { currency: "USD", marketplaceUrls: {}, prices: {} },
     set: { id: "base-set", name: "Base Set" },
   };
+}
+
+function pricedCard(id: string, name: string, price: number): PokemonCard {
+  const result = card(id, name);
+  result.pokeTrace.prices = {
+    tcgplayer: { NEAR_MINT: { avg: price } },
+  };
+  return result;
+}
+
+function changedCard(
+  id: string,
+  name: string,
+  currentPrice: number,
+  sevenDayPrice: number,
+): PokemonCard {
+  const result = pricedCard(id, name, currentPrice);
+  result.pokeTrace.marketPriceSnapshots = { "7d": sevenDayPrice };
+  return result;
 }
 
 function serverResponse(items: PokemonCard[], total = items.length) {
@@ -149,10 +174,10 @@ test("marks a suggested set name as an exact catalog match", async () => {
     rarity: "",
     setName: "Base Set",
     setNameExact: true,
-    sort: "price-high-low",
   });
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true&sort=price-high-low",
+    "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true",
+    { signal: expect.any(AbortSignal) },
   );
 });
 
@@ -184,7 +209,6 @@ test("keeps a typed set name as a partial match", async () => {
     pokemonName: "",
     rarity: "",
     setName: "base",
-    sort: "price-high-low",
   });
 });
 
@@ -204,7 +228,8 @@ test("falls back to the search API when the browser catalog is unavailable", asy
 
   expect(await screen.findByText("API Charizard")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?pokemonName=charizard&sort=price-high-low",
+    "http://localhost:3001/api/cards/search?pokemonName=charizard",
+    { signal: expect.any(AbortSignal) },
   );
 });
 
@@ -224,6 +249,35 @@ test("uses the server while browser catalog initialization continues", async () 
 
   expect(await screen.findByText("API Charizard")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+test("aborts an active server search when the component unmounts", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  let requestSignal: AbortSignal | undefined;
+  const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+    requestSignal = init?.signal ?? undefined;
+    return new Promise<Response>((_resolve, reject) => {
+      requestSignal?.addEventListener(
+        "abort",
+        () => reject(requestSignal?.reason),
+        { once: true },
+      );
+    });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  const { unmount } = renderSearch();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "charizard" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+  expect(requestSignal?.aborted).toBe(false);
+
+  unmount();
+
+  expect(requestSignal?.aborted).toBe(true);
 });
 
 test("distinguishes an empty search from a failed request", async () => {
@@ -260,7 +314,7 @@ test("distinguishes an empty search from a failed request", async () => {
 test("loads every match and reveals results 50 at a time", async () => {
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(
     Array.from({ length: 51 }, (_, index) =>
-      card(`card-${index + 1}`, `Card ${index + 1}`),
+      pricedCard(`card-${index + 1}`, `Card ${index + 1}`, 51 - index),
     ),
   );
   renderSearch();
@@ -279,7 +333,6 @@ test("loads every match and reveals results 50 at a time", async () => {
     pokemonName: "card",
     rarity: "",
     setName: "",
-    sort: "price-high-low",
   });
 
   fireEvent.click(screen.getByRole("button", { name: "Show next 50" }));
@@ -293,7 +346,7 @@ test("loads every match and reveals results 50 at a time", async () => {
 test("reveals server fallback results 50 at a time", async () => {
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
   const serverResults = Array.from({ length: 51 }, (_, index) =>
-    card(`server-${index + 1}`, `Server Card ${index + 1}`),
+    pricedCard(`server-${index + 1}`, `Server Card ${index + 1}`, 51 - index),
   );
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () => serverResponse(serverResults, 51),
@@ -320,22 +373,12 @@ test("reveals server fallback results 50 at a time", async () => {
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-test("pins a local search to the server after sort fallback until the next search", async () => {
-  mocks.searchCachedPokeTraceCatalog
-    .mockReturnValueOnce([card("high-card", "High Card")])
-    .mockReturnValueOnce(null)
-    .mockReturnValue([card("new-local", "New Local Catalog Card")]);
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce({
-      json: async () => serverResponse([card("server-low", "Server Low Card")]),
-      ok: true,
-    })
-    .mockResolvedValueOnce({
-      json: async () =>
-        serverResponse([card("server-high", "Server High Card")]),
-      ok: true,
-    });
+test("sorts a local search without making another request", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+    pricedCard("low-card", "Low Card", 10),
+    pricedCard("high-card", "High Card", 20),
+  ]);
+  const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -344,37 +387,54 @@ test("pins a local search to the server after sort fallback until the next searc
   });
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
   expect(await screen.findByText("High Card")).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: low-high" }));
-
-  expect(await screen.findByText("Server Low Card")).toBeInTheDocument();
-  expect(fetchMock).toHaveBeenLastCalledWith(
-    "http://localhost:3001/api/cards/search?pokemonName=card&sort=price-low-high",
-  );
+  expect(
+    screen.getByRole("button", { name: "Sort search results" }),
+  ).toHaveTextContent("Unsorted");
+  expect(
+    screen
+      .getByText("Low Card")
+      .compareDocumentPosition(screen.getByText("High Card")) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
   fireEvent.click(screen.getByRole("option", { name: "Price: high-low" }));
 
-  expect(await screen.findByText("Server High Card")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(2);
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(document.querySelector(".grid-view")).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("High Card")
+        .compareDocumentPosition(screen.getByText("Low Card")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy(),
+  );
+  expect(document.querySelector(".grid-view")).not.toHaveAttribute("aria-busy");
 
-  fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
+  fireEvent.click(screen.getByRole("option", { name: "Unsorted" }));
 
-  expect(await screen.findByText("New Local Catalog Card")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(3);
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("Low Card")
+        .compareDocumentPosition(screen.getByText("High Card")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy(),
+  );
+  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test("sorts local results by card number", async () => {
-  mocks.searchCachedPokeTraceCatalog
-    .mockReturnValueOnce([card("card-10", "Card 10")])
-    .mockReturnValueOnce([
-      card("card-2", "Card 2"),
-      card("card-10", "Card 10"),
-    ]);
+  const cardTen = card("card-10", "Card 10");
+  cardTen.number = "10";
+  const cardTwo = card("card-2", "Card 2");
+  cardTwo.number = "2";
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([cardTen, cardTwo]);
   renderSearch();
 
   fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
@@ -386,27 +446,65 @@ test("sorts local results by card number", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
   fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
 
-  expect(await screen.findByText("Card 2")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenLastCalledWith({
-    cardNumber: "",
-    maxPrice: undefined,
-    minPrice: undefined,
-    pokemonName: "card",
-    rarity: "",
-    setName: "",
-    sort: "card-number-low-high",
-  });
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("Card 2")
+        .compareDocumentPosition(screen.getByText("Card 10")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy(),
+  );
+  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
 });
 
-test("ignores a pending local sort after the results are closed", async () => {
-  let resolveLocalSort!: (cards: PokemonCard[]) => void;
-  mocks.searchCachedPokeTraceCatalog
-    .mockReturnValueOnce([card("card-10", "Card 10")])
-    .mockReturnValueOnce(
-      new Promise<PokemonCard[]>((resolve) => {
-        resolveLocalSort = resolve;
-      }),
-    );
+test("sorts server results by 7-day percentage change without refetching", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockResolvedValue(null);
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () =>
+      serverResponse([
+        changedCard("steady", "Steady Card", 200, 190),
+        changedCard("gainer", "Top Gainer", 150, 100),
+      ]),
+    ok: true,
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderSearch();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "card" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  expect(await screen.findByText("Steady Card")).toBeInTheDocument();
+  expect(
+    screen
+      .getByText("Steady Card")
+      .compareDocumentPosition(screen.getByText("Top Gainer")) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: high-low" }));
+
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("Top Gainer")
+        .compareDocumentPosition(screen.getByText("Steady Card")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy(),
+  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://localhost:3001/api/cards/search?pokemonName=card",
+    { signal: expect.any(AbortSignal) },
+  );
+});
+
+test("keeps results closed after sorting locally", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+    card("card-10", "Card 10"),
+    card("card-2", "Card 2"),
+  ]);
   renderSearch();
 
   fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
@@ -418,19 +516,15 @@ test("ignores a pending local sort after the results are closed", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
   fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
   fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
-
-  await act(async () => {
-    resolveLocalSort([card("card-2", "Card 2")]);
-  });
 
   expect(screen.queryByText("Card 10")).not.toBeInTheDocument();
   expect(screen.queryByText("Card 2")).not.toBeInTheDocument();
 });
 
-test("shows empty feedback when a refreshed local catalog changes the matches", async () => {
-  mocks.searchCachedPokeTraceCatalog
-    .mockReturnValueOnce([card("card-10", "Card 10")])
-    .mockReturnValueOnce([]);
+test("keeps the original result set while changing sort", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+    card("card-10", "Card 10"),
+  ]);
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
@@ -444,29 +538,21 @@ test("shows empty feedback when a refreshed local catalog changes the matches", 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
   fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
 
-  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(await screen.findByText("Card 10")).toBeInTheDocument();
+  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-test("ignores a pending server sort after the results are closed", async () => {
+test("does not request the server again when server results are sorted", async () => {
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
-  let resolveSort!: (response: {
-    json: () => Promise<ReturnType<typeof serverResponse>>;
-    ok: boolean;
-  }) => void;
-  const pendingSort = new Promise<{
-    json: () => Promise<ReturnType<typeof serverResponse>>;
-    ok: boolean;
-  }>((resolve) => {
-    resolveSort = resolve;
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () =>
+      serverResponse([
+        pricedCard("server-1", "Server Card 1", 20),
+        pricedCard("server-2", "Server Card 2", 10),
+      ]),
+    ok: true,
   });
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce({
-      json: async () => serverResponse([card("server-1", "Server Card 1")]),
-      ok: true,
-    })
-    .mockReturnValueOnce(pendingSort);
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -478,21 +564,15 @@ test("ignores a pending server sort after the results are closed", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
   fireEvent.click(screen.getByRole("option", { name: "Price: low-high" }));
-  fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
-
-  await act(async () => {
-    resolveSort({
-      json: async () => serverResponse([card("server-2", "Server Card 2")]),
-      ok: true,
-    });
-    await pendingSort;
-  });
-
-  expect(screen.queryByText("Server Card 1")).not.toBeInTheDocument();
-  expect(screen.queryByText("Server Card 2")).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: "Close search results" }),
-  ).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("Server Card 2")
+        .compareDocumentPosition(screen.getByText("Server Card 1")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy(),
+  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
 test("supports filter-only searches and forwards the filters", async () => {
@@ -524,10 +604,10 @@ test("supports filter-only searches and forwards the filters", async () => {
     pokemonName: "",
     rarity: "Holo Rare",
     setName: "",
-    sort: "price-high-low",
   });
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?minPrice=25&maxPrice=100&rarity=Holo+Rare&sort=price-high-low",
+    "http://localhost:3001/api/cards/search?minPrice=25&maxPrice=100&rarity=Holo+Rare",
+    { signal: expect.any(AbortSignal) },
   );
 });
 
@@ -557,7 +637,6 @@ test("uses the local catalog and selected TCGPlayer price for condition searches
     pokemonName: "",
     rarity: "",
     setName: "",
-    sort: "price-high-low",
   });
   expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -583,7 +662,8 @@ test("uses the server fallback when local condition search is unavailable", asyn
     await screen.findByText("Server Charizard Lightly Played 30"),
   ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?condition=LIGHTLY_PLAYED&sort=price-high-low",
+    "http://localhost:3001/api/cards/search?condition=LIGHTLY_PLAYED",
+    { signal: expect.any(AbortSignal) },
   );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });

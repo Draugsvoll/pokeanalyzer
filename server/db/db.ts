@@ -6,7 +6,6 @@ import {
   type InValue,
   type TransactionMode,
 } from "@libsql/client";
-import { logError } from "../security/logging.js";
 import { implicitLocalDatabaseError } from "./databaseTargetPolicy.js";
 
 export type SqlValue = InValue;
@@ -30,17 +29,6 @@ export function assertExplicitDatabaseTarget(): void {
     process.env.ALLOW_LOCAL_DATABASE,
   );
   if (error) throw new Error(error);
-}
-
-export async function checkDatabaseConnection(): Promise<boolean> {
-  try {
-    await db.execute("SELECT 1");
-    console.log("Database connected successfully");
-    return true;
-  } catch (err) {
-    logError("Database connection failed", err);
-    return false;
-  }
 }
 
 export async function dbExecute(sql: string, args: SqlValue[] = []) {

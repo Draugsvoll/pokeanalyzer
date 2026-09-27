@@ -1,15 +1,15 @@
-import {
-  toPokeTraceCatalogPokemonCard,
-  type PokeTraceCatalogResponse,
-} from "../../shared/pokeTraceCatalog.js";
+import { toPokeTraceCatalogPokemonCard } from "../../shared/pokeTraceCatalog.js";
 import { searchPokeTraceCatalogCards } from "../../shared/pokeTraceCatalogSearch.js";
 import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions.js";
 import {
   POKETRACE_SEARCH_RESULT_LIMIT,
   type PokeTraceSearchResponse,
-  type PokeTraceSearchSort,
 } from "../../shared/pokeTraceSearch.js";
-import { getCachedPokeTraceCatalog } from "./pokeTraceCatalog.js";
+import {
+  peekCachedPokeTraceCatalog,
+  warmPokeTraceCatalogInBackground,
+} from "./pokeTraceCatalog.js";
+import { loadDirectPokeTraceSearch } from "./pokeTraceDirectSearch.js";
 
 export type PokeTraceSearchQuery = {
   cardId: string;
@@ -21,18 +21,28 @@ export type PokeTraceSearchQuery = {
   rarity: string;
   setName: string;
   setNameExact?: boolean;
-  sort: PokeTraceSearchSort;
 };
 
-type CatalogLoader = () => Promise<PokeTraceCatalogResponse>;
+type SearchDependencies = {
+  loadDirect: typeof loadDirectPokeTraceSearch;
+  peekCatalog: typeof peekCachedPokeTraceCatalog;
+  warmCatalog: typeof warmPokeTraceCatalogInBackground;
+};
 
 export async function loadPokeTraceSearch(
   query: PokeTraceSearchQuery,
-  loadCatalog: CatalogLoader = getCachedPokeTraceCatalog,
+  dependencies: Partial<SearchDependencies> = {},
 ): Promise<
   PokeTraceSearchResponse<ReturnType<typeof toPokeTraceCatalogPokemonCard>>
 > {
-  const catalog = await loadCatalog();
+  const peekCatalog = dependencies.peekCatalog ?? peekCachedPokeTraceCatalog;
+  const warmCatalog =
+    dependencies.warmCatalog ?? warmPokeTraceCatalogInBackground;
+  const loadDirect = dependencies.loadDirect ?? loadDirectPokeTraceSearch;
+  const catalog = peekCatalog();
+  warmCatalog();
+  if (!catalog) return loadDirect(query);
+
   const items = searchPokeTraceCatalogCards(catalog.cards, query, {
     limit: POKETRACE_SEARCH_RESULT_LIMIT,
   }).map(toPokeTraceCatalogPokemonCard);

@@ -42,7 +42,7 @@ function catalog(cards: PokeTraceCatalogCard[]): PokeTraceCatalogResponse {
   };
 }
 
-test("server search sorts matches before limiting fallback results", async () => {
+test("server search returns at most the first 2,000 catalog matches", async () => {
   const cards = Array.from(
     { length: POKETRACE_SEARCH_RESULT_LIMIT + 1 },
     (_, index) => {
@@ -64,15 +64,17 @@ test("server search sorts matches before limiting fallback results", async () =>
       pokemonName: "Card",
       rarity: "",
       setName: "",
-      sort: "price-high-low",
     },
-    async () => catalog(cards),
+    {
+      peekCatalog: () => catalog(cards),
+      warmCatalog: () => undefined,
+    },
   );
 
   assert.equal(response.total, POKETRACE_SEARCH_RESULT_LIMIT);
   assert.equal(response.items.length, POKETRACE_SEARCH_RESULT_LIMIT);
-  assert.equal(response.items[0]?.id, "card-2001");
-  assert.equal(response.items.at(-1)?.id, "card-2");
+  assert.equal(response.items[0]?.id, "card-1");
+  assert.equal(response.items.at(-1)?.id, "card-2000");
 });
 
 test("search applies the Near Mint price range and exact rarity", async () => {
@@ -116,9 +118,11 @@ test("search applies the Near Mint price range and exact rarity", async () => {
       pokemonName: "",
       rarity: "Common",
       setName: "",
-      sort: "price-high-low",
     },
-    async () => catalog(cards),
+    {
+      peekCatalog: () => catalog(cards),
+      warmCatalog: () => undefined,
+    },
   );
 
   assert.equal(response.total, 1);
@@ -156,9 +160,11 @@ test("search applies the selected condition to server catalog prices", async () 
       pokemonName: "",
       rarity: "",
       setName: "",
-      sort: "price-high-low",
     },
-    async () => catalog(cards),
+    {
+      peekCatalog: () => catalog(cards),
+      warmCatalog: () => undefined,
+    },
   );
 
   assert.deepEqual(
@@ -184,9 +190,11 @@ test("search preserves all catalog snapshots for card views", async () => {
       pokemonName: "History",
       rarity: "",
       setName: "",
-      sort: "price-high-low",
     },
-    async () => catalog([card]),
+    {
+      peekCatalog: () => catalog([card]),
+      warmCatalog: () => undefined,
+    },
   );
 
   assert.deepEqual(response.items[0]?.pokeTrace.marketPriceSnapshots, {
@@ -194,4 +202,77 @@ test("search preserves all catalog snapshots for card views", async () => {
     "7d": 90,
     "30d": null,
   });
+});
+
+test("server search leaves result sorting to the client", async () => {
+  const down = catalogCard({
+    id: "down",
+    name: "Down",
+    number: 1,
+    rarity: "Rare",
+    conditionPrices: { NEAR_MINT: 80 },
+  });
+  down.priceSnapshots["7d"] = 100;
+  const up = catalogCard({
+    id: "up",
+    name: "Up",
+    number: 2,
+    rarity: "Rare",
+    conditionPrices: { NEAR_MINT: 60 },
+  });
+  up.priceSnapshots["7d"] = 50;
+  const missing = catalogCard({
+    id: "missing",
+    name: "Missing",
+    number: 3,
+    rarity: "Rare",
+    conditionPrices: { NEAR_MINT: 90 },
+  });
+
+  const response = await loadPokeTraceSearch(
+    {
+      cardId: "",
+      cardNumber: "",
+      pokemonName: "",
+      rarity: "Rare",
+      setName: "",
+    },
+    {
+      peekCatalog: () => catalog([down, missing, up]),
+      warmCatalog: () => undefined,
+    },
+  );
+
+  assert.deepEqual(
+    response.items.map((card) => card.id),
+    ["down", "missing", "up"],
+  );
+});
+
+test("cold search uses Turso directly while warming the catalog", async () => {
+  let warmed = 0;
+  let directLoads = 0;
+  const response = await loadPokeTraceSearch(
+    {
+      cardId: "",
+      cardNumber: "",
+      pokemonName: "Pikachu",
+      rarity: "",
+      setName: "",
+    },
+    {
+      loadDirect: async () => {
+        directLoads += 1;
+        return { items: [], total: 0 };
+      },
+      peekCatalog: () => null,
+      warmCatalog: () => {
+        warmed += 1;
+      },
+    },
+  );
+
+  assert.deepEqual(response, { items: [], total: 0 });
+  assert.equal(directLoads, 1);
+  assert.equal(warmed, 1);
 });

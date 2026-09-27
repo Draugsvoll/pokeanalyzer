@@ -8,6 +8,7 @@ import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketCom
 import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 import { loadStoredPokeTraceCatalog } from "./pokeTraceCatalogStore.js";
+import { logError } from "../security/logging.js";
 
 type CatalogDatabase = Pick<Client, "execute">;
 type CatalogRow = Record<string, unknown>;
@@ -15,6 +16,12 @@ export const POKETRACE_CATALOG_SERVER_CACHE_MS = 12 * 60 * 60 * 1000;
 const POKETRACE_CATALOG_STALE_RETRY_MS = 5 * 60 * 1000;
 
 type CatalogLoader = () => Promise<PokeTraceCatalogResponse>;
+
+export type PokeTraceCatalogCache =
+  (() => Promise<PokeTraceCatalogResponse>) & {
+    canWarm: () => boolean;
+    peek: () => PokeTraceCatalogResponse | null;
+  };
 
 function optionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -103,22 +110,34 @@ export function createPokeTraceCatalogCache(
   loadCatalog: CatalogLoader,
   maxAgeMs = POKETRACE_CATALOG_SERVER_CACHE_MS,
   now: () => number = Date.now,
-) {
+): PokeTraceCatalogCache {
   let cached:
     { catalog: PokeTraceCatalogResponse; expiresAt: number } | undefined;
   let loadPromise: Promise<PokeTraceCatalogResponse> | undefined;
+  let coldRetryAt = 0;
+  let coldLoadError: unknown;
 
-  return async () => {
-    if (cached && cached.expiresAt > now()) return cached.catalog;
+  const getCatalog = async () => {
+    const currentTime = now();
+    if (cached && cached.expiresAt > currentTime) return cached.catalog;
     if (loadPromise) return loadPromise;
+    if (!cached && coldRetryAt > currentTime) throw coldLoadError;
 
-    const load = loadCatalog()
+    const load = Promise.resolve()
+      .then(loadCatalog)
       .then((catalog) => {
         cached = { catalog, expiresAt: now() + maxAgeMs };
+        coldRetryAt = 0;
+        coldLoadError = undefined;
         return catalog;
       })
       .catch((error: unknown) => {
-        if (!cached) throw error;
+        if (!cached) {
+          coldLoadError = error;
+          coldRetryAt =
+            now() + Math.min(maxAgeMs, POKETRACE_CATALOG_STALE_RETRY_MS);
+          throw error;
+        }
         cached = {
           catalog: cached.catalog,
           expiresAt:
@@ -134,6 +153,14 @@ export function createPokeTraceCatalogCache(
       loadPromise = undefined;
     }
   };
+  getCatalog.canWarm = () => {
+    if (loadPromise) return false;
+    const currentTime = now();
+    if (cached) return cached.expiresAt <= currentTime;
+    return coldRetryAt <= currentTime;
+  };
+  getCatalog.peek = () => cached?.catalog ?? null;
+  return getCatalog;
 }
 
 async function loadPersistedCatalog() {
@@ -149,3 +176,14 @@ async function loadPersistedCatalog() {
 
 export const getCachedPokeTraceCatalog =
   createPokeTraceCatalogCache(loadPersistedCatalog);
+
+export function peekCachedPokeTraceCatalog() {
+  return getCachedPokeTraceCatalog.peek();
+}
+
+export function warmPokeTraceCatalogInBackground() {
+  if (!getCachedPokeTraceCatalog.canWarm()) return;
+  void getCachedPokeTraceCatalog().catch((error: unknown) => {
+    logError("Failed to warm PokeTrace catalog cache", error);
+  });
+}

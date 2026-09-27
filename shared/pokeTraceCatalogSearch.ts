@@ -1,6 +1,5 @@
 import type { PokeTraceCatalogCard } from "./pokeTraceCatalog.js";
 import type { PokeTraceRawCondition } from "./pokeTraceMarketConditions.js";
-import type { PokeTraceSearchSort } from "./pokeTraceSearch.js";
 
 export type PokeTraceCatalogSearch = {
   cardId?: string;
@@ -12,7 +11,6 @@ export type PokeTraceCatalogSearch = {
   rarity?: string;
   setName: string;
   setNameExact?: boolean;
-  sort?: PokeTraceSearchSort;
 };
 
 type PokeTraceCatalogSearchOptions = {
@@ -28,29 +26,6 @@ function unpaddedCardNumber(value: string) {
   return /^\d+$/.test(numerator)
     ? numerator.replace(/^0+(?=\d)/, "")
     : numerator;
-}
-
-function compareText(left: string | undefined, right: string | undefined) {
-  return (left ?? "").localeCompare(right ?? "", "en-US");
-}
-
-const CARD_NUMBER_COLLATOR = new Intl.Collator("en-US", {
-  numeric: true,
-  sensitivity: "base",
-});
-
-function compareCardNumbers(
-  left: string | undefined,
-  right: string | undefined,
-  descending: boolean,
-) {
-  const leftNumber = left?.trim() ?? "";
-  const rightNumber = right?.trim() ?? "";
-  if (!leftNumber && rightNumber) return 1;
-  if (leftNumber && !rightNumber) return -1;
-  if (!leftNumber && !rightNumber) return 0;
-  const comparison = CARD_NUMBER_COLLATOR.compare(leftNumber, rightNumber);
-  return descending ? -comparison : comparison;
 }
 
 export function searchPokeTraceCatalogCards(
@@ -106,48 +81,6 @@ export function searchPokeTraceCatalogCards(
     }
 
     results.push(card);
-  }
-
-  if (search.sort) {
-    results.sort((left, right) => {
-      if (
-        search.sort === "card-number-low-high" ||
-        search.sort === "card-number-high-low"
-      ) {
-        return (
-          compareCardNumbers(
-            left.number,
-            right.number,
-            search.sort === "card-number-high-low",
-          ) ||
-          compareText(left.setName, right.setName) ||
-          compareText(left.name, right.name) ||
-          compareText(left.variant, right.variant) ||
-          compareText(left.id, right.id)
-        );
-      }
-
-      const leftPrice = left.conditionPrices[condition] ?? null;
-      const rightPrice = right.conditionPrices[condition] ?? null;
-      if (leftPrice === null && rightPrice !== null) return 1;
-      if (leftPrice !== null && rightPrice === null) return -1;
-      if (
-        leftPrice !== null &&
-        rightPrice !== null &&
-        leftPrice !== rightPrice
-      ) {
-        return search.sort === "price-high-low"
-          ? rightPrice - leftPrice
-          : leftPrice - rightPrice;
-      }
-      return (
-        compareText(left.name, right.name) ||
-        compareText(left.setName, right.setName) ||
-        compareText(left.number, right.number) ||
-        compareText(left.variant, right.variant) ||
-        compareText(left.id, right.id)
-      );
-    });
   }
 
   return results.slice(0, options.limit);

@@ -8,6 +8,7 @@ import {
   createMarketMoversHandler,
   createPokeTraceFilterOptionsHandler,
   createPokeTraceSearchHandler,
+  createPokeTraceSetHandler,
   createPokeTracePriceHistoryHandler,
   loadPokeTracePriceHistory,
   selectUnambiguousVariants,
@@ -113,7 +114,7 @@ test("market movers rejects unsupported filters before loading", async () => {
   assert.equal(calls, 0);
 });
 
-test("card search forwards validated filters and sorting", async () => {
+test("card search forwards validated filters", async () => {
   const app = express();
   app.get(
     "/api/cards/search",
@@ -128,7 +129,6 @@ test("card search forwards validated filters and sorting", async () => {
           pokemonName: "",
           rarity: "Common",
           setName: "",
-          sort: "card-number-low-high",
         });
         return { items: [], total: 0 };
       },
@@ -140,7 +140,7 @@ test("card search forwards validated filters and sorting", async () => {
 
   const response = await requestFromTestServer(
     app,
-    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&condition=LIGHTLY_PLAYED&sort=card-number-low-high",
+    "/api/cards/search?minPrice=20&maxPrice=30&rarity=Common&condition=LIGHTLY_PLAYED",
   );
 
   assert.equal(response.status, 200);
@@ -171,6 +171,56 @@ test("card search forwards an exact set-name selection", async () => {
   assert.equal(response.status, 200);
 });
 
+test("set endpoint loads only the requested exact set", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/set",
+    createPokeTraceSetHandler({
+      loadSet: async (setName) => {
+        assert.equal(setName, "Base Set");
+        return { items: [], total: 0 };
+      },
+      reportError: () => {
+        assert.fail("The successful request must not be logged as an error");
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/set?setName=Base+Set",
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { items: [], total: 0 });
+});
+
+test("set endpoint rejects missing, repeated, and oversized names", async () => {
+  const app = express();
+  let calls = 0;
+  app.get(
+    "/api/cards/set",
+    createPokeTraceSetHandler({
+      loadSet: async () => {
+        calls += 1;
+        return { items: [], total: 0 };
+      },
+    }),
+  );
+
+  for (const query of [
+    "",
+    "?setName=",
+    "?setName=Base+Set&setName=Base+Set+2",
+    `?setName=${"a".repeat(101)}`,
+  ]) {
+    const response = await requestFromTestServer(app, `/api/cards/set${query}`);
+    assert.equal(response.status, 400);
+  }
+
+  assert.equal(calls, 0);
+});
+
 test("card search rejects invalid filters before querying the database", async () => {
   const app = express();
   let calls = 0;
@@ -189,7 +239,6 @@ test("card search rejects invalid filters before querying the database", async (
     "condition=MINTY",
     "setName=Base+Set&setNameExact=maybe",
     "pokemonName=pikachu&minPrice=30&maxPrice=20",
-    "pokemonName=pikachu&sort=name",
   ]) {
     const response = await requestFromTestServer(
       app,

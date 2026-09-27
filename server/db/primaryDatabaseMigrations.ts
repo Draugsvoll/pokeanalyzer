@@ -1,0 +1,35 @@
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+
+export type PrimaryDatabaseMigration = {
+  checksum: string;
+  name: string;
+  sql: string;
+  version: number;
+};
+
+function loadMigration(fileName: string) {
+  const sql = fs.readFileSync(
+    new URL(`./migrations/primary/${fileName}`, import.meta.url),
+    "utf8",
+  );
+  return {
+    checksum: createHash("sha256").update(sql).digest("hex"),
+    sql,
+  };
+}
+
+const initialSchema = loadMigration("001_initial_schema.sql");
+
+/**
+ * Applied migrations are immutable. Add the next numbered migration instead
+ * of editing an existing entry or its SQL file.
+ */
+export const PRIMARY_DATABASE_MIGRATIONS = [
+  {
+    checksum: initialSchema.checksum,
+    name: "initial_schema",
+    sql: initialSchema.sql,
+    version: 1,
+  },
+] as const satisfies readonly PrimaryDatabaseMigration[];

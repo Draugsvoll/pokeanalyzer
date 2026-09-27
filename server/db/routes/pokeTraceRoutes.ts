@@ -24,10 +24,7 @@ import {
   PokeTraceMoversUnavailableError,
 } from "../../services/pokeTraceMarketMovers.js";
 import { loadPokeTraceSearch } from "../../services/pokeTraceSearch.js";
-import {
-  isPokeTraceSearchSort,
-  POKETRACE_DEFAULT_SEARCH_SORT,
-} from "../../../shared/pokeTraceSearch.js";
+import { loadPokeTraceSet } from "../../services/pokeTraceSet.js";
 import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditions.js";
 import type { PokeTraceFilterOptions } from "../../../shared/pokeTraceFilterOptions.js";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions.js";
@@ -100,6 +97,11 @@ type PokeTraceSearchHandlerDependencies = {
   reportError: (context: string, error: unknown) => void;
 };
 
+type PokeTraceSetHandlerDependencies = {
+  loadSet: typeof loadPokeTraceSet;
+  reportError: (context: string, error: unknown) => void;
+};
+
 type PokeTraceFilterOptionsHandlerDependencies = {
   loadOptions: () => Promise<PokeTraceFilterOptions>;
   reportError: (context: string, error: unknown) => void;
@@ -140,6 +142,29 @@ function optionalBoolean(value: unknown) {
   if (raw === "true") return true;
   if (raw === "false") return false;
   return null;
+}
+
+export function createPokeTraceSetHandler(
+  dependencies: Partial<PokeTraceSetHandlerDependencies> = {},
+): RequestHandler {
+  const loadSet = dependencies.loadSet ?? loadPokeTraceSet;
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (req, res) => {
+    const rawSetName = req.query.setName;
+    const setName = typeof rawSetName === "string" ? rawSetName.trim() : "";
+    if (!setName || setName.length > 100) {
+      res.status(400).json({ error: "A valid set name is required" });
+      return;
+    }
+
+    try {
+      res.json(await loadSet(setName));
+    } catch (error) {
+      reportError("Failed to load PokeTrace set", error);
+      res.status(500).json({ error: "Failed to load card set" });
+    }
+  };
 }
 
 function optionalMoverFilter(value: unknown) {
@@ -452,9 +477,6 @@ export function createPokeTraceSearchHandler(
       typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
     const minPrice = optionalNumber(req.query.minPrice);
     const maxPrice = optionalNumber(req.query.maxPrice);
-    const requestedSort =
-      typeof req.query.sort === "string" ? req.query.sort.trim() : "";
-    const sort = requestedSort || POKETRACE_DEFAULT_SEARCH_SORT;
     const requestedCondition =
       typeof req.query.condition === "string" ? req.query.condition.trim() : "";
     const condition = isPokeTraceRawCondition(requestedCondition)
@@ -467,10 +489,6 @@ export function createPokeTraceSearchHandler(
     const values = [pokemonName, setName, cardNumber, rarity, cardId];
     if (values.some((value) => value.length > 100)) {
       res.status(400).json({ error: "Search value is too long" });
-      return;
-    }
-    if (!isPokeTraceSearchSort(sort)) {
-      res.status(400).json({ error: "Invalid search sort" });
       return;
     }
     if (
@@ -504,7 +522,6 @@ export function createPokeTraceSearchHandler(
           rarity,
           setName,
           ...(setNameExact && { setNameExact: true }),
-          sort,
         }),
       );
     } catch (error) {
@@ -515,6 +532,8 @@ export function createPokeTraceSearchHandler(
 }
 
 router.get("/search", createPokeTraceSearchHandler());
+
+router.get("/set", createPokeTraceSetHandler());
 
 router.get("/filter-options", createPokeTraceFilterOptionsHandler());
 

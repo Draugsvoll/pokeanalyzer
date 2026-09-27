@@ -6,3 +6,76 @@
   min-width: 0;
   width: 100%;
 }
+
+.grid-header--collapsible {
+  padding-right: 2.15rem;
+  position: relative;
+  transition: border-color var(--delay-short) ease;
+
+  &:hover {
+    border-color: var(--border-color-strong);
+  }
+}
+
+.grid-header__toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--font-color-faint);
+  cursor: pointer;
+  display: flex;
+  inset: -0.25rem 0 0;
+  justify-content: flex-end;
+  padding: 0 0.2rem var(--space-3) 0;
+  position: absolute;
+  z-index: 1;
+
+  &:hover {
+    color: var(--font-color-secondary);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--custom-color-blue);
+    outline-offset: 3px;
+  }
+
+  &[aria-expanded="false"] .grid-header__chevron {
+    transform: rotate(-90deg);
+  }
+}
+
+.grid-header__chevron {
+  transition:
+    color var(--delay-short) ease,
+    transform var(--delay-short) ease;
+}
+
+.card-grid[hidden] {
+  display: none;
+}
+
+.grid-view--sorting .card-grid {
+  position: relative;
+
+  > .pokemon-card-view {
+    filter: blur(0.55px);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  &::after {
+    background: color-mix(in srgb, var(--surface) 8%, transparent);
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-header__chevron {
+    transition: none;
+  }
+}

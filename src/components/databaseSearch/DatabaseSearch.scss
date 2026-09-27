@@ -27,6 +27,14 @@
     min-height: 0;
     padding: 0;
     text-align: left;
+
+    .database-search-filter-toolbar {
+      --dropdown-trigger-bg: var(--search-surface);
+    }
+
+    .database-search-price-input {
+      background: var(--search-surface);
+    }
   }
 }
 
@@ -378,7 +386,7 @@
 
   > span:first-child {
     color: var(--font-color-muted);
-    font-size: var(--font-size-label);
+    font-size: var(--font-size-badge);
     font-weight: var(--font-weight-semibold);
   }
 
@@ -491,25 +499,6 @@
 
 .database-search-set-combobox {
   height: 100%;
-
-  &::after {
-    background: var(--font-color-secondary);
-    content: "";
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-    position: absolute;
-    right: 0.125rem;
-    top: calc(50% + 0.43rem);
-    transition: opacity var(--animation-duration-fast)
-      var(--animation-ease-standard);
-    width: 0.65rem;
-  }
-
-  &:hover::after,
-  &:focus-within::after {
-    opacity: 1;
-  }
 
   > input {
     padding-right: 1.6rem;

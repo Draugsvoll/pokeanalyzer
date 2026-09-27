@@ -1,9 +1,10 @@
+import type { Client } from "@libsql/client";
 import type {
   GeneralNewsPayload,
   NewsFeedsResponse,
 } from "../../src/types/news.js";
 import { parseGeneralNewsResponse } from "../scripts/newsGeneration.js";
-import { dbAll, dbExecute } from "./db.js";
+import { db, dbAll, dbExecute } from "./db.js";
 import { findMissingColumns } from "./schemaValidationPolicy.js";
 
 export const NEWS_FEEDS = {
@@ -44,8 +45,11 @@ export const NEWS_CONTENT_UPSERT_SQL = `
     updated_at = CURRENT_TIMESTAMP
 `;
 
-export async function assertNewsContentSchemaCompatible(): Promise<void> {
-  const rows = await dbAll<TableInfoRow>('PRAGMA table_info("news_content")');
+export async function assertNewsContentSchemaCompatible(
+  database: Pick<Client, "execute"> = db,
+): Promise<void> {
+  const result = await database.execute('PRAGMA table_info("news_content")');
+  const rows = result.rows as unknown as TableInfoRow[];
   if (rows.length === 0) {
     throw new Error(
       "Database schema is incompatible: news_content table is missing. Run npm run db:init before generating news.",

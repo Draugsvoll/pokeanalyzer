@@ -1,11 +1,12 @@
 import "dotenv/config";
 import path from "node:path";
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
 import { ensurePokeTraceCatalogStore } from "../services/pokeTraceCatalogStore.js";
 import { ensurePokeTraceFilterOptionsStore } from "../services/pokeTraceFilterOptionsStore.js";
 
 const localFileUrl = `file:${path.resolve("server/db/poketrace.sqlite")}`;
+type PokeTraceMigrationDatabase = Pick<Client, "execute">;
 
 export const pokeTraceDb = createClient({
   url: process.env.POKETRACE_DATABASE_URL || localFileUrl,
@@ -20,31 +21,38 @@ export function assertExplicitPokeTraceDatabaseTarget() {
   );
 }
 
-async function hasCardColumn(name: string) {
-  const columns = await pokeTraceDb.execute(
-    "PRAGMA table_info(poketrace_cards)",
-  );
+async function hasCardColumn(
+  database: PokeTraceMigrationDatabase,
+  name: string,
+) {
+  const columns = await database.execute("PRAGMA table_info(poketrace_cards)");
   return columns.rows.some((column) => column.name === name);
 }
 
-async function ensureCardColumn(name: string, definition: string) {
-  if (await hasCardColumn(name)) return false;
+async function ensureCardColumn(
+  database: PokeTraceMigrationDatabase,
+  name: string,
+  definition: string,
+) {
+  if (await hasCardColumn(database, name)) return false;
   try {
-    await pokeTraceDb.execute(
+    await database.execute(
       `ALTER TABLE poketrace_cards ADD COLUMN ${name} ${definition}`,
     );
     return true;
   } catch (error) {
-    // Another process can run the same startup migration concurrently.
-    if (!(await hasCardColumn(name))) throw error;
+    // Another deployment or maintenance job can migrate concurrently.
+    if (!(await hasCardColumn(database, name))) throw error;
     return false;
   }
 }
 
 let pokeTraceReadyPromise: Promise<void> | null = null;
 
-async function initializePokeTraceDatabase() {
-  await pokeTraceDb.execute(`
+export async function migratePokeTraceDatabase(
+  database: PokeTraceMigrationDatabase = pokeTraceDb,
+) {
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_cards (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -66,29 +74,38 @@ async function initializePokeTraceDatabase() {
     )
   `);
 
-  await ensureCardColumn("saved_responses", "TEXT NOT NULL DEFAULT '{}'");
-  await ensureCardColumn("price_refreshed_at", "TEXT");
-  await ensureCardColumn("price_refresh_retry_at", "TEXT");
   await ensureCardColumn(
+    database,
+    "saved_responses",
+    "TEXT NOT NULL DEFAULT '{}'",
+  );
+  await ensureCardColumn(database, "price_refreshed_at", "TEXT");
+  await ensureCardColumn(database, "price_refresh_retry_at", "TEXT");
+  await ensureCardColumn(
+    database,
     "price_refresh_failures",
     "INTEGER NOT NULL DEFAULT 0",
   );
   await ensureCardColumn(
+    database,
     "tcg_market_comparisons",
     "TEXT NOT NULL DEFAULT '{}'",
   );
-  await ensureCardColumn("market_price_history", "TEXT");
-  await ensureCardColumn("market_price_history_fetched_at", "TEXT");
-  await pokeTraceDb.execute(
+  await ensureCardColumn(database, "market_price_history", "TEXT");
+  await ensureCardColumn(database, "market_price_history_fetched_at", "TEXT");
+  await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_fetched_at ON poketrace_cards(fetched_at, id)",
   );
-  await pokeTraceDb.execute(
+  await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_identity ON poketrace_cards(name, set_name, card_number)",
   );
-  await pokeTraceDb.execute(
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_set_name ON poketrace_cards(set_name COLLATE NOCASE)",
+  );
+  await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_price_refresh ON poketrace_cards(price_refresh_retry_at, price_refreshed_at, id)",
   );
-  await pokeTraceDb.execute(`
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_import_progress (
       name TEXT PRIMARY KEY,
       next_cursor TEXT,
@@ -96,14 +113,14 @@ async function initializePokeTraceDatabase() {
       complete INTEGER NOT NULL DEFAULT 0
     )
   `);
-  await pokeTraceDb.execute(`
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_job_locks (
       name TEXT PRIMARY KEY,
       token TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     )
   `);
-  await pokeTraceDb.execute(`
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_tcg_market_prices (
       card_id TEXT NOT NULL,
       recorded_at TEXT NOT NULL,
@@ -114,10 +131,10 @@ async function initializePokeTraceDatabase() {
       PRIMARY KEY (card_id, recorded_at)
     )
   `);
-  await pokeTraceDb.execute(
+  await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_tcg_market_prices_date ON poketrace_tcg_market_prices(recorded_at, card_id)",
   );
-  await pokeTraceDb.execute(`
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_market_snapshots (
       card_id TEXT NOT NULL,
       recorded_at TEXT NOT NULL,
@@ -129,15 +146,28 @@ async function initializePokeTraceDatabase() {
       PRIMARY KEY (card_id, recorded_at)
     )
   `);
-  await pokeTraceDb.execute(
+  await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_market_snapshots_date ON poketrace_market_snapshots(recorded_at, card_id)",
   );
-  await ensureMarketCategoriesStore(pokeTraceDb);
-  await ensurePokeTraceCatalogStore(pokeTraceDb);
-  await ensurePokeTraceFilterOptionsStore(pokeTraceDb);
+  await ensureMarketCategoriesStore(database);
+  await ensurePokeTraceCatalogStore(database);
+  await ensurePokeTraceFilterOptionsStore(database);
+}
+
+const deploymentReady = Promise.resolve();
+
+export function shouldRunRuntimePokeTraceMigrations(
+  environment: NodeJS.ProcessEnv = process.env,
+) {
+  return (
+    environment.NODE_ENV !== "production" && !environment.RAILWAY_ENVIRONMENT_ID
+  );
 }
 
 export function ensurePokeTraceReady() {
-  pokeTraceReadyPromise ??= initializePokeTraceDatabase();
+  // Local development and tests retain self-initialization. Production schema
+  // changes are applied once by the deployment migration job.
+  if (!shouldRunRuntimePokeTraceMigrations()) return deploymentReady;
+  pokeTraceReadyPromise ??= migratePokeTraceDatabase();
   return pokeTraceReadyPromise;
 }

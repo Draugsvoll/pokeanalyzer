@@ -26,7 +26,7 @@ test("news schema keeps one valid JSON row per feed", async () => {
 
   try {
     const schema = await readFile(
-      new URL("./schema.sql", import.meta.url),
+      new URL("./migrations/primary/001_initial_schema.sql", import.meta.url),
       "utf8",
     );
     for (const statement of schema

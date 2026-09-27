@@ -92,30 +92,51 @@ test("server catalog cache shares concurrent loads and expires once", async () =
     () => now,
   );
 
+  assert.equal(getCatalog.peek(), null);
+
   const [first, concurrent] = await Promise.all([getCatalog(), getCatalog()]);
   assert.equal(loads, 1);
   assert.equal(first.generatedAt, concurrent.generatedAt);
+  assert.equal(getCatalog.peek(), first);
 
   now = 1_099;
   assert.equal((await getCatalog()).generatedAt, first.generatedAt);
   assert.equal(loads, 1);
 
   now = 1_100;
+  assert.equal(getCatalog.peek(), first);
   assert.notEqual((await getCatalog()).generatedAt, first.generatedAt);
   assert.equal(loads, 2);
 });
 
 test("server catalog cache retries after a failed load", async () => {
+  let now = 1_000;
   let loads = 0;
-  const getCatalog = createPokeTraceCatalogCache(async () => {
-    loads += 1;
-    if (loads === 1) throw new Error("temporary failure");
-    return catalog("2026-09-25T00:00:00.000Z");
-  });
+  const getCatalog = createPokeTraceCatalogCache(
+    async () => {
+      loads += 1;
+      if (loads === 1) throw new Error("temporary failure");
+      return catalog("2026-09-25T00:00:00.000Z");
+    },
+    100,
+    () => now,
+  );
 
   await assert.rejects(getCatalog(), /temporary failure/);
+  assert.equal(getCatalog.canWarm(), false);
+  await assert.rejects(getCatalog(), /temporary failure/);
+  assert.equal(loads, 1);
+
+  now = 1_099;
+  assert.equal(getCatalog.canWarm(), false);
+  await assert.rejects(getCatalog(), /temporary failure/);
+  assert.equal(loads, 1);
+
+  now = 1_100;
+  assert.equal(getCatalog.canWarm(), true);
   assert.equal((await getCatalog()).cards.length, 1);
   assert.equal(loads, 2);
+  assert.equal(getCatalog.canWarm(), false);
 });
 
 test("server catalog cache serves stale data after a refresh failure", async () => {

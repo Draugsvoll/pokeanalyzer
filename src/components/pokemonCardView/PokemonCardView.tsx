@@ -15,8 +15,8 @@ import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
 import {
+  resolveDisplayedPokeTracePriceChange,
   resolvePokeTraceCardPrice,
-  resolvePokeTraceSevenDayComparison,
 } from "../../utils/pokeTracePricing";
 import "./PokemonCardView.scss";
 
@@ -82,16 +82,6 @@ function getVariantBadgeAccent(variant?: string) {
   return "neutral" as const;
 }
 
-function displaysTcgPlayerNearMint(
-  marketDisplay: PokemonCardViewProps["marketDisplay"],
-) {
-  if (!marketDisplay) return true;
-  return (
-    marketDisplay.source?.trim().toLowerCase() === "tcgplayer" &&
-    marketDisplay.condition?.trim().toUpperCase() === "NEAR_MINT"
-  );
-}
-
 export function PokemonCardView({
   card,
   comparisonPriceSnapshot,
@@ -112,27 +102,12 @@ export function PokemonCardView({
   const imageSrc = card.image;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
   const displayedPrice = marketDisplay?.price ?? activeOption?.price;
-  const defaultSevenDayComparison =
-    displayedPrice != null &&
-    comparisonPriceSnapshot === undefined &&
-    marketDisplay?.changePercent == null &&
-    displaysTcgPlayerNearMint(marketDisplay)
-      ? resolvePokeTraceSevenDayComparison(card)
-      : undefined;
-  const comparisonPrice =
-    comparisonPriceSnapshot?.marketPrice ??
-    defaultSevenDayComparison?.marketPrice;
-  const calculatedPriceChangePercent =
-    marketDisplay?.changePercent ??
-    (displayedPrice != null && comparisonPrice != null
-      ? ((displayedPrice - comparisonPrice) / comparisonPrice) * 100
-      : null);
-  const normalizedPriceChangePercent = calculatedPriceChangePercent;
-  const displayedPriceChangePercent =
-    normalizedPriceChangePercent != null &&
-    Math.abs(normalizedPriceChangePercent) < 0.05
-      ? 0
-      : normalizedPriceChangePercent;
+  const displayedPriceChange = resolveDisplayedPokeTracePriceChange(card, {
+    comparisonPriceSnapshot,
+    marketDisplay,
+  });
+  const { defaultSevenDayComparison } = displayedPriceChange;
+  const displayedPriceChangePercent = displayedPriceChange.percent;
   const formattedPriceChange =
     displayedPriceChangePercent == null
       ? null
@@ -145,10 +120,7 @@ export function PokemonCardView({
         : displayedPriceChangePercent < 0
           ? "down"
           : "flat";
-  const showPriceChange =
-    marketDisplay?.changePercent != null ||
-    comparisonPriceSnapshot != null ||
-    defaultSevenDayComparison != null;
+  const showPriceChange = displayedPriceChange.show;
   const priceChangeTitle =
     marketDisplay?.changeLabel ??
     priceChangeLabel ??

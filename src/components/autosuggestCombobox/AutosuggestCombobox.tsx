@@ -11,6 +11,8 @@ export type AutosuggestOption = {
 type AutosuggestComboboxProps = {
   ariaLabel: string;
   className?: string;
+  inputAriaDescribedBy?: string;
+  inputAriaInvalid?: boolean;
   inputClassName?: string;
   menuLabel: string;
   onInputChange: (value: string) => void;
@@ -24,6 +26,8 @@ type AutosuggestComboboxProps = {
 export function AutosuggestCombobox({
   ariaLabel,
   className = "",
+  inputAriaDescribedBy,
+  inputAriaInvalid,
   inputClassName,
   menuLabel,
   onInputChange,
@@ -118,7 +122,9 @@ export function AutosuggestCombobox({
         }
         aria-autocomplete="list"
         aria-controls={listboxId}
+        aria-describedby={inputAriaDescribedBy}
         aria-expanded={menuOpen}
+        aria-invalid={inputAriaInvalid || undefined}
         aria-label={ariaLabel}
         autoComplete="off"
         className={inputClassName}

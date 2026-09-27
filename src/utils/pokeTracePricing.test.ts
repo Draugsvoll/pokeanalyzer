@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import type { PokemonCard } from "../types/pokemon";
 import {
+  resolveDisplayedPokeTracePriceChange,
+  resolveDisplayedPokeTracePriceChangePercent,
   resolvePokeTraceCardPrice,
   resolvePokeTraceSevenDayComparison,
 } from "./pokeTracePricing";
@@ -49,6 +51,54 @@ describe("resolvePokeTraceCardPrice", () => {
     });
 
     expect(resolvePokeTraceCardPrice(card, "LIGHTLY_PLAYED")?.price).toBe(30);
+  });
+});
+
+describe("resolveDisplayedPokeTracePriceChangePercent", () => {
+  test("uses the same default 7-day value displayed by card views", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 120 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 100 };
+
+    expect(resolveDisplayedPokeTracePriceChangePercent(card)).toBe(20);
+  });
+
+  test("uses an explicit displayed change override when supplied", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 120 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 100 };
+
+    expect(
+      resolveDisplayedPokeTracePriceChangePercent(card, {
+        explicitChangePercent: -4,
+      }),
+    ).toBe(-4);
+  });
+});
+
+describe("resolveDisplayedPokeTracePriceChange", () => {
+  test("resolves the exact explicit change rendered by a card view", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 120 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 100 };
+
+    expect(
+      resolveDisplayedPokeTracePriceChange(card, {
+        marketDisplay: {
+          changePercent: -4,
+          condition: "NEAR_MINT",
+          price: 120,
+          source: "tcgplayer",
+        },
+      }),
+    ).toEqual({
+      defaultSevenDayComparison: undefined,
+      percent: -4,
+      show: true,
+    });
   });
 });
 

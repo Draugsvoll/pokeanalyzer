@@ -1,33 +1,20 @@
-import { X } from "lucide-react";
-import {
-  POKETRACE_SEARCH_SORTS,
-  type PokeTraceSearchSort,
-} from "../../../shared/pokeTraceSearch";
-import { SelectDropdown } from "../selectDropdown/SelectDropdown";
+import type { PokeTraceCardSort } from "../../utils/sortPokeTraceCards";
+import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
+import { ResultGridCloseButton } from "../resultGridCloseButton/ResultGridCloseButton";
 import "./SearchResultsToolbar.scss";
-
-const SEARCH_SORT_LABELS: Record<PokeTraceSearchSort, string> = {
-  "price-high-low": "Price: high-low",
-  "price-low-high": "Price: low-high",
-  "card-number-low-high": "Number: low-high",
-  "card-number-high-low": "Number: high-low",
-};
-
-const SEARCH_SORT_OPTIONS = POKETRACE_SEARCH_SORTS.map((value) => ({
-  value,
-  label: SEARCH_SORT_LABELS[value],
-}));
 
 type SearchResultsToolbarProps = {
   activeQueryLabel: string;
+  includeChangeSort?: boolean;
   onClose: () => void;
-  onSortChange: (value: PokeTraceSearchSort) => void;
+  onSortChange: (value: PokeTraceCardSort) => void;
   resultCount: number;
-  sortDirection: PokeTraceSearchSort;
+  sortDirection: PokeTraceCardSort;
 };
 
 export function SearchResultsToolbar({
   activeQueryLabel,
+  includeChangeSort = true,
   onClose,
   onSortChange,
   resultCount,
@@ -43,23 +30,18 @@ export function SearchResultsToolbar({
       </div>
       <div className="search-results-toolbar__actions">
         <label className="search-results-sort-control">
-          <SelectDropdown
+          <PokeTraceSortDropdown
             ariaLabel="Sort search results"
             className="search-results-sort-control__dropdown"
-            options={SEARCH_SORT_OPTIONS}
+            includeChange={includeChangeSort}
             value={sortDirection}
             onChange={onSortChange}
           />
         </label>
-        <button
-          aria-label="Close search results"
-          className="search-results-toolbar__close"
+        <ResultGridCloseButton
+          ariaLabel="Close search results"
           onClick={onClose}
-          title="Close results"
-          type="button"
-        >
-          <X aria-hidden="true" />
-        </button>
+        />
       </div>
     </div>
   );

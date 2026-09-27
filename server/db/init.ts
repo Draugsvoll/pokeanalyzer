@@ -1,25 +1,17 @@
-import fs from "fs";
-import path from "path";
-import { assertExplicitDatabaseTarget, db, splitSqlStatements } from "./db.js";
-import { assertNewsContentSchemaCompatible } from "./newsStore.js";
+import { assertExplicitDatabaseTarget, closeDatabase } from "./db.js";
+import { migratePrimaryDatabase } from "./migratePrimaryDatabase.js";
 import { logError } from "../security/logging.js";
-
-const schemaPath = path.resolve("server/db/schema.sql");
-const schema = fs.readFileSync(schemaPath, "utf8");
 
 async function initializeDatabase() {
   try {
     assertExplicitDatabaseTarget();
-    const statements = splitSqlStatements(schema);
-    for (const statement of statements) {
-      await db.execute(statement);
-    }
-    await assertNewsContentSchemaCompatible();
-    console.log("Database initialized and schema verified successfully.");
+    await migratePrimaryDatabase();
+    console.log("Primary database migrations completed successfully.");
   } catch (err) {
-    console.error("Failed to initialize database");
-    logError("Failed to initialize database", err);
-    process.exit(1);
+    logError("Primary database migration failed", err);
+    process.exitCode = 1;
+  } finally {
+    closeDatabase();
   }
 }
 

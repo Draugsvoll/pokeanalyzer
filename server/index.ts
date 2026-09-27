@@ -32,7 +32,6 @@ import {
   saveCardGrokResponse,
 } from "./db/cardGrokStore.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "./db/pokeTraceDb.js";
-import { checkDatabaseConnection } from "./db/db.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -333,7 +332,6 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
-    await checkDatabaseConnection();
     await ensurePokeTraceReady();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);

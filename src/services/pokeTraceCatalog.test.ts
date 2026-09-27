@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import type { PokeTraceCatalogCard } from "../../shared/pokeTraceCatalog";
-import { POKETRACE_SEARCH_RESULT_LIMIT } from "../../shared/pokeTraceSearch";
 import { searchPokeTraceCatalogCards } from "./pokeTraceCatalog";
 
 const cards: PokeTraceCatalogCard[] = [
@@ -173,68 +172,5 @@ describe("searchPokeTraceCatalogCards", () => {
     };
 
     expect(searchPokeTraceCatalogCards(manyCards, search)).toHaveLength(75);
-  });
-
-  test("sorts before limiting broad searches to 2,000 cards", () => {
-    const manyCards = Array.from(
-      { length: POKETRACE_SEARCH_RESULT_LIMIT + 1 },
-      (_, index) => ({
-        ...cards[0],
-        id: `card-${index + 1}`,
-        conditionPrices: { NEAR_MINT: index + 1 },
-      }),
-    );
-
-    const results = searchPokeTraceCatalogCards(manyCards, {
-      pokemonName: "charizard",
-      setName: "",
-      cardNumber: "",
-      sort: "price-high-low",
-    });
-
-    expect(results).toHaveLength(POKETRACE_SEARCH_RESULT_LIMIT);
-    expect(results[0]?.id).toBe("card-2001");
-    expect(results.at(-1)?.id).toBe("card-2");
-  });
-
-  test("sorts common card-number formats in natural order", () => {
-    const numberedCards = [
-      { ...cards[0], id: "ten", number: "10" },
-      { ...cards[0], id: "two", number: "2" },
-      { ...cards[0], id: "four-fraction", number: "004/102" },
-      { ...cards[0], id: "tg-twelve", number: "TG12/TG30" },
-      { ...cards[0], id: "tg-two", number: "TG2/TG30" },
-      { ...cards[0], id: "missing", number: undefined },
-    ];
-
-    const ascending = searchPokeTraceCatalogCards(numberedCards, {
-      pokemonName: "",
-      setName: "",
-      cardNumber: "",
-      sort: "card-number-low-high",
-    });
-    const descending = searchPokeTraceCatalogCards(numberedCards, {
-      pokemonName: "",
-      setName: "",
-      cardNumber: "",
-      sort: "card-number-high-low",
-    });
-
-    expect(ascending.map((card) => card.id)).toEqual([
-      "two",
-      "four-fraction",
-      "ten",
-      "tg-two",
-      "tg-twelve",
-      "missing",
-    ]);
-    expect(descending.map((card) => card.id)).toEqual([
-      "tg-twelve",
-      "tg-two",
-      "ten",
-      "four-fraction",
-      "two",
-      "missing",
-    ]);
   });
 });

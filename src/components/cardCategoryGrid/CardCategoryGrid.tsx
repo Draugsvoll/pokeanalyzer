@@ -13,25 +13,42 @@ export type CardCategoryGridItem = {
 };
 
 type CardCategoryGridProps = {
+  controls?: ReactNode;
+  defaultCollapsed?: boolean;
   emptyMessage?: ReactNode;
   error?: ReactNode;
+  footer?: ReactNode;
   items: CardCategoryGridItem[];
   loading?: boolean;
+  sorting?: boolean;
   subtitle?: ReactNode;
   title: ReactNode;
 };
 
 export function CardCategoryGrid({
+  controls,
+  defaultCollapsed = false,
   emptyMessage = "No cards are available in this category yet.",
   error,
+  footer,
   items,
   loading = false,
+  sorting = false,
   subtitle,
   title,
 }: CardCategoryGridProps) {
   return (
     <section className="card-category-grid ui-card-grid-enter ui-render-fade">
-      <GridView subtitle={subtitle} title={title}>
+      <GridView
+        collapsible
+        defaultCollapsed={defaultCollapsed}
+        sorting={sorting}
+        subtitle={subtitle}
+        title={title}
+      >
+        {controls && (
+          <div className="card-category-grid__controls">{controls}</div>
+        )}
         {loading ? (
           <div
             aria-label="Loading card category"
@@ -44,9 +61,9 @@ export function CardCategoryGrid({
           <p className="card-category-grid__state card-category-grid__state--error">
             {error}
           </p>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && emptyMessage ? (
           <p className="card-category-grid__state">{emptyMessage}</p>
-        ) : (
+        ) : items.length > 0 ? (
           items.map(({ card, marketDisplay }) => (
             <PokemonCardView
               card={card}
@@ -54,6 +71,9 @@ export function CardCategoryGrid({
               marketDisplay={marketDisplay}
             />
           ))
+        ) : null}
+        {footer && !loading && !error && (
+          <div className="card-category-grid__footer">{footer}</div>
         )}
       </GridView>
     </section>

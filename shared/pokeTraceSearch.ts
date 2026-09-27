@@ -6,19 +6,13 @@ export const POKETRACE_SEARCH_SORTS = [
   "price-low-high",
   "card-number-low-high",
   "card-number-high-low",
+  "change-high-low",
+  "change-low-high",
 ] as const;
 
 export type PokeTraceSearchSort = (typeof POKETRACE_SEARCH_SORTS)[number];
-export const POKETRACE_DEFAULT_SEARCH_SORT: PokeTraceSearchSort =
-  "price-high-low";
 
 export type PokeTraceSearchResponse<TItem> = {
   items: TItem[];
   total: number;
 };
-
-export function isPokeTraceSearchSort(
-  value: string,
-): value is PokeTraceSearchSort {
-  return (POKETRACE_SEARCH_SORTS as readonly string[]).includes(value);
-}

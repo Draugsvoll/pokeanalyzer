@@ -14,6 +14,12 @@
   text-align: center;
 }
 
+.card-category-grid__controls,
+.card-category-grid__footer {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .card-category-grid__state--error {
   color: var(--font-color-error);
 }
