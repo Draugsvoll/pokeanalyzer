@@ -121,6 +121,7 @@ export function toPokeTraceCatalogPokemonCard(card: PokeTraceCatalogCard) {
         Object.keys(tcgplayerPrices).length > 0
           ? { tcgplayer: tcgplayerPrices }
           : {},
+      marketPriceSnapshots: card.priceSnapshots,
       ...(card.variant && { variant: card.variant }),
     },
   };

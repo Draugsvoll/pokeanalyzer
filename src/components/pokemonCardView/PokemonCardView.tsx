@@ -14,7 +14,10 @@ import type {
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
-import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
+import {
+  resolvePokeTraceCardPrice,
+  resolvePokeTraceSevenDayComparison,
+} from "../../utils/pokeTracePricing";
 import "./PokemonCardView.scss";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -45,11 +48,13 @@ export type PokemonCardViewProps = {
   marketDisplay?: {
     changeLabel?: string;
     changePercent?: number;
+    condition?: string;
     currency: string;
     marketLabel?: string;
     price?: number;
     priceLabel?: string;
     primaryText?: string;
+    source?: string;
   };
   onPortfolioChanged?: (saved: boolean) => void;
   priceChangeLabel?: string;
@@ -77,6 +82,16 @@ function getVariantBadgeAccent(variant?: string) {
   return "neutral" as const;
 }
 
+function displaysTcgPlayerNearMint(
+  marketDisplay: PokemonCardViewProps["marketDisplay"],
+) {
+  if (!marketDisplay) return true;
+  return (
+    marketDisplay.source?.trim().toLowerCase() === "tcgplayer" &&
+    marketDisplay.condition?.trim().toUpperCase() === "NEAR_MINT"
+  );
+}
+
 export function PokemonCardView({
   card,
   comparisonPriceSnapshot,
@@ -97,7 +112,16 @@ export function PokemonCardView({
   const imageSrc = card.image;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
   const displayedPrice = marketDisplay?.price ?? activeOption?.price;
-  const comparisonPrice = comparisonPriceSnapshot?.marketPrice;
+  const defaultSevenDayComparison =
+    displayedPrice != null &&
+    comparisonPriceSnapshot === undefined &&
+    marketDisplay?.changePercent == null &&
+    displaysTcgPlayerNearMint(marketDisplay)
+      ? resolvePokeTraceSevenDayComparison(card)
+      : undefined;
+  const comparisonPrice =
+    comparisonPriceSnapshot?.marketPrice ??
+    defaultSevenDayComparison?.marketPrice;
   const calculatedPriceChangePercent =
     marketDisplay?.changePercent ??
     (displayedPrice != null && comparisonPrice != null
@@ -122,13 +146,19 @@ export function PokemonCardView({
           ? "down"
           : "flat";
   const showPriceChange =
-    marketDisplay?.changePercent != null || comparisonPriceSnapshot != null;
+    marketDisplay?.changePercent != null ||
+    comparisonPriceSnapshot != null ||
+    defaultSevenDayComparison != null;
   const priceChangeTitle =
     marketDisplay?.changeLabel ??
     priceChangeLabel ??
-    (comparisonPriceSnapshot
-      ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
-      : "Price change");
+    (defaultSevenDayComparison
+      ? defaultSevenDayComparison.recordedAt
+        ? `7-day TCGPlayer Near Mint change since ${formatDateStamp(defaultSevenDayComparison.recordedAt)}`
+        : "7-day TCGPlayer Near Mint change"
+      : comparisonPriceSnapshot
+        ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
+        : "Price change");
   const displayedCurrency =
     marketDisplay?.currency ??
     activeOption?.currency ??

@@ -32,6 +32,7 @@ import {
   type PokeTraceSearchSort,
 } from "../../../shared/pokeTraceSearch";
 import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
+import { FALLBACK_POKETRACE_SET_NAMES } from "../../data/pokeTraceSetNames";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -116,6 +117,10 @@ const FALLBACK_RARITY_OPTIONS = [
     value: rarity,
   })),
 ];
+
+const FALLBACK_SET_NAME_OPTIONS = FALLBACK_POKETRACE_SET_NAMES.map(
+  (setName) => ({ label: setName, value: setName }),
+);
 
 const CONDITION_OPTIONS = [
   { value: "" as const, label: "Any" },
@@ -231,7 +236,7 @@ export function DatabaseSearchBar({
   const [rarityOptions, setRarityOptions] = useState(FALLBACK_RARITY_OPTIONS);
   const [setNameOptions, setSetNameOptions] = useState<
     Array<{ label: string; value: string }>
-  >([]);
+  >(FALLBACK_SET_NAME_OPTIONS);
   const filterCount = activeFilterCount(filters);
   const hasSearchCriteria = Boolean(
     pokemonName.trim() || setName.trim() || cardNumber.trim() || filterCount,
@@ -846,9 +851,11 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                         marketDisplay={
                           activeCondition
                             ? {
+                                condition: activeCondition,
                                 currency: card.pokeTrace.currency,
                                 marketLabel: conditionLabel,
                                 price: selectedPrice,
+                                source: "tcgplayer",
                                 priceLabel: `TCGPlayer · ${conditionLabel}`,
                               }
                             : undefined

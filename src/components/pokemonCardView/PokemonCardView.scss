@@ -284,6 +284,7 @@
 }
 
 .pokemon-card__price-change {
+  align-self: end;
   border-radius: var(--radius-sm);
   box-sizing: border-box;
   display: inline-flex;
@@ -298,6 +299,7 @@
   line-height: 1.15;
   white-space: nowrap;
   padding: 0;
+  margin-top: 0.1rem;
 
   &--up {
     color: var(--price-value-positive);

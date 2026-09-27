@@ -19,7 +19,8 @@ async function createDatabase() {
         set_name TEXT,
         rarity TEXT,
         variant TEXT,
-        image_url TEXT
+        image_url TEXT,
+        tcg_market_comparisons TEXT NOT NULL DEFAULT '{}'
       )`,
       `CREATE TABLE poketrace_tcg_market_prices (
         card_id TEXT NOT NULL,
@@ -287,6 +288,26 @@ test("ranks new sales with configurable source, condition, and period", async ()
     })),
     "write",
   );
+  await database.execute({
+    sql: `UPDATE poketrace_cards
+      SET tcg_market_comparisons = ?
+      WHERE id = 'b'`,
+    args: [
+      JSON.stringify({
+        asOf: "2026-09-22",
+        comparisons: {
+          "1d": null,
+          "7d": {
+            marketPrice: 22,
+            recordedAt: "2026-09-15",
+            sourceUpdatedAt: null,
+            targetDate: "2026-09-15",
+          },
+          "30d": null,
+        },
+      }),
+    ],
+  });
 
   const allTcgConditions = await findMostSold(database);
   const allEbayConditions = await findMostSold(database, { source: "ebay" });
@@ -302,6 +323,12 @@ test("ranks new sales with configurable source, condition, and period", async ()
       ["Alpha", 5],
     ],
   );
+  assert.deepEqual(allTcgConditions.items[0]?.priceSnapshots, {
+    "1d": null,
+    "7d": 22,
+    "30d": null,
+  });
+  assert.equal(allEbayConditions.items[0]?.priceSnapshots, undefined);
   assert.deepEqual(
     allEbayConditions.items.map((item) => [item.name, item.newSales]),
     [

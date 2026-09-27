@@ -197,16 +197,27 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
 
   test("skips download and local search when the browser catalog is disabled", async () => {
     vi.stubEnv("VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG", "false");
-    const fetchMock = vi.fn<typeof fetch>();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
+      json: async () => ({
+        schemaVersion: 1,
+        generatedAt: "2026-09-19T08:00:00.000Z",
+        rarities: ["Holo Rare"],
+        setNames: ["Base Set"],
+      }),
+      ok: true,
+    } as Response);
     vi.stubGlobal("fetch", fetchMock);
 
     const service = await import("./pokeTraceCatalog");
     await service.initializePokeTraceCatalog();
 
     expect(await service.searchCachedPokeTraceCatalog(search)).toBeNull();
-    expect(await service.loadPokeTraceCatalogRarities()).toBeNull();
-    expect(await service.loadPokeTraceCatalogSetNames()).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await service.loadPokeTraceCatalogRarities()).toEqual(["Holo Rare"]);
+    expect(await service.loadPokeTraceCatalogSetNames()).toEqual(["Base Set"]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/cards/filter-options",
+    );
   });
 
   test("cannot enable the browser catalog outside the test runner", async () => {

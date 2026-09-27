@@ -91,12 +91,14 @@ function toGridItem(
     marketDisplay: {
       changeLabel: changeLabel ?? `Change from the 7-day ${marketName} average`,
       changePercent: item.changePct,
+      condition: item.tier,
       currency: item.currency,
       ...(showMarketLabel && {
         marketLabel: `${compactTierLabel(item.tier)} · ${sourceLabel(item.source)}`,
       }),
       price: item.currentPrice,
       priceLabel: marketName,
+      source: item.source,
     },
   };
 }

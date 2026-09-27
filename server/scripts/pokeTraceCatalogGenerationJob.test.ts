@@ -10,6 +10,10 @@ import {
   POKETRACE_CATALOG_SCHEMA_VERSION,
   type PokeTraceCatalogResponse,
 } from "../../shared/pokeTraceCatalog.js";
+import {
+  ensurePokeTraceFilterOptionsStore,
+  loadStoredPokeTraceFilterOptions,
+} from "../services/pokeTraceFilterOptionsStore.js";
 import { runPokeTraceCatalogGeneration } from "./pokeTraceCatalogGenerationJob.js";
 
 async function createDatabase() {
@@ -35,6 +39,7 @@ async function createDatabase() {
     )
   `);
   await ensurePokeTraceCatalogStore(database);
+  await ensurePokeTraceFilterOptionsStore(database);
   return database;
 }
 
@@ -83,6 +88,12 @@ test("catalog generation stores the complete payload while holding the lock", as
   assert.equal(catalog?.cards.length, 1);
   assert.equal(catalog?.cards[0]?.id, "card-1");
   assert.deepEqual(await loadStoredPokeTraceCatalog(database), catalog);
+  assert.deepEqual(await loadStoredPokeTraceFilterOptions(database), {
+    schemaVersion: 1,
+    generatedAt: catalog?.generatedAt,
+    rarities: ["Holo Rare"],
+    setNames: ["Base Set"],
+  });
   database.close();
 });
 

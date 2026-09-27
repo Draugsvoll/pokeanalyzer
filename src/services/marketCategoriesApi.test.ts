@@ -78,6 +78,7 @@ const payload = {
           image: null,
           name: "Pikachu",
           newSales: 7,
+          priceSnapshots: { "1d": 22, "7d": 20, "30d": null },
           prices: { NEAR_MINT: { avg: 25, saleCount: 37 } },
           rarity: "Common",
           setName: "Base Set",
@@ -180,6 +181,7 @@ test("loads the most-sold category with its configured source", async () => {
   expect(result.items[0]).toMatchObject({
     currentPrice: 25,
     newSales: 7,
+    priceSnapshots: { "1d": 22, "7d": 20, "30d": null },
     prices: { NEAR_MINT: { avg: 25, saleCount: 37 } },
   });
 });

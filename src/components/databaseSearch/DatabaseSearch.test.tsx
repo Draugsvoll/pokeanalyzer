@@ -156,6 +156,17 @@ test("marks a suggested set name as an exact catalog match", async () => {
   );
 });
 
+test("keeps static set suggestions when filter options are unavailable", async () => {
+  renderSearch();
+
+  const setNameInput = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.change(setNameInput, { target: { value: "aquapolis" } });
+
+  expect(
+    await screen.findByRole("option", { name: "Aquapolis" }),
+  ).toBeInTheDocument();
+});
+
 test("keeps a typed set name as a partial match", async () => {
   mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
   renderSearch();

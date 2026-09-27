@@ -38,6 +38,9 @@ function toGridItem(
     set: { id: setName, name: setName },
     pokeTrace: {
       currency: item.currency,
+      ...(item.priceSnapshots && {
+        marketPriceSnapshots: item.priceSnapshots,
+      }),
       marketplaceUrls: {},
       prices: { [response.source]: item.prices },
       ...(item.variant && { variant: item.variant }),
@@ -49,13 +52,17 @@ function toGridItem(
     response.condition === "ALL"
       ? "all stored conditions"
       : response.condition.toLowerCase().replaceAll("_", " ");
+  const displayedPriceCondition =
+    response.condition === "ALL" ? "NEAR_MINT" : response.condition;
   return {
     card,
     marketDisplay: {
+      condition: displayedPriceCondition,
       currency: item.currency,
       marketLabel: salesLabel,
       price: item.currentPrice,
       priceLabel: `${salesLabel} on ${market} across ${condition} during the last ${response.periodDays} ${response.periodDays === 1 ? "day" : "days"}`,
+      source: response.source,
     },
   };
 }

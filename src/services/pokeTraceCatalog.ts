@@ -12,6 +12,7 @@ import {
 } from "../../shared/pokeTraceCatalogSearch";
 import type { PokemonCard } from "../types/pokemon";
 import { logClientError } from "../utils/logClientError";
+import { loadPokeTraceFilterOptions } from "./pokeTraceFilterOptions";
 
 export type { PokeTraceCatalogSearch };
 
@@ -343,13 +344,17 @@ export async function searchCachedPokeTraceCatalog(
 }
 
 export async function loadPokeTraceCatalogRarities() {
-  if (!LOCAL_CATALOG_ENABLED) return null;
-  await initializePokeTraceCatalog();
-  return memoryCatalog ? [...memoryCatalogRarities] : null;
+  if (LOCAL_CATALOG_ENABLED) {
+    await initializePokeTraceCatalog();
+    if (memoryCatalog) return [...memoryCatalogRarities];
+  }
+  return (await loadPokeTraceFilterOptions())?.rarities ?? null;
 }
 
 export async function loadPokeTraceCatalogSetNames() {
-  if (!LOCAL_CATALOG_ENABLED) return null;
-  await initializePokeTraceCatalog();
-  return memoryCatalog ? [...memoryCatalogSetNames] : null;
+  if (LOCAL_CATALOG_ENABLED) {
+    await initializePokeTraceCatalog();
+    if (memoryCatalog) return [...memoryCatalogSetNames];
+  }
+  return (await loadPokeTraceFilterOptions())?.setNames ?? null;
 }

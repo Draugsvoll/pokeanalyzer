@@ -29,6 +29,7 @@ export type MostSoldItem = {
   image: string | null;
   name: string;
   newSales: number;
+  priceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
   prices: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
@@ -88,6 +89,26 @@ function text(value: unknown, field: string) {
 
 function nullableText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function optionalPriceSnapshots(value: unknown) {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new Error("Invalid most-sold price snapshots");
+  }
+  const periods = ["1d", "7d", "30d"] as const;
+  const snapshots = {} as Record<(typeof periods)[number], number | null>;
+  for (const period of periods) {
+    const price = value[period];
+    if (
+      price !== null &&
+      (typeof price !== "number" || !Number.isFinite(price) || price <= 0)
+    ) {
+      throw new Error(`Invalid most-sold ${period} price snapshot`);
+    }
+    snapshots[period] = price as number | null;
+  }
+  return snapshots;
 }
 
 function setSlug(value: string) {
@@ -209,6 +230,7 @@ function parseMostSoldCategory(
       if (!isRecord(item) || !isRecord(item.prices)) {
         throw new Error("Invalid most-sold category item");
       }
+      const priceSnapshots = optionalPriceSnapshots(item.priceSnapshots);
       return {
         cardId: text(item.cardId, "cardId"),
         cardNumber: nullableText(item.cardNumber),
@@ -217,6 +239,7 @@ function parseMostSoldCategory(
         image: nullableText(item.image),
         name: text(item.name, "name"),
         newSales: finiteNumber(item.newSales, "newSales"),
+        ...(priceSnapshots && { priceSnapshots }),
         prices: item.prices,
         rarity: nullableText(item.rarity),
         setName: nullableText(item.setName),

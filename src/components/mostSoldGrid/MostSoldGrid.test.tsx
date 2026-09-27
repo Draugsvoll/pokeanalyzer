@@ -17,6 +17,7 @@ vi.mock("../../services/marketCategoriesApi", () => ({
         image: null,
         name: "Charizard",
         newSales: 20,
+        priceSnapshots: { "1d": 115, "7d": 100, "30d": 90 },
         prices: { NEAR_MINT: { avg: 120, saleCount: 50 } },
         rarity: "Holo Rare",
         setName: null,
@@ -34,8 +35,19 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
     loading,
   }: {
     items: Array<{
-      card: { name: string; set: { name: string } };
-      marketDisplay?: { marketLabel?: string; price?: number };
+      card: {
+        name: string;
+        pokeTrace: {
+          marketPriceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
+        };
+        set: { name: string };
+      };
+      marketDisplay?: {
+        condition?: string;
+        marketLabel?: string;
+        price?: number;
+        source?: string;
+      };
     }>;
     loading: boolean;
   }) => (
@@ -43,7 +55,9 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
       {items.map((item) => (
         <span key={item.card.name}>
           {item.card.name} {item.card.set.name} {item.marketDisplay?.price}{" "}
-          {item.marketDisplay?.marketLabel}
+          {item.marketDisplay?.marketLabel} {item.marketDisplay?.condition}{" "}
+          {item.marketDisplay?.source}{" "}
+          {item.card.pokeTrace.marketPriceSnapshots?.["7d"]}
         </span>
       ))}
     </div>
@@ -60,6 +74,8 @@ test("renders the current price with the number of new sales", async () => {
     ),
   );
   expect(
-    screen.getByText(/Charizard Unknown set 120 20 new sales/),
+    screen.getByText(
+      /Charizard Unknown set 120 20 new sales NEAR_MINT tcgplayer 100/,
+    ),
   ).toBeVisible();
 });

@@ -3,6 +3,7 @@ import path from "node:path";
 import { createClient } from "@libsql/client";
 import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
 import { ensurePokeTraceCatalogStore } from "../services/pokeTraceCatalogStore.js";
+import { ensurePokeTraceFilterOptionsStore } from "../services/pokeTraceFilterOptionsStore.js";
 
 const localFileUrl = `file:${path.resolve("server/db/poketrace.sqlite")}`;
 
@@ -133,6 +134,7 @@ async function initializePokeTraceDatabase() {
   );
   await ensureMarketCategoriesStore(pokeTraceDb);
   await ensurePokeTraceCatalogStore(pokeTraceDb);
+  await ensurePokeTraceFilterOptionsStore(pokeTraceDb);
 }
 
 export function ensurePokeTraceReady() {

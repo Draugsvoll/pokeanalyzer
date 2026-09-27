@@ -166,3 +166,32 @@ test("search applies the selected condition to server catalog prices", async () 
     ["lightly-played-match"],
   );
 });
+
+test("search preserves all catalog snapshots for card views", async () => {
+  const card = catalogCard({
+    id: "card-with-history",
+    name: "History Card",
+    number: 1,
+    rarity: "Rare",
+    conditionPrices: { NEAR_MINT: 120 },
+  });
+  card.priceSnapshots = { "1d": 100, "7d": 90, "30d": null };
+
+  const response = await loadPokeTraceSearch(
+    {
+      cardId: "",
+      cardNumber: "",
+      pokemonName: "History",
+      rarity: "",
+      setName: "",
+      sort: "price-high-low",
+    },
+    async () => catalog([card]),
+  );
+
+  assert.deepEqual(response.items[0]?.pokeTrace.marketPriceSnapshots, {
+    "1d": 100,
+    "7d": 90,
+    "30d": null,
+  });
+});

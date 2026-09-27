@@ -1,4 +1,5 @@
 import type { Client } from "@libsql/client";
+import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketComparisons.js";
 
 export const MARKET_SOURCES = ["tcgplayer", "ebay"] as const;
 export const MARKET_CONDITIONS = [
@@ -73,6 +74,7 @@ export type MostSoldItem = {
   image: string | null;
   name: string;
   newSales: number;
+  priceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
   prices: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
@@ -577,6 +579,7 @@ export async function findMostSold(
         cards.rarity,
         cards.variant,
         cards.image_url,
+        cards.tcg_market_comparisons,
         selected.currency,
         selected.prices,
         selected.current_price,
@@ -600,19 +603,32 @@ export async function findMostSold(
   return {
     comparisonSnapshotDate,
     currentSnapshotDate,
-    items: result.rows.map((row) => ({
-      cardId: String(row.card_id),
-      cardNumber: optionalText(row.card_number),
-      currency: optionalText(row.currency),
-      currentPrice: Number(row.current_price),
-      image: optionalText(row.image_url),
-      name: String(row.name),
-      newSales: Number(row.new_sales),
-      prices: JSON.parse(String(row.prices)) as Record<string, unknown>,
-      rarity: optionalText(row.rarity),
-      setName: optionalText(row.set_name),
-      variant: optionalText(row.variant),
-    })),
+    items: result.rows.map((row) => {
+      const comparisons =
+        parameters.source === "tcgplayer" && priceCondition === "NEAR_MINT"
+          ? parsePokeTraceMarketComparisons(row.tcg_market_comparisons)
+          : undefined;
+      return {
+        cardId: String(row.card_id),
+        cardNumber: optionalText(row.card_number),
+        currency: optionalText(row.currency),
+        currentPrice: Number(row.current_price),
+        image: optionalText(row.image_url),
+        name: String(row.name),
+        newSales: Number(row.new_sales),
+        ...(comparisons && {
+          priceSnapshots: {
+            "1d": comparisons.comparisons["1d"]?.marketPrice ?? null,
+            "7d": comparisons.comparisons["7d"]?.marketPrice ?? null,
+            "30d": comparisons.comparisons["30d"]?.marketPrice ?? null,
+          },
+        }),
+        prices: JSON.parse(String(row.prices)) as Record<string, unknown>,
+        rarity: optionalText(row.rarity),
+        setName: optionalText(row.set_name),
+        variant: optionalText(row.variant),
+      };
+    }),
     parameters,
     status: "ready",
   };

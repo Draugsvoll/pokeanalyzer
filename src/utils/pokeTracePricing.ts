@@ -44,3 +44,24 @@ export function resolvePokeTraceCardPrice(
     price,
   };
 }
+
+export function resolvePokeTraceSevenDayComparison(card: PokemonCard) {
+  const comparison = card.pokeTrace.marketComparisons?.comparisons["7d"];
+  if (comparison) {
+    return {
+      marketPrice: comparison.marketPrice,
+      recordedAt: comparison.recordedAt,
+    };
+  }
+
+  const marketPrice = card.pokeTrace.marketPriceSnapshots?.["7d"];
+  if (
+    typeof marketPrice !== "number" ||
+    !Number.isFinite(marketPrice) ||
+    marketPrice <= 0
+  ) {
+    return undefined;
+  }
+
+  return { marketPrice, recordedAt: null };
+}

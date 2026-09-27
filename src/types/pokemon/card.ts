@@ -1,5 +1,8 @@
 import type { CardSet } from "./set";
-import type { PokeTraceMarketComparisons } from "../../../shared/pokeTraceMarketComparisons";
+import type {
+  PokeTraceMarketComparisonPeriod,
+  PokeTraceMarketComparisons,
+} from "../../../shared/pokeTraceMarketComparisons";
 
 export type PokeTraceMarketHistorySource = "tcgplayer" | "ebay";
 
@@ -51,6 +54,9 @@ export type PokemonCard = {
     }>;
     lastUpdated?: string;
     marketComparisons?: PokeTraceMarketComparisons;
+    marketPriceSnapshots?: Partial<
+      Record<PokeTraceMarketComparisonPeriod, number | null>
+    >;
     marketPriceHistory?: PokeTraceMarketHistory;
   };
 };

@@ -6,6 +6,7 @@ import {
   acceptsGzip,
   createMarketPriceHistoryHandler,
   createMarketMoversHandler,
+  createPokeTraceFilterOptionsHandler,
   createPokeTraceSearchHandler,
   createPokeTracePriceHistoryHandler,
   loadPokeTracePriceHistory,
@@ -14,6 +15,35 @@ import {
 import { requestFromTestServer } from "./httpTestServer.js";
 
 const cardId = "019bff77-befa-771d-bab0-f5909f0a78c9";
+
+test("filter options are publicly cached for seven days", async () => {
+  const app = express();
+  app.get(
+    "/api/cards/filter-options",
+    createPokeTraceFilterOptionsHandler({
+      loadOptions: async () => ({
+        schemaVersion: 1,
+        generatedAt: "2026-09-26T08:00:00.000Z",
+        rarities: ["Holo Rare"],
+        setNames: ["Base Set"],
+      }),
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/filter-options",
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "public, max-age=604800");
+  assert.deepEqual(await response.json(), {
+    schemaVersion: 1,
+    generatedAt: "2026-09-26T08:00:00.000Z",
+    rarities: ["Holo Rare"],
+    setNames: ["Base Set"],
+  });
+});
 
 test("catalog gzip negotiation respects an explicit zero quality", () => {
   assert.equal(acceptsGzip("br, gzip"), true);

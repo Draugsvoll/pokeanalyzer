@@ -29,6 +29,8 @@ import {
   POKETRACE_DEFAULT_SEARCH_SORT,
 } from "../../../shared/pokeTraceSearch.js";
 import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditions.js";
+import type { PokeTraceFilterOptions } from "../../../shared/pokeTraceFilterOptions.js";
+import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
@@ -97,6 +99,29 @@ type PokeTraceSearchHandlerDependencies = {
   loadSearch: typeof loadPokeTraceSearch;
   reportError: (context: string, error: unknown) => void;
 };
+
+type PokeTraceFilterOptionsHandlerDependencies = {
+  loadOptions: () => Promise<PokeTraceFilterOptions>;
+  reportError: (context: string, error: unknown) => void;
+};
+
+export function createPokeTraceFilterOptionsHandler(
+  dependencies: Partial<PokeTraceFilterOptionsHandlerDependencies> = {},
+): RequestHandler {
+  const loadOptions = dependencies.loadOptions ?? loadPokeTraceFilterOptions;
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (_req, res) => {
+    try {
+      const options = await loadOptions();
+      res.setHeader("Cache-Control", "public, max-age=604800");
+      res.json(options);
+    } catch (error) {
+      reportError("Failed to load PokeTrace filter options", error);
+      res.status(500).json({ error: "Failed to load search filter options" });
+    }
+  };
+}
 
 function singleQueryValue(value: unknown) {
   return Array.isArray(value) ? value[0] : value;
@@ -490,6 +515,8 @@ export function createPokeTraceSearchHandler(
 }
 
 router.get("/search", createPokeTraceSearchHandler());
+
+router.get("/filter-options", createPokeTraceFilterOptionsHandler());
 
 router.get("/catalog", async (req, res) => {
   try {
