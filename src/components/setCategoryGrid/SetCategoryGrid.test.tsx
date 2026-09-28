@@ -41,6 +41,9 @@ beforeEach(() => {
 
 function renderExpandedSetGrid() {
   render(<SetCategoryGrid />);
+  expect(document.querySelector(".grid-view")).not.toHaveClass(
+    "ui-scroll-reveal",
+  );
   fireEvent.click(screen.getByRole("button", { name: "Expand Explore a Set" }));
 }
 
@@ -115,6 +118,26 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(
     screen.queryByRole("button", { name: "Close set results" }),
   ).toBeNull();
+});
+
+test("shows the actual number of set cards remaining", async () => {
+  vi.mocked(loadPokeTraceSetCards).mockResolvedValue(
+    Array.from({ length: 51 }, (_, index) =>
+      card(`Card ${index + 1}`, `${index + 1}/102`, index + 1),
+    ),
+  );
+  renderExpandedSetGrid();
+
+  const input = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.focus(input);
+  fireEvent.click(screen.getByRole("option", { name: "Base Set" }));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(
+    await screen.findByRole("button", { name: "Show next 1" }),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Show next 1" }));
+  expect(screen.queryByRole("button", { name: /Show next/ })).toBeNull();
 });
 
 test("editing a selected value invalidates it until another option is selected", () => {

@@ -296,7 +296,8 @@ export function PokemonCardView({
                   {showPriceChange &&
                     (formattedPriceChange && priceChangeTone ? (
                       <span
-                        className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone}`}
+                        key={`${priceChangeTitle}:${priceChangeTone}:${formattedPriceChange}`}
+                        className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone} ui-render-fade`}
                         title={priceChangeTitle}
                         aria-label={`${priceChangeDirectionLabel(priceChangeTone)} by ${formattedPriceChange}. ${priceChangeTitle}`}
                       >
@@ -316,7 +317,8 @@ export function PokemonCardView({
                       </span>
                     ) : (
                       <span
-                        className="pokemon-card__price-change pokemon-card__price-change--unavailable"
+                        key="price-change-unavailable"
+                        className="pokemon-card__price-change pokemon-card__price-change--unavailable ui-render-fade"
                         title="Price change unavailable"
                         aria-label="Price change unavailable"
                       >
@@ -359,12 +361,10 @@ export function PokemonCardPortfolioView({
   const { updatePokemonQuantity } = usePokemonPortfolio();
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
-  const [actionsDismissed, setActionsDismissed] = useState(false);
 
   const requestQuantityChange = (amount: number) => {
     if (updatingQuantity) return;
 
-    setActionsDismissed(false);
     const currentQuantity = pendingQuantity ?? quantity;
     const nextQuantity = currentQuantity + amount;
     if (nextQuantity < 1) return;
@@ -374,7 +374,6 @@ export function PokemonCardPortfolioView({
 
   const cancelQuantityChange = () => {
     setPendingQuantity(null);
-    setActionsDismissed(true);
   };
 
   const confirmQuantityChange = async () => {
@@ -387,7 +386,6 @@ export function PokemonCardPortfolioView({
 
       onQuantityUpdated?.(card.id, pendingQuantity);
       setPendingQuantity(null);
-      setActionsDismissed(true);
     } finally {
       setUpdatingQuantity(false);
     }
@@ -401,8 +399,6 @@ export function PokemonCardPortfolioView({
           ? " pokemon-card-portfolio-view--confirming"
           : ""
       }`}
-      onMouseEnter={() => setActionsDismissed(false)}
-      onMouseLeave={() => setActionsDismissed(false)}
     >
       {quantity > 1 && (
         <div className="pokemon-card-portfolio-view__quantity-anchor">
@@ -411,7 +407,7 @@ export function PokemonCardPortfolioView({
             size="sm"
             weight="strong"
           >
-            x{quantity}
+            ×{quantity}
           </Badge>
         </div>
       )}
@@ -426,59 +422,54 @@ export function PokemonCardPortfolioView({
         }}
       />
 
-      {!actionsDismissed && (
-        <div
-          className="pokemon-card-portfolio-view__actions ui-fade"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
+      <div
+        className="pokemon-card-portfolio-view__actions ui-fade"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="pokemon-card-portfolio-view__quantity-button"
+          aria-label={`Increase ${card.name} quantity`}
+          disabled={updatingQuantity}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => requestQuantityChange(1)}
         >
-          <button
-            type="button"
-            className="pokemon-card-portfolio-view__quantity-button"
-            aria-label={`Increase ${card.name} quantity`}
-            disabled={updatingQuantity}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => requestQuantityChange(1)}
-          >
-            <ChevronUp aria-hidden="true" />
-          </button>
+          <ChevronUp aria-hidden="true" />
+        </button>
 
-          <div className="pokemon-card-portfolio-view__quantity-display">
-            <input
-              className="pokemon-card-portfolio-view__quantity"
-              aria-label={`${card.name} quantity`}
-              type="number"
-              min="1"
-              readOnly
-              value={pendingQuantity ?? quantity}
+        <div className="pokemon-card-portfolio-view__quantity-display">
+          <output
+            className="pokemon-card-portfolio-view__quantity"
+            aria-label={`${card.name} quantity`}
+          >
+            {pendingQuantity ?? quantity}
+          </output>
+          {pendingQuantity != null && (
+            <ConfirmPopover
+              className="pokemon-card-portfolio-view__quantity-confirm"
+              aria-label="Confirm quantity change"
+              confirmDisabled={pendingQuantity === quantity}
+              confirming={updatingQuantity}
+              onConfirm={() => {
+                void confirmQuantityChange();
+              }}
+              onCancel={cancelQuantityChange}
             />
-            {pendingQuantity != null && (
-              <ConfirmPopover
-                className="pokemon-card-portfolio-view__quantity-confirm"
-                label={`Quantity: ${pendingQuantity}`}
-                aria-label="Confirm quantity change"
-                confirmDisabled={pendingQuantity === quantity}
-                confirming={updatingQuantity}
-                onConfirm={() => {
-                  void confirmQuantityChange();
-                }}
-                onCancel={cancelQuantityChange}
-              />
-            )}
-          </div>
-
-          <button
-            type="button"
-            className="pokemon-card-portfolio-view__quantity-button"
-            aria-label={`Decrease ${card.name} quantity`}
-            disabled={(pendingQuantity ?? quantity) <= 1 || updatingQuantity}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => requestQuantityChange(-1)}
-          >
-            <ChevronDown aria-hidden="true" />
-          </button>
+          )}
         </div>
-      )}
+
+        <button
+          type="button"
+          className="pokemon-card-portfolio-view__quantity-button"
+          aria-label={`Decrease ${card.name} quantity`}
+          disabled={(pendingQuantity ?? quantity) <= 1 || updatingQuantity}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => requestQuantityChange(-1)}
+        >
+          <ChevronDown aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }

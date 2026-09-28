@@ -5,6 +5,7 @@ import type {
   PortfolioReferencesResponse,
 } from "../types/portfolio";
 import { authenticatedFetch } from "../utils/authenticatedFetch";
+import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -46,9 +47,13 @@ export function getHydratedPortfolio(
   expectedUid: string,
   signal?: AbortSignal,
 ) {
-  return portfolioRequest<HydratedPortfolioResponse>(
-    "/cards/hydrated",
-    expectedUid,
+  return runWithRequestTimeout(
+    (requestSignal) =>
+      portfolioRequest<HydratedPortfolioResponse>(
+        "/cards/hydrated",
+        expectedUid,
+        { signal: requestSignal },
+      ),
     { signal },
   );
 }

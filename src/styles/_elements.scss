@@ -782,9 +782,11 @@ input[type="radio"] {
 
 .portfolio-toggle-button {
   align-items: center;
-  background: var(--bg5);
+  backdrop-filter: blur(0.45rem);
+  background: color-mix(in srgb, var(--bg5) 92%, transparent);
   border: 1px solid var(--border-color-strong);
   border-radius: var(--border-radius-round);
+  box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.24);
   color: var(--font-color-secondary);
   cursor: pointer;
   display: flex;
@@ -823,7 +825,11 @@ input[type="radio"] {
 
   &:hover:not(:disabled),
   &:focus-visible {
-    background: var(--surface3);
+    background: color-mix(
+      in srgb,
+      var(--bg5) 88%,
+      var(--font-color-primary) 12%
+    );
     color: var(--font-color-primary);
     transform: translateY(-1px);
   }

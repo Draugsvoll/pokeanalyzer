@@ -20,6 +20,7 @@ type CardCategoryGridProps = {
   footer?: ReactNode;
   items: CardCategoryGridItem[];
   loading?: boolean;
+  revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: ReactNode;
   title: ReactNode;
@@ -33,6 +34,7 @@ export function CardCategoryGrid({
   footer,
   items,
   loading = false,
+  revealOnScroll = true,
   sorting = false,
   subtitle,
   title,
@@ -42,6 +44,7 @@ export function CardCategoryGrid({
       <GridView
         collapsible
         defaultCollapsed={defaultCollapsed}
+        revealOnScroll={revealOnScroll}
         sorting={sorting}
         subtitle={subtitle}
         title={title}

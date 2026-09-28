@@ -131,6 +131,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ui-render-fade {
+    transition: none;
+  }
+
   .ui-scroll-reveal {
     opacity: 1;
     transform: none;

@@ -112,11 +112,16 @@ export function SetCategoryGrid() {
     if (nextSort === sort || isSorting) return;
     const requestId = ++sortRequestIdRef.current;
     setIsSorting(true);
-    await waitForUiPaint();
-    if (requestId !== sortRequestIdRef.current) return;
-    setSort(nextSort);
-    setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
-    setIsSorting(false);
+    try {
+      await waitForUiPaint();
+      if (requestId !== sortRequestIdRef.current) return;
+      setSort(nextSort);
+      setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+    } finally {
+      if (requestId === sortRequestIdRef.current) {
+        setIsSorting(false);
+      }
+    }
   }
 
   function cancelPendingRequest() {
@@ -205,16 +210,23 @@ export function SetCategoryGrid() {
     </div>
   );
 
+  const remainingCardCount = Math.max(sortedCards.length - visibleCount, 0);
+  const nextCardCount = Math.min(
+    POKETRACE_SEARCH_PAGE_SIZE,
+    remainingCardCount,
+  );
   const footer =
-    visibleCount < sortedCards.length ? (
+    remainingCardCount > 0 ? (
       <button
         className="set-category-grid__more"
         onClick={() =>
-          setVisibleCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE)
+          setVisibleCount((current) =>
+            Math.min(current + POKETRACE_SEARCH_PAGE_SIZE, sortedCards.length),
+          )
         }
         type="button"
       >
-        Show next {POKETRACE_SEARCH_PAGE_SIZE}
+        Show next {nextCardCount}
         <ChevronDown aria-hidden="true" />
       </button>
     ) : null;
@@ -230,6 +242,7 @@ export function SetCategoryGrid() {
       footer={footer}
       items={visibleCards.map((card) => ({ card }))}
       loading={loading}
+      revealOnScroll={false}
       sorting={isSorting}
       title="Explore a Set"
     />
