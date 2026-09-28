@@ -330,15 +330,12 @@
 
   &__history {
     --poketrace-history-padding: 1rem;
-    --history-accent: var(--custom-color-orange);
+    --history-ebay: var(--custom-color-teal);
+    --history-tcgplayer: var(--custom-color-orange);
 
     margin-top: var(--poketrace-panel-gap);
     overflow: hidden;
     padding: 1.3rem var(--poketrace-history-padding) 0;
-
-    &--ebay {
-      --history-accent: var(--custom-color-teal);
-    }
   }
 
   &__history-unavailable {
@@ -394,30 +391,40 @@
     }
   }
 
-  &__history-source-tabs {
+  &__history-legend {
+    align-items: center;
     align-self: center;
+    display: flex;
+    gap: 0.9rem;
     justify-content: flex-start;
+    padding: 0.25rem 0;
+  }
 
-    span {
-      color: color-mix(in srgb, var(--font-color-muted) 82%, white);
-      font-size: var(--font-size-label);
-      padding-bottom: calc(0.3rem - 2px);
+  &__history-legend-item {
+    align-items: center;
+    color: color-mix(in srgb, var(--font-color-muted) 82%, white);
+    display: inline-flex;
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    gap: 0.38rem;
+    white-space: nowrap;
+
+    i {
+      background: var(--history-source-color);
+      border-radius: var(--border-radius-pill);
+      box-shadow: 0 0 0.35rem
+        color-mix(in srgb, var(--history-source-color) 28%, transparent);
+      display: block;
+      height: 2px;
+      width: 1rem;
     }
 
-    input[value="tcgplayer"]:checked + span {
-      color: var(--font-color-primary);
-
-      &::after {
-        background: var(--custom-color-orange);
-      }
+    &--tcgplayer {
+      --history-source-color: var(--history-tcgplayer);
     }
 
-    input[value="ebay"]:checked + span {
-      color: var(--font-color-primary);
-
-      &::after {
-        background: var(--custom-color-teal);
-      }
+    &--ebay {
+      --history-source-color: var(--history-ebay);
     }
   }
 
@@ -454,33 +461,62 @@
     font-variant-numeric: tabular-nums;
   }
 
-  &__history-area {
-    fill: url("#market-history-fill");
-  }
-
   &__history-latest-guide {
-    opacity: 0.75;
-    stroke: color-mix(in srgb, var(--history-accent) 45%, transparent);
+    opacity: 0.7;
+    stroke: color-mix(in srgb, var(--font-color-muted) 40%, transparent);
     stroke-dasharray: 3 4;
     stroke-width: 1;
   }
 
   &__history-line {
     fill: none;
-    stroke: var(--history-accent);
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 2;
+
+    &--tcgplayer {
+      stroke: var(--history-tcgplayer);
+    }
+
+    &--ebay {
+      stroke: var(--history-ebay);
+    }
+  }
+
+  &__history-series-marker {
+    fill: var(--surface2);
+    stroke-width: 2;
+
+    &--tcgplayer {
+      stroke: var(--history-tcgplayer);
+    }
+
+    &--ebay {
+      stroke: var(--history-ebay);
+    }
   }
 
   &__history-point-halo {
-    fill: color-mix(in srgb, var(--history-accent) 20%, transparent);
+    &--tcgplayer {
+      fill: color-mix(in srgb, var(--history-tcgplayer) 20%, transparent);
+    }
+
+    &--ebay {
+      fill: color-mix(in srgb, var(--history-ebay) 20%, transparent);
+    }
   }
 
   &__history-point {
     fill: var(--surface2);
-    stroke: var(--history-accent);
     stroke-width: 2;
+
+    &--tcgplayer {
+      stroke: var(--history-tcgplayer);
+    }
+
+    &--ebay {
+      stroke: var(--history-ebay);
+    }
   }
 
   &__history-tooltip {
@@ -494,32 +530,62 @@
       var(--default-container-inner-bg2) 88%,
       transparent
     );
-    border: 1px solid
-      color-mix(in srgb, var(--history-accent) 18%, var(--border-color));
+    border: 1px solid var(--border-color-strong);
     border-radius: 6px;
     box-shadow: 0 0.35rem 0.8rem rgba(0, 0, 0, 0.32);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    margin-inline: auto;
-    padding: 0.55rem 0.8rem;
-    width: fit-content;
+    gap: 0.28rem;
+    padding: 0.5rem 0.65rem;
+    width: 100%;
+
+    strong,
+    span {
+      line-height: 1.2;
+      white-space: nowrap;
+    }
 
     strong {
       color: var(--font-color-primary);
       font-family: var(--font-family-price);
-      font-size: 14px;
+      font-size: 13px;
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
-      line-height: 1.15;
-      white-space: nowrap;
     }
 
     span {
       color: var(--font-color-muted);
       font-size: 12px;
-      line-height: 1.3;
-      white-space: nowrap;
+    }
+  }
+
+  &__history-tooltip-date {
+    color: var(--font-color-secondary) !important;
+    font-weight: var(--font-weight-medium);
+    margin-bottom: 0.08rem;
+  }
+
+  &__history-tooltip-row {
+    align-items: center;
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: auto 1fr auto;
+
+    i {
+      background: var(--history-source-color);
+      border-radius: var(--border-radius-round);
+      display: block;
+      height: 0.4rem;
+      width: 0.4rem;
+    }
+
+    &--tcgplayer {
+      --history-source-color: var(--history-tcgplayer);
+    }
+
+    &--ebay {
+      --history-source-color: var(--history-ebay);
     }
   }
 
