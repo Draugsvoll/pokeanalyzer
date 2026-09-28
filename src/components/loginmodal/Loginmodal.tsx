@@ -5,6 +5,8 @@ import Button from "../button/Button";
 import { login, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
 import { useNotification } from "../../context/notificationContextValue";
+import { useModalDialog } from "../../hooks/useModalDialog";
+import { Link } from "react-router-dom";
 
 type ModalProps = {
   isOpen: boolean;
@@ -18,6 +20,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const dialogRef = useModalDialog<HTMLDivElement>({ isOpen, onClose });
 
   const { showNotification } = useNotification();
 
@@ -25,8 +28,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
 
   const finishLogin = () => {
     onClose();
-    showNotification("Du er nå logget inn.");
-
+    showNotification("You are now logged in.");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,15 +37,15 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError("Skriv inn e-postadressen din.");
+      setError("Enter your email address.");
       return;
     }
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
-      setError("Skriv inn en gyldig e-postadresse.");
+      setError("Enter a valid email address.");
       return;
     }
     if (!password) {
-      setError("Skriv inn passordet ditt.");
+      setError("Enter your password.");
       return;
     }
 
@@ -52,7 +54,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       await login(trimmedEmail, password);
       finishLogin();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Innlogging mislyktes.");
+      setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -67,14 +69,19 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       await signInWithGoogle();
       finishLogin();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Google-innlogging mislyktes.");
+      setError(err instanceof Error ? err.message : "Google login failed.");
     } finally {
       setLoading(false);
     }
   };
 
   return createPortal(
-    <div className="login-overlay" onMouseDown={onClose}>
+    <div
+      className="login-overlay"
+      onMouseDown={onClose}
+      ref={dialogRef}
+      tabIndex={-1}
+    >
       <section
         className="login-modal auth-card"
         role="dialog"
@@ -83,9 +90,9 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="auth-card__header">
-          <span className="auth-card__eyebrow">Velkommen tilbake</span>
-          <h2 id="login-modal-title">Logg inn</h2>
-          <p>Få tilgang til samlingen og kontoen din.</p>
+          <span className="auth-card__eyebrow">Welcome back</span>
+          <h2 id="login-modal-title">Log in</h2>
+          <p>Access your collection and account.</p>
         </header>
 
         <div className="auth-card__google">
@@ -95,11 +102,13 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
           />
         </div>
 
-        <div className="auth-divider"><span>eller</span></div>
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
 
         <form className="auth-form" onSubmit={handleLogin} noValidate>
           <label className="auth-field">
-            <span>E-post</span>
+            <span>Email</span>
             <input
               type="email"
               placeholder="name@example.com"
@@ -111,7 +120,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
           </label>
 
           <label className="auth-field">
-            <span>Passord</span>
+            <span>Password</span>
             <input
               type="password"
               placeholder="Enter your password"
@@ -129,7 +138,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
             fullWidth
             disabled={loading}
           >
-            {loading ? "Logger inn..." : "Logg inn"}
+            {loading ? "Logging in..." : "Log in"}
           </Button>
         </form>
 
@@ -141,9 +150,15 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
 
         <div className="login-modal__close">
           <Button fill="ghost" size="large" fullWidth onClick={onClose}>
-            Lukk
+            Close
           </Button>
         </div>
+        <p className="login-modal__signup">
+          New here?{" "}
+          <Link to="/signup" onClick={onClose}>
+            Create an account
+          </Link>
+        </p>
       </section>
     </div>,
     document.body,

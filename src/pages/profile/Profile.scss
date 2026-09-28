@@ -5,6 +5,77 @@
   padding: 2rem 0 7rem;
   width: 100%;
 
+  &--status,
+  &--guest {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: calc(100vh - var(--header-height) - 12rem);
+  }
+
+  &--status:has(.profile__page-heading) {
+    align-items: stretch;
+    display: block;
+  }
+
+  &__guest-state,
+  &__status-card {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    max-width: 34rem;
+    padding: var(--space-8);
+    text-align: center;
+
+    h1 {
+      font-size: var(--font-size-h2);
+      margin-top: var(--space-3);
+    }
+
+    p {
+      color: var(--font-color-muted);
+      line-height: var(--font-leading-relaxed);
+      margin-top: var(--space-2);
+      max-width: 28rem;
+    }
+  }
+
+  &__status-icon {
+    align-items: center;
+    background: color-mix(in srgb, var(--custom-color-blue) 10%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
+    border-radius: var(--radius-round);
+    color: color-mix(in srgb, var(--custom-color-blue) 68%, white);
+    display: inline-flex;
+    height: 3rem;
+    justify-content: center;
+    width: 3rem;
+
+    svg {
+      height: 1.25rem;
+      width: 1.25rem;
+    }
+  }
+
+  &__status-card &__status-icon {
+    background: color-mix(in srgb, var(--custom-color-red) 9%, transparent);
+    border-color: color-mix(in srgb, var(--custom-color-red) 20%, transparent);
+    color: color-mix(in srgb, var(--custom-color-red) 72%, white);
+  }
+
+  &__status-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+    margin-top: var(--space-5);
+  }
+
+  &__loading-state {
+    min-height: 18rem;
+  }
+
   &__page-heading {
     margin-bottom: 1rem;
 
@@ -595,6 +666,16 @@
         margin-top: 0.25rem;
         width: 100%;
       }
+    }
+
+    .profile__guest-state,
+    .profile__status-card {
+      padding: var(--space-7) var(--space-5);
+    }
+
+    .profile__status-actions,
+    .profile__status-actions .app-btn {
+      width: 100%;
     }
   }
 }

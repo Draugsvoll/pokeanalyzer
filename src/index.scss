@@ -22,6 +22,32 @@
   box-sizing: border-box;
 }
 
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--custom-color-blue) 55%, white);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  background: var(--font-color-primary);
+  border-radius: var(--border-radius-control);
+  color: var(--bg);
+  font-size: var(--font-size-paragraph-sm);
+  font-weight: var(--font-weight-bold);
+  left: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  position: fixed;
+  text-decoration: none;
+  top: var(--space-3);
+  transform: translateY(calc(-100% - var(--space-5)));
+  transition: transform var(--animation-duration-fast)
+    var(--animation-ease-standard);
+  z-index: 3000;
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
+
 .ui-fade {
   opacity: 0;
   transition:
@@ -131,6 +157,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ui-fade,
   .ui-render-fade {
     transition: none;
   }
@@ -143,6 +170,20 @@
 
   .ui-card-grid-enter .pokemon-card-view {
     animation: none;
+  }
+
+  .card-hover,
+  .surface-hover-lift {
+    transition: none;
+  }
+
+  .card-hover:hover,
+  .surface-hover-lift:hover {
+    transform: none;
+  }
+
+  .skip-link {
+    transition: none;
   }
 }
 
@@ -202,6 +243,17 @@ body {
 .main-content {
   position: relative;
   z-index: 1;
+}
+
+.main-content:focus {
+  outline: none;
+}
+
+.route-loading {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: min(32rem, calc(100vh - var(--header-height) - 8rem));
 }
 
 /*

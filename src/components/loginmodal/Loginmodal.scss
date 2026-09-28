@@ -23,6 +23,25 @@
   margin-top: 0.75rem;
 }
 
+.login-modal__signup {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-caption);
+  margin-top: var(--space-4);
+  text-align: center;
+
+  a {
+    color: color-mix(in srgb, var(--custom-color-blue) 68%, white);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+
+    &:hover {
+      color: color-mix(in srgb, var(--custom-color-blue) 48%, white);
+      text-decoration: underline;
+      text-underline-offset: 0.2rem;
+    }
+  }
+}
+
 @media (max-width: 32rem) {
   .login-overlay {
     padding: 0.75rem;

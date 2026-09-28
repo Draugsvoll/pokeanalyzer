@@ -130,6 +130,24 @@ describe("Portfolio", () => {
     ]);
   });
 
+  test("uses a contained empty state without the collection header", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      cards: [],
+      entries: [],
+      missingCardIds: [],
+    });
+
+    renderPortfolio();
+
+    const emptyHeading = await screen.findByRole("heading", {
+      name: "Your collection is empty",
+    });
+    expect(emptyHeading.closest("section")).toHaveClass("default-container");
+    expect(screen.queryByRole("heading", { name: "My collection" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add cards" })).toBeVisible();
+  });
+
   test("offers recovery when collection loading fails", async () => {
     mocks.auth.user = { uid: "user-1" };
     mocks.getHydratedPortfolio.mockRejectedValue(

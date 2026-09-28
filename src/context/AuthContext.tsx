@@ -1,24 +1,13 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
-import {
-  onAuthStateChanged,
-  signOut,
-  type User,
-} from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 
 import { auth } from "../firebase";
 import { AuthContext } from "./authContextValue";
 import { useNotification } from "./notificationContextValue";
 import { getUserProfileSessionKey } from "../utils/cache";
 
-export function AuthProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
@@ -37,7 +26,7 @@ export function AuthProvider({
       sessionStorage.removeItem(getUserProfileSessionKey(user.uid));
     }
     await signOut(auth);
-    showNotification("Du er nå logget ut.");
+    showNotification("You are now logged out.");
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./Header.scss";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import LoginModal from "../loginmodal/Loginmodal";
 import Button from "../button/Button";
@@ -21,13 +22,22 @@ function formatAccountName(value?: string | null) {
 
 export const Header: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [mobileNavState, setMobileNavState] = useState({
+    open: false,
+    pathname: location.pathname,
+  });
   const [isScrolled, setIsScrolled] = useState(false);
   const [profileName, setProfileName] = useState<{
     uid: string;
     firstName: string;
   } | null>(null);
-  const navigate = useNavigate();
+  const mobileNavOpen =
+    mobileNavState.open && mobileNavState.pathname === location.pathname;
+  const closeMobileNav = () =>
+    setMobileNavState({ open: false, pathname: location.pathname });
   const { subscription } = useMembershipSubscription();
   const { creditsRemaining } = useCredits(subscription);
 
@@ -72,6 +82,18 @@ export const Header: React.FC = () => {
     window.addEventListener("scroll", updateScrollState, { passive: true });
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileNavState({ open: false, pathname: location.pathname });
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [location.pathname, mobileNavOpen]);
 
   return (
     <header className={`header${isScrolled ? " header--scrolled" : ""}`}>
@@ -136,21 +158,59 @@ export const Header: React.FC = () => {
               </Link>
             </>
           ) : (
-            <>
-              <Button
-                fill="ghost"
-                size="large"
-                onClick={() => navigate("/signup")}
-              >
-                Sign up
-              </Button>
+            <div className="header__guest-actions">
+              <span className="header__signup-action">
+                <Button size="large" onClick={() => navigate("/signup")}>
+                  Sign up
+                </Button>
+              </span>
               <Button fill="ghost" size="large" onClick={() => setOpen(true)}>
                 Log in
               </Button>
-            </>
+            </div>
           )}
+          <button
+            aria-controls="header-mobile-navigation"
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+            className="header__menu-toggle"
+            onClick={() =>
+              setMobileNavState({
+                open: !mobileNavOpen,
+                pathname: location.pathname,
+              })
+            }
+            type="button"
+          >
+            {mobileNavOpen ? (
+              <X aria-hidden="true" />
+            ) : (
+              <Menu aria-hidden="true" />
+            )}
+          </button>
         </div>
       </div>
+      {mobileNavOpen && (
+        <div className="header__mobile-panel" id="header-mobile-navigation">
+          <nav aria-label="Mobile" className="header__mobile-nav">
+            <NavLink to="/" end onClick={closeMobileNav}>
+              Home
+            </NavLink>
+            <NavLink to="/search" onClick={closeMobileNav}>
+              Explore cards
+            </NavLink>
+            <NavLink to="/portfolio" onClick={closeMobileNav}>
+              Portfolio
+            </NavLink>
+            <NavLink
+              to={user ? "/profile" : "/signup"}
+              onClick={closeMobileNav}
+            >
+              {user ? "Account" : "Create account"}
+            </NavLink>
+          </nav>
+        </div>
+      )}
       <LoginModal isOpen={open} onClose={() => setOpen(false)} />
     </header>
   );

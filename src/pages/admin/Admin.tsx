@@ -97,9 +97,9 @@ export default function Admin() {
 
   if (authLoading) {
     return (
-      <main className="admin-page admin-page--status">
+      <div className="admin-page admin-page--status">
         <h1>Loading…</h1>
-      </main>
+      </div>
     );
   }
 
@@ -109,9 +109,9 @@ export default function Admin() {
 
   if (checkingAdmin) {
     return (
-      <main className="admin-page admin-page--status">
+      <div className="admin-page admin-page--status">
         <h1>Checking permissions…</h1>
-      </main>
+      </div>
     );
   }
 
@@ -120,7 +120,7 @@ export default function Admin() {
   }
 
   return (
-    <main className="admin-page">
+    <div className="admin-page">
       <header className="admin-page__header">
         <p className="admin-page__eyebrow">Admin</p>
         <h1>Dashboard</h1>
@@ -167,6 +167,6 @@ export default function Admin() {
           </pre>
         </section>
       )}
-    </main>
+    </div>
   );
 }

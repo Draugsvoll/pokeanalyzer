@@ -80,7 +80,7 @@ function formatAbsolutePercent(value: number) {
 
 function PortfolioLoading({ showHeader = true }: { showHeader?: boolean }) {
   return (
-    <main className="portfolio portfolio--loading" aria-busy="true">
+    <div className="portfolio portfolio--loading" aria-busy="true">
       {showHeader && (
         <header className="portfolio__page-header">
           <div>
@@ -93,7 +93,7 @@ function PortfolioLoading({ showHeader = true }: { showHeader?: boolean }) {
         <span className="app-btn__spinner" aria-hidden="true" />
         <span>{showHeader ? "Loading collection" : "Loading"}</span>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -103,7 +103,7 @@ function PortfolioGuest() {
   const revealRef = useScrollReveal<HTMLElement>();
 
   return (
-    <main className="portfolio portfolio--guest">
+    <div className="portfolio portfolio--guest">
       <section
         className="portfolio__guest-state default-container ui-scroll-reveal"
         aria-labelledby="portfolio-guest-title"
@@ -122,7 +122,7 @@ function PortfolioGuest() {
       </section>
 
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
-    </main>
+    </div>
   );
 }
 
@@ -212,7 +212,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
   if (error) {
     return (
-      <main className="portfolio portfolio--status">
+      <div className="portfolio portfolio--status">
         <section className="portfolio__status-card" role="alert">
           <span className="portfolio__status-icon" aria-hidden="true">
             <AlertTriangle />
@@ -227,23 +227,25 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             </Button>
           </div>
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="portfolio">
-      <header className="portfolio__page-header">
-        <div>
-          <span className="portfolio__eyebrow">Portfolio</span>
-          <h1>My collection</h1>
-        </div>
-        <div className="portfolio__page-actions">
-          <Button onClick={() => navigate("/search")}>
-            <Plus aria-hidden="true" /> Add cards
-          </Button>
-        </div>
-      </header>
+    <div className="portfolio">
+      {cards.length > 0 && (
+        <header className="portfolio__page-header">
+          <div>
+            <span className="portfolio__eyebrow">Portfolio</span>
+            <h1>My collection</h1>
+          </div>
+          <div className="portfolio__page-actions">
+            <Button onClick={() => navigate("/search")}>
+              <Plus aria-hidden="true" /> Add cards
+            </Button>
+          </div>
+        </header>
+      )}
 
       {cards.length > 0 && (
         <section
@@ -372,7 +374,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
       {cards.length === 0 ? (
         <section
-          className="portfolio__empty ui-scroll-reveal"
+          className="portfolio__empty default-container ui-scroll-reveal"
           ref={emptyRevealRef}
         >
           <h2>
@@ -501,7 +503,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
           )}
         </>
       )}
-    </main>
+    </div>
   );
 }
 

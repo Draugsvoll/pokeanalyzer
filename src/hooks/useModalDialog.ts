@@ -40,14 +40,28 @@ export function useModalDialog<T extends HTMLElement>({
         ? ownerDocument.activeElement
         : null);
     const previousBodyOverflow = ownerDocument.body.style.overflow;
-    const backgroundElements = Array.from(ownerDocument.body.children)
-      .filter(
-        (element): element is HTMLElement =>
-          element instanceof HTMLElement && element !== dialog,
-      )
-      .map((element) => ({ element, wasInert: element.inert }));
+    const backgroundElementStates = new Map<HTMLElement, boolean>();
+    let foregroundElement: HTMLElement = dialog;
+    let parentElement = foregroundElement.parentElement;
 
-    for (const { element } of backgroundElements) element.inert = true;
+    while (parentElement) {
+      for (const sibling of Array.from(parentElement.children)) {
+        if (
+          !(sibling instanceof HTMLElement) ||
+          sibling === foregroundElement
+        ) {
+          continue;
+        }
+        if (!backgroundElementStates.has(sibling)) {
+          backgroundElementStates.set(sibling, sibling.inert);
+        }
+      }
+      if (parentElement === ownerDocument.body) break;
+      foregroundElement = parentElement;
+      parentElement = parentElement.parentElement;
+    }
+
+    for (const element of backgroundElementStates.keys()) element.inert = true;
     ownerDocument.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -98,7 +112,7 @@ export function useModalDialog<T extends HTMLElement>({
       }
       ownerWindow?.removeEventListener("keydown", handleKeyDown);
       ownerDocument.body.style.overflow = previousBodyOverflow;
-      for (const { element, wasInert } of backgroundElements) {
+      for (const [element, wasInert] of backgroundElementStates) {
         element.inert = wasInert;
       }
       if (returnFocusTarget?.isConnected) {

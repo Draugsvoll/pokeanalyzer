@@ -25,27 +25,27 @@ function getPasswordPolicyError(status: PasswordValidationStatus) {
   const options = status.passwordPolicy.customStrengthOptions;
 
   if (status.meetsMinPasswordLength === false) {
-    requirements.push(`minst ${options.minPasswordLength ?? 6} tegn`);
+    requirements.push(`at least ${options.minPasswordLength ?? 6} characters`);
   }
   if (status.meetsMaxPasswordLength === false && options.maxPasswordLength) {
-    requirements.push(`maks ${options.maxPasswordLength} tegn`);
+    requirements.push(`no more than ${options.maxPasswordLength} characters`);
   }
   if (status.containsLowercaseLetter === false) {
-    requirements.push("en liten bokstav");
+    requirements.push("a lowercase letter");
   }
   if (status.containsUppercaseLetter === false) {
-    requirements.push("en stor bokstav");
+    requirements.push("an uppercase letter");
   }
   if (status.containsNumericCharacter === false) {
-    requirements.push("et tall");
+    requirements.push("a number");
   }
   if (status.containsNonAlphanumericCharacter === false) {
-    requirements.push("et spesialtegn");
+    requirements.push("a special character");
   }
 
   return requirements.length
-    ? `Passordet må ha ${requirements.join(", ")}.`
-    : "Passordet oppfyller ikke kravene.";
+    ? `Your password must include ${requirements.join(", ")}.`
+    : "Your password does not meet the requirements.";
 }
 
 export default function SignUpForm() {
@@ -77,23 +77,23 @@ export default function SignUpForm() {
 
     const trimmedEmail = formData.email.trim();
     if (!trimmedEmail) {
-      setError("Skriv inn e-postadressen din.");
+      setError("Enter your email address.");
       return;
     }
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
-      setError("Skriv inn en gyldig e-postadresse.");
+      setError("Enter a valid email address.");
       return;
     }
     if (!formData.password) {
-      setError("Velg et passord.");
+      setError("Choose a password.");
       return;
     }
     if (!formData.confirmPassword) {
-      setError("Gjenta passordet.");
+      setError("Repeat your password.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError("Passordene er ikke like.");
+      setError("The passwords do not match.");
       return;
     }
 
@@ -113,17 +113,25 @@ export default function SignUpForm() {
       const userRef = doc(db, "users", userCredential.user.uid);
       const user: UserUpload = {
         uid: userCredential.user.uid,
-        ...(formData.firstName.trim() && { firstName: formData.firstName.trim() }),
+        ...(formData.firstName.trim() && {
+          firstName: formData.firstName.trim(),
+        }),
         email: trimmedEmail,
         createdAt: serverTimestamp(),
       };
       await setDoc(userRef, user);
       await sendEmailVerification(userCredential.user);
       await signOut(auth);
-      setSuccess("Konto opprettet! Sjekk e-posten din og bekreft adressen før du logger inn.");
+      setSuccess(
+        "Account created. Check your email and verify your address before logging in.",
+      );
     } catch (err: unknown) {
       logClientError("Signup failed", err);
-      setError(err instanceof Error ? err.message : "Noe gikk galt under registrering.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while creating your account.",
+      );
     } finally {
       setLoading(false);
     }
@@ -138,11 +146,11 @@ export default function SignUpForm() {
 
     try {
       await signInWithGoogle();
-      showNotification("Du er nå logget inn.");
+      showNotification("You are now logged in.");
       navigate("/profile");
     } catch (err: unknown) {
       logClientError("Google sign-in failed", err);
-      setError(err instanceof Error ? err.message : "Google-innlogging mislyktes.");
+      setError(err instanceof Error ? err.message : "Google login failed.");
     } finally {
       setLoading(false);
     }
@@ -152,9 +160,9 @@ export default function SignUpForm() {
     <div className="signup-page">
       <section className="signup-card auth-card" aria-labelledby="signup-title">
         <header className="auth-card__header">
-          <span className="auth-card__eyebrow">Ny samler</span>
-          <h1 id="signup-title">Opprett konto</h1>
-          <p>Opprett en konto og begynn å bygge samlingen din.</p>
+          <span className="auth-card__eyebrow">New collector</span>
+          <h1 id="signup-title">Create account</h1>
+          <p>Create an account and start building your collection.</p>
         </header>
 
         <div className="auth-card__google">
@@ -164,14 +172,16 @@ export default function SignUpForm() {
           />
         </div>
 
-        <div className="auth-divider"><span>eller</span></div>
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label className="auth-field">
-            <span>Navn (valgfritt)</span>
+            <span>Name (optional)</span>
             <input
               name="firstName"
-              placeholder="Navnet ditt"
+              placeholder="Your name"
               value={formData.firstName}
               onChange={handleChange}
               autoComplete="name"
@@ -179,7 +189,7 @@ export default function SignUpForm() {
           </label>
 
           <label className="auth-field">
-            <span>E-post</span>
+            <span>Email</span>
             <input
               name="email"
               type="email"
@@ -192,25 +202,25 @@ export default function SignUpForm() {
           </label>
 
           <label className="auth-field">
-            <span>Passord</span>
+            <span>Password</span>
             <input
               name="password"
               type="password"
-              placeholder="Velg et passord"
+              placeholder="Choose a password"
               value={formData.password}
               onChange={handleChange}
               autoComplete="new-password"
               required
             />
-            <small className="auth-field__hint">Minst 6 tegn.</small>
+            <small className="auth-field__hint">At least 6 characters.</small>
           </label>
 
           <label className="auth-field">
-            <span>Gjenta passord</span>
+            <span>Repeat password</span>
             <input
               name="confirmPassword"
               type="password"
-              placeholder="Gjenta passordet"
+              placeholder="Repeat your password"
               value={formData.confirmPassword}
               onChange={handleChange}
               autoComplete="new-password"
@@ -236,7 +246,7 @@ export default function SignUpForm() {
             fullWidth
             disabled={loading}
           >
-            {loading ? "Oppretter konto..." : "Opprett konto"}
+            {loading ? "Creating account..." : "Create account"}
           </Button>
         </form>
       </section>

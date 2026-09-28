@@ -25,7 +25,10 @@ export function CardFeatureHeaderVariants({
   );
 
   useLayoutEffect(() => {
-    setHost(document.getElementById(CARD_FEATURE_VARIANTS_ID));
+    const frame = window.requestAnimationFrame(() => {
+      setHost(document.getElementById(CARD_FEATURE_VARIANTS_ID));
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   return host ? createPortal(children, host) : children;

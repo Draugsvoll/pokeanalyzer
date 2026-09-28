@@ -1,6 +1,6 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/authContextValue";
 import "./Profile.scss";
@@ -10,10 +10,22 @@ import type { UserProfile } from "../../types/user.types";
 import { logClientError } from "../../utils/logClientError";
 import { useInitials } from "../../hooks/useInitials";
 import { formatTimestampDate } from "../../utils/timestamp";
-import { BadgeCheck, Coins, Crown, Leaf, LogOut, Sparkles } from "lucide-react";
+import {
+  BadgeCheck,
+  CircleAlert,
+  Coins,
+  Crown,
+  Leaf,
+  LogIn,
+  LogOut,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { getCustomColors, type CustomColors } from "../../utils/customStylings";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
+import { LoadingState } from "../../components/loadingState/LoadingState";
+import LoginModal from "../../components/loginmodal/Loginmodal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -41,6 +53,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const canStartMembershipCheckout =
     !subscription?.stripeSubscriptionId ||
     subscription.status === "canceled" ||
@@ -75,6 +89,7 @@ export default function Profile() {
     const fetchProfile = async () => {
       if (!authUser) {
         setProfile(null);
+        setError(null);
         setLoading(false);
         return;
       }
@@ -123,28 +138,106 @@ export default function Profile() {
       }
     };
     fetchProfile();
-  }, [authUser]);
+  }, [authUser, loadAttempt]);
 
-  if (authLoading || loading) return <h1>Loading...</h1>;
+  if (authLoading) {
+    return (
+      <div className="profile profile--status" aria-busy="true">
+        <LoadingState>Checking your session</LoadingState>
+      </div>
+    );
+  }
 
   if (!authUser) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="profile profile--guest">
+        <section
+          aria-labelledby="profile-guest-title"
+          className="profile__guest-state default-container ui-render-fade"
+        >
+          <span className="profile__status-icon" aria-hidden="true">
+            <UserRound />
+          </span>
+          <h1 id="profile-guest-title">Log in to view your account</h1>
+          <p>
+            Your profile, credits, membership, and billing stay with your
+            account.
+          </p>
+          <div className="profile__status-actions">
+            <Button onClick={() => setLoginOpen(true)}>
+              <LogIn aria-hidden="true" /> Log in
+            </Button>
+            <Button fill="ghost" onClick={() => navigate("/signup")}>
+              Create account
+            </Button>
+          </div>
+        </section>
+        <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      </div>
+    );
+  }
+
+  if (loading || (!error && profile?.uid !== authUser.uid)) {
+    return (
+      <div className="profile profile--status" aria-busy="true">
+        <header className="profile__page-heading">
+          <h1>My Account</h1>
+        </header>
+        <section className="profile__loading-state default-container">
+          <LoadingState>Loading account details</LoadingState>
+        </section>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div>
-        <h1>{error}</h1>
-        <Button onClick={handleLogout}>Log out</Button>
+      <div className="profile profile--status">
+        <section
+          className="profile__status-card default-container"
+          role="alert"
+        >
+          <span className="profile__status-icon" aria-hidden="true">
+            <CircleAlert />
+          </span>
+          <span className="profile__eyebrow">Account unavailable</span>
+          <h1>We couldn&apos;t load your account.</h1>
+          <p>{error}</p>
+          <div className="profile__status-actions">
+            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              Try again
+            </Button>
+            <Button fill="ghost" onClick={() => void handleLogout()}>
+              Log out
+            </Button>
+          </div>
+        </section>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div>
-        <h1>Logged in but no profile data found</h1>
-        <Button onClick={handleLogout}>Log out</Button>
+      <div className="profile profile--status">
+        <section
+          className="profile__status-card default-container"
+          role="alert"
+        >
+          <span className="profile__status-icon" aria-hidden="true">
+            <CircleAlert />
+          </span>
+          <span className="profile__eyebrow">Profile unavailable</span>
+          <h1>No profile data was found.</h1>
+          <p>Your account is signed in, but its profile could not be loaded.</p>
+          <div className="profile__status-actions">
+            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              Try again
+            </Button>
+            <Button fill="ghost" onClick={() => void handleLogout()}>
+              Log out
+            </Button>
+          </div>
+        </section>
       </div>
     );
   }

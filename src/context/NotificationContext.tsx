@@ -20,7 +20,9 @@ export function NotificationProvider({
   children: React.ReactNode;
 }) {
   const nextId = useRef(0);
-  const [notification, setNotification] = useState<AppNotification | null>(null);
+  const [notification, setNotification] = useState<AppNotification | null>(
+    null,
+  );
 
   const showNotification = useCallback(
     (message: string, tone: NotificationTone = "success") => {
@@ -41,11 +43,12 @@ export function NotificationProvider({
     return () => window.clearTimeout(timeout);
   }, [notification]);
 
-  const NotificationIcon = notification?.tone === "error"
-    ? XCircle
-    : notification?.tone === "info"
-      ? Info
-      : CheckCircle2;
+  const NotificationIcon =
+    notification?.tone === "error"
+      ? XCircle
+      : notification?.tone === "info"
+        ? Info
+        : CheckCircle2;
 
   return (
     <NotificationContext.Provider value={{ showNotification }}>
@@ -61,7 +64,7 @@ export function NotificationProvider({
           <span>{notification.message}</span>
           <button
             type="button"
-            aria-label="Lukk varsel"
+            aria-label="Close notification"
             onClick={() => setNotification(null)}
           >
             <X aria-hidden="true" />

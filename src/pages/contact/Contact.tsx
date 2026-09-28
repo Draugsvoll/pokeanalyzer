@@ -8,7 +8,7 @@ export default function Contact() {
   }, []);
 
   return (
-    <main className="contact-page default-container">
+    <div className="contact-page default-container">
       <header className="contact-page__header">
         <span className="app-subheader">Support</span>
         <h1>Contact Us</h1>
@@ -22,6 +22,6 @@ export default function Contact() {
         <h2>Support email</h2>
         <a href={SUPPORT_EMAIL_LINK}>{SUPPORT_EMAIL}</a>
       </section>
-    </main>
+    </div>
   );
 }
