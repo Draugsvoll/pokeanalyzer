@@ -1,4 +1,5 @@
 import type { PokemonCard } from "./pokemon";
+import type { PriceChangePeriod } from "../../shared/priceChangePeriod";
 
 export type PortfolioReference = {
   cardId: string;
@@ -12,7 +13,7 @@ export type PortfolioCard = PokemonCard & {
   >;
 };
 
-export type PortfolioComparisonPeriod = "1d" | "7d" | "30d";
+export type PortfolioComparisonPeriod = PriceChangePeriod;
 
 export type PortfolioPriceSnapshot = {
   recordedAt: string;

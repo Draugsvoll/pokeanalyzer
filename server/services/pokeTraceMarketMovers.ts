@@ -60,7 +60,7 @@ function parseMover(value: unknown, market: MarketMoversQuery["market"]) {
     game: text(value.game, "game"),
     image: nullableText(value.image),
     name: text(value.name, "name"),
-    price7dAvg: finiteNumber(value.price7dAvg, "price7dAvg"),
+    previousPrice: finiteNumber(value.price7dAvg, "price7dAvg"),
     rarity: nullableText(value.rarity),
     saleCount: finiteNumber(value.saleCount, "saleCount"),
     set: {
@@ -72,7 +72,7 @@ function parseMover(value: unknown, market: MarketMoversQuery["market"]) {
     variant: nullableText(value.variant),
   };
 
-  if (item.currentPrice <= 0 || item.price7dAvg <= 0 || item.saleCount < 0) {
+  if (item.currentPrice <= 0 || item.previousPrice <= 0 || item.saleCount < 0) {
     throw new Error("PokeTrace mover contains invalid market values");
   }
   return item;
@@ -96,6 +96,7 @@ function responseFromCache(
   return {
     fetchedAt: cached.fetchedAt,
     items: cached.items,
+    periodDays: 7,
     query,
     stale: cached.stale,
   };

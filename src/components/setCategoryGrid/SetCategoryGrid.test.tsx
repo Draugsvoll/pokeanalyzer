@@ -71,7 +71,7 @@ const salesLeaders = {
 
 function renderSetExplorer() {
   render(<SetCategoryGrid />);
-  expect(screen.getByRole("heading", { name: "Explore a set" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Explore sets" })).toBeVisible();
   expect(document.querySelector(".ui-autosuggest__search-icon")).not.toBeNull();
   expect(document.querySelector(".ui-autosuggest__chevron")).toBeNull();
   expect(document.querySelector(".grid-view")).toBeNull();
@@ -185,6 +185,11 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(within(overview).queryByText("7-day TCG sales")).toBeNull();
   expect(within(overview).getByText("Most valuable")).toBeVisible();
   expect(within(overview).getByText("$20.00")).toBeVisible();
+  expect(
+    overview.querySelector(
+      ".set-explorer-overview__valuable .app-card-identity",
+    ),
+  ).toHaveTextContent("10/102·Card 10");
   const topCardChange = within(overview).getByLabelText(
     "7-day price change 11.1%",
   );

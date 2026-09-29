@@ -2,16 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, LogIn, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
+import {
+  formatPriceChangePeriodLabel,
+  formatPriceChangePeriodLong,
+  PRICE_CHANGE_PERIODS,
+} from "../../../shared/priceChangePeriod";
 import Button from "../../components/button/Button";
+import { CardIdentity } from "../../components/cardIdentity/CardIdentity";
 import { FilterInput } from "../../components/filterInput/FilterInput";
 import { GridView } from "../../components/gridView/GridView";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
-import {
-  PriceChange,
-  PriceChangeArrow,
-} from "../../components/priceChange/PriceChange";
-import { formatAbsolutePriceChangePercent } from "../../components/priceChange/priceChangeUtils";
+import { PriceChange } from "../../components/priceChange/PriceChange";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -25,8 +27,8 @@ import { logClientError } from "../../utils/logClientError";
 import {
   getPortfolioStats,
   getVisiblePortfolioCards,
-  portfolioPriceChange,
   portfolioQuantity,
+  type PortfolioFeaturedMetric,
   type PortfolioSort,
 } from "./portfolioUtils";
 import "./Portfolio.scss";
@@ -53,17 +55,10 @@ const SORT_OPTIONS: { value: PortfolioSort; label: string }[] = [
 const CHANGE_PERIOD_OPTIONS: Array<{
   value: PortfolioComparisonPeriod;
   label: string;
-}> = [
-  { value: "1d", label: "1D" },
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-];
-
-const PERIOD_LABELS: Record<PortfolioComparisonPeriod, string> = {
-  "1d": "1-day",
-  "7d": "7-day",
-  "30d": "30-day",
-};
+}> = PRICE_CHANGE_PERIODS.map((value) => ({
+  label: formatPriceChangePeriodLabel(value).toUpperCase(),
+  value,
+}));
 
 function formatMoney(value: number) {
   return `$${money.format(value)}`;
@@ -72,6 +67,57 @@ function formatMoney(value: number) {
 function formatSignedPercent(value: number) {
   if (value === 0) return "0.0%";
   return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(1)}%`;
+}
+
+type FeaturedCardMetricProps = {
+  item: PortfolioFeaturedMetric | null;
+  label: string;
+  period: PortfolioComparisonPeriod;
+  unavailableLabel: string;
+};
+
+function FeaturedCardMetric({
+  item,
+  label,
+  period,
+  unavailableLabel,
+}: FeaturedCardMetricProps) {
+  const cardNumber = item ? formatCardNumber(item.card) : undefined;
+  const periodLong = formatPriceChangePeriodLong(period);
+
+  return (
+    <article className="portfolio__metric portfolio__metric--featured-card ui-render-fade">
+      <span>{label}</span>
+      <strong className="portfolio__holding-value">
+        {item ? formatMoney(item.value) : "—"}
+        {item?.change != null && (
+          <PriceChange
+            ariaLabel={`${periodLong} price change ${formatSignedPercent(item.change)}`}
+            percent={item.change}
+            period={period}
+            title={`${periodLong} price change`}
+          />
+        )}
+      </strong>
+      <small className="portfolio__holding-meta">
+        {item ? (
+          <CardIdentity name={item.card.name} number={cardNumber} />
+        ) : (
+          unavailableLabel
+        )}
+      </small>
+      {item?.card.image && (
+        <img
+          alt=""
+          loading="lazy"
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+          src={item.card.image}
+        />
+      )}
+    </article>
+  );
 }
 
 function PortfolioLoading({ showHeader = true }: { showHeader?: boolean }) {
@@ -185,30 +231,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
     () => getPortfolioStats(cards, changePeriod),
     [cards, changePeriod],
   );
-  const changeTone =
-    stats.changePercent == null || stats.changePercent === 0
-      ? "neutral"
-      : stats.changePercent > 0
-        ? "positive"
-        : "negative";
-  const changeArrowTone =
-    changeTone === "positive"
-      ? "up"
-      : changeTone === "negative"
-        ? "down"
-        : "flat";
-  const changeDirection =
-    changeArrowTone === "up"
-      ? "Up"
-      : changeArrowTone === "down"
-        ? "Down"
-        : "Unchanged";
-  const topHoldingChange = stats.topHolding
-    ? portfolioPriceChange(stats.topHolding.card, changePeriod)
-    : null;
-  const topHoldingCardNumber = stats.topHolding
-    ? formatCardNumber(stats.topHolding.card)
-    : undefined;
+  const changePeriodLong = formatPriceChangePeriodLong(changePeriod);
 
   if (loading) return <PortfolioLoading />;
 
@@ -260,45 +283,21 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             className="portfolio__metric portfolio__metric--value ui-render-fade"
           >
             <span>Collection value</span>
-            <strong>
+            <strong className="portfolio__collection-value">
               {stats.totalValue > 0 ? formatMoney(stats.totalValue) : "—"}
+              {stats.changePercent != null && (
+                <PriceChange
+                  ariaLabel={`${changePeriodLong} collection value change ${formatSignedPercent(stats.changePercent)}`}
+                  percent={stats.changePercent}
+                  period={changePeriod}
+                  title={`${changePeriodLong} collection value change`}
+                />
+              )}
             </strong>
             <small>
               {stats.pricedCards === stats.totalCards
                 ? "TCGPlayer Near Mint prices"
                 : `${stats.pricedCards} of ${stats.totalCards} cards have reference prices`}
-            </small>
-          </article>
-          <article
-            key={`change:${changePeriod}:${stats.changePercent}:${stats.changeAmount}:${stats.comparableCards}`}
-            className={`portfolio__metric portfolio__metric--${changeTone} ui-render-fade`}
-          >
-            <span>{PERIOD_LABELS[changePeriod]} change</span>
-            <strong
-              aria-label={
-                stats.changeAmount == null || stats.changePercent == null
-                  ? undefined
-                  : `${changeDirection} by ${formatMoney(Math.abs(stats.changeAmount))}, ${formatAbsolutePriceChangePercent(stats.changePercent)}. ${PERIOD_LABELS[changePeriod]} change`
-              }
-              className="portfolio__change-value"
-            >
-              {stats.changeAmount == null || stats.changePercent == null ? (
-                "—"
-              ) : (
-                <>
-                  {changeArrowTone !== "flat" && (
-                    <PriceChangeArrow tone={changeArrowTone} />
-                  )}
-                  {formatMoney(Math.abs(stats.changeAmount))}
-                  <span>
-                    ({formatAbsolutePriceChangePercent(stats.changePercent)})
-                  </span>
-                </>
-              )}
-            </strong>
-            <small>
-              {integer.format(stats.comparableCards)} of{" "}
-              {integer.format(stats.totalCards)} cards have valid price data
             </small>
           </article>
           <article
@@ -309,57 +308,20 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             <strong>{integer.format(stats.totalCards)}</strong>
             <small>Total cards in collection</small>
           </article>
-          <article
-            key={`top:${stats.topHolding?.card.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.card) : 0}:${changePeriod}:${topHoldingChange}`}
-            className="portfolio__metric portfolio__metric--top-holding ui-render-fade"
-          >
-            <span>Top holding</span>
-            <strong className="portfolio__holding-value">
-              {stats.topHolding ? formatMoney(stats.topHolding.value) : "—"}
-              {topHoldingChange != null && (
-                <PriceChange
-                  ariaLabel={`${PERIOD_LABELS[changePeriod]} price change ${formatSignedPercent(topHoldingChange)}`}
-                  percent={topHoldingChange}
-                  title={`${PERIOD_LABELS[changePeriod]} price change`}
-                />
-              )}
-            </strong>
-            <small className="portfolio__holding-meta">
-              {stats.topHolding ? (
-                <>
-                  <span>{stats.topHolding.card.name}</span>
-                  {topHoldingCardNumber && (
-                    <>
-                      <span
-                        aria-hidden="true"
-                        className="portfolio__holding-separator"
-                      >
-                        ·
-                      </span>
-                      <span
-                        className="pokemon-card__number"
-                        title={`Card number ${topHoldingCardNumber}`}
-                      >
-                        {topHoldingCardNumber}
-                      </span>
-                    </>
-                  )}
-                </>
-              ) : (
-                "No priced cards"
-              )}
-            </small>
-            {stats.topHolding?.card.image && (
-              <img
-                alt=""
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.hidden = true;
-                }}
-                src={stats.topHolding.card.image}
-              />
-            )}
-          </article>
+          <FeaturedCardMetric
+            key={`gainer:${stats.biggestGainer?.card.id ?? "none"}:${stats.biggestGainer?.value ?? "none"}:${changePeriod}:${stats.biggestGainer?.change ?? "none"}`}
+            item={stats.biggestGainer}
+            label="Biggest gainer"
+            period={changePeriod}
+            unavailableLabel="Price change unavailable"
+          />
+          <FeaturedCardMetric
+            key={`top:${stats.topHolding?.card.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.card) : 0}:${changePeriod}:${stats.topHolding?.change ?? "none"}`}
+            item={stats.topHolding}
+            label="Top holding"
+            period={changePeriod}
+            unavailableLabel="No priced cards"
+          />
         </section>
       )}
 
@@ -472,6 +434,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
                 <PokemonCardPortfolioView
                   key={card.id}
                   card={card}
+                  comparisonPeriod={changePeriod}
                   quantity={portfolioQuantity(card)}
                   comparisonPriceSnapshot={
                     card.priceSnapshots?.[changePeriod] ?? null

@@ -52,7 +52,9 @@
     border-radius: var(--border-radius-card);
     box-shadow: var(--default-container-shadow);
     display: grid;
-    grid-template-columns: 1.3fr repeat(3, minmax(0, 1fr));
+    grid-template-columns:
+      minmax(0, 1.2fr) minmax(0, 0.7fr) fit-content(24rem)
+      fit-content(24rem);
     overflow: hidden;
   }
 
@@ -70,8 +72,8 @@
 
     > span {
       color: var(--font-color-muted);
-      font-size: var(--font-size-overline);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-badge);
+      font-weight: 600;
       letter-spacing: var(--font-tracking-wide);
       text-transform: uppercase;
     }
@@ -99,61 +101,38 @@
       white-space: nowrap;
     }
 
-    &--positive > strong {
-      color: var(--price-value-positive);
-    }
+    &--featured-card {
+      column-gap: var(--space-3);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(3rem, 4.25rem);
+      grid-template-rows: auto auto minmax(0, 1fr);
 
-    &--negative > strong {
-      color: var(--price-value-negative);
-    }
-
-    &--neutral > strong {
-      color: var(--font-color-primary);
-    }
-
-    &--top-holding {
-      padding-right: 6.25rem;
-      position: relative;
+      > span,
+      > strong,
+      > small {
+        grid-column: 1;
+      }
 
       > img {
+        align-self: center;
         border-radius: 0.28rem;
         filter: drop-shadow(0 0.35rem 0.45rem rgba(0, 0, 0, 0.3));
-        height: calc(100% - 1.75rem);
+        grid-column: 2;
+        grid-row: 1 / -1;
+        height: auto;
         max-height: 6rem;
-        max-width: 4.25rem;
         object-fit: contain;
-        position: absolute;
-        right: var(--space-4);
-        top: 50%;
-        transform: translateY(-50%);
+        width: 100%;
       }
     }
   }
 
-  &__change-value {
-    align-items: center;
-    display: flex;
-    gap: var(--space-2);
-
-    > .app-price-change__arrow {
-      align-self: center;
-      margin-top: 0;
-    }
-
-    > span:last-child {
-      font-family: var(--font-family-base);
-      font-size: 0.54em;
-      font-weight: var(--font-weight-medium);
-      letter-spacing: normal;
-      opacity: 0.78;
-      white-space: nowrap;
-    }
-  }
-
+  &__collection-value,
   &__holding-value {
     align-items: center;
     display: flex;
     gap: var(--space-2);
+    white-space: nowrap;
 
     .app-price-change {
       align-self: flex-end;
@@ -163,18 +142,7 @@
   }
 
   &__metric > &__holding-meta {
-    align-items: baseline;
-    display: flex;
-    gap: 0.3rem;
-
-    > span:first-child {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  &__holding-separator {
-    color: var(--font-color-faint);
+    display: block;
   }
 
   &__notice {
@@ -203,7 +171,7 @@
     display: grid;
     gap: var(--space-3);
     grid-template-columns: minmax(16rem, 1fr) auto;
-    margin-top: var(--space-7);
+    margin-top: var(--space-5);
     padding-bottom: var(--space-5);
     position: relative;
     z-index: var(--dropdown-z-index);

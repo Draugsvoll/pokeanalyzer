@@ -88,6 +88,7 @@ describe("resolveDisplayedPokeTracePriceChange", () => {
     expect(
       resolveDisplayedPokeTracePriceChange(card, {
         marketDisplay: {
+          changePeriod: "7d",
           changePercent: -4,
           condition: "NEAR_MINT",
           price: 120,
@@ -97,6 +98,7 @@ describe("resolveDisplayedPokeTracePriceChange", () => {
     ).toEqual({
       defaultSevenDayComparison: undefined,
       percent: -4,
+      period: "7d",
       show: true,
     });
   });

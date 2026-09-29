@@ -17,6 +17,12 @@ export type PortfolioSort =
   | "change-high"
   | "change-low";
 
+export type PortfolioFeaturedMetric = {
+  card: PortfolioCard;
+  change: number | null;
+  value: number;
+};
+
 export function portfolioQuantity(card: PortfolioCard) {
   return Number.isSafeInteger(card.quantity) && card.quantity > 0
     ? card.quantity
@@ -124,9 +130,10 @@ export function getPortfolioStats(
   let totalValue = 0;
   let comparableCurrentValue = 0;
   let comparablePreviousValue = 0;
-  let comparableCards = 0;
   let pricedCards = 0;
-  let topHolding: { card: PortfolioCard; value: number } | null = null;
+  let biggestGainer: (PortfolioFeaturedMetric & { change: number }) | null =
+    null;
+  let topHolding: PortfolioFeaturedMetric | null = null;
 
   for (const card of cards) {
     const copies = portfolioQuantity(card);
@@ -137,9 +144,17 @@ export function getPortfolioStats(
     if (currentPrice != null) {
       pricedCards += copies;
       const holdingValue = currentPrice * copies;
+      const priceChange = portfolioPriceChange(card, period);
       totalValue += holdingValue;
       if (!topHolding || holdingValue > topHolding.value) {
-        topHolding = { card, value: holdingValue };
+        topHolding = { card, change: priceChange, value: holdingValue };
+      }
+
+      if (
+        priceChange != null &&
+        (!biggestGainer || priceChange > biggestGainer.change)
+      ) {
+        biggestGainer = { card, change: priceChange, value: holdingValue };
       }
 
       if (
@@ -149,7 +164,6 @@ export function getPortfolioStats(
       ) {
         comparableCurrentValue += holdingValue;
         comparablePreviousValue += comparisonPrice * copies;
-        comparableCards += copies;
       }
     }
   }
@@ -161,9 +175,8 @@ export function getPortfolioStats(
       : null;
 
   return {
-    changeAmount: changePercent == null ? null : changeAmount,
+    biggestGainer,
     changePercent,
-    comparableCards,
     pricedCards,
     topHolding,
     totalCards,

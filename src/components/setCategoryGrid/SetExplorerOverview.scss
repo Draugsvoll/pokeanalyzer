@@ -135,23 +135,15 @@ button.set-explorer-overview__featured {
   }
 
   > small {
-    align-items: baseline;
     color: var(--font-color-faint);
-    display: flex;
+    display: block;
     font-size: var(--font-size-caption);
-    gap: 0.35rem;
     line-height: var(--font-leading-normal);
     margin-top: var(--space-1);
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
-
-    > span:first-child {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
   }
 }
 
@@ -166,10 +158,6 @@ button.set-explorer-overview__featured {
 
 .set-explorer-overview__sales-value {
   margin-top: var(--space-2);
-}
-
-.set-explorer-overview__valuable-separator {
-  color: var(--font-color-faint);
 }
 
 .set-explorer-overview__valuable-value {
@@ -190,6 +178,7 @@ button.set-explorer-overview__featured {
   font-size: var(--font-size-caption);
   line-height: var(--font-leading-normal);
   margin-top: var(--space-1);
+  font-weight: 500;
 }
 
 .set-explorer-overview__market-line {
@@ -213,16 +202,6 @@ button.set-explorer-overview__featured {
 
   .app-price-change {
     font-size: var(--font-size-caption);
-  }
-
-  > span:last-child {
-    align-self: flex-end;
-    color: var(--font-color-faint);
-    font-family: var(--font-family-base);
-    font-size: var(--font-size-caption);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: normal;
-    opacity: 0.72;
   }
 
   em {

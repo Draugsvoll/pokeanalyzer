@@ -1,9 +1,11 @@
 import { calculateDisplayedPriceChangePercent } from "../../../shared/pokeTracePriceChange";
+import type { PriceChangePeriod } from "../../../shared/priceChangePeriod";
 import type { PokeTraceSetSalesLeaders } from "../../../shared/pokeTraceSet";
 import type { PokemonCard } from "../../types/pokemon";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 
 export type SetExplorerOverview = {
+  changePeriod: PriceChangePeriod;
   currency: string;
   movementPercent: number | null;
   pricedCards: number;
@@ -46,6 +48,7 @@ export function buildSetExplorerOverview(
   cards: readonly PokemonCard[],
   salesLeaders?: PokeTraceSetSalesLeaders | null,
 ): SetExplorerOverview {
+  const changePeriod = "7d" satisfies PriceChangePeriod;
   const currency = dominantCurrency(cards);
   let currentValue = 0;
   let previousValue = 0;
@@ -64,13 +67,13 @@ export function buildSetExplorerOverview(
         card,
         percentChange: calculateDisplayedPriceChangePercent(
           currentPrice.price,
-          card.pokeTrace.marketPriceSnapshots?.["7d"],
+          card.pokeTrace.marketPriceSnapshots?.[changePeriod],
         ),
         price: currentPrice.price,
       };
     }
 
-    const previousPrice = card.pokeTrace.marketPriceSnapshots?.["7d"];
+    const previousPrice = card.pokeTrace.marketPriceSnapshots?.[changePeriod];
     if (
       typeof previousPrice !== "number" ||
       !Number.isFinite(previousPrice) ||
@@ -91,6 +94,7 @@ export function buildSetExplorerOverview(
   };
 
   return {
+    changePeriod,
     currency,
     movementPercent:
       previousValue > 0

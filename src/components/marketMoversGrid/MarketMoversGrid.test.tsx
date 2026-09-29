@@ -14,7 +14,11 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
           prices: Record<string, Record<string, { avg?: number }>>;
         };
       };
-      marketDisplay?: { marketLabel?: string; price: number };
+      marketDisplay?: {
+        changePeriod?: string;
+        marketLabel?: string;
+        price: number;
+      };
     }>;
     loading: boolean;
   }) => (
@@ -24,6 +28,7 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
           data-preview-price={
             item.card.pokeTrace.prices.tcgplayer?.NEAR_MINT?.avg
           }
+          data-price-change-period={item.marketDisplay?.changePeriod}
           key={item.card.name}
         >
           {item.card.name} {item.marketDisplay?.marketLabel}{" "}
@@ -49,7 +54,7 @@ test("loads a configurable mover category and maps it to grid cards", async () =
         game: "pokemon",
         image: "https://example.com/card.webp",
         name: "Charizard",
-        price7dAvg: 100,
+        previousPrice: 100,
         rarity: "Holo Rare",
         saleCount: 12,
         set: { name: "Base Set", slug: "base-set" },
@@ -58,6 +63,7 @@ test("loads a configurable mover category and maps it to grid cards", async () =
         variant: "Holofoil",
       },
     ],
+    periodDays: 1,
     query: {},
     stale: false,
   });
@@ -76,6 +82,7 @@ test("loads a configurable mover category and maps it to grid cards", async () =
   const card = screen.getByText(/Charizard NM.*TCG 120/);
   expect(card).toBeVisible();
   expect(card).toHaveAttribute("data-preview-price", "120");
+  expect(card).toHaveAttribute("data-price-change-period", "1d");
 
   rerender(
     <MarketMoversGrid
@@ -87,5 +94,46 @@ test("loads a configurable mover category and maps it to grid cards", async () =
 
   await waitFor(() =>
     expect(screen.queryByText(/NM.*TCG/)).not.toBeInTheDocument(),
+  );
+});
+
+test("omits the period when the response does not identify its snapshot", async () => {
+  const loadMovers = vi.fn().mockResolvedValue({
+    fetchedAt: "2026-09-20T12:00:00.000Z",
+    items: [
+      {
+        approxSaleCount: false,
+        cardId: "card-1",
+        cardNumber: "4/102",
+        changeAbs: 20,
+        changePct: 20,
+        currency: "USD",
+        currentPrice: 120,
+        game: "pokemon",
+        image: null,
+        name: "Charizard",
+        previousPrice: 100,
+        rarity: null,
+        saleCount: 12,
+        set: { name: "Base Set", slug: "base-set" },
+        source: "tcgplayer",
+        tier: "NEAR_MINT",
+        variant: null,
+      },
+    ],
+    query: {},
+    stale: false,
+  });
+
+  render(<MarketMoversGrid loadMovers={loadMovers} title="Category" />);
+
+  await waitFor(() =>
+    expect(screen.getByLabelText("Mover grid")).toHaveAttribute(
+      "data-loading",
+      "false",
+    ),
+  );
+  expect(screen.getByText(/Charizard/)).not.toHaveAttribute(
+    "data-price-change-period",
   );
 });

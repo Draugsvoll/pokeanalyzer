@@ -1,5 +1,9 @@
 import "./PriceChange.scss";
 import {
+  formatPriceChangePeriodLabel,
+  type PriceChangePeriod,
+} from "../../../shared/priceChangePeriod";
+import {
   formatAbsolutePriceChangePercent,
   priceChangeDirectionLabel,
   priceChangeTone,
@@ -7,7 +11,7 @@ import {
 } from "./priceChangeUtils";
 
 type PriceChangeArrowProps = {
-  tone: Exclude<PriceChangeTone, "flat">;
+  tone: PriceChangeTone;
 };
 
 type PriceChangeProps = {
@@ -15,6 +19,7 @@ type PriceChangeProps = {
   ariaLabel?: string;
   className?: string;
   percent: number | null;
+  period?: PriceChangePeriod | null;
   title: string;
   unavailableLabel?: string;
 };
@@ -28,11 +33,24 @@ export function PriceChangeArrow({ tone }: PriceChangeArrowProps) {
   );
 }
 
+export function PriceChangePeriodLabel({
+  period,
+}: {
+  period: PriceChangePeriod;
+}) {
+  return (
+    <span className="app-price-change__period">
+      {formatPriceChangePeriodLabel(period)}
+    </span>
+  );
+}
+
 export function PriceChange({
   animate = false,
   ariaLabel,
   className = "",
   percent,
+  period,
   title,
   unavailableLabel = "Price change unavailable",
 }: PriceChangeProps) {
@@ -59,8 +77,9 @@ export function PriceChange({
       className={`app-price-change app-price-change--${tone}${animate ? " ui-render-fade" : ""}${className ? ` ${className}` : ""}`}
       title={title}
     >
-      {tone !== "flat" && <PriceChangeArrow tone={tone} />}
+      <PriceChangeArrow tone={tone} />
       {formattedPercent}
+      {period && <PriceChangePeriodLabel period={period} />}
     </span>
   );
 }

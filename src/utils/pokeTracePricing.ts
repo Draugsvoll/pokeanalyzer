@@ -4,6 +4,7 @@ import {
   calculateDisplayedPriceChangePercent,
   normalizeDisplayedPriceChangePercent,
 } from "../../shared/pokeTracePriceChange";
+import type { PriceChangePeriod } from "../../shared/priceChangePeriod";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -78,8 +79,10 @@ type DisplayedPriceChangeOptions = {
 };
 
 export type PokeTracePriceChangeDisplayContext = {
+  comparisonPeriod?: PriceChangePeriod;
   comparisonPriceSnapshot?: { marketPrice: number } | null;
   marketDisplay?: {
+    changePeriod?: PriceChangePeriod;
     changePercent?: number;
     condition?: string;
     price?: number;
@@ -122,7 +125,7 @@ export function resolveDisplayedPokeTracePriceChange(
   card: PokemonCard,
   context: PokeTracePriceChangeDisplayContext = {},
 ) {
-  const { comparisonPriceSnapshot, marketDisplay } = context;
+  const { comparisonPeriod, comparisonPriceSnapshot, marketDisplay } = context;
   const displayedPrice =
     marketDisplay?.price ?? resolvePokeTraceCardPrice(card)?.price;
   const defaultSevenDayComparison =
@@ -145,6 +148,10 @@ export function resolveDisplayedPokeTracePriceChange(
   return {
     defaultSevenDayComparison,
     percent,
+    period:
+      marketDisplay?.changePeriod ??
+      comparisonPeriod ??
+      (defaultSevenDayComparison ? "7d" : null),
     show:
       marketDisplay?.changePercent != null ||
       comparisonPriceSnapshot != null ||

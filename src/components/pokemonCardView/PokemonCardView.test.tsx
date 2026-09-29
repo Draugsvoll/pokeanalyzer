@@ -57,6 +57,7 @@ describe("PokemonCardView default price change", () => {
       "title",
       "7-day TCGPlayer Near Mint change",
     );
+    expect(screen.getByText("7d")).toHaveClass("app-price-change__period");
   });
 
   test("shows the default change for an explicit Near Mint display", () => {
@@ -129,5 +130,22 @@ describe("PokemonCardView default price change", () => {
     const { container } = renderCard({ comparisonPriceSnapshot: null });
 
     expect(container.querySelector(".app-price-change")).toBeNull();
+  });
+
+  test("renders the selected portfolio comparison period", () => {
+    renderCard({
+      comparisonPeriod: "30d",
+      comparisonPriceSnapshot: {
+        marketPrice: 90,
+        recordedAt: "2026-08-29T00:00:00.000Z",
+        sourceUpdatedAt: null,
+      },
+    });
+
+    expect(screen.getByText("30d")).toHaveClass("app-price-change__period");
+    expect(screen.getByText("22.2%")).toHaveAttribute(
+      "title",
+      "30-day change since 29 Aug 2026",
+    );
   });
 });

@@ -143,7 +143,7 @@ function parseItem(value: unknown): MarketMoverItem {
     game: "pokemon",
     image: nullableText(value.image),
     name: text(value.name, "name"),
-    price7dAvg: finiteNumber(value.previousPrice, "previousPrice"),
+    previousPrice: finiteNumber(value.previousPrice, "previousPrice"),
     rarity: nullableText(value.rarity),
     saleCount,
     set: { name: setName, slug: setSlug(setName) },
@@ -175,10 +175,15 @@ function parseCategory(
   if (direction !== "gainers" && direction !== "losers") {
     throw new Error("Invalid market category direction");
   }
+  const periodDays = finiteNumber(category.parameters.periodDays, "periodDays");
+  if (![1, 7, 30].includes(periodDays)) {
+    throw new Error("Unsupported market category periodDays");
+  }
 
   return {
     fetchedAt: payload.generatedAt,
     items: category.items.map(parseItem),
+    periodDays,
     query: {
       direction,
       game: "pokemon",

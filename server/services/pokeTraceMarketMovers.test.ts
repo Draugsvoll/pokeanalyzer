@@ -78,6 +78,8 @@ test("forwards filters to PokeTrace and caches each exact query", async () => {
   assert.equal(first.items.length, 1);
   assert.equal(first.items[0].currency, "USD");
   assert.equal(first.items[0].changePct, 20);
+  assert.equal(first.items[0].previousPrice, 100);
+  assert.equal(first.periodDays, 7);
   assert.deepEqual(second, first);
   assert.equal(ebay.items.length, 1);
   assert.equal(ebay.items[0].source, "ebay");

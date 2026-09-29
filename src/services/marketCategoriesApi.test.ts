@@ -40,7 +40,7 @@ const payload = {
           variant: "Holofoil",
         },
       ],
-      parameters: { direction: "gainers" },
+      parameters: { direction: "gainers", periodDays: 1 },
     },
     {
       id: "daily-tcg-near-mint-losers",
@@ -63,7 +63,7 @@ const payload = {
           variant: "Holofoil",
         },
       ],
-      parameters: { direction: "losers" },
+      parameters: { direction: "losers", periodDays: 1 },
     },
     {
       comparisonSnapshotDate: "2026-09-21",
@@ -136,11 +136,12 @@ test("loads and maps a generated market category", async () => {
     expect.objectContaining({ cache: "no-store" }),
   );
   expect(result.fetchedAt).toBe(payload.generatedAt);
+  expect(result.periodDays).toBe(1);
   expect(result.items[0]).toMatchObject({
     cardId: "card-1",
     changeAbs: 20,
     changePct: 20,
-    price7dAvg: 100,
+    previousPrice: 100,
     set: { name: "Base Set", slug: "base-set" },
     tier: "NEAR_MINT",
   });

@@ -44,6 +44,7 @@ describe("buildSetExplorerOverview", () => {
     ]);
 
     expect(overview.pricedCards).toBe(2);
+    expect(overview.changePeriod).toBe("7d");
     expect(overview.totalValue).toBe(140);
     expect(overview.topCard).toMatchObject({
       card: { id: "001/102" },

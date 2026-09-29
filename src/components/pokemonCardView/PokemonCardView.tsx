@@ -13,6 +13,10 @@ import type {
   PortfolioPriceSnapshot,
 } from "../../types/portfolio";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
+import {
+  formatPriceChangePeriodLong,
+  type PriceChangePeriod,
+} from "../../../shared/priceChangePeriod";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
 import {
@@ -44,10 +48,12 @@ function currencySymbolFor(currency: string) {
 
 export type PokemonCardViewProps = {
   card: PokemonCardType;
+  comparisonPeriod?: PriceChangePeriod;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
   hidePortfolioButtonUntilHover?: boolean;
   marketDisplay?: {
     changeLabel?: string;
+    changePeriod?: PriceChangePeriod;
     changePercent?: number;
     condition?: string;
     currency: string;
@@ -74,6 +80,7 @@ function getVariantBadgeAccent(variant?: string) {
 
 export function PokemonCardView({
   card,
+  comparisonPeriod,
   comparisonPriceSnapshot,
   hidePortfolioButtonUntilHover = false,
   marketDisplay,
@@ -95,21 +102,23 @@ export function PokemonCardView({
     ? marketDisplay.price
     : activeOption?.price;
   const displayedPriceChange = resolveDisplayedPokeTracePriceChange(card, {
+    comparisonPeriod,
     comparisonPriceSnapshot,
     marketDisplay,
   });
   const { defaultSevenDayComparison } = displayedPriceChange;
   const displayedPriceChangePercent = displayedPriceChange.percent;
+  const displayedPriceChangePeriod = displayedPriceChange.period;
   const showPriceChange = displayedPriceChange.show;
   const priceChangeTitle =
     marketDisplay?.changeLabel ??
     priceChangeLabel ??
     (defaultSevenDayComparison
       ? defaultSevenDayComparison.recordedAt
-        ? `7-day TCGPlayer Near Mint change since ${formatDateStamp(defaultSevenDayComparison.recordedAt)}`
-        : "7-day TCGPlayer Near Mint change"
+        ? `${formatPriceChangePeriodLong("7d")} TCGPlayer Near Mint change since ${formatDateStamp(defaultSevenDayComparison.recordedAt)}`
+        : `${formatPriceChangePeriodLong("7d")} TCGPlayer Near Mint change`
       : comparisonPriceSnapshot
-        ? `Change since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
+        ? `${comparisonPeriod ? `${formatPriceChangePeriodLong(comparisonPeriod)} change` : "Change"} since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
         : "Price change");
   const displayedCurrency =
     marketDisplay?.currency ??
@@ -278,6 +287,7 @@ export function PokemonCardView({
                       animate
                       key={`${priceChangeTitle}:${displayedPriceChangePercent}`}
                       percent={displayedPriceChangePercent}
+                      period={displayedPriceChangePeriod}
                       title={priceChangeTitle}
                     />
                   )}

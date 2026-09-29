@@ -2,10 +2,11 @@ import {
   isPokeTraceRawCondition,
   type PokeTraceRawCondition,
 } from "./pokeTraceMarketConditions.js";
+import type { PriceChangePeriod } from "./priceChangePeriod.js";
 
 export const POKETRACE_CATALOG_SCHEMA_VERSION = 2;
 
-export type PokeTraceCatalogPeriod = "1d" | "7d" | "30d";
+export type PokeTraceCatalogPeriod = PriceChangePeriod;
 
 export type PokeTraceCatalogCard = {
   id: string;

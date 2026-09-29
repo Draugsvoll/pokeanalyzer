@@ -42,6 +42,7 @@ function collectionCard(): PortfolioCard {
     id: "base-4",
     image: "https://example.com/charizard.webp",
     name: "Charizard",
+    number: "4/102",
     quantity: 2,
     set: { id: "base", name: "Base Set" },
     pokeTrace: {
@@ -50,6 +51,11 @@ function collectionCard(): PortfolioCard {
       prices: { tcgplayer: { NEAR_MINT: { avg: 100 } } },
     },
     priceSnapshots: {
+      "30d": {
+        marketPrice: 50,
+        recordedAt: "2026-08-29T00:00:00.000Z",
+        sourceUpdatedAt: null,
+      },
       "7d": {
         marketPrice: 80,
         recordedAt: "2026-09-20T00:00:00.000Z",
@@ -114,26 +120,119 @@ describe("Portfolio", () => {
     renderPortfolio();
 
     expect((await screen.findAllByText("$200.00"))[0]).toBeVisible();
-    const changeMetric = screen.getByText("7-day change").closest("article");
-    expect(changeMetric).not.toBeNull();
-    expect(changeMetric).toHaveTextContent("$40.00(25.0%)");
-    expect(changeMetric).not.toHaveTextContent("+");
+    const valueMetric = screen.getByText("Collection value").closest("article");
+    expect(valueMetric).toHaveTextContent("$200.0025.0%7d");
     expect(
-      changeMetric!.querySelector(".app-price-change__arrow--up"),
+      valueMetric!.querySelector(".app-price-change__arrow--up"),
     ).not.toBeNull();
-    expect(screen.getByText("25.0%")).toBeVisible();
-    expect(
-      screen.getByText("2 of 2 cards have valid price data"),
-    ).toBeVisible();
+    const gainerMetric = screen.getByText("Biggest gainer").closest("article");
+    expect(gainerMetric).toHaveTextContent("$200.0025.0%7d");
+    expect(gainerMetric).toHaveTextContent("4/102");
+    expect(gainerMetric).toHaveTextContent("Charizard");
     expect(screen.getByText("Portfolio card: Charizard")).toBeVisible();
+    const topHoldingMetric = screen.getByText("Top holding").closest("article");
+    expect(topHoldingMetric).not.toBeNull();
+    expect(topHoldingMetric!.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://example.com/charizard.webp",
+    );
     expect(
-      document.querySelector(".portfolio__metric--top-holding img"),
-    ).toHaveAttribute("src", "https://example.com/charizard.webp");
+      topHoldingMetric!.querySelector(
+        ".portfolio__holding-meta .app-card-identity",
+      ),
+    ).toHaveTextContent("4/102·Charizard");
     expect(screen.queryByText("Collection cards")).toBeNull();
     expect(screen.queryByRole("button", { name: "Export CSV" })).toBeNull();
     expect(mocks.replacePortfolioReferences).toHaveBeenCalledWith([
       { cardId: "base-4", quantity: 2 },
     ]);
+  });
+
+  test("renders zero changes with the shared muted downward arrow", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    const unchangedCard = collectionCard();
+    unchangedCard.priceSnapshots = {
+      "7d": {
+        marketPrice: 100,
+        recordedAt: "2026-09-20T00:00:00.000Z",
+        sourceUpdatedAt: null,
+      },
+    };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      cards: [unchangedCard],
+      entries: [{ cardId: "base-4", quantity: 2 }],
+      missingCardIds: [],
+    });
+
+    renderPortfolio();
+
+    await screen.findAllByText("$200.00");
+    for (const label of ["Collection value", "Biggest gainer", "Top holding"]) {
+      const metric = screen.getByText(label).closest("article");
+      expect(metric).not.toBeNull();
+      expect(
+        metric!.querySelector(".app-price-change__arrow--flat"),
+      ).not.toBeNull();
+    }
+  });
+
+  test("updates summary periods and the biggest gainer from the selected comparison", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    const charizard = collectionCard();
+    const blastoise: PortfolioCard = {
+      ...charizard,
+      id: "base-2",
+      image: "https://example.com/blastoise.webp",
+      name: "Blastoise",
+      number: "2/102",
+      pokeTrace: {
+        ...charizard.pokeTrace,
+        prices: { tcgplayer: { NEAR_MINT: { avg: 120 } } },
+      },
+      priceSnapshots: {
+        "7d": {
+          marketPrice: 60,
+          recordedAt: "2026-09-20T00:00:00.000Z",
+          sourceUpdatedAt: null,
+        },
+        "30d": {
+          marketPrice: 100,
+          recordedAt: "2026-08-29T00:00:00.000Z",
+          sourceUpdatedAt: null,
+        },
+      },
+      quantity: 1,
+    };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      cards: [charizard, blastoise],
+      entries: [
+        { cardId: "base-4", quantity: 2 },
+        { cardId: "base-2", quantity: 1 },
+      ],
+      missingCardIds: [],
+    });
+
+    renderPortfolio();
+    await screen.findByText("Biggest gainer");
+
+    const biggestGainer = screen.getByText("Biggest gainer").closest("article");
+    expect(biggestGainer).toHaveTextContent("Blastoise");
+    expect(
+      biggestGainer!.querySelector(".app-price-change__period"),
+    ).toHaveTextContent("7d");
+
+    fireEvent.click(screen.getByRole("radio", { name: "30D" }));
+
+    expect(
+      screen.getByText("Biggest gainer").closest("article"),
+    ).toHaveTextContent("Charizard");
+    for (const label of ["Collection value", "Biggest gainer", "Top holding"]) {
+      const metric = screen.getByText(label).closest("article");
+      expect(metric).not.toBeNull();
+      expect(
+        metric!.querySelector(".app-price-change__period"),
+      ).toHaveTextContent("30d");
+    }
   });
 
   test("uses a contained empty state without the collection header", async () => {

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { PokemonCard } from "../../types/pokemon";
+import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
+import { CardIdentity } from "../cardIdentity/CardIdentity";
 import { PriceChange } from "../priceChange/PriceChange";
 import {
   formatAbsolutePriceChangePercent,
@@ -64,30 +66,6 @@ function moneyFormatter(currency: string) {
   }
 }
 
-function OverviewCardIdentity({ card }: { card: PokemonCard }) {
-  return (
-    <>
-      <span title={card.name}>{card.name}</span>
-      {card.number && (
-        <>
-          <span
-            aria-hidden="true"
-            className="set-explorer-overview__valuable-separator"
-          >
-            ·
-          </span>
-          <span
-            className="pokemon-card__number"
-            title={`Card number ${card.number}`}
-          >
-            {card.number}
-          </span>
-        </>
-      )}
-    </>
-  );
-}
-
 function OverviewCardImage({ card }: { card: PokemonCard }) {
   if (!card.image) return null;
   return (
@@ -109,6 +87,7 @@ export function SetExplorerOverview({
   overview,
 }: SetExplorerOverviewProps) {
   const money = moneyFormatter(overview.currency);
+  const changePeriodLong = formatPriceChangePeriodLong(overview.changePeriod);
   const tone =
     overview.movementPercent == null
       ? "flat"
@@ -152,13 +131,13 @@ export function SetExplorerOverview({
             <span
               aria-label={
                 overview.movementPercent == null
-                  ? "7-day Near Mint movement is not available"
+                  ? `${changePeriodLong} Near Mint movement is not available`
                   : undefined
               }
               className="set-explorer-overview__market-movement"
               title={
                 overview.movementPercent == null
-                  ? "7-day Near Mint movement"
+                  ? `${changePeriodLong} Near Mint movement`
                   : undefined
               }
             >
@@ -167,12 +146,12 @@ export function SetExplorerOverview({
               ) : (
                 <PriceChange
                   animate
-                  ariaLabel={`${movementDirection} by ${formattedPercent}. 7-day Near Mint movement`}
+                  ariaLabel={`${movementDirection} by ${formattedPercent}. ${changePeriodLong} Near Mint movement`}
                   percent={overview.movementPercent}
-                  title="7-day Near Mint movement"
+                  period={overview.changePeriod}
+                  title={`${changePeriodLong} Near Mint movement`}
                 />
               )}
-              <span>7d</span>
             </span>
           </div>
           <small>
@@ -195,15 +174,19 @@ export function SetExplorerOverview({
               </span>
               {topCardChange != null && (
                 <PriceChange
-                  ariaLabel={`7-day price change ${formatAbsolutePriceChangePercent(topCardChange)}`}
+                  ariaLabel={`${changePeriodLong} price change ${formatAbsolutePriceChangePercent(topCardChange)}`}
                   percent={topCardChange}
-                  title="7-day price change"
+                  period={overview.changePeriod}
+                  title={`${changePeriodLong} price change`}
                 />
               )}
             </strong>
             <small>
               {overview.topCard ? (
-                <OverviewCardIdentity card={overview.topCard.card} />
+                <CardIdentity
+                  name={overview.topCard.card.name}
+                  number={overview.topCard.card.number}
+                />
               ) : (
                 "No priced cards"
               )}
@@ -242,7 +225,10 @@ export function SetExplorerOverview({
               </strong>
               <small>
                 {leader ? (
-                  <OverviewCardIdentity card={leader.card} />
+                  <CardIdentity
+                    name={leader.card.name}
+                    number={leader.card.number}
+                  />
                 ) : (
                   "Sales data unavailable"
                 )}

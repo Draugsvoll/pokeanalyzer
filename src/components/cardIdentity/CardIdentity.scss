@@ -1,0 +1,30 @@
+.app-card-identity {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.app-card-identity__number {
+  color: var(--font-color-muted);
+  flex: 0 0 auto;
+  font-family: var(--font-family-mono);
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--font-tracking-normal);
+  line-height: inherit;
+  white-space: nowrap;
+}
+
+.app-card-identity__separator {
+  color: var(--font-color-faint);
+  flex: 0 0 auto;
+}
+
+.app-card-identity__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

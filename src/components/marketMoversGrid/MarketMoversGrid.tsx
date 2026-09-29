@@ -3,6 +3,10 @@ import type {
   MarketMoverItem,
   MarketMoversResponse,
 } from "../../../shared/marketMovers";
+import {
+  formatPriceChangePeriodLong,
+  type PriceChangePeriod,
+} from "../../../shared/priceChangePeriod";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
@@ -58,6 +62,7 @@ function compactTierLabel(value: string) {
 
 function toGridItem(
   item: MarketMoverItem,
+  changePeriod: PriceChangePeriod | null,
   changeLabel?: string,
   showMarketLabel = true,
 ): CardCategoryGridItem {
@@ -89,7 +94,12 @@ function toGridItem(
   return {
     card,
     marketDisplay: {
-      changeLabel: changeLabel ?? `Change from the 7-day ${marketName} average`,
+      changeLabel:
+        changeLabel ??
+        (changePeriod
+          ? `Change from the ${formatPriceChangePeriodLong(changePeriod)} ${marketName} average`
+          : `Change in the ${marketName} average`),
+      ...(changePeriod && { changePeriod }),
       changePercent: item.changePct,
       condition: item.tier,
       currency: item.currency,
@@ -101,6 +111,13 @@ function toGridItem(
       source: item.source,
     },
   };
+}
+
+function resolveChangePeriod(periodDays?: number): PriceChangePeriod | null {
+  if (periodDays === 1) return "1d";
+  if (periodDays === 7) return "7d";
+  if (periodDays === 30) return "30d";
+  return null;
 }
 
 export function MarketMoversGrid({
@@ -123,10 +140,11 @@ export function MarketMoversGrid({
     void loadMovers(controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return;
+        const changePeriod = resolveChangePeriod(response.periodDays);
         setResult({
           error: null,
           items: response.items.map((item) =>
-            toGridItem(item, changeLabel, showMarketLabel),
+            toGridItem(item, changePeriod, changeLabel, showMarketLabel),
           ),
           loading: false,
         });

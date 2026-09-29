@@ -46,4 +46,20 @@
   &--down {
     border-top: 0.34rem solid var(--price-value-negative);
   }
+
+  &--flat {
+    border-top: 0.34rem solid var(--font-color-muted);
+  }
+}
+
+.app-price-change__period {
+  align-self: flex-end;
+  color: var(--font-color-faint);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: normal;
+  opacity: 0.72;
+  white-space: nowrap;
+  margin-left: 0.1rem;
 }

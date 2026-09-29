@@ -294,7 +294,7 @@ export function SetCategoryGrid() {
   return (
     <section className="set-category-grid ui-render-fade">
       <header className="set-category-grid__explorer">
-        <h1>Explore a set</h1>
+        <h1>Explore sets</h1>
       </header>
 
       <div className="set-category-grid__discovery">

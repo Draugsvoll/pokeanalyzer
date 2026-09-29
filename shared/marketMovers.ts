@@ -36,7 +36,7 @@ export type MarketMoverItem = {
   game: string;
   image: string | null;
   name: string;
-  price7dAvg: number;
+  previousPrice: number;
   rarity: string | null;
   saleCount: number;
   set: {
@@ -51,6 +51,7 @@ export type MarketMoverItem = {
 export type MarketMoversResponse = {
   fetchedAt: string;
   items: MarketMoverItem[];
+  periodDays?: number;
   query: MarketMoversQuery;
   stale: boolean;
 };

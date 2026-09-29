@@ -47,14 +47,34 @@ describe("portfolio utilities", () => {
     ];
 
     expect(getPortfolioStats(cards, "7d")).toMatchObject({
-      changeAmount: 40,
+      biggestGainer: {
+        card: cards[0],
+        change: 25,
+        value: 200,
+      },
       changePercent: (40 / 210) * 100,
-      comparableCards: 3,
       pricedCards: 3,
-      topHolding: { card: cards[0], value: 200 },
+      topHolding: { card: cards[0], change: 25, value: 200 },
       totalCards: 6,
       totalValue: 250,
       uniqueCards: 3,
+    });
+  });
+
+  test("uses the highest selected-period change as the biggest gainer", () => {
+    const down = card("1", "Down", 90, 1, 100);
+    const smallGain = card("2", "Small gain", 110, 2, 100);
+    const biggestGain = card("3", "Biggest gain", 150, 1, 100);
+    const unavailable = card("4", "Unavailable", 200);
+
+    expect(
+      getPortfolioStats([down, smallGain, biggestGain, unavailable], "7d")
+        .biggestGainer,
+    ).toEqual({ card: biggestGain, change: 50, value: 150 });
+    expect(getPortfolioStats([down, unavailable], "7d").biggestGainer).toEqual({
+      card: down,
+      change: -10,
+      value: 90,
     });
   });
 
