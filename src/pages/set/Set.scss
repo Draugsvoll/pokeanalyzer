@@ -1,0 +1,5 @@
+.set-page {
+  min-height: calc(100vh - var(--header-height));
+  padding-bottom: var(--space-6);
+  width: 100%;
+}

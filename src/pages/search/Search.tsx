@@ -1,7 +1,6 @@
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import { MarketMoversGrid } from "../../components/marketMoversGrid/MarketMoversGrid";
 import { MostSoldGrid } from "../../components/mostSoldGrid/MostSoldGrid";
-import { SetCategoryGrid } from "../../components/setCategoryGrid/SetCategoryGrid";
 import {
   dailyTcgNearMintGainers,
   dailyTcgNearMintLosers,
@@ -13,7 +12,6 @@ export default function Search() {
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName />
-      <SetCategoryGrid />
       <MostSoldGrid title="Daily Most Sold on TCGPlayer" />
       <MostSoldGrid
         loadCards={mostSoldEbayCards}

@@ -79,6 +79,16 @@ b {
   font-weight: var(--font-weight-medium);
 }
 
+.app-overview-value {
+  color: var(--font-color-primary);
+  font-family: var(--font-family-price);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-tight);
+  line-height: 1.05;
+}
+
 em,
 i {
   font-style: italic;

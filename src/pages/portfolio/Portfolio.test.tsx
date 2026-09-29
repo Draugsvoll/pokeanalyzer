@@ -114,7 +114,13 @@ describe("Portfolio", () => {
     renderPortfolio();
 
     expect((await screen.findAllByText("$200.00"))[0]).toBeVisible();
-    expect(screen.getByText("(+25.0%)")).toBeVisible();
+    const changeMetric = screen.getByText("7-day change").closest("article");
+    expect(changeMetric).not.toBeNull();
+    expect(changeMetric).toHaveTextContent("$40.00(25.0%)");
+    expect(changeMetric).not.toHaveTextContent("+");
+    expect(
+      changeMetric!.querySelector(".app-price-change__arrow--up"),
+    ).not.toBeNull();
     expect(screen.getByText("25.0%")).toBeVisible();
     expect(
       screen.getByText("2 of 2 cards have valid price data"),

@@ -1,33 +1,76 @@
-.card-category-grid:has(.set-category-grid__combobox.is-open) {
+.set-category-grid:has(.set-category-grid__combobox.is-open) {
   position: relative;
   z-index: calc(var(--dropdown-z-index) + 2);
 }
 
-.set-category-grid__controls {
+.set-category-grid {
   display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  padding-top: var(--space-4);
   width: 100%;
 }
 
-.set-category-grid__picker {
-  align-items: center;
-  display: flex;
-  gap: var(--space-2);
-  max-width: 23rem;
-  margin: auto;
-  margin-bottom: -0.5rem;
-  position: relative;
-  width: 100%;
-  z-index: calc(var(--dropdown-z-index) + 1);
+.set-category-grid__explorer {
+  min-width: 0;
 
-  > .app-btn {
-    min-width: 5.5rem;
+  h1 {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-tight);
+    line-height: var(--font-leading-tight);
+    margin: 0;
+    text-align: center;
   }
 }
 
-.set-category-grid__toolbar-actions {
+.set-category-grid__discovery {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.set-category-grid__results {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.set-category-grid__picker {
+  margin-inline: auto;
+  max-width: 20rem;
+  position: relative;
+  width: 100%;
+  z-index: calc(var(--dropdown-z-index) + 1);
+}
+
+.set-category-grid__result-controls {
   align-items: center;
   display: flex;
+  flex: 0 1 34rem;
+  gap: var(--space-3);
+  min-width: 0;
+  position: relative;
+  z-index: var(--dropdown-z-index);
+}
+
+.set-category-grid__card-filter {
+  flex: 0 1 13.5rem;
+  min-width: 13.5rem;
+}
+
+.set-category-grid__sort-control {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
   gap: var(--space-2);
+
+  > span {
+    color: var(--font-color-faint);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+  }
 }
 
 .set-category-grid__combobox {
@@ -71,21 +114,116 @@
   }
 }
 
-.set-category-grid__toolbar {
-  align-items: center;
+.set-category-grid__set-directory {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.set-category-grid__directory-header {
+  align-items: baseline;
   display: flex;
   justify-content: space-between;
 
-  p {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-results-meta);
-    font-weight: var(--font-weight-medium);
+  h2 {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
   }
+
+  span {
+    color: var(--font-color-faint);
+    font-size: var(--font-size-caption);
+  }
+}
+
+.set-category-grid__set-list {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.set-category-grid__set-card {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+  border: var(--border);
+  border-radius: var(--border-radius-control);
+  color: var(--font-color-secondary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  justify-content: center;
+  min-height: 3.25rem;
+  min-width: 0;
+  padding: var(--space-3);
+  text-align: center;
+  transition:
+    background-color var(--animation-duration-fast)
+      var(--animation-ease-standard),
+    border-color var(--animation-duration-fast) var(--animation-ease-standard),
+    color var(--animation-duration-fast) var(--animation-ease-standard),
+    transform var(--animation-duration-fast) var(--animation-ease-standard);
+
+  > span {
+    display: -webkit-box;
+    line-height: var(--font-leading-snug);
+    min-width: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--bg-input-strong);
+    border-color: var(--border-color-strong);
+    color: var(--font-color-primary);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    border-color: var(--search-border-focus);
+    outline: 2px solid var(--custom-color-blue);
+    outline-offset: 2px;
+  }
+
+  &.is-active {
+    background: color-mix(in srgb, var(--custom-color-blue) 7%, var(--bg-card));
+    border-color: color-mix(
+      in srgb,
+      var(--custom-color-blue) 32%,
+      var(--border-color)
+    );
+    color: var(--font-color-primary);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.62;
+  }
+}
+
+.set-category-grid__directory-empty {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-paragraph-sm);
+  margin: 0;
+  padding: var(--space-5) 0;
+  text-align: center;
 }
 
 .set-category-grid__sort .ui-select-dropdown__menu {
   max-height: 18rem;
   overflow-y: auto;
+}
+
+.set-category-grid__sort-control .set-category-grid__sort {
+  min-width: 13.5rem;
+
+  .ui-select-dropdown__toggle {
+    width: 100%;
+  }
 }
 
 .set-category-grid__more {
@@ -132,22 +270,54 @@
   width: 1px;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 64rem) {
+  .set-category-grid__set-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 44rem) {
   .set-category-grid__picker {
     max-width: 100%;
   }
 
-  .set-category-grid__toolbar {
+  .set-category-grid__set-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .set-category-grid__result-controls {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 34rem) {
+  .set-category-grid__result-controls {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .set-category-grid__toolbar-actions {
-    justify-content: flex-end;
+  .set-category-grid__card-filter {
+    flex: none;
+    min-width: 0;
+    width: 100%;
   }
 
-  .set-category-grid__sort,
-  .set-category-grid__sort .ui-select-dropdown__toggle {
-    width: 100%;
+  .set-category-grid__sort-control {
+    justify-content: space-between;
+  }
+
+  .set-category-grid__sort-control .set-category-grid__sort {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-category-grid__set-card {
+    transition: none;
+
+    &:hover:not(:disabled) {
+      transform: none;
+    }
   }
 }

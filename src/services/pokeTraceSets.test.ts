@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { loadPokeTraceSetCards } from "./pokeTraceSets";
+import { loadPokeTraceSet } from "./pokeTraceSets";
 
 const card = {
   id: "card-1",
@@ -13,19 +13,30 @@ const card = {
   },
 };
 
+const salesLeaders = {
+  leastTotal: { approximate: false, cardId: "card-1", sales: 2 },
+  total: { approximate: true, cardId: "card-1", sales: 602 },
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 test("requests the selected set every time", async () => {
   const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
-    json: async () => ({ items: [card], total: 1 }),
+    json: async () => ({ items: [card], salesLeaders, total: 1 }),
     ok: true,
   } as Response);
   vi.stubGlobal("fetch", fetchMock);
 
-  expect(await loadPokeTraceSetCards("Base Set")).toEqual([card]);
-  expect(await loadPokeTraceSetCards(" base SET ")).toEqual([card]);
+  expect(await loadPokeTraceSet("Base Set")).toEqual({
+    cards: [card],
+    salesLeaders,
+  });
+  expect(await loadPokeTraceSet(" base SET ")).toEqual({
+    cards: [card],
+    salesLeaders,
+  });
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock).toHaveBeenNthCalledWith(
     1,
@@ -43,12 +54,48 @@ test("rejects a response whose total does not match its items", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>().mockResolvedValue({
-      json: async () => ({ items: [card], total: 2 }),
+      json: async () => ({ items: [card], salesLeaders, total: 2 }),
       ok: true,
     } as Response),
   );
 
-  await expect(loadPokeTraceSetCards("Base Set")).rejects.toThrow(
+  await expect(loadPokeTraceSet("Base Set")).rejects.toThrow(
     "Set request returned an invalid response",
   );
+});
+
+test("rejects malformed set sales leaders", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>().mockResolvedValue({
+      json: async () => ({
+        items: [card],
+        salesLeaders: {
+          ...salesLeaders,
+          leastTotal: { approximate: false, cardId: "card-1", sales: -1 },
+        },
+        total: 1,
+      }),
+      ok: true,
+    } as Response),
+  );
+
+  await expect(loadPokeTraceSet("Base Set")).rejects.toThrow(
+    "Set request returned an invalid response",
+  );
+});
+
+test("keeps set browsing available during a backend rollout without insights", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>().mockResolvedValue({
+      json: async () => ({ items: [card], total: 1 }),
+      ok: true,
+    } as Response),
+  );
+
+  await expect(loadPokeTraceSet("Base Set")).resolves.toEqual({
+    cards: [card],
+    salesLeaders: { leastTotal: null, total: null },
+  });
 });

@@ -7,6 +7,7 @@ import { initializePokeTraceCatalog } from "./services/pokeTraceCatalog";
 import { LoadingState } from "./components/loadingState/LoadingState";
 
 const Search = lazy(() => import("./pages/search/Search"));
+const SetExplorer = lazy(() => import("./pages/set/Set"));
 const Cardview = lazy(() => import("./pages/pokemonDetails/PokemonDetails"));
 const Profile = lazy(() => import("./pages/profile/Profile"));
 const Portfolio = lazy(() => import("./pages/portfolio/Portfolio"));
@@ -41,6 +42,7 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Homepage />} />
         <Route path="search" element={withRouteLoader(<Search />)} />
+        <Route path="set" element={withRouteLoader(<SetExplorer />)} />
         <Route path="card/:id" element={withRouteLoader(<Cardview />)} />
         <Route path="signup" element={withRouteLoader(<SignUp />)} />
         <Route path="profile" element={withRouteLoader(<Profile />)} />

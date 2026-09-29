@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, LogIn, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, LogIn, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import Button from "../../components/button/Button";
+import { FilterInput } from "../../components/filterInput/FilterInput";
 import { GridView } from "../../components/gridView/GridView";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
+import {
+  PriceChange,
+  PriceChangeArrow,
+} from "../../components/priceChange/PriceChange";
+import { formatAbsolutePriceChangePercent } from "../../components/priceChange/priceChangeUtils";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -63,19 +69,9 @@ function formatMoney(value: number) {
   return `$${money.format(value)}`;
 }
 
-function formatSignedMoney(value: number) {
-  if (value === 0) return formatMoney(0);
-  return `${value > 0 ? "+" : "−"}$${money.format(Math.abs(value))}`;
-}
-
 function formatSignedPercent(value: number) {
   if (value === 0) return "0.0%";
   return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(1)}%`;
-}
-
-function formatAbsolutePercent(value: number) {
-  if (value === 0) return "0%";
-  return `${Math.abs(value).toFixed(1)}%`;
 }
 
 function PortfolioLoading({ showHeader = true }: { showHeader?: boolean }) {
@@ -195,15 +191,21 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
       : stats.changePercent > 0
         ? "positive"
         : "negative";
+  const changeArrowTone =
+    changeTone === "positive"
+      ? "up"
+      : changeTone === "negative"
+        ? "down"
+        : "flat";
+  const changeDirection =
+    changeArrowTone === "up"
+      ? "Up"
+      : changeArrowTone === "down"
+        ? "Down"
+        : "Unchanged";
   const topHoldingChange = stats.topHolding
     ? portfolioPriceChange(stats.topHolding.card, changePeriod)
     : null;
-  const topHoldingChangeTone =
-    topHoldingChange == null || topHoldingChange === 0
-      ? "flat"
-      : topHoldingChange > 0
-        ? "up"
-        : "down";
   const topHoldingCardNumber = stats.topHolding
     ? formatCardNumber(stats.topHolding.card)
     : undefined;
@@ -272,13 +274,25 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             className={`portfolio__metric portfolio__metric--${changeTone} ui-render-fade`}
           >
             <span>{PERIOD_LABELS[changePeriod]} change</span>
-            <strong className="portfolio__change-value">
+            <strong
+              aria-label={
+                stats.changeAmount == null || stats.changePercent == null
+                  ? undefined
+                  : `${changeDirection} by ${formatMoney(Math.abs(stats.changeAmount))}, ${formatAbsolutePriceChangePercent(stats.changePercent)}. ${PERIOD_LABELS[changePeriod]} change`
+              }
+              className="portfolio__change-value"
+            >
               {stats.changeAmount == null || stats.changePercent == null ? (
                 "—"
               ) : (
                 <>
-                  {formatSignedMoney(stats.changeAmount)}
-                  <span>({formatSignedPercent(stats.changePercent)})</span>
+                  {changeArrowTone !== "flat" && (
+                    <PriceChangeArrow tone={changeArrowTone} />
+                  )}
+                  {formatMoney(Math.abs(stats.changeAmount))}
+                  <span>
+                    ({formatAbsolutePriceChangePercent(stats.changePercent)})
+                  </span>
                 </>
               )}
             </strong>
@@ -303,19 +317,11 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             <strong className="portfolio__holding-value">
               {stats.topHolding ? formatMoney(stats.topHolding.value) : "—"}
               {topHoldingChange != null && (
-                <span
-                  className={`pokemon-card__price-change pokemon-card__price-change--${topHoldingChangeTone}`}
+                <PriceChange
+                  ariaLabel={`${PERIOD_LABELS[changePeriod]} price change ${formatSignedPercent(topHoldingChange)}`}
+                  percent={topHoldingChange}
                   title={`${PERIOD_LABELS[changePeriod]} price change`}
-                  aria-label={`${PERIOD_LABELS[changePeriod]} price change ${formatSignedPercent(topHoldingChange)}`}
-                >
-                  {topHoldingChangeTone !== "flat" && (
-                    <span
-                      aria-hidden="true"
-                      className="pokemon-card__price-change-arrow"
-                    />
-                  )}
-                  {formatAbsolutePercent(topHoldingChange)}
-                </span>
+                />
               )}
             </strong>
             <small className="portfolio__holding-meta">
@@ -398,28 +404,15 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             aria-label="Collection controls"
             ref={controlsRevealRef}
           >
-            <div className="portfolio__filter" role="search">
-              <Search className="portfolio__filter-icon" aria-hidden="true" />
-              <input
-                id="portfolio-filter"
-                className="portfolio__filter-input"
-                type="search"
-                value={filter}
-                onChange={(event) => setFilter(event.target.value)}
-                placeholder="Search your collection"
-                aria-label="Search your collection"
-              />
-              {filter && (
-                <button
-                  className="portfolio__filter-clear"
-                  type="button"
-                  onClick={() => setFilter("")}
-                  aria-label="Clear collection search"
-                >
-                  <X aria-hidden="true" />
-                </button>
-              )}
-            </div>
+            <FilterInput
+              ariaLabel="Search your collection"
+              className="portfolio__filter"
+              clearLabel="Clear collection search"
+              id="portfolio-filter"
+              onChange={setFilter}
+              placeholder="Search your collection"
+              value={filter}
+            />
 
             <div className="portfolio__control-group">
               <div className="portfolio__timeframe">

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import "../selectDropdown/SelectDropdown.scss";
 import "./AutosuggestCombobox.scss";
 
@@ -11,10 +11,13 @@ export type AutosuggestOption = {
 type AutosuggestComboboxProps = {
   ariaLabel: string;
   className?: string;
+  clearLabel?: string;
   inputAriaDescribedBy?: string;
   inputAriaInvalid?: boolean;
   inputClassName?: string;
+  indicator?: "chevron" | "search";
   menuLabel: string;
+  onClear?: () => void;
   onInputChange: (value: string) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
   onSelect: (value: string) => void;
@@ -26,10 +29,13 @@ type AutosuggestComboboxProps = {
 export function AutosuggestCombobox({
   ariaLabel,
   className = "",
+  clearLabel,
   inputAriaDescribedBy,
   inputAriaInvalid,
   inputClassName,
+  indicator = "chevron",
   menuLabel,
+  onClear,
   onInputChange,
   onKeyDown,
   onSelect,
@@ -38,6 +44,7 @@ export function AutosuggestCombobox({
   value,
 }: AutosuggestComboboxProps) {
   const listboxId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -136,12 +143,41 @@ export function AutosuggestCombobox({
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        ref={inputRef}
         role="combobox"
         spellCheck={false}
         type="text"
         value={value}
       />
-      <ChevronDown aria-hidden="true" className="ui-autosuggest__chevron" />
+      {value && onClear && clearLabel ? (
+        <button
+          aria-label={clearLabel}
+          className="ui-autosuggest__clear"
+          onClick={() => {
+            onClear();
+            inputRef.current?.focus();
+            setOpen(false);
+            setActiveIndex(-1);
+          }}
+          type="button"
+        >
+          <X aria-hidden="true" />
+        </button>
+      ) : (
+        <>
+          {indicator === "search" ? (
+            <Search
+              aria-hidden="true"
+              className="ui-autosuggest__search-icon"
+            />
+          ) : (
+            <ChevronDown
+              aria-hidden="true"
+              className="ui-autosuggest__chevron"
+            />
+          )}
+        </>
+      )}
 
       {menuOpen && (
         <div

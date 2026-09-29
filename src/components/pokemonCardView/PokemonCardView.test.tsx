@@ -82,7 +82,7 @@ describe("PokemonCardView default price change", () => {
       },
     });
 
-    expect(container.querySelector(".pokemon-card__price-change")).toBeNull();
+    expect(container.querySelector(".app-price-change")).toBeNull();
   });
 
   test("does not apply the TCGPlayer snapshot to another source", () => {
@@ -95,7 +95,7 @@ describe("PokemonCardView default price change", () => {
       },
     });
 
-    expect(container.querySelector(".pokemon-card__price-change")).toBeNull();
+    expect(container.querySelector(".app-price-change")).toBeNull();
   });
 
   test("does not show a change without a current Near Mint price", () => {
@@ -107,7 +107,7 @@ describe("PokemonCardView default price change", () => {
       </MemoryRouter>,
     );
 
-    expect(container.querySelector(".pokemon-card__price-change")).toBeNull();
+    expect(container.querySelector(".app-price-change")).toBeNull();
   });
 
   test("keeps an explicitly supplied category change", () => {
@@ -128,6 +128,6 @@ describe("PokemonCardView default price change", () => {
   test("respects an explicitly unavailable portfolio comparison", () => {
     const { container } = renderCard({ comparisonPriceSnapshot: null });
 
-    expect(container.querySelector(".pokemon-card__price-change")).toBeNull();
+    expect(container.querySelector(".app-price-change")).toBeNull();
   });
 });

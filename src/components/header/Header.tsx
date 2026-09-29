@@ -123,7 +123,15 @@ export const Header: React.FC = () => {
               `nav-links__item${isActive ? " nav-links__item--active" : ""}`
             }
           >
-            Explore
+            Cards
+          </NavLink>
+          <NavLink
+            to="/set"
+            className={({ isActive }) =>
+              `nav-links__item${isActive ? " nav-links__item--active" : ""}`
+            }
+          >
+            Sets
           </NavLink>
           <NavLink
             to="/portfolio"
@@ -197,7 +205,10 @@ export const Header: React.FC = () => {
               Home
             </NavLink>
             <NavLink to="/search" onClick={closeMobileNav}>
-              Explore cards
+              Cards
+            </NavLink>
+            <NavLink to="/set" onClick={closeMobileNav}>
+              Explore sets
             </NavLink>
             <NavLink to="/portfolio" onClick={closeMobileNav}>
               Portfolio

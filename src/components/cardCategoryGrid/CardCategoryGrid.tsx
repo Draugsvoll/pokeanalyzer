@@ -13,6 +13,7 @@ export type CardCategoryGridItem = {
 };
 
 type CardCategoryGridProps = {
+  collapsible?: boolean;
   controls?: ReactNode;
   defaultCollapsed?: boolean;
   emptyMessage?: ReactNode;
@@ -23,10 +24,11 @@ type CardCategoryGridProps = {
   revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: ReactNode;
-  title: ReactNode;
+  title?: ReactNode;
 };
 
 export function CardCategoryGrid({
+  collapsible = true,
   controls,
   defaultCollapsed = false,
   emptyMessage = "No cards are available in this category yet.",
@@ -42,7 +44,7 @@ export function CardCategoryGrid({
   return (
     <section className="card-category-grid ui-card-grid-enter ui-render-fade">
       <GridView
-        collapsible
+        collapsible={collapsible}
         defaultCollapsed={defaultCollapsed}
         revealOnScroll={revealOnScroll}
         sorting={sorting}

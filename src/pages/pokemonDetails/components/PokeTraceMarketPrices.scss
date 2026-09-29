@@ -335,7 +335,7 @@
 
     margin-top: var(--poketrace-panel-gap);
     overflow: hidden;
-    padding: 1.3rem var(--poketrace-history-padding) 0;
+    padding: 1.3rem var(--poketrace-history-padding) 0.8rem;
   }
 
   &__history-unavailable {
@@ -440,7 +440,7 @@
       display: block;
       height: auto;
       overflow: visible;
-      width: 100%;
+      width: 99%;
     }
   }
 

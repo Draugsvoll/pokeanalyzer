@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Star } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
+import { PriceChange } from "../priceChange/PriceChange";
 import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -60,17 +61,6 @@ export type PokemonCardViewProps = {
   priceChangeLabel?: string;
 };
 
-function formatPriceChange(value: number) {
-  if (value === 0) return "0%";
-  return `${Math.abs(value).toFixed(1)}%`;
-}
-
-function priceChangeDirectionLabel(tone: "up" | "down" | "flat") {
-  if (tone === "up") return "Price increased";
-  if (tone === "down") return "Price decreased";
-  return "Price unchanged";
-}
-
 function getVariantBadgeAccent(variant?: string) {
   const value = variant?.trim().toLowerCase().replaceAll("_", " ") ?? "";
 
@@ -101,25 +91,15 @@ export function PokemonCardView({
   const activeOption = resolvePokeTraceCardPrice(card);
   const imageSrc = card.image;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
-  const displayedPrice = marketDisplay?.price ?? activeOption?.price;
+  const displayedPrice = marketDisplay
+    ? marketDisplay.price
+    : activeOption?.price;
   const displayedPriceChange = resolveDisplayedPokeTracePriceChange(card, {
     comparisonPriceSnapshot,
     marketDisplay,
   });
   const { defaultSevenDayComparison } = displayedPriceChange;
   const displayedPriceChangePercent = displayedPriceChange.percent;
-  const formattedPriceChange =
-    displayedPriceChangePercent == null
-      ? null
-      : formatPriceChange(displayedPriceChangePercent);
-  const priceChangeTone =
-    displayedPriceChangePercent == null
-      ? null
-      : displayedPriceChangePercent > 0
-        ? "up"
-        : displayedPriceChangePercent < 0
-          ? "down"
-          : "flat";
   const showPriceChange = displayedPriceChange.show;
   const priceChangeTitle =
     marketDisplay?.changeLabel ??
@@ -293,38 +273,14 @@ export function PokemonCardView({
                         ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
                         : "-")}
                   </span>
-                  {showPriceChange &&
-                    (formattedPriceChange && priceChangeTone ? (
-                      <span
-                        key={`${priceChangeTitle}:${priceChangeTone}:${formattedPriceChange}`}
-                        className={`pokemon-card__price-change pokemon-card__price-change--${priceChangeTone} ui-render-fade`}
-                        title={priceChangeTitle}
-                        aria-label={`${priceChangeDirectionLabel(priceChangeTone)} by ${formattedPriceChange}. ${priceChangeTitle}`}
-                      >
-                        {priceChangeTone === "up" && (
-                          <span
-                            aria-hidden="true"
-                            className="pokemon-card__price-change-arrow"
-                          />
-                        )}
-                        {priceChangeTone === "down" && (
-                          <span
-                            aria-hidden="true"
-                            className="pokemon-card__price-change-arrow"
-                          />
-                        )}
-                        {formattedPriceChange}
-                      </span>
-                    ) : (
-                      <span
-                        key="price-change-unavailable"
-                        className="pokemon-card__price-change pokemon-card__price-change--unavailable ui-render-fade"
-                        title="Price change unavailable"
-                        aria-label="Price change unavailable"
-                      >
-                        -
-                      </span>
-                    ))}
+                  {showPriceChange && (
+                    <PriceChange
+                      animate
+                      key={`${priceChangeTitle}:${displayedPriceChangePercent}`}
+                      percent={displayedPriceChangePercent}
+                      title={priceChangeTitle}
+                    />
+                  )}
                   {marketDisplay?.marketLabel && (
                     <span
                       className="pokemon-card__market-label"

@@ -282,57 +282,6 @@
   white-space: nowrap;
 }
 
-.pokemon-card__price-change {
-  align-self: end;
-  border-radius: var(--radius-sm);
-  box-sizing: border-box;
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: var(--font-size-overline);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-semibold);
-  gap: 0.2rem;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: var(--font-tracking-normal);
-  line-height: 1.15;
-  white-space: nowrap;
-  padding: 0;
-  margin-top: 0.1rem;
-
-  &--up {
-    color: var(--price-value-positive);
-  }
-
-  &--down {
-    color: var(--price-value-negative);
-  }
-
-  &--flat {
-    color: var(--font-color-muted);
-  }
-
-  &--unavailable {
-    color: var(--font-color-faint);
-  }
-}
-
-.pokemon-card__price-change-arrow {
-  border-left: 0.22rem solid transparent;
-  border-right: 0.22rem solid transparent;
-  display: block;
-  height: 0;
-  width: 0;
-}
-
-.pokemon-card__price-change--up .pokemon-card__price-change-arrow {
-  border-bottom: 0.34rem solid currentcolor;
-}
-
-.pokemon-card__price-change--down .pokemon-card__price-change-arrow {
-  border-top: 0.34rem solid currentcolor;
-}
-
 .pokemon-card-view__card .pokemon-card__name {
   letter-spacing: var(--font-tracking-button);
   line-height: 1.22;

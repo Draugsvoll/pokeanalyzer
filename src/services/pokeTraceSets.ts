@@ -1,5 +1,8 @@
 import type { PokemonCard } from "../types/pokemon";
-import type { PokeTraceSearchResponse } from "../../shared/pokeTraceSearch";
+import {
+  type PokeTraceSetResponse,
+  type PokeTraceSetSalesLeaders,
+} from "../../shared/pokeTraceSet";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -23,10 +26,37 @@ function isPokemonCard(value: unknown): value is PokemonCard {
   );
 }
 
-export async function loadPokeTraceSetCards(
-  setName: string,
-  signal?: AbortSignal,
-) {
+function isSalesLeader(value: unknown) {
+  if (value === null) return true;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const leader = value as {
+    approximate?: unknown;
+    cardId?: unknown;
+    sales?: unknown;
+  };
+  return (
+    typeof leader.approximate === "boolean" &&
+    typeof leader.cardId === "string" &&
+    Boolean(leader.cardId) &&
+    typeof leader.sales === "number" &&
+    Number.isFinite(leader.sales) &&
+    leader.sales >= 0
+  );
+}
+
+function isSalesLeaders(value: unknown): value is PokeTraceSetSalesLeaders {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const leaders = value as Partial<PokeTraceSetSalesLeaders>;
+  return Boolean(
+    isSalesLeader(leaders.total) && isSalesLeader(leaders.leastTotal),
+  );
+}
+
+function unavailableSalesLeaders(): PokeTraceSetSalesLeaders {
+  return { leastTotal: null, total: null };
+}
+
+export async function loadPokeTraceSet(setName: string, signal?: AbortSignal) {
   const key = cacheKey(setName);
   const params = new URLSearchParams({ setName: setName.trim() });
   return runWithRequestTimeout(
@@ -42,19 +72,24 @@ export async function loadPokeTraceSetCards(
       if (!value || typeof value !== "object" || Array.isArray(value)) {
         throw new Error("Set request returned an invalid response");
       }
-      const result = value as Partial<PokeTraceSearchResponse<PokemonCard>>;
+      const result = value as Partial<PokeTraceSetResponse<PokemonCard>>;
       if (
         !Array.isArray(result.items) ||
         !result.items.every(
           (card) => isPokemonCard(card) && cacheKey(card.set.name) === key,
         ) ||
         !Number.isSafeInteger(result.total) ||
-        result.total !== result.items.length
+        result.total !== result.items.length ||
+        (result.salesLeaders !== undefined &&
+          !isSalesLeaders(result.salesLeaders))
       ) {
         throw new Error("Set request returned an invalid response");
       }
 
-      return result.items;
+      return {
+        cards: result.items,
+        salesLeaders: result.salesLeaders ?? unavailableSalesLeaders(),
+      };
     },
     { signal },
   );

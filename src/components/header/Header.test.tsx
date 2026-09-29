@@ -52,7 +52,10 @@ describe("Header", () => {
       within(navigation).getByRole("link", { name: "Home" }),
     ).toBeVisible();
     expect(
-      within(navigation).getByRole("link", { name: "Explore cards" }),
+      within(navigation).getByRole("link", { name: "Cards" }),
+    ).toBeVisible();
+    expect(
+      within(navigation).getByRole("link", { name: "Explore sets" }),
     ).toBeVisible();
     expect(
       within(navigation).getByRole("link", { name: "Portfolio" }),

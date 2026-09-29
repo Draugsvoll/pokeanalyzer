@@ -5,6 +5,7 @@ import "./Footer.scss";
 
 const productLinks = [
   { label: "Explore cards", to: "/search" },
+  { label: "Explore sets", to: "/set" },
   { label: "Portfolio", to: "/portfolio" },
   { label: "Free demo", to: "/card/demo" },
   { label: "Account", to: "/profile" },

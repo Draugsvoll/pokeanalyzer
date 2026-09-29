@@ -25,6 +25,7 @@ import {
 } from "../../services/pokeTraceMarketMovers.js";
 import { loadPokeTraceSearch } from "../../services/pokeTraceSearch.js";
 import { loadPokeTraceSet } from "../../services/pokeTraceSet.js";
+import { loadPokeTraceSetSalesLeaders } from "../../services/pokeTraceSetInsights.js";
 import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditions.js";
 import type { PokeTraceFilterOptions } from "../../../shared/pokeTraceFilterOptions.js";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions.js";
@@ -99,6 +100,7 @@ type PokeTraceSearchHandlerDependencies = {
 
 type PokeTraceSetHandlerDependencies = {
   loadSet: typeof loadPokeTraceSet;
+  loadSalesLeaders: typeof loadPokeTraceSetSalesLeaders;
   reportError: (context: string, error: unknown) => void;
 };
 
@@ -148,6 +150,8 @@ export function createPokeTraceSetHandler(
   dependencies: Partial<PokeTraceSetHandlerDependencies> = {},
 ): RequestHandler {
   const loadSet = dependencies.loadSet ?? loadPokeTraceSet;
+  const loadSalesLeaders =
+    dependencies.loadSalesLeaders ?? loadPokeTraceSetSalesLeaders;
   const reportError = dependencies.reportError ?? logError;
 
   return async (req, res) => {
@@ -159,7 +163,15 @@ export function createPokeTraceSetHandler(
     }
 
     try {
-      res.json(await loadSet(setName));
+      const salesLeadersRequest = loadSalesLeaders(setName).catch((error) => {
+        reportError("Failed to load PokeTrace set sales leaders", error);
+        return { leastTotal: null, total: null };
+      });
+      const [set, salesLeaders] = await Promise.all([
+        loadSet(setName),
+        salesLeadersRequest,
+      ]);
+      res.json({ ...set, salesLeaders });
     } catch (error) {
       reportError("Failed to load PokeTrace set", error);
       res.status(500).json({ error: "Failed to load card set" });

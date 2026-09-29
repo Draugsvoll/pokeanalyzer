@@ -21,7 +21,9 @@ function ControlledAutosuggest({
   return (
     <AutosuggestCombobox
       ariaLabel="Set name"
+      clearLabel="Clear set filter"
       menuLabel="Set name suggestions"
+      onClear={() => setValue("")}
       onInputChange={setValue}
       onKeyDown={onKeyDown}
       onSelect={(selection) => {
@@ -46,6 +48,18 @@ test("filters suggestions and keeps options out of the tab order", () => {
   expect(
     screen.queryByRole("option", { name: "Base Set" }),
   ).not.toBeInTheDocument();
+});
+
+test("clears the current value and returns focus to the input", () => {
+  render(<ControlledAutosuggest />);
+
+  const input = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.change(input, { target: { value: "jungle" } });
+  fireEvent.click(screen.getByRole("button", { name: "Clear set filter" }));
+
+  expect(input).toHaveValue("");
+  expect(input).toHaveFocus();
+  expect(screen.queryByRole("button", { name: "Clear set filter" })).toBeNull();
 });
 
 test("selects the active suggestion with the keyboard", () => {
