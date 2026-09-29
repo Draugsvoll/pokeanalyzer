@@ -125,6 +125,27 @@ test("shows both marketplace values in the hover tooltip", () => {
   expect(screen.getAllByText("Sep 18")).toHaveLength(2);
 });
 
+test("carries the latest eBay price through missing and trailing dates", () => {
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [point("2026-09-17", 400), point("2026-09-18", 420)],
+        ebay: [point("2026-09-17", 490, 480)],
+      })}
+    />,
+  );
+
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  fireEvent.pointerMove(chart, { clientX: 790 });
+
+  expect(screen.getByText("$420")).toBeVisible();
+  expect(screen.getByText("$480")).toBeVisible();
+  expect(
+    document.querySelector(".poketrace-market__history-line--ebay"),
+  ).toHaveAttribute("d", expect.stringContaining("L 790.00"));
+});
+
 test("shows only a subtle indicator while history loads", () => {
   render(<MarketPriceHistoryLoading />);
 

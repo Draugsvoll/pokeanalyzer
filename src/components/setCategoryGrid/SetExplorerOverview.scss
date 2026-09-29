@@ -41,9 +41,15 @@
   border-radius: var(--border-radius-card);
   box-shadow: var(--default-container-shadow);
   display: grid;
-  gap: var(--space-6);
+  gap: 0;
   grid-template-columns: minmax(16rem, 1.2fr) repeat(3, minmax(12rem, 0.8fr));
-  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+
+  > .set-explorer-overview__market,
+  > .set-explorer-overview__featured {
+    min-height: 7.5rem;
+    padding: var(--space-4) var(--space-5);
+  }
 }
 
 .set-explorer-overview > .set-category-grid__result-controls {
@@ -76,9 +82,20 @@
   column-gap: var(--space-3);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  justify-self: end;
-  max-width: 24rem;
+  justify-self: stretch;
+  max-width: none;
   min-width: 0;
+  position: relative;
+
+  &::after {
+    background: var(--border-divider);
+    bottom: var(--space-5);
+    content: "";
+    left: 0;
+    position: absolute;
+    top: var(--space-5);
+    width: 1px;
+  }
 }
 
 button.set-explorer-overview__featured {
@@ -217,6 +234,18 @@ button.set-explorer-overview__featured {
 @media (max-width: 64rem) {
   .set-explorer-overview__summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    > .set-explorer-overview__featured::after {
+      display: none;
+    }
+
+    > .set-explorer-overview__featured:nth-child(even)::after {
+      display: block;
+    }
+
+    > :nth-child(n + 3) {
+      border-top: 1px solid var(--border-divider);
+    }
   }
 
   .set-explorer-overview__featured {
@@ -231,20 +260,28 @@ button.set-explorer-overview__featured {
   }
 
   .set-explorer-overview__summary {
-    gap: var(--space-4);
     grid-template-columns: 1fr;
+
+    > .set-explorer-overview__featured:nth-child(even)::after {
+      display: none;
+    }
+
+    > :nth-child(n + 2) {
+      border-top: 1px solid var(--border-divider);
+    }
   }
 
   .set-explorer-overview__featured {
-    border-top: 1px solid var(--border-divider);
     justify-self: stretch;
     max-width: none;
-    padding-top: var(--space-4);
   }
 }
 
 @media (max-width: 34rem) {
   .set-explorer-overview__summary {
-    padding: var(--space-4);
+    > .set-explorer-overview__market,
+    > .set-explorer-overview__featured {
+      padding: var(--space-4);
+    }
   }
 }

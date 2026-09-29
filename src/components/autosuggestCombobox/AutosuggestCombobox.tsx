@@ -135,6 +135,7 @@ export function AutosuggestCombobox({
         aria-label={ariaLabel}
         autoComplete="off"
         className={inputClassName}
+        onClick={() => setOpen(true)}
         onChange={(event) => {
           onInputChange(event.target.value);
           setOpen(true);

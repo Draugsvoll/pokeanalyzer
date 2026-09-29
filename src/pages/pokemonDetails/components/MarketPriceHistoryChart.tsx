@@ -55,6 +55,29 @@ function linePath(points: Array<{ x: number; y: number }>) {
     .join(" ");
 }
 
+function carriedLinePath(
+  points: Array<{ x: number; y: number }>,
+  endX: number,
+) {
+  if (points.length === 0) return "";
+
+  const commands = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    commands.push(
+      `L ${point.x.toFixed(2)} ${previous.y.toFixed(2)}`,
+      `L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+    );
+  }
+
+  const lastPoint = points.at(-1)!;
+  if (endX > lastPoint.x) {
+    commands.push(`L ${endX.toFixed(2)} ${lastPoint.y.toFixed(2)}`);
+  }
+  return commands.join(" ");
+}
+
 function priceAxis(min: number, max: number) {
   const roughStep = (max - min) / 4;
   const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, 1)));
@@ -161,16 +184,20 @@ export function MarketPriceHistoryChart({
   };
   const y = (value: number) =>
     PADDING.top + ((axis.max - value) / (axis.max - axis.min)) * plotHeight;
-  const plottedSeries = series.map(({ source, points }) => ({
-    source,
-    points,
-    line: linePath(
-      points.map(({ point, value }) => ({
-        x: x(point.date),
-        y: y(value),
-      })),
-    ),
-  }));
+  const plottedSeries = series.map(({ source, points }) => {
+    const positionedPoints = points.map(({ point, value }) => ({
+      x: x(point.date),
+      y: y(value),
+    }));
+    return {
+      source,
+      points,
+      line:
+        source === "ebay"
+          ? carriedLinePath(positionedPoints, x(dates.at(-1)!))
+          : linePath(positionedPoints),
+    };
+  });
   const dateTickCount = Math.min(7, dates.length);
   const dateTickIndexes = [
     ...new Set(
@@ -187,10 +214,17 @@ export function MarketPriceHistoryChart({
   );
   const activeDate = dates[activeDateIndex];
   const activeX = x(activeDate);
-  const activePoints = plottedSeries.map(({ source, points }) => ({
-    source,
-    point: points.find(({ point }) => point.date === activeDate) ?? null,
-  }));
+  const activePoints = plottedSeries.map(({ source, points }) => {
+    const exactPoint = points.find(({ point }) => point.date === activeDate);
+    const carriedPoint =
+      source === "ebay"
+        ? points.findLast(({ point }) => point.date <= activeDate)
+        : undefined;
+    return {
+      source,
+      point: exactPoint ?? carriedPoint ?? null,
+    };
+  });
   const activePointYs = activePoints.flatMap(({ point }) =>
     point ? [y(point.value)] : [],
   );

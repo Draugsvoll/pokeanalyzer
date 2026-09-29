@@ -25,17 +25,156 @@ import {
   sortPokeTraceCards,
   type PokeTraceCardSort,
 } from "../../utils/sortPokeTraceCards";
-import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
+import {
+  AutosuggestCombobox,
+  type AutosuggestOption,
+} from "../autosuggestCombobox/AutosuggestCombobox";
 import { CardCategoryGrid } from "../cardCategoryGrid/CardCategoryGrid";
 import { FilterInput } from "../filterInput/FilterInput";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
+import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { SetExplorerOverview } from "./SetExplorerOverview";
+import {
+  getSetDirectoryMetadata,
+  type SetDirectoryMetadata,
+} from "./setDirectoryMetadata";
 import { buildSetExplorerOverview } from "./setExplorerMetrics";
 import "./SetCategoryGrid.scss";
 
 const INVALID_SET_MESSAGE =
   "Choose a set from the suggestions before opening it.";
 const DEFAULT_CONDITION: PokeTraceRawCondition = "NEAR_MINT";
+const OTHER_SET_ERA = "Other";
+
+type SetDirectorySort = "newest" | "oldest";
+
+const SET_DIRECTORY_SORT_OPTIONS: Array<{
+  label: string;
+  value: SetDirectorySort;
+}> = [
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+];
+
+type SetDirectoryOption = AutosuggestOption & SetDirectoryMetadata;
+
+function enrichSetDirectoryOption(
+  option: AutosuggestOption,
+): SetDirectoryOption {
+  const metadata = getSetDirectoryMetadata(option.value);
+  return metadata ? { ...option, ...metadata } : option;
+}
+
+function setDirectoryDetails(option: SetDirectoryOption) {
+  return [
+    option.releaseYear?.toString(),
+    option.cardCount == null
+      ? null
+      : `${option.cardCount.toLocaleString("en-US")} ${
+          option.cardCount === 1 ? "card" : "cards"
+        }`,
+  ].filter((detail): detail is string => Boolean(detail));
+}
+
+function compareSetReleaseYears(
+  left: SetDirectoryOption,
+  right: SetDirectoryOption,
+  sort: SetDirectorySort,
+) {
+  if (left.releaseYear == null && right.releaseYear == null) {
+    return left.label.localeCompare(right.label, "en-US", {
+      sensitivity: "base",
+    });
+  }
+  if (left.releaseYear == null) return 1;
+  if (right.releaseYear == null) return -1;
+
+  return (
+    (sort === "newest"
+      ? right.releaseYear - left.releaseYear
+      : left.releaseYear - right.releaseYear) ||
+    left.label.localeCompare(right.label, "en-US", { sensitivity: "base" })
+  );
+}
+
+function groupSetDirectoryOptions(
+  options: readonly SetDirectoryOption[],
+  sort: SetDirectorySort,
+) {
+  const optionsByEra = new Map<string, SetDirectoryOption[]>();
+
+  for (const option of options) {
+    const era = option.era ?? OTHER_SET_ERA;
+    const eraOptions = optionsByEra.get(era);
+    if (eraOptions) eraOptions.push(option);
+    else optionsByEra.set(era, [option]);
+  }
+
+  for (const eraOptions of optionsByEra.values()) {
+    eraOptions.sort((left, right) => compareSetReleaseYears(left, right, sort));
+  }
+
+  return [...optionsByEra.entries()].sort(
+    ([leftEra, leftOptions], [rightEra, rightOptions]) => {
+      if (leftEra === OTHER_SET_ERA) return 1;
+      if (rightEra === OTHER_SET_ERA) return -1;
+
+      const leftYear = leftOptions[0]?.releaseYear;
+      const rightYear = rightOptions[0]?.releaseYear;
+      if (leftYear == null && rightYear == null) {
+        return leftEra.localeCompare(rightEra, "en-US", {
+          sensitivity: "base",
+        });
+      }
+      if (leftYear == null) return 1;
+      if (rightYear == null) return -1;
+
+      return (
+        (sort === "newest" ? rightYear - leftYear : leftYear - rightYear) ||
+        leftEra.localeCompare(rightEra, "en-US", { sensitivity: "base" })
+      );
+    },
+  );
+}
+
+type SetDirectoryCardProps = {
+  active: boolean;
+  disabled: boolean;
+  onOpen: (setName: string) => void;
+  option: SetDirectoryOption;
+};
+
+function SetDirectoryCard({
+  active,
+  disabled,
+  onOpen,
+  option,
+}: SetDirectoryCardProps) {
+  const details = setDirectoryDetails(option);
+
+  return (
+    <button
+      aria-current={active ? "true" : undefined}
+      aria-label={`Open ${option.label}`}
+      className={`set-category-grid__set-card${active ? " is-active" : ""}`}
+      disabled={disabled}
+      onClick={() => onOpen(option.value)}
+      type="button"
+    >
+      <span className="set-category-grid__set-name" title={option.label}>
+        {option.label}
+      </span>
+      {details.length > 0 && (
+        <span
+          className="set-category-grid__set-metadata"
+          title={details.join(" · ")}
+        >
+          {details.join(" · ")}
+        </span>
+      )}
+    </button>
+  );
+}
 
 function cardMatchesFilter(card: PokemonCard, filter: string) {
   const terms = filter
@@ -67,6 +206,9 @@ export function SetCategoryGrid() {
   const cardFilterRef = useRef<HTMLInputElement>(null);
   const sortRequestIdRef = useRef(0);
   const [inputValue, setInputValue] = useState("");
+  const [eraFilter, setEraFilter] = useState("");
+  const [directorySort, setDirectorySort] =
+    useState<SetDirectorySort>("newest");
   const [selectedSetName, setSelectedSetName] = useState<string | null>(null);
   const [activeSetName, setActiveSetName] = useState<string | null>(null);
   const [cards, setCards] = useState<PokemonCard[]>([]);
@@ -109,14 +251,36 @@ export function SetCategoryGrid() {
   );
   const visibleCards = sortedCards.slice(0, visibleCount);
   const normalizedSetFilter = inputValue.trim().toLocaleLowerCase("en-US");
+  const setDirectoryOptions = useMemo(
+    () => setNameOptions.map(enrichSetDirectoryOption),
+    [setNameOptions],
+  );
+  const setEraOptions = useMemo(
+    () => [
+      { label: "Any Era", value: "" },
+      ...groupSetDirectoryOptions(setDirectoryOptions, directorySort).map(
+        ([era]) => ({ label: era, value: era }),
+      ),
+    ],
+    [directorySort, setDirectoryOptions],
+  );
   const filteredSetOptions = useMemo(
     () =>
-      setNameOptions.filter(
-        (option) =>
-          !normalizedSetFilter ||
-          option.label.toLocaleLowerCase("en-US").includes(normalizedSetFilter),
-      ),
-    [normalizedSetFilter, setNameOptions],
+      setDirectoryOptions.filter((option) => {
+        const era = option.era ?? OTHER_SET_ERA;
+        return (
+          (!normalizedSetFilter ||
+            option.label
+              .toLocaleLowerCase("en-US")
+              .includes(normalizedSetFilter)) &&
+          (!eraFilter || era === eraFilter)
+        );
+      }),
+    [eraFilter, normalizedSetFilter, setDirectoryOptions],
+  );
+  const groupedSetOptions = useMemo(
+    () => groupSetDirectoryOptions(filteredSetOptions, directorySort),
+    [directorySort, filteredSetOptions],
   );
 
   async function openSet(setName: string) {
@@ -200,6 +364,13 @@ export function SetCategoryGrid() {
     setIsSorting(false);
   }
 
+  function resetSetFilter() {
+    cancelPendingRequest();
+    setInputValue("");
+    setSelectedSetName(null);
+    setInvalid(false);
+  }
+
   const setPicker = (
     <div className="set-category-grid__picker">
       <AutosuggestCombobox
@@ -210,12 +381,7 @@ export function SetCategoryGrid() {
         inputAriaInvalid={invalid}
         indicator="search"
         menuLabel="Set name suggestions"
-        onClear={() => {
-          cancelPendingRequest();
-          setInputValue("");
-          setSelectedSetName(null);
-          setInvalid(false);
-        }}
+        onClear={resetSetFilter}
         onInputChange={(value) => {
           cancelPendingRequest();
           setInputValue(value);
@@ -230,12 +396,36 @@ export function SetCategoryGrid() {
           setInvalid(false);
         }}
         options={setNameOptions}
-        placeholder="Filter"
+        placeholder="Set"
         value={inputValue}
       />
       <span className="set-category-grid__visually-hidden" id={validationId}>
         {INVALID_SET_MESSAGE}
       </span>
+    </div>
+  );
+
+  const eraSelector = (
+    <div className="set-category-grid__directory-select">
+      <SelectDropdown
+        ariaLabel="Filter sets by era"
+        className="set-category-grid__era-select"
+        onChange={setEraFilter}
+        options={setEraOptions}
+        value={eraFilter}
+      />
+    </div>
+  );
+
+  const directorySortSelector = (
+    <div className="set-category-grid__directory-select set-category-grid__directory-select--sort">
+      <SelectDropdown
+        ariaLabel="Sort set directory"
+        className="set-category-grid__directory-sort"
+        onChange={setDirectorySort}
+        options={SET_DIRECTORY_SORT_OPTIONS}
+        value={directorySort}
+      />
     </div>
   );
 
@@ -298,43 +488,44 @@ export function SetCategoryGrid() {
       </header>
 
       <div className="set-category-grid__discovery">
-        {setPicker}
+        <div className="set-category-grid__filters">
+          {setPicker}
+          {eraSelector}
+          {directorySortSelector}
+        </div>
 
         <section
           aria-label="Browse sets"
           className="set-category-grid__set-directory"
         >
-          <header className="set-category-grid__directory-header">
-            <h2>Browse sets</h2>
-            <span>
-              {filteredSetOptions.length.toLocaleString("en-US")}{" "}
-              {filteredSetOptions.length === 1 ? "set" : "sets"}
-            </span>
-          </header>
           {filteredSetOptions.length > 0 ? (
-            <div className="set-category-grid__set-list">
-              {filteredSetOptions.map((option) => {
-                const isActive = activeSetName === option.value;
-                return (
-                  <button
-                    aria-current={isActive ? "true" : undefined}
-                    aria-label={`Open ${option.label}`}
-                    className={`set-category-grid__set-card${
-                      isActive ? " is-active" : ""
-                    }`}
-                    disabled={loading}
-                    key={option.value}
-                    onClick={() => openSetFromDirectory(option.value)}
-                    type="button"
-                  >
-                    <span title={option.label}>{option.label}</span>
-                  </button>
-                );
-              })}
+            <div className="set-category-grid__era-list">
+              {groupedSetOptions.map(([era, options]) => (
+                <section className="set-category-grid__era-group" key={era}>
+                  <header className="set-category-grid__era-header">
+                    <h3>{era}</h3>
+                    <span>
+                      {options.length.toLocaleString("en-US")}{" "}
+                      {options.length === 1 ? "set" : "sets"}
+                    </span>
+                  </header>
+                  <div className="set-category-grid__set-list">
+                    {options.map((option) => (
+                      <SetDirectoryCard
+                        active={activeSetName === option.value}
+                        disabled={loading}
+                        key={option.value}
+                        onOpen={openSetFromDirectory}
+                        option={option}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           ) : (
             <p className="set-category-grid__directory-empty">
-              No sets match “{inputValue.trim()}”.
+              No sets match the current filters.
             </p>
           )}
         </section>

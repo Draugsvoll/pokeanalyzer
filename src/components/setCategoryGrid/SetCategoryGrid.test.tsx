@@ -14,6 +14,9 @@ vi.mock("../../hooks/usePokeTraceSetNameOptions", () => ({
   usePokeTraceSetNameOptions: () => [
     { label: "Base Set", value: "Base Set" },
     { label: "Base Set 2", value: "Base Set 2" },
+    { label: "Arceus", value: "Arceus" },
+    { label: "Battle Academy", value: "Battle Academy" },
+    { label: "Unmapped Set", value: "Unmapped Set" },
   ],
 }));
 
@@ -100,6 +103,41 @@ test("filters the set directory and opens a set from its card", async () => {
 
   expect(screen.getByRole("button", { name: "Open Base Set" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Open Base Set 2" })).toBeVisible();
+  const baseGroup = screen
+    .getByRole("heading", { level: 3, name: "Base" })
+    .closest("section");
+  const otherGroup = screen
+    .getByRole("heading", { level: 3, name: "Other" })
+    .closest("section");
+  expect(baseGroup).toContainElement(
+    screen.getByRole("button", { name: "Open Base Set" }),
+  );
+  expect(otherGroup).toContainElement(
+    screen.getByRole("button", { name: "Open Unmapped Set" }),
+  );
+  expect(
+    baseGroup?.querySelectorAll(".set-category-grid__set-card")[0],
+  ).toHaveAccessibleName("Open Base Set 2");
+  expect(
+    screen
+      .getByRole("heading", { level: 3, name: "Sword & Shield" })
+      .compareDocumentPosition(
+        screen.getByRole("heading", { level: 3, name: "Platinum" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    screen
+      .getByRole("heading", { level: 3, name: "Base" })
+      .compareDocumentPosition(
+        screen.getByRole("heading", { level: 3, name: "Other" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Open Base Set" }),
+  ).toHaveTextContent("Base Set1999 · 102 cards");
+  expect(
+    screen.getByRole("button", { name: "Open Base Set" }),
+  ).not.toHaveTextContent("Base ·");
 
   fireEvent.change(screen.getByRole("combobox", { name: "Set name" }), {
     target: { value: "Set 2" },
@@ -117,6 +155,105 @@ test("filters the set directory and opens a set from its card", async () => {
   expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue(
     "Base Set 2",
   );
+});
+
+test("filters the directory by era and restores it when cleared", () => {
+  renderSetExplorer();
+  const eraSelect = screen.getByRole("button", { name: "Filter sets by era" });
+
+  fireEvent.click(eraSelect);
+  fireEvent.click(screen.getByRole("option", { name: "Base" }));
+
+  expect(screen.getByRole("heading", { level: 3, name: "Base" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Open Base Set" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Open Arceus" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Open Unmapped Set" }),
+  ).toBeNull();
+
+  fireEvent.click(eraSelect);
+  fireEvent.click(screen.getByRole("option", { name: "Any Era" }));
+
+  expect(eraSelect).toHaveTextContent("Any Era");
+  expect(screen.getByRole("button", { name: "Open Arceus" })).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Open Unmapped Set" }),
+  ).toBeVisible();
+});
+
+test("shows all set suggestions while combining the directory filters", () => {
+  renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
+  fireEvent.click(screen.getByRole("option", { name: "Base" }));
+  const setInput = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.click(setInput);
+
+  const suggestions = screen.getByRole("listbox", {
+    name: "Set name suggestions",
+  });
+  expect(suggestions).toHaveTextContent("Base Set");
+  expect(suggestions).toHaveTextContent("Arceus");
+
+  fireEvent.change(setInput, { target: { value: "Arceus" } });
+  expect(screen.getByText("No sets match the current filters.")).toBeVisible();
+});
+
+test("keeps the set filter when its input is clicked", () => {
+  renderSetExplorer();
+  const setInput = screen.getByRole("combobox", { name: "Set name" });
+
+  expect(setInput).toHaveAttribute("placeholder", "Set");
+
+  fireEvent.change(setInput, { target: { value: "Base" } });
+  fireEvent.click(setInput);
+  expect(setInput).toHaveValue("Base");
+});
+
+test("keeps the displayed set when either directory filter is clicked", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Card 2", "2/102", 10)],
+    salesLeaders,
+  });
+  renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open Base Set" }));
+  expect(
+    await screen.findByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+
+  fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
+  expect(
+    screen.getByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+  expect(document.querySelector(".grid-view")).not.toBeNull();
+
+  fireEvent.click(screen.getByRole("combobox", { name: "Set name" }));
+  expect(
+    screen.getByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+  expect(document.querySelector(".grid-view")).not.toBeNull();
+});
+
+test("sorts eras and their sets by oldest release year with Other last", () => {
+  renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
+  fireEvent.click(screen.getByRole("option", { name: "Oldest" }));
+
+  const headings = screen
+    .getAllByRole("heading", { level: 3 })
+    .map((heading) => heading.textContent);
+  expect(headings).toEqual(["Base", "Platinum", "Sword & Shield", "Other"]);
+
+  const baseGroup = screen
+    .getByRole("heading", { level: 3, name: "Base" })
+    .closest("section");
+  expect(
+    [
+      ...(baseGroup?.querySelectorAll(".set-category-grid__set-card") ?? []),
+    ].map((cardElement) => cardElement.getAttribute("aria-label")),
+  ).toEqual(["Open Base Set", "Open Base Set 2"]);
 });
 
 test("clears the set filter and restores the full directory", () => {

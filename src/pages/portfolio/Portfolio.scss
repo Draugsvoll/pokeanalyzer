@@ -65,9 +65,16 @@
     min-height: 8rem;
     min-width: 0;
     padding: var(--space-5);
+    position: relative;
 
-    & + & {
-      border-left: 1px solid var(--border-divider);
+    & + &::before {
+      background: var(--border-divider);
+      bottom: var(--space-5);
+      content: "";
+      left: 0;
+      position: absolute;
+      top: var(--space-5);
+      width: 1px;
     }
 
     > span {
@@ -418,7 +425,9 @@
       border-bottom: 1px solid var(--border-divider);
 
       &:nth-child(odd) {
-        border-left: 0;
+        &::before {
+          display: none;
+        }
       }
 
       &:nth-last-child(-n + 2) {
@@ -458,8 +467,11 @@
     &__metric:nth-child(odd),
     &__metric:nth-last-child(-n + 2) {
       border-bottom: 1px solid var(--border-divider);
-      border-left: 0;
       min-height: 7.75rem;
+
+      &::before {
+        display: none;
+      }
     }
 
     &__metric:last-child {

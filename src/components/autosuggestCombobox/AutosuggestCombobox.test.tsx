@@ -76,6 +76,11 @@ test("selects the active suggestion with the keyboard", () => {
   expect(
     screen.queryByRole("listbox", { name: "Set name suggestions" }),
   ).not.toBeInTheDocument();
+
+  fireEvent.click(input);
+  expect(
+    screen.getByRole("listbox", { name: "Set name suggestions" }),
+  ).toBeVisible();
 });
 
 test("handles Escape only while its suggestion list is open", () => {
