@@ -126,6 +126,26 @@ describe("PokemonCardView default price change", () => {
     expect(screen.queryByText("10.0%")).not.toBeInTheDocument();
   });
 
+  test("renders an unavailable change for a displayed price below $2", () => {
+    const { container } = renderCard({
+      marketDisplay: {
+        changePercent: 25,
+        condition: "NEAR_MINT",
+        currency: "USD",
+        price: 1.99,
+        source: "tcgplayer",
+      },
+    });
+
+    expect(screen.getByText("$1.99")).toBeInTheDocument();
+    expect(screen.getByLabelText("Price change unavailable")).toHaveTextContent(
+      "—",
+    );
+    expect(
+      container.querySelector(".app-price-change--unavailable"),
+    ).not.toBeNull();
+  });
+
   test("respects an explicitly unavailable portfolio comparison", () => {
     const { container } = renderCard({ comparisonPriceSnapshot: null });
 

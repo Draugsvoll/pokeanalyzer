@@ -457,11 +457,13 @@
   border-color: var(--border-color-strong);
   border-radius: var(--border-radius-control);
   box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3);
-  gap: 0.25rem;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.45rem;
   justify-content: initial;
   left: calc(100% + 0.3rem);
   min-width: 0;
-  padding: 0.25rem;
+  padding: 0.7rem;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -471,9 +473,18 @@
     right: calc(100% + 0.3rem);
   }
 
+  .ui-confirm-popover__label {
+    padding: 0;
+  }
+
+  .ui-confirm-popover__actions {
+    width: 100%;
+  }
+
   .app-btn {
-    min-width: 3.9rem;
-    padding: 0.3rem 0.55rem;
+    flex: 1 1 0;
+    min-width: 4.25rem;
+    padding-inline: 0.65rem;
   }
 }
 

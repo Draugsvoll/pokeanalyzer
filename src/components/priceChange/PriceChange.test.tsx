@@ -28,7 +28,7 @@ test("renders unavailable state without a directional arrow", () => {
   render(<PriceChange percent={null} title="7-day price change" />);
 
   const change = screen.getByLabelText("Price change unavailable");
-  expect(change).toHaveTextContent("-");
+  expect(change).toHaveTextContent("—");
   expect(change).toHaveClass("app-price-change--unavailable");
   expect(change.querySelector(".app-price-change__arrow")).toBeNull();
 });

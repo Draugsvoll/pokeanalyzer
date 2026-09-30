@@ -7,6 +7,11 @@ import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
+export type LoadedPokeTraceSet = {
+  cards: PokemonCard[];
+  salesLeaders: PokeTraceSetSalesLeaders;
+};
+
 function cacheKey(setName: string) {
   return setName.trim().toLocaleLowerCase("en-US");
 }
@@ -56,7 +61,26 @@ function unavailableSalesLeaders(): PokeTraceSetSalesLeaders {
   return { leastTotal: null, total: null };
 }
 
-export async function loadPokeTraceSet(setName: string, signal?: AbortSignal) {
+export function isLoadedPokeTraceSet(
+  value: unknown,
+  setName: string,
+): value is LoadedPokeTraceSet {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const result = value as Partial<LoadedPokeTraceSet>;
+  const key = cacheKey(setName);
+  return Boolean(
+    Array.isArray(result.cards) &&
+    result.cards.every(
+      (card) => isPokemonCard(card) && cacheKey(card.set.name) === key,
+    ) &&
+    isSalesLeaders(result.salesLeaders),
+  );
+}
+
+export async function loadPokeTraceSet(
+  setName: string,
+  signal?: AbortSignal,
+): Promise<LoadedPokeTraceSet> {
   const key = cacheKey(setName);
   const params = new URLSearchParams({ setName: setName.trim() });
   return runWithRequestTimeout(

@@ -107,68 +107,6 @@
     width: 100%;
   }
 
-  /* Full-screen card switcher rendered through a body portal. */
-  &__search-overlay {
-    backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.88);
-    inset: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    position: fixed;
-    z-index: 2000;
-  }
-
-  &__search-close {
-    align-items: center;
-    background: transparent;
-    border: var(--border);
-    border-radius: var(--border-radius);
-    color: var(--font-color-secondary);
-    cursor: pointer;
-    display: inline-flex;
-    height: 3rem;
-    justify-content: center;
-    padding: 0;
-    position: fixed;
-    right: clamp(1rem, 2vw, 1.5rem);
-    top: clamp(1rem, 2vw, 1.5rem);
-    transition:
-      background-color var(--delay-short) ease,
-      border-color var(--delay-short) ease,
-      color var(--delay-short) ease;
-    width: 3rem;
-    z-index: 1;
-
-    &:hover {
-      border-color: var(--border-color-strong);
-      color: var(--font-color-primary);
-    }
-
-    &:focus-visible {
-      box-shadow: var(--dropdown-focus-ring);
-      outline: none;
-    }
-  }
-
-  &__search-modal {
-    box-sizing: border-box;
-    margin: 30vh auto 3rem;
-    max-width: 72rem;
-    width: calc(100% - 2rem);
-
-    .database-search-control,
-    .database-search-bar {
-      margin-inline: auto;
-      max-width: var(--search-max-width);
-    }
-
-    .database-preview {
-      min-height: 0;
-      padding: 0;
-      text-align: left;
-    }
-  }
-
   &__image-side {
     align-items: center;
     display: grid;
@@ -1000,11 +938,6 @@
     &__details {
       grid-template-columns: 1fr;
       padding: 1.25rem 1rem;
-    }
-
-    &__search-modal {
-      margin-top: max(1rem, calc(50dvh - 7rem));
-      width: calc(100% - 1rem);
     }
 
     &__info-side {

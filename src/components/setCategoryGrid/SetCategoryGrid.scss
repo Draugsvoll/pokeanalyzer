@@ -33,7 +33,7 @@
 
 .set-category-grid__results {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-6);
   min-width: 0;
 }
 
@@ -106,17 +106,32 @@
   align-items: center;
   display: flex;
   flex: 0 0 auto;
-  gap: var(--space-2);
-
-  > span {
-    color: var(--font-color-faint);
-    font-size: var(--font-size-caption);
-    font-weight: var(--font-weight-medium);
-  }
 }
 
 .set-category-grid__combobox {
   min-width: 0;
+
+  .ui-autosuggest__clear {
+    transition:
+      background-color var(--animation-duration-fast)
+        var(--animation-ease-standard),
+      border-color var(--animation-duration-fast) var(--animation-ease-standard),
+      color var(--animation-duration-fast) var(--animation-ease-standard);
+
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--font-color-primary) 5%,
+        var(--bg-input-strong)
+      );
+      border-color: color-mix(
+        in srgb,
+        var(--font-color-secondary) 28%,
+        transparent
+      );
+      color: var(--font-color-secondary);
+    }
+  }
 
   > input {
     background: var(--dropdown-trigger-bg);

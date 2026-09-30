@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Star } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Star, X } from "lucide-react";
 import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
 import { PriceChange } from "../priceChange/PriceChange";
 import { Badge } from "../ui/Badge";
@@ -413,10 +413,16 @@ export function PokemonCardPortfolioView({
           </output>
           {pendingQuantity != null && (
             <ConfirmPopover
+              actionSize="small"
               className="pokemon-card-portfolio-view__quantity-confirm"
               aria-label="Confirm quantity change"
+              cancelAriaLabel="Cancel quantity change"
+              cancelLabel={<X aria-hidden="true" />}
+              confirmAriaLabel="Apply quantity change"
               confirmDisabled={pendingQuantity === quantity}
+              confirmLabel={<Check aria-hidden="true" />}
               confirming={updatingQuantity}
+              label={`Quantity: ${pendingQuantity}`}
               onConfirm={() => {
                 void confirmQuantityChange();
               }}

@@ -76,6 +76,29 @@ describe("resolveDisplayedPokeTracePriceChangePercent", () => {
       }),
     ).toBe(-4);
   });
+
+  test("treats changes for prices below $2 as unavailable", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 1.99 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 1 };
+
+    expect(resolveDisplayedPokeTracePriceChangePercent(card)).toBeNull();
+    expect(
+      resolveDisplayedPokeTracePriceChangePercent(card, {
+        explicitChangePercent: 99,
+      }),
+    ).toBeNull();
+  });
+
+  test("keeps changes for prices at the $2 threshold", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 2 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 1 };
+
+    expect(resolveDisplayedPokeTracePriceChangePercent(card)).toBe(100);
+  });
 });
 
 describe("resolveDisplayedPokeTracePriceChange", () => {
@@ -98,6 +121,29 @@ describe("resolveDisplayedPokeTracePriceChange", () => {
     ).toEqual({
       defaultSevenDayComparison: undefined,
       percent: -4,
+      period: "7d",
+      show: true,
+    });
+  });
+
+  test("does not expose a change for a displayed price below $2", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 1.5 } },
+    });
+
+    expect(
+      resolveDisplayedPokeTracePriceChange(card, {
+        marketDisplay: {
+          changePeriod: "7d",
+          changePercent: 25,
+          condition: "NEAR_MINT",
+          price: 1.5,
+          source: "tcgplayer",
+        },
+      }),
+    ).toEqual({
+      defaultSevenDayComparison: undefined,
+      percent: null,
       period: "7d",
       show: true,
     });

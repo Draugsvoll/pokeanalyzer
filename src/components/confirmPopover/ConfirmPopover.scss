@@ -19,8 +19,9 @@
   padding: 0.55rem 0.85rem;
   white-space: nowrap;
   z-index: 5;
-  min-width:13rem;
+  min-width: 13rem;
   justify-content: center;
+  text-align: center;
 
   &__label {
     color: var(--font-color-primary);
@@ -29,8 +30,12 @@
     padding: 0 0.25rem;
   }
 
+  &__actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+
   .app-btn {
     border-radius: var(--border-radius-control);
   }
-
 }

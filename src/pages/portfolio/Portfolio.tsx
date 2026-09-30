@@ -9,9 +9,14 @@ import {
 } from "../../../shared/priceChangePeriod";
 import Button from "../../components/button/Button";
 import { CardIdentity } from "../../components/cardIdentity/CardIdentity";
+import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { FilterInput } from "../../components/filterInput/FilterInput";
 import { GridView } from "../../components/gridView/GridView";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import {
+  OverviewMetric,
+  OverviewPanel,
+} from "../../components/overviewPanel/OverviewPanel";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
 import { PriceChange } from "../../components/priceChange/PriceChange";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
@@ -86,37 +91,32 @@ function FeaturedCardMetric({
   const periodLong = formatPriceChangePeriodLong(period);
 
   return (
-    <article className="portfolio__metric portfolio__metric--featured-card ui-render-fade">
-      <span>{label}</span>
-      <strong className="portfolio__holding-value">
-        {item ? formatMoney(item.value) : "—"}
-        {item?.change != null && (
-          <PriceChange
-            ariaLabel={`${periodLong} price change ${formatSignedPercent(item.change)}`}
-            percent={item.change}
-            period={period}
-            title={`${periodLong} price change`}
-          />
-        )}
-      </strong>
-      <small className="portfolio__holding-meta">
-        {item ? (
+    <OverviewMetric
+      className="portfolio__metric ui-render-fade"
+      detail={
+        item ? (
           <CardIdentity name={item.card.name} number={cardNumber} />
         ) : (
           unavailableLabel
-        )}
-      </small>
-      {item?.card.image && (
-        <img
-          alt=""
-          loading="lazy"
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-          }}
-          src={item.card.image}
-        />
-      )}
-    </article>
+        )
+      }
+      imageSrc={item?.card.image}
+      label={label}
+      value={
+        <>
+          {item ? formatMoney(item.value) : "—"}
+          {item?.change != null && (
+            <PriceChange
+              ariaLabel={`${periodLong} price change ${formatSignedPercent(item.change)}`}
+              percent={item.change}
+              period={period}
+              title={`${periodLong} price change`}
+            />
+          )}
+        </>
+      }
+      valueClassName="portfolio__holding-value"
+    />
   );
 }
 
@@ -178,13 +178,15 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<PortfolioSort>("unsorted");
+  const [cardSearchOpen, setCardSearchOpen] = useState(false);
+  const addCardsTriggerRef = useRef<HTMLButtonElement>(null);
+  const cardSearchChangedPortfolioRef = useRef(false);
   const [changePeriod, setChangePeriod] =
     useState<PortfolioComparisonPeriod>("7d");
   const summaryRevealRef = useScrollReveal<HTMLElement>();
   const noticeRevealRef = useScrollReveal<HTMLDivElement>();
   const emptyRevealRef = useScrollReveal<HTMLElement>();
   const controlsRevealRef = useScrollReveal<HTMLElement>();
-
   const load = useCallback(async () => {
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -212,6 +214,14 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
       }
     }
   }, [replacePortfolioReferences, userId]);
+
+  const closeCardSearch = useCallback(() => {
+    setCardSearchOpen(false);
+    if (!cardSearchChangedPortfolioRef.current) return;
+
+    cardSearchChangedPortfolioRef.current = false;
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -265,7 +275,11 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             <h1>My collection</h1>
           </div>
           <div className="portfolio__page-actions">
-            <Button onClick={() => navigate("/search")}>
+            <Button
+              aria-expanded={cardSearchOpen}
+              onClick={() => setCardSearchOpen(true)}
+              ref={addCardsTriggerRef}
+            >
               <Plus aria-hidden="true" /> Add cards
             </Button>
           </div>
@@ -273,41 +287,42 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
       )}
 
       {cards.length > 0 && (
-        <section
+        <OverviewPanel
+          ariaLabel="Collection summary"
           className="portfolio__summary ui-scroll-reveal"
-          aria-label="Collection summary"
           ref={summaryRevealRef}
         >
-          <article
+          <OverviewMetric
             key={`value:${stats.totalValue}:${stats.pricedCards}:${stats.totalCards}`}
             className="portfolio__metric portfolio__metric--value ui-render-fade"
-          >
-            <span>Collection value</span>
-            <strong className="portfolio__collection-value">
-              {stats.totalValue > 0 ? formatMoney(stats.totalValue) : "—"}
-              {stats.changePercent != null && (
-                <PriceChange
-                  ariaLabel={`${changePeriodLong} collection value change ${formatSignedPercent(stats.changePercent)}`}
-                  percent={stats.changePercent}
-                  period={changePeriod}
-                  title={`${changePeriodLong} collection value change`}
-                />
-              )}
-            </strong>
-            <small>
-              {stats.pricedCards === stats.totalCards
+            detail={
+              stats.pricedCards === stats.totalCards
                 ? "TCGPlayer Near Mint prices"
-                : `${stats.pricedCards} of ${stats.totalCards} cards have reference prices`}
-            </small>
-          </article>
-          <article
+                : `${stats.pricedCards} of ${stats.totalCards} cards have reference prices`
+            }
+            label="Collection value"
+            value={
+              <>
+                {stats.totalValue > 0 ? formatMoney(stats.totalValue) : "—"}
+                {stats.changePercent != null && (
+                  <PriceChange
+                    ariaLabel={`${changePeriodLong} collection value change ${formatSignedPercent(stats.changePercent)}`}
+                    percent={stats.changePercent}
+                    period={changePeriod}
+                    title={`${changePeriodLong} collection value change`}
+                  />
+                )}
+              </>
+            }
+            valueClassName="portfolio__collection-value"
+          />
+          <OverviewMetric
             key={`cards:${stats.totalCards}`}
             className="portfolio__metric ui-render-fade"
-          >
-            <span>Cards</span>
-            <strong>{integer.format(stats.totalCards)}</strong>
-            <small>Total cards in collection</small>
-          </article>
+            detail="Total cards in collection"
+            label="Cards"
+            value={integer.format(stats.totalCards)}
+          />
           <FeaturedCardMetric
             key={`gainer:${stats.biggestGainer?.card.id ?? "none"}:${stats.biggestGainer?.value ?? "none"}:${changePeriod}:${stats.biggestGainer?.change ?? "none"}`}
             item={stats.biggestGainer}
@@ -322,7 +337,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             period={changePeriod}
             unavailableLabel="No priced cards"
           />
-        </section>
+        </OverviewPanel>
       )}
 
       {missingCardIds.length > 0 && (
@@ -355,7 +370,11 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
               ? "Your saved cards could not be loaded from the catalogue."
               : "Add cards to start tracking your collection."}
           </p>
-          <Button onClick={() => navigate("/search")}>
+          <Button
+            aria-expanded={cardSearchOpen}
+            onClick={() => setCardSearchOpen(true)}
+            ref={addCardsTriggerRef}
+          >
             <Plus aria-hidden="true" /> Add cards
           </Button>
         </section>
@@ -378,14 +397,8 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
             <div className="portfolio__control-group">
               <div className="portfolio__timeframe">
-                <span
-                  className="portfolio__control-label"
-                  id="portfolio-change-period-label"
-                >
-                  Price change
-                </span>
                 <div
-                  aria-labelledby="portfolio-change-period-label"
+                  aria-label="Price change period"
                   className="portfolio__timeframe-options"
                   role="radiogroup"
                 >
@@ -408,7 +421,6 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
                 </div>
               </div>
               <div className="portfolio__sort-group">
-                <span className="portfolio__control-label">Sort</span>
                 <SelectDropdown
                   ariaLabel="Sort portfolio cards"
                   className="portfolio__sort"
@@ -459,6 +471,16 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
           )}
         </>
       )}
+
+      <EmbeddedCardSearchDialog
+        ariaLabel="Add cards"
+        isOpen={cardSearchOpen}
+        onClose={closeCardSearch}
+        onPortfolioChanged={() => {
+          cardSearchChangedPortfolioRef.current = true;
+        }}
+        returnFocusRef={addCardsTriggerRef}
+      />
     </div>
   );
 }

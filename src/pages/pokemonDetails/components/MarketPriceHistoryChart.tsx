@@ -46,15 +46,6 @@ function chartValue(
   return source === "ebay" ? (point.median7d ?? point.avg) : point.avg;
 }
 
-function linePath(points: Array<{ x: number; y: number }>) {
-  return points
-    .map(
-      (point, index) =>
-        `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
-    )
-    .join(" ");
-}
-
 function carriedLinePath(
   points: Array<{ x: number; y: number }>,
   endX: number,
@@ -192,10 +183,7 @@ export function MarketPriceHistoryChart({
     return {
       source,
       points,
-      line:
-        source === "ebay"
-          ? carriedLinePath(positionedPoints, x(dates.at(-1)!))
-          : linePath(positionedPoints),
+      line: carriedLinePath(positionedPoints, x(dates.at(-1)!)),
     };
   });
   const dateTickCount = Math.min(7, dates.length);
@@ -216,10 +204,9 @@ export function MarketPriceHistoryChart({
   const activeX = x(activeDate);
   const activePoints = plottedSeries.map(({ source, points }) => {
     const exactPoint = points.find(({ point }) => point.date === activeDate);
-    const carriedPoint =
-      source === "ebay"
-        ? points.findLast(({ point }) => point.date <= activeDate)
-        : undefined;
+    const carriedPoint = points.findLast(
+      ({ point }) => point.date <= activeDate,
+    );
     return {
       source,
       point: exactPoint ?? carriedPoint ?? null,
@@ -292,11 +279,12 @@ export function MarketPriceHistoryChart({
         >
           <defs>
             <filter
+              filterUnits="userSpaceOnUse"
               id="market-history-glow"
-              x="-10%"
-              y="-20%"
-              width="120%"
-              height="140%"
+              height={HEIGHT + 8}
+              width={WIDTH + 8}
+              x={-4}
+              y={-4}
             >
               <feGaussianBlur stdDeviation="1.15" result="blur" />
               <feMerge>

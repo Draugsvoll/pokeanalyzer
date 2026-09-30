@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import type { PokemonCard } from "../../types/pokemon";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import { CardIdentity } from "../cardIdentity/CardIdentity";
+import { OverviewMetric, OverviewPanel } from "../overviewPanel/OverviewPanel";
 import { PriceChange } from "../priceChange/PriceChange";
 import {
   formatAbsolutePriceChangePercent,
@@ -13,41 +14,8 @@ import "./SetExplorerOverview.scss";
 type SetExplorerOverviewProps = {
   activeSetName: string;
   controls: ReactNode;
-  onFilterCard: (card: PokemonCard) => void;
   overview: SetExplorerOverviewData;
 };
-
-type OverviewFeatureProps = {
-  card: PokemonCard | null;
-  children: ReactNode;
-  className?: string;
-  label: string;
-  onFilterCard: (card: PokemonCard) => void;
-};
-
-function OverviewFeature({
-  card,
-  children,
-  className = "",
-  label,
-  onFilterCard,
-}: OverviewFeatureProps) {
-  const classes = `set-explorer-overview__featured${className ? ` ${className}` : ""}`;
-  if (!card) return <div className={classes}>{children}</div>;
-
-  const cardIdentity = [card.name, card.number].filter(Boolean).join(" ");
-  return (
-    <button
-      aria-label={`${label}: filter cards to ${cardIdentity}`}
-      className={classes}
-      onClick={() => onFilterCard(card)}
-      title={`Show ${cardIdentity}`}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
 
 function moneyFormatter(currency: string) {
   try {
@@ -66,26 +34,12 @@ function moneyFormatter(currency: string) {
   }
 }
 
-function OverviewCardImage({ card }: { card: PokemonCard }) {
-  if (!card.image) return null;
-  return (
-    <img
-      alt=""
-      loading="lazy"
-      onError={(event) => {
-        event.currentTarget.hidden = true;
-      }}
-      src={card.image}
-    />
-  );
-}
-
 export function SetExplorerOverview({
   activeSetName,
   controls,
-  onFilterCard,
   overview,
 }: SetExplorerOverviewProps) {
+  const revealRef = useScrollReveal<HTMLElement>();
   const money = moneyFormatter(overview.currency);
   const changePeriodLong = formatPriceChangePeriodLong(overview.changePeriod);
   const tone =
@@ -107,9 +61,10 @@ export function SetExplorerOverview({
   return (
     <section
       aria-label={`${activeSetName} market overview`}
-      className="set-explorer-overview ui-render-fade"
+      className="set-explorer-overview ui-scroll-reveal"
+      ref={revealRef}
     >
-      <header className="set-explorer-overview__header">
+      <header className="set-explorer-overview__header ui-render-fade">
         <div className="set-explorer-overview__identity">
           <h2 className="app-overview-value">{activeSetName}</h2>
           <p>
@@ -119,56 +74,67 @@ export function SetExplorerOverview({
         </div>
       </header>
 
-      <div className="set-explorer-overview__summary">
-        <div className="set-explorer-overview__market">
-          <span>Set value</span>
-          <div className="set-explorer-overview__market-line">
-            <strong className="app-overview-value">
-              {overview.pricedCards > 0
-                ? money.format(overview.totalValue)
-                : "—"}
-            </strong>
-            <span
-              aria-label={
-                overview.movementPercent == null
-                  ? `${changePeriodLong} Near Mint movement is not available`
-                  : undefined
-              }
-              className="set-explorer-overview__market-movement"
-              title={
-                overview.movementPercent == null
-                  ? `${changePeriodLong} Near Mint movement`
-                  : undefined
-              }
-            >
-              {overview.movementPercent == null ? (
-                <em>Building history</em>
-              ) : (
-                <PriceChange
-                  animate
-                  ariaLabel={`${movementDirection} by ${formattedPercent}. ${changePeriodLong} Near Mint movement`}
-                  percent={overview.movementPercent}
-                  period={overview.changePeriod}
-                  title={`${changePeriodLong} Near Mint movement`}
-                />
-              )}
-            </span>
-          </div>
-          <small>
-            {overview.pricedCards.toLocaleString("en-US")} of{" "}
-            {overview.totalCards.toLocaleString("en-US")} {cardLabel} priced
-          </small>
-        </div>
+      <OverviewPanel
+        ariaLabel={`${activeSetName} summary`}
+        className="set-explorer-overview__summary ui-render-fade"
+      >
+        <OverviewMetric
+          className="set-explorer-overview__market"
+          detail={`${overview.pricedCards.toLocaleString("en-US")} of ${overview.totalCards.toLocaleString("en-US")} ${cardLabel} priced`}
+          label="Set value"
+          value={
+            <>
+              <span>
+                {overview.pricedCards > 0
+                  ? money.format(overview.totalValue)
+                  : "—"}
+              </span>
+              <span
+                aria-label={
+                  overview.movementPercent == null
+                    ? `${changePeriodLong} Near Mint movement is not available`
+                    : undefined
+                }
+                className="set-explorer-overview__market-movement"
+                title={
+                  overview.movementPercent == null
+                    ? `${changePeriodLong} Near Mint movement`
+                    : undefined
+                }
+              >
+                {overview.movementPercent == null ? (
+                  <em>Building history</em>
+                ) : (
+                  <PriceChange
+                    animate
+                    ariaLabel={`${movementDirection} by ${formattedPercent}. ${changePeriodLong} Near Mint movement`}
+                    percent={overview.movementPercent}
+                    period={overview.changePeriod}
+                    title={`${changePeriodLong} Near Mint movement`}
+                  />
+                )}
+              </span>
+            </>
+          }
+          valueClassName="set-explorer-overview__market-line"
+        />
 
-        <OverviewFeature
-          card={overview.topCard?.card ?? null}
-          className="set-explorer-overview__valuable"
+        <OverviewMetric
+          className="set-explorer-overview__featured set-explorer-overview__valuable"
+          detail={
+            overview.topCard ? (
+              <CardIdentity
+                name={overview.topCard.card.name}
+                number={overview.topCard.card.number}
+              />
+            ) : (
+              "No priced cards"
+            )
+          }
+          imageSrc={overview.topCard?.card.image}
           label="Most valuable"
-          onFilterCard={onFilterCard}
-        >
-          <span className="set-explorer-overview__featured-content">
-            <span>Most valuable</span>
-            <strong className="app-overview-value set-explorer-overview__valuable-value">
+          value={
+            <>
               <span>
                 {overview.topCard ? money.format(overview.topCard.price) : "—"}
               </span>
@@ -180,22 +146,10 @@ export function SetExplorerOverview({
                   title={`${changePeriodLong} price change`}
                 />
               )}
-            </strong>
-            <small>
-              {overview.topCard ? (
-                <CardIdentity
-                  name={overview.topCard.card.name}
-                  number={overview.topCard.card.number}
-                />
-              ) : (
-                "No priced cards"
-              )}
-            </small>
-          </span>
-          {overview.topCard && (
-            <OverviewCardImage card={overview.topCard.card} />
-          )}
-        </OverviewFeature>
+            </>
+          }
+          valueClassName="set-explorer-overview__valuable-value"
+        />
 
         {(
           [
@@ -203,41 +157,37 @@ export function SetExplorerOverview({
             ["Least sold", overview.salesLeaders.leastTotal],
           ] as const
         ).map(([label, leader]) => (
-          <OverviewFeature
-            card={leader?.card ?? null}
+          <OverviewMetric
+            className="set-explorer-overview__featured"
+            detail={
+              leader ? (
+                <CardIdentity
+                  name={leader.card.name}
+                  number={leader.card.number}
+                />
+              ) : (
+                "Sales data unavailable"
+              )
+            }
+            imageSrc={leader?.card.image}
             key={label}
             label={label}
-            onFilterCard={onFilterCard}
-          >
-            <span className="set-explorer-overview__featured-content">
-              <span>{label}</span>
-              <strong
+            value={
+              <span
                 aria-label={
                   leader
                     ? `${leader.approximate ? "Approximately " : ""}${integer.format(leader.sales)} sales`
                     : undefined
                 }
-                className="app-overview-value set-explorer-overview__sales-value"
               >
                 {leader
                   ? `${leader.approximate ? "≈" : ""}${integer.format(leader.sales)}`
                   : "—"}
-              </strong>
-              <small>
-                {leader ? (
-                  <CardIdentity
-                    name={leader.card.name}
-                    number={leader.card.number}
-                  />
-                ) : (
-                  "Sales data unavailable"
-                )}
-              </small>
-            </span>
-            {leader && <OverviewCardImage card={leader.card} />}
-          </OverviewFeature>
+              </span>
+            }
+          />
         ))}
-      </div>
+      </OverviewPanel>
 
       {controls}
     </section>

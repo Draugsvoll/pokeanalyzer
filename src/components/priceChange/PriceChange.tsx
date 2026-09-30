@@ -61,7 +61,7 @@ export function PriceChange({
         className={`app-price-change app-price-change--unavailable${animate ? " ui-render-fade" : ""}${className ? ` ${className}` : ""}`}
         title={unavailableLabel}
       >
-        -
+        —
       </span>
     );
   }

@@ -101,4 +101,19 @@ describe("sortPokeTraceCards", () => {
       }).map(({ id }) => id),
     ).toEqual(["displayed-winner", "default-winner"]);
   });
+
+  test("leaves sub-$2 cards last when sorting by change", () => {
+    const cards = [
+      card("sub-threshold", "1", 1.99, 1),
+      card("down", "2", 8, 10),
+      card("up", "3", 11, 10),
+    ];
+
+    expect(
+      sortPokeTraceCards(cards, "change-high-low").map(({ id }) => id),
+    ).toEqual(["up", "down", "sub-threshold"]);
+    expect(
+      sortPokeTraceCards(cards, "change-low-high").map(({ id }) => id),
+    ).toEqual(["down", "up", "sub-threshold"]);
+  });
 });

@@ -63,6 +63,10 @@ test("renders available TCGPlayer and eBay history together", () => {
   expect(
     document.querySelectorAll(".poketrace-market__history-line"),
   ).toHaveLength(2);
+  expect(document.querySelector("#market-history-glow")).toHaveAttribute(
+    "filterUnits",
+    "userSpaceOnUse",
+  );
 });
 
 test("aligns mismatched dates and keeps a one-point series visible", () => {
@@ -84,6 +88,18 @@ test("aligns mismatched dates and keeps a one-point series visible", () => {
       ".poketrace-market__history-series-marker--tcgplayer",
     ),
   ).toBeVisible();
+  expect(
+    document.querySelector(".poketrace-market__history-line--tcgplayer"),
+  ).toHaveAttribute("d", expect.stringContaining("L 790.00"));
+
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  fireEvent.pointerMove(chart, { clientX: 790 });
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-tooltip-row--tcgplayer strong",
+    ),
+  ).toHaveTextContent("$400");
 });
 
 test("renders normally when only one marketplace is available", () => {

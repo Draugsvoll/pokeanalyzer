@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -7,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { ChevronDown } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { POKETRACE_SEARCH_PAGE_SIZE } from "../../../shared/pokeTraceSearch";
 import type { PokeTraceSetSalesLeaders } from "../../../shared/pokeTraceSet";
 import {
@@ -14,8 +16,13 @@ import {
   type PokeTraceRawCondition,
 } from "../../../shared/pokeTraceMarketConditions";
 import { usePokeTraceSetNameOptions } from "../../hooks/usePokeTraceSetNameOptions";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import { loadPokeTraceSet } from "../../services/pokeTraceSets";
+import {
+  loadPokeTraceSetFromSession,
+  savePokeTraceSetToSession,
+} from "../../services/pokeTraceSetSessionCache";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
@@ -156,7 +163,7 @@ function SetDirectoryCard({
     <button
       aria-current={active ? "true" : undefined}
       aria-label={`Open ${option.label}`}
-      className={`set-category-grid__set-card${active ? " is-active" : ""}`}
+      className={`set-category-grid__set-card ui-render-fade${active ? " is-active" : ""}`}
       disabled={disabled}
       onClick={() => onOpen(option.value)}
       type="button"
@@ -173,6 +180,50 @@ function SetDirectoryCard({
         </span>
       )}
     </button>
+  );
+}
+
+type SetDirectoryGroupProps = {
+  activeSetName: string | null;
+  disabled: boolean;
+  era: string;
+  onOpen: (setName: string) => void;
+  options: SetDirectoryOption[];
+};
+
+function SetDirectoryGroup({
+  activeSetName,
+  disabled,
+  era,
+  onOpen,
+  options,
+}: SetDirectoryGroupProps) {
+  const revealRef = useScrollReveal<HTMLElement>();
+
+  return (
+    <section
+      className="set-category-grid__era-group ui-scroll-reveal"
+      ref={revealRef}
+    >
+      <header className="set-category-grid__era-header">
+        <h3>{era}</h3>
+        <span>
+          {options.length.toLocaleString("en-US")}{" "}
+          {options.length === 1 ? "set" : "sets"}
+        </span>
+      </header>
+      <div className="set-category-grid__set-list">
+        {options.map((option) => (
+          <SetDirectoryCard
+            active={activeSetName === option.value}
+            disabled={disabled}
+            key={option.value}
+            onOpen={onOpen}
+            option={option}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -202,8 +253,8 @@ function cardMatchesFilter(card: PokemonCard, filter: string) {
 export function SetCategoryGrid() {
   const validationId = useId();
   const setNameOptions = usePokeTraceSetNameOptions();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestControllerRef = useRef<AbortController | null>(null);
-  const cardFilterRef = useRef<HTMLInputElement>(null);
   const sortRequestIdRef = useRef(0);
   const [inputValue, setInputValue] = useState("");
   const [eraFilter, setEraFilter] = useState("");
@@ -255,6 +306,18 @@ export function SetCategoryGrid() {
     () => setNameOptions.map(enrichSetDirectoryOption),
     [setNameOptions],
   );
+  const requestedSetParameter = searchParams.get("set")?.trim() ?? "";
+  const requestedSetName = useMemo(() => {
+    if (!requestedSetParameter) return null;
+    return (
+      setNameOptions.find(
+        (option) =>
+          option.value.localeCompare(requestedSetParameter, "en-US", {
+            sensitivity: "base",
+          }) === 0,
+      )?.value ?? null
+    );
+  }, [requestedSetParameter, setNameOptions]);
   const setEraOptions = useMemo(
     () => [
       { label: "Any Era", value: "" },
@@ -283,19 +346,34 @@ export function SetCategoryGrid() {
     [directorySort, filteredSetOptions],
   );
 
-  async function openSet(setName: string) {
+  const openSet = useCallback(async (setName: string) => {
     requestControllerRef.current?.abort();
+    requestControllerRef.current = null;
     sortRequestIdRef.current += 1;
     setIsSorting(false);
-    const controller = new AbortController();
-    requestControllerRef.current = controller;
     setInvalid(false);
     setError(null);
+
+    const cached = loadPokeTraceSetFromSession(setName);
+    if (cached) {
+      setCards(cached.cards);
+      setSalesLeaders(cached.salesLeaders);
+      setActiveSetName(setName);
+      setCardFilter("");
+      setSort(POKETRACE_DEFAULT_CARD_SORT);
+      setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     setLoading(true);
 
     try {
       const result = await loadPokeTraceSet(setName, controller.signal);
       if (controller.signal.aborted) return;
+      savePokeTraceSetToSession(setName, result);
       setCards(result.cards);
       setSalesLeaders(result.salesLeaders);
       setActiveSetName(setName);
@@ -315,28 +393,66 @@ export function SetCategoryGrid() {
         setLoading(false);
       }
     }
+  }, []);
+
+  // The URL is the durable source of the opened set, so browser navigation must
+  // deliberately synchronize the local request and presentation state.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!requestedSetParameter || !requestedSetName) {
+      requestControllerRef.current?.abort();
+      requestControllerRef.current = null;
+      setActiveSetName(null);
+      setCards([]);
+      setSalesLeaders(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    setInputValue(requestedSetName);
+    setSelectedSetName(requestedSetName);
+    setInvalid(false);
+    void openSet(requestedSetName);
+  }, [openSet, requestedSetName, requestedSetParameter]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function requestSetOpen(setName: string) {
+    const currentSetParameter = searchParams.get("set")?.trim() ?? "";
+    if (
+      currentSetParameter.localeCompare(setName, "en-US", {
+        sensitivity: "base",
+      }) === 0
+    ) {
+      if (activeSetName !== setName) void openSet(setName);
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set("set", setName);
+    setSearchParams(nextSearchParams, { replace: true });
   }
 
-  async function openSelectedSet() {
+  function openSelectedSet() {
     if (!selectedSetName || inputValue !== selectedSetName) {
       setInvalid(true);
       return;
     }
 
-    await openSet(selectedSetName);
+    requestSetOpen(selectedSetName);
   }
 
   function openSetFromDirectory(setName: string) {
     setInputValue(setName);
     setSelectedSetName(setName);
     setInvalid(false);
-    void openSet(setName);
+    requestSetOpen(setName);
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    void openSelectedSet();
+    openSelectedSet();
   }
 
   async function handleSortChange(nextSort: PokeTraceCardSort) {
@@ -432,7 +548,7 @@ export function SetCategoryGrid() {
   const resultControls = (
     <div
       aria-label="Set card controls"
-      className="set-category-grid__result-controls"
+      className="set-category-grid__result-controls ui-render-fade"
       role="group"
     >
       <FilterInput
@@ -444,11 +560,9 @@ export function SetCategoryGrid() {
           setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
         }}
         placeholder="Filter"
-        ref={cardFilterRef}
         value={cardFilter}
       />
       <div className="set-category-grid__sort-control">
-        <span>Sort</span>
         <PokeTraceSortDropdown
           ariaLabel="Sort set cards"
           className="set-category-grid__sort"
@@ -501,26 +615,14 @@ export function SetCategoryGrid() {
           {filteredSetOptions.length > 0 ? (
             <div className="set-category-grid__era-list">
               {groupedSetOptions.map(([era, options]) => (
-                <section className="set-category-grid__era-group" key={era}>
-                  <header className="set-category-grid__era-header">
-                    <h3>{era}</h3>
-                    <span>
-                      {options.length.toLocaleString("en-US")}{" "}
-                      {options.length === 1 ? "set" : "sets"}
-                    </span>
-                  </header>
-                  <div className="set-category-grid__set-list">
-                    {options.map((option) => (
-                      <SetDirectoryCard
-                        active={activeSetName === option.value}
-                        disabled={loading}
-                        key={option.value}
-                        onOpen={openSetFromDirectory}
-                        option={option}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <SetDirectoryGroup
+                  activeSetName={activeSetName}
+                  disabled={loading}
+                  era={era}
+                  key={era}
+                  onOpen={openSetFromDirectory}
+                  options={options}
+                />
               ))}
             </div>
           ) : (
@@ -537,13 +639,6 @@ export function SetCategoryGrid() {
             <SetExplorerOverview
               activeSetName={activeSetName}
               controls={resultControls}
-              onFilterCard={(card) => {
-                setCardFilter(
-                  [card.name, card.number].filter(Boolean).join(" "),
-                );
-                setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
-                cardFilterRef.current?.focus();
-              }}
               overview={overview}
             />
           )}
@@ -576,7 +671,7 @@ export function SetCategoryGrid() {
               };
             })}
             loading={loading}
-            revealOnScroll={false}
+            revealOnScroll
             sorting={isSorting}
           />
         </div>

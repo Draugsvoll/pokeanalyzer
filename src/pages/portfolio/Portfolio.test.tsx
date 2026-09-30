@@ -31,6 +31,18 @@ vi.mock("../../components/loginmodal/Loginmodal", () => ({
   default: () => null,
 }));
 
+vi.mock("../../components/databaseSearch/DatabaseSearch", () => ({
+  DatabaseSearch: ({
+    onPortfolioChanged,
+  }: {
+    onPortfolioChanged?: (saved: boolean) => void;
+  }) => (
+    <button onClick={() => onPortfolioChanged?.(true)} type="button">
+      Save search result
+    </button>
+  ),
+}));
+
 vi.mock("../../components/pokemonCardView/PokemonCardView", () => ({
   PokemonCardPortfolioView: ({ card }: { card: PortfolioCard }) => (
     <div>Portfolio card: {card.name}</div>
@@ -121,6 +133,13 @@ describe("Portfolio", () => {
 
     expect((await screen.findAllByText("$200.00"))[0]).toBeVisible();
     const valueMetric = screen.getByText("Collection value").closest("article");
+    expect(valueMetric?.closest(".portfolio__summary")).toHaveClass(
+      "app-overview-panel",
+    );
+    expect(valueMetric).toHaveClass("app-overview-metric");
+    expect(
+      valueMetric?.querySelector(".app-overview-metric-content"),
+    ).not.toBeNull();
     expect(valueMetric).toHaveTextContent("$200.0025.0%7d");
     expect(
       valueMetric!.querySelector(".app-price-change__arrow--up"),
@@ -138,7 +157,7 @@ describe("Portfolio", () => {
     );
     expect(
       topHoldingMetric!.querySelector(
-        ".portfolio__holding-meta .app-card-identity",
+        ".app-overview-metric-content .app-card-identity",
       ),
     ).toHaveTextContent("4/102·Charizard");
     expect(screen.queryByText("Collection cards")).toBeNull();
@@ -146,6 +165,67 @@ describe("Portfolio", () => {
     expect(mocks.replacePortfolioReferences).toHaveBeenCalledWith([
       { cardId: "base-4", quantity: 2 },
     ]);
+  });
+
+  test("opens the embedded card search from Add cards", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      cards: [collectionCard()],
+      entries: [{ cardId: "base-4", quantity: 2 }],
+      missingCardIds: [],
+    });
+
+    renderPortfolio();
+
+    const trigger = await screen.findByRole("button", { name: "Add cards" });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Add cards" }),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
+
+    expect(screen.queryByRole("dialog", { name: "Add cards" })).toBeNull();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  test("refreshes the portfolio after an embedded search changes it", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    const addedCard = {
+      ...collectionCard(),
+      id: "base-2",
+      name: "Blastoise",
+      number: "2/102",
+      quantity: 1,
+    };
+    mocks.getHydratedPortfolio
+      .mockResolvedValueOnce({
+        cards: [collectionCard()],
+        entries: [{ cardId: "base-4", quantity: 2 }],
+        missingCardIds: [],
+      })
+      .mockResolvedValueOnce({
+        cards: [collectionCard(), addedCard],
+        entries: [
+          { cardId: "base-4", quantity: 2 },
+          { cardId: "base-2", quantity: 1 },
+        ],
+        missingCardIds: [],
+      });
+
+    renderPortfolio();
+    fireEvent.click(await screen.findByRole("button", { name: "Add cards" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save search result" }));
+
+    expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
+
+    await waitFor(() =>
+      expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(2),
+    );
+    expect(await screen.findByText("Portfolio card: Blastoise")).toBeVisible();
   });
 
   test("renders zero changes with the shared muted downward arrow", async () => {

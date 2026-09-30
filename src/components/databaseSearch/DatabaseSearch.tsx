@@ -44,6 +44,7 @@ type DatabaseSearchProps = {
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
   onClose?: () => void;
+  onPortfolioChanged?: (saved: boolean) => void;
 };
 
 type DatabaseSearchFilters = {
@@ -500,6 +501,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
   onClose,
+  onPortfolioChanged,
 }) => {
   const [pokemonName, setPokemonName] = useState("");
   const [setName, setSetName] = useState("");
@@ -796,6 +798,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                           card,
                           activeCondition,
                         )}
+                        onPortfolioChanged={onPortfolioChanged}
                       />
                     );
                   })}

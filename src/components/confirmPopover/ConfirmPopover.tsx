@@ -6,8 +6,11 @@ import "./ConfirmPopover.scss";
 export type ConfirmPopoverProps = {
   /** Optional prompt, e.g. "Update?" / "Delete?" */
   label?: ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
+  actionSize?: "xsmall" | "small";
+  confirmLabel?: ReactNode;
+  confirmAriaLabel?: string;
+  cancelLabel?: ReactNode;
+  cancelAriaLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirming?: boolean;
@@ -23,8 +26,11 @@ export type ConfirmPopoverProps = {
  */
 export function ConfirmPopover({
   label,
+  actionSize = "xsmall",
   confirmLabel = "Apply",
+  confirmAriaLabel,
   cancelLabel = "Cancel",
+  cancelAriaLabel,
   onConfirm,
   onCancel,
   confirming = false,
@@ -79,11 +85,7 @@ export function ConfirmPopover({
   return (
     <div
       ref={popoverRef}
-      className={[
-        "ui-popover-surface",
-        "ui-confirm-popover",
-        className,
-      ]
+      className={["ui-popover-surface", "ui-confirm-popover", className]
         .filter(Boolean)
         .join(" ")}
       role="dialog"
@@ -93,29 +95,36 @@ export function ConfirmPopover({
       {label != null && label !== false && (
         <span className="ui-confirm-popover__label">{label}</span>
       )}
-      <Button
-        variant="default"
-        fill="ghost"
-        size="xsmall"
-        disabled={confirming}
-        style={getCustomColors("blue")}
-        onClick={onCancel}
-      >
-        {cancelLabel}
-      </Button>
-      <Button
-        variant="default"
-        size="xsmall"
-        disabled={confirming || confirmDisabled}
-        aria-label={confirming ? `${confirmLabel} in progress` : undefined}
-        onClick={onConfirm}
-      >
-        {confirming ? (
-          <span className="app-btn__spinner" aria-hidden="true" />
-        ) : (
-          confirmLabel
-        )}
-      </Button>
+      <div className="ui-confirm-popover__actions">
+        <Button
+          variant="default"
+          fill="ghost"
+          size={actionSize}
+          disabled={confirming}
+          style={getCustomColors("blue")}
+          aria-label={cancelAriaLabel}
+          onClick={onCancel}
+        >
+          {cancelLabel}
+        </Button>
+        <Button
+          variant="default"
+          size={actionSize}
+          disabled={confirming || confirmDisabled}
+          aria-label={
+            confirming
+              ? `${confirmAriaLabel ?? "Confirm"} in progress`
+              : confirmAriaLabel
+          }
+          onClick={onConfirm}
+        >
+          {confirming ? (
+            <span className="app-btn__spinner" aria-hidden="true" />
+          ) : (
+            confirmLabel
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
@@ -20,7 +19,6 @@ import {
   Star,
   type LucideIcon,
   Wallet,
-  X,
 } from "lucide-react";
 import "./PokemonDetails.scss";
 import "../../components/welcomeView/WelcomeView.scss";
@@ -28,7 +26,7 @@ import type { PokemonCard } from "../../types/pokemon";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
 import { Badge } from "../../components/ui/Badge";
-import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
+import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
 import EbaySoldView from "./views/EbaySold/EbaySoldView";
@@ -63,7 +61,6 @@ import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
-import { useModalDialog } from "../../hooks/useModalDialog";
 
 type ActiveView =
   | "empty_view"
@@ -166,11 +163,6 @@ function PokemonDetailsForCard() {
   const closeEmbeddedSearch = useCallback(() => {
     setCardSearchCardId(null);
   }, []);
-  const cardSearchDialogRef = useModalDialog<HTMLDivElement>({
-    isOpen: showCardSearch,
-    onClose: closeEmbeddedSearch,
-    returnFocusRef: cardSearchTriggerRef,
-  });
   const [grokResponses, setGrokResponses] = useState<
     Partial<Record<CreditUsageFeature, string>>
   >({});
@@ -820,40 +812,12 @@ function PokemonDetailsForCard() {
         </div>
       </div>
 
-      {showCardSearch &&
-        createPortal(
-          <div
-            aria-label="Switch card"
-            aria-modal="true"
-            className="card-view__search-overlay ui-render-fade"
-            onMouseDown={(event) => {
-              if (event.target !== event.currentTarget) return;
-              if (event.clientX >= event.currentTarget.clientWidth) return;
-              closeEmbeddedSearch();
-            }}
-            ref={cardSearchDialogRef}
-            role="dialog"
-            tabIndex={-1}
-          >
-            <button
-              aria-label="Close card search"
-              className="card-view__search-close"
-              onClick={closeEmbeddedSearch}
-              title="Close"
-              type="button"
-            >
-              <X aria-hidden="true" size={22} strokeWidth={1.5} />
-            </button>
-            <div className="card-view__search-modal">
-              <DatabaseSearch
-                autoFocusName
-                embedded
-                onClose={closeEmbeddedSearch}
-              />
-            </div>
-          </div>,
-          document.body,
-        )}
+      <EmbeddedCardSearchDialog
+        ariaLabel="Switch card"
+        isOpen={showCardSearch}
+        onClose={closeEmbeddedSearch}
+        returnFocusRef={cardSearchTriggerRef}
+      />
 
       <LoginModal
         isOpen={showLoginModal}

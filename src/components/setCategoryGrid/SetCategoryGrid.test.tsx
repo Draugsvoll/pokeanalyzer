@@ -6,6 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import type { PokemonCard } from "../../types/pokemon";
 import { loadPokeTraceSet } from "../../services/pokeTraceSets";
 import { SetCategoryGrid } from "./SetCategoryGrid";
@@ -20,9 +21,11 @@ vi.mock("../../hooks/usePokeTraceSetNameOptions", () => ({
   ],
 }));
 
-vi.mock("../../services/pokeTraceSets", () => ({
-  loadPokeTraceSet: vi.fn(),
-}));
+vi.mock("../../services/pokeTraceSets", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../services/pokeTraceSets")>();
+  return { ...actual, loadPokeTraceSet: vi.fn() };
+});
 
 vi.mock("../pokemonCardView/PokemonCardView", () => ({
   PokemonCardView: ({
@@ -65,6 +68,7 @@ function card(id: string, number: string, price: number): PokemonCard {
 
 beforeEach(() => {
   vi.mocked(loadPokeTraceSet).mockReset();
+  window.sessionStorage.clear();
 });
 
 const salesLeaders = {
@@ -72,12 +76,29 @@ const salesLeaders = {
   total: { approximate: true, cardId: "Card 10", sales: 602 },
 };
 
-function renderSetExplorer() {
-  render(<SetCategoryGrid />);
+function CurrentLocation() {
+  const location = useLocation();
+  return (
+    <output data-testid="current-location">{`${location.pathname}${location.search}`}</output>
+  );
+}
+
+function renderSetExplorer(initialEntry = "/set") {
+  const result = render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <SetCategoryGrid />
+      <CurrentLocation />
+    </MemoryRouter>,
+  );
   expect(screen.getByRole("heading", { name: "Explore sets" })).toBeVisible();
-  expect(document.querySelector(".ui-autosuggest__search-icon")).not.toBeNull();
-  expect(document.querySelector(".ui-autosuggest__chevron")).toBeNull();
-  expect(document.querySelector(".grid-view")).toBeNull();
+  if (!initialEntry.includes("?set=")) {
+    expect(
+      document.querySelector(".ui-autosuggest__search-icon"),
+    ).not.toBeNull();
+    expect(document.querySelector(".ui-autosuggest__chevron")).toBeNull();
+    expect(document.querySelector(".grid-view")).toBeNull();
+  }
+  return result;
 }
 
 test("rejects manually typed text even when it exactly matches an option", () => {
@@ -111,6 +132,10 @@ test("filters the set directory and opens a set from its card", async () => {
     .closest("section");
   expect(baseGroup).toContainElement(
     screen.getByRole("button", { name: "Open Base Set" }),
+  );
+  expect(baseGroup).toHaveClass("ui-scroll-reveal");
+  expect(screen.getByRole("button", { name: "Open Base Set" })).toHaveClass(
+    "ui-render-fade",
   );
   expect(otherGroup).toContainElement(
     screen.getByRole("button", { name: "Open Unmapped Set" }),
@@ -146,6 +171,10 @@ test("filters the set directory and opens a set from its card", async () => {
   expect(screen.queryByRole("button", { name: "Open Base Set" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Open Base Set 2" }));
 
+  expect(screen.getByTestId("current-location")).toHaveTextContent(
+    "/set?set=Base+Set+2",
+  );
+
   await waitFor(() =>
     expect(loadPokeTraceSet).toHaveBeenCalledWith(
       "Base Set 2",
@@ -155,6 +184,50 @@ test("filters the set directory and opens a set from its card", async () => {
   expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue(
     "Base Set 2",
   );
+});
+
+test("opens the set named in the URL", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Card 2", "2/102", 10)],
+    salesLeaders,
+  });
+
+  renderSetExplorer("/set?set=Base+Set");
+
+  expect(
+    await screen.findByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+  expect(loadPokeTraceSet).toHaveBeenCalledTimes(1);
+  expect(loadPokeTraceSet).toHaveBeenCalledWith(
+    "Base Set",
+    expect.any(AbortSignal),
+  );
+  expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue(
+    "Base Set",
+  );
+});
+
+test("restores the last displayed set from session storage", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Card 2", "2/102", 10)],
+    salesLeaders,
+  });
+  const firstRender = renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open Base Set" }));
+  expect(
+    await screen.findByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+  expect(loadPokeTraceSet).toHaveBeenCalledTimes(1);
+
+  firstRender.unmount();
+  vi.mocked(loadPokeTraceSet).mockClear();
+  renderSetExplorer("/set?set=Base+Set");
+
+  expect(
+    await screen.findByRole("region", { name: "Base Set market overview" }),
+  ).toBeVisible();
+  expect(loadPokeTraceSet).not.toHaveBeenCalled();
 });
 
 test("filters the directory by era and restores it when cleared", () => {
@@ -288,6 +361,19 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   const overview = screen.getByRole("region", {
     name: "Base Set market overview",
   });
+  expect(overview).toHaveClass("ui-scroll-reveal");
+  expect(overview.querySelector(".set-explorer-overview__summary")).toHaveClass(
+    "app-overview-panel",
+    "ui-render-fade",
+  );
+  expect(overview.querySelector(".set-explorer-overview__market")).toHaveClass(
+    "app-overview-metric",
+  );
+  expect(
+    overview.querySelector(
+      ".set-explorer-overview__market .app-overview-metric-content",
+    ),
+  ).not.toBeNull();
   const resultControls = screen.getByRole("group", {
     name: "Set card controls",
   });
@@ -358,47 +444,20 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(
     screen.getByRole("button", { name: "Sort set cards" }),
   ).toHaveTextContent("Unsorted");
+  expect(document.querySelector(".grid-view")).toHaveClass("ui-scroll-reveal");
   expect(
     screen.getAllByTestId("set-card").map((node) => node.textContent),
   ).toEqual(["Card 10", "Card 2"]);
+  expect(
+    overview.querySelectorAll(".set-explorer-overview__featured"),
+  ).toHaveLength(3);
+  expect(
+    overview.querySelectorAll("button.set-explorer-overview__featured"),
+  ).toHaveLength(0);
 
   const cardFilter = screen.getByRole("searchbox", {
     name: "Filter set cards",
   });
-  fireEvent.click(
-    within(overview).getByRole("button", {
-      name: "Most valuable: filter cards to Card 10 10/102",
-    }),
-  );
-  expect(cardFilter).toHaveValue("Card 10 10/102");
-  expect(cardFilter).toHaveFocus();
-  expect(
-    screen.getAllByTestId("set-card").map((node) => node.textContent),
-  ).toEqual(["Card 10"]);
-  fireEvent.click(screen.getByRole("button", { name: "Clear card filter" }));
-
-  fireEvent.click(
-    within(overview).getByRole("button", {
-      name: "Most sold: filter cards to Card 10 10/102",
-    }),
-  );
-  expect(cardFilter).toHaveValue("Card 10 10/102");
-  expect(
-    screen.getAllByTestId("set-card").map((node) => node.textContent),
-  ).toEqual(["Card 10"]);
-  fireEvent.click(screen.getByRole("button", { name: "Clear card filter" }));
-
-  fireEvent.click(
-    within(overview).getByRole("button", {
-      name: "Least sold: filter cards to Card 2 2/102",
-    }),
-  );
-  expect(cardFilter).toHaveValue("Card 2 2/102");
-  expect(
-    screen.getAllByTestId("set-card").map((node) => node.textContent),
-  ).toEqual(["Card 2"]);
-  fireEvent.click(screen.getByRole("button", { name: "Clear card filter" }));
-
   fireEvent.change(cardFilter, { target: { value: "2/102" } });
   expect(
     screen.getAllByTestId("set-card").map((node) => node.textContent),
