@@ -582,7 +582,7 @@ if you don't have the needed data to supply a field in the schema, simply return
 ],
 "collector_outlook": {
 "label": "negative | neutral-negative | neutral | neutral-positive | positive",
-"outlook": "Clarify the reasoning behind the label you chose. Account for different markets and segments when relevant."
+"outlook": "Clarify the reasoning behind the label you chose. Do not mention the label, I just want the reasoning. Account for different markets and segments when relevant."
 },
 "what_to_watch":[{
 "title":"",

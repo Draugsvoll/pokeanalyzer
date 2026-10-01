@@ -12,7 +12,6 @@ import "./MarketSummary.scss";
 type SummaryCardProps = {
   accent: NewsAccent;
   children: ReactNode;
-  eyebrow?: string;
   label?: string;
   title: string;
   wide?: boolean;
@@ -21,12 +20,10 @@ type SummaryCardProps = {
 function SummaryCard({
   accent,
   children,
-  eyebrow,
   label = "",
   title,
   wide = false,
 }: SummaryCardProps) {
-  const labelAccent = label ? getNewsLabelAccent(label) : accent;
   const className = `news-card market-summary__card${
     wide ? " market-summary__card--wide" : ""
   }`;
@@ -35,18 +32,15 @@ function SummaryCard({
     <article className={className} style={getNewsAccentStyle(accent)}>
       <div className="news-card__content">
         <header className="news-card__heading">
-          {(eyebrow || label) && (
+          {label && (
             <div className="market-summary__meta">
-              {eyebrow && <span className="news-card__eyebrow">{eyebrow}</span>}
-              {label && (
-                <Badge accent={labelAccent} size="sm" weight="strong">
-                  {label}
-                </Badge>
-              )}
+              <Badge accent={accent} size="sm" weight="strong">
+                {label}
+              </Badge>
             </div>
           )}
           <div className="market-summary__card-title">
-            <h2>{title}</h2>
+            {wide ? <h2>{title}</h2> : <h4>{title}</h4>}
           </div>
         </header>
         <div className="news-card__body">{children}</div>
@@ -111,9 +105,10 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
         {hasLeadContent && (
           <SummaryCard
             accent={toneAccent}
-            eyebrow="Market tone"
-            label={marketTone?.label}
-            title={marketTone?.headline || "Weekly Market Summary"}
+            label={
+              marketTone?.label ? `${marketTone.label} Sentiment` : undefined
+            }
+            title={marketTone?.headline || "Weekly Market Recap"}
             wide
           >
             {collectorOutlook?.outlook && <p>{collectorOutlook.outlook}</p>}
@@ -121,7 +116,7 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
         )}
 
         {!!keyThemesAndChanges.length && (
-          <SummaryCard accent="purple" title="Key themes and changes">
+          <SummaryCard accent="purple" title="Highlights">
             <ul className="news-card__list market-summary__entries">
               {keyThemesAndChanges.map((item, index) => (
                 <SummaryEntry

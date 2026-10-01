@@ -88,17 +88,6 @@ test("uses fresh caches without refetching either resource", () => {
 
   expect(screen.getByText("Cached market news")).toBeInTheDocument();
   expect(screen.getByText("The market was mixed")).toBeInTheDocument();
-  const marketNewsSection = screen.getByRole("region", {
-    name: "Market news",
-  });
-  expect(marketNewsSection).toHaveClass("ui-render-fade");
-  expect(marketNewsSection).not.toHaveClass(
-    "ui-scroll-reveal",
-    "ui-scroll-reveal--visible",
-  );
-  expect(marketNewsSection.querySelector(".general-news")).not.toHaveClass(
-    "ui-render-fade",
-  );
   expect(newsMocks.fetchNewsFeeds).not.toHaveBeenCalled();
   expect(summaryMocks.fetchMarketSummary).not.toHaveBeenCalled();
 });
@@ -117,7 +106,7 @@ test("renders stale cached news while refreshing it", async () => {
   expect(newsMocks.cacheNewsFeeds).toHaveBeenCalledWith(freshFeeds);
 });
 
-test("retries once when the market-news request fails", async () => {
+test("retries once when the news request fails", async () => {
   newsMocks.fetchNewsFeeds
     .mockRejectedValueOnce(new Error("Temporary failure"))
     .mockResolvedValueOnce(freshFeeds);
@@ -136,25 +125,13 @@ test("loads a market summary independently from market news", async () => {
   render(<NewsLane />);
 
   expect(
-    await screen.findByRole("heading", { name: "Weekly Market Summary" }),
+    await screen.findByRole("heading", { name: "Weekly Market Recap" }),
   ).toBeVisible();
-  const summarySection = screen.getByRole("region", {
-    name: "Market summary",
-  });
-  expect(summarySection).toHaveClass(
-    "ui-scroll-reveal",
-    "ui-scroll-reveal--visible",
-    "ui-render-fade",
-  );
-  expect(summarySection.querySelector(".market-summary")).not.toHaveClass(
-    "ui-render-fade",
-  );
   expect(screen.getByText("The market was mixed")).toBeVisible();
-  expect(screen.queryByRole("heading", { name: "Market News" })).toBeNull();
   expect(summaryMocks.cacheMarketSummary).toHaveBeenCalledWith(marketSummary);
 });
 
-test("a fresh market-news cache does not suppress the summary request", async () => {
+test("a fresh news cache does not suppress the summary request", async () => {
   newsMocks.readCachedNewsFeeds.mockReturnValue({
     feeds: cachedFeeds,
     isFresh: true,

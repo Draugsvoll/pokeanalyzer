@@ -35,7 +35,7 @@ const payload: MarketSummaryPayload = {
 test("groups each summary section while keeping the lead card full-width", () => {
   const { container } = render(<MarketSummary payload={payload} />);
   const themesHeading = screen.getByRole("heading", {
-    name: "Key themes and changes",
+    name: "Highlights",
   });
   const themesCard = themesHeading.closest("article");
   const leadCard = screen
@@ -46,6 +46,11 @@ test("groups each summary section while keeping the lead card full-width", () =>
     container.querySelectorAll(".market-summary__card--wide"),
   ).toHaveLength(1);
   expect(leadCard).toHaveClass("market-summary__card--wide");
+  expect(
+    screen.getByRole("heading", { name: "The market remained balanced" })
+      .tagName,
+  ).toBe("H2");
+  expect(themesHeading.tagName).toBe("H4");
   expect(leadCard).toContainElement(
     screen.getByText("Older cards offset softness in recent releases."),
   );
@@ -56,9 +61,8 @@ test("groups each summary section while keeping the lead card full-width", () =>
   expect(
     screen.queryByRole("heading", { name: "Collector outlook" }),
   ).toBeNull();
-  expect(
-    within(screen.getByText("Market tone").parentElement!).getByText("neutral"),
-  ).toBeVisible();
+  expect(screen.queryByText("Market tone")).toBeNull();
+  expect(screen.getByText("neutral Sentiment")).toBeVisible();
   expect(themesCard).not.toBeNull();
   expect(themesCard).toHaveStyle("--news-accent: var(--custom-color-purple)");
   expect(within(themesCard!).getByRole("list")).toBeVisible();
