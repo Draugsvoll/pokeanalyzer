@@ -364,6 +364,7 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(overview).toHaveClass("ui-scroll-reveal");
   expect(overview.querySelector(".set-explorer-overview__summary")).toHaveClass(
     "app-overview-panel",
+    "app-overview-panel--three-featured",
     "ui-render-fade",
   );
   expect(overview.querySelector(".set-explorer-overview__market")).toHaveClass(

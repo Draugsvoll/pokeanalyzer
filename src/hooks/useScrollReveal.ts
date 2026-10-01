@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 
 const VISIBLE_CLASS = "ui-scroll-reveal--visible";
+const ROOT_MARGIN = "0px 0px -2% 0px";
+const THRESHOLD = 0;
 
 export function useScrollReveal<T extends HTMLElement>() {
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -28,8 +30,8 @@ export function useScrollReveal<T extends HTMLElement>() {
         observer.unobserve(element);
       },
       {
-        rootMargin: "0px 0px 6% 0px",
-        threshold: 0.08,
+        rootMargin: ROOT_MARGIN,
+        threshold: THRESHOLD,
       },
     );
 

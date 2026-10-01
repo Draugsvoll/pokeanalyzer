@@ -290,6 +290,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
         <OverviewPanel
           ariaLabel="Collection summary"
           className="portfolio__summary ui-scroll-reveal"
+          layout="two-featured"
           ref={summaryRevealRef}
         >
           <OverviewMetric

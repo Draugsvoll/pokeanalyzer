@@ -6,6 +6,8 @@ import path from "node:path";
 import {
   generalNewsInput,
   generalNewsInstructions,
+  marketSummaryInput,
+  marketSummaryInstructions,
 } from "../../src/utils/grok/grokPrompts.js";
 import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
 import {
@@ -13,8 +15,21 @@ import {
   NEWS_FEEDS,
   saveNewsFeed,
 } from "../db/newsStore.js";
-import { chat, chatWithRawResponse } from "../services/xaiService.js";
+import { saveMarketSummary } from "../db/marketSummaryStore.js";
+import {
+  chat,
+  chatWithRawResponse,
+  type GrokChatOptions,
+} from "../services/xaiService.js";
 import { parseGeneralNewsResponse } from "./newsGeneration.js";
+import {
+  MARKET_SUMMARY_GROK_OPTIONS,
+  parseMarketSummaryResponse,
+} from "./marketSummaryGeneration.js";
+import {
+  runNewsGenerationWorkflow,
+  type NewsGenerationResult,
+} from "./newsGenerationWorkflow.js";
 import {
   acquireScriptLock,
   ensureScriptLockTable,
@@ -44,13 +59,18 @@ async function generateAndValidate<T>(
   userInput: string,
   instructions: string,
   parser: (responseText: string) => T,
+  grokOptions: GrokChatOptions = {},
 ): Promise<T> {
   console.log(`Generating ${name}`);
   let responseText: string;
   let rawResponsePath: string | null = null;
+  const requestOptions: GrokChatOptions = {
+    ...grokOptions,
+    instructions,
+  };
 
   if (DEBUG_LOCALLY) {
-    const response = await chatWithRawResponse(userInput, { instructions });
+    const response = await chatWithRawResponse(userInput, requestOptions);
     responseText = response.text;
     rawResponsePath = await saveRawResponse(name, {
       userInput,
@@ -60,7 +80,7 @@ async function generateAndValidate<T>(
     });
     console.log(`${name} raw response saved to ${rawResponsePath}`);
   } else {
-    responseText = await chat(userInput, { instructions });
+    responseText = await chat(userInput, requestOptions);
   }
 
   try {
@@ -90,9 +110,6 @@ function validateArguments(args: string[]): boolean {
   return args.includes("--dry-run");
 }
 
-type GenerationResult<T> =
-  { ok: true; payload: T } | { ok: false; error: Error };
-
 async function renewNewsLock(lock: ScriptLock): Promise<void> {
   const renewed = await renewScriptLock(
     lock.name,
@@ -110,13 +127,15 @@ async function runGeneration<T>(
   instructions: string,
   parser: (responseText: string) => T,
   describePayload: (payload: T) => string,
-): Promise<GenerationResult<T>> {
+  grokOptions?: GrokChatOptions,
+): Promise<NewsGenerationResult<T>> {
   try {
     const payload = await generateAndValidate(
       name,
       userInput,
       instructions,
       parser,
+      grokOptions,
     );
     console.log(`${name} validated: ${describePayload(payload)}`);
     return { ok: true, payload };
@@ -138,19 +157,16 @@ async function runGeneration<T>(
 
 async function saveGeneration<T>(
   name: string,
-  result: GenerationResult<T>,
+  payload: T,
   dryRun: boolean,
   savePayload: (payload: T) => Promise<void>,
 ): Promise<Error | null> {
-  if (!result.ok) {
-    return result.error;
-  }
   if (dryRun) {
     return null;
   }
 
   try {
-    await savePayload(result.payload);
+    await savePayload(payload);
     console.log(`${name} saved to SQL`);
     return null;
   } catch (error) {
@@ -184,40 +200,88 @@ async function main(): Promise<void> {
 
   try {
     await renewNewsLock(lock);
-    const generalNewsResult = await runGeneration(
-      "latest_news",
-      generalNewsInput,
-      generalNewsInstructions,
-      parseGeneralNewsResponse,
-      (payload) => `${payload.items.length} items`,
-    );
-    await renewNewsLock(lock);
-
-    const saveError = await saveGeneration(
-      "latest_news",
-      generalNewsResult,
-      dryRun,
-      (payload) => saveNewsFeed(NEWS_FEEDS.generalNews, payload),
-    );
-    await renewNewsLock(lock);
-
-    if (saveError) {
-      console.warn(
-        `NEWS WARNING [news_generation]: latest news failed; ${dryRun ? "no database rows were changed" : "the database row was not updated"}`,
-      );
-      throw new AggregateError(
-        [saveError],
-        "News generation finished with errors",
-        {
-          cause: saveError,
+    const failures = await runNewsGenerationWorkflow(
+      {
+        name: "latest news",
+        generate: async () => {
+          const result = await runGeneration(
+            "latest_news",
+            generalNewsInput,
+            generalNewsInstructions,
+            parseGeneralNewsResponse,
+            (payload) => `${payload.items.length} items`,
+          );
+          await renewNewsLock(lock);
+          return result;
         },
+        save: async (payload) => {
+          const error = await saveGeneration(
+            "latest_news",
+            payload,
+            dryRun,
+            (payload) => saveNewsFeed(NEWS_FEEDS.generalNews, payload),
+          );
+          await renewNewsLock(lock);
+          return error;
+        },
+      },
+      {
+        name: "market summary",
+        generate: async () => {
+          const result = await runGeneration(
+            "market_summary",
+            marketSummaryInput,
+            marketSummaryInstructions,
+            (responseText) =>
+              parseMarketSummaryResponse(
+                responseText,
+                new Date().toISOString(),
+              ),
+            (payload) =>
+              `${
+                payload.keyThemesAndChanges.length +
+                payload.liquidity.length +
+                payload.marketDrivers.length +
+                payload.segmentSummary.length +
+                payload.whatToWatch.length
+              } detailed items`,
+            MARKET_SUMMARY_GROK_OPTIONS,
+          );
+          await renewNewsLock(lock);
+          return result;
+        },
+        save: async (payload) => {
+          const error = await saveGeneration(
+            "market_summary",
+            payload,
+            dryRun,
+            saveMarketSummary,
+          );
+          await renewNewsLock(lock);
+          return error;
+        },
+      },
+    );
+
+    for (const failure of failures) {
+      console.warn(
+        `NEWS WARNING [news_generation]: ${failure.name} failed; ${dryRun ? "no database rows were changed" : "the database row was not updated"}`,
+      );
+    }
+
+    if (failures.length > 0) {
+      const generationErrors = failures.map(({ error }) => error);
+      throw new AggregateError(
+        generationErrors,
+        "News generation finished with errors",
+        { cause: generationErrors[0] },
       );
     }
 
     console.log(
       dryRun
-        ? "Dry run complete; latest news passed and no database rows changed"
-        : "News generation finished successfully; latest news was updated",
+        ? "Dry run complete; both news feeds passed and no database rows changed"
+        : "News generation finished successfully; both news feeds were updated",
     );
   } finally {
     const released = await releaseScriptLock(lock);

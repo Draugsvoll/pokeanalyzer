@@ -536,6 +536,79 @@ Respond in the JSON format provided below. Your entire response must only be a v
 
 `.trim();
 
+export const marketSummaryInput: string = `
+Write a Pokemon market summary for the past 7 days.
+`.trim();
+
+export const marketSummaryInstructions: string = `
+${extraToolsInstructions}
+
+if you don't have the needed data to supply a field in the schema, simply return NULL in that field.
+
+{
+"market_tone": {
+"label": "positive | neutral | negative | mixed",
+"headline":"A headline version of what the markets have been doing"
+},
+"market_overview": [
+"Give a brief overview of what the markets have been doing the past 7 days, only the most noteworthy information. If you mention market indexes then mention them by name. For lengthy texts structure it into paragraphs by giving multiple entries in this array."
+],
+"key_themes_and_changes": [
+{
+"title": "",
+"label":"positive | neutral | negative | mixed",
+"theme": "Describe the key themes and changes for what's been happening the past 7 days. 1 entry in this array per theme/change."
+}
+],
+"liquidity": [
+{
+"label":"low | medium | high ",
+"title": "",
+"description": "Describe liquidity across markets and segments, but only for those seeing meaningful change. 1 entry in this array per meaningful segment change."
+}
+],
+"market_drivers": [
+{
+"title": "",
+"description": "Focus on sets/categories/general rather than individual cards."
+}
+],
+"segment_summary": [
+{
+"title": "",
+"trend":"rising | stable | mixed | softening | falling",
+"description": "Describe segments across markets, but only those that show meaningful change. Focus on sets/categories/general rather than individual cards."
+}
+],
+"collector_outlook": {
+"label": "negative | neutral-negative | neutral | neutral-positive | positive",
+"outlook": "Clarify the reasoning behind the label you chose. Account for different markets and segments when relevant."
+},
+"what_to_watch":[{
+"title":"",
+"description":"This is an optional array. Add things here that collector's should keep their eyes on based on this market summary. Only add things if there is something actually valueable, otherwise return NULL"
+}
+]
+}
+
+# OUTPUT RULES
+
+- Always use neutral language with a neutral tone.
+- Don't shorten or truncate text, fully explain while being concise and specific.
+- Avoid using financial jargon, phrases or slogans.
+- Avoid marketing type language
+- Speak in normal sentences, preferably avoid semicolons.
+- Focus in generalities like sets, segments trends rather than individual cards.
+- Avoid giving advice, focus on stating your findings.
+- Avoid hedging language, simply state your findings honestly.
+- Don't try to give advice or forecasts, describe your findings honestly and what they typically mean. If something is uncertain be honest about that.
+
+# FINAL CHECK
+
+- Make sure your output is always following the output rules supplied above.
+
+`.trim();
+
 export function identifyCardPrompt(
   frontImageBase64: string,
 ): GrokMultimodalMessage {

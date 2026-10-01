@@ -1,8 +1,14 @@
 .news-lane {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-10);
   margin: 0 auto;
   width: 100%;
+}
+
+.news-lane__section {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .news-lane__header {
@@ -12,6 +18,11 @@
 .news-lane__title {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.news-lane__updated {
+  color: var(--font-color-faint);
+  font-size: var(--font-size-label);
 }
 
 .news-lane__panel {

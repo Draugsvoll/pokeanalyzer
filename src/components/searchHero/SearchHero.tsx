@@ -9,7 +9,7 @@ type SearchHeroProps = {
 
 export function SearchHero({ children }: SearchHeroProps) {
   return (
-    <header className="search-hero">
+    <header className="search-hero ui-render-fade">
       <span className="search-hero__eyebrow">
         <Badge accent="blue" size="sm" weight="strong">
           {SEARCH_HERO_CONTENT.eyebrow}

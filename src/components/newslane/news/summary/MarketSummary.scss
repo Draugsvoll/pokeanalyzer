@@ -1,0 +1,117 @@
+.market-summary__grid {
+  align-items: stretch;
+}
+
+.market-summary__card {
+  height: 100%;
+  padding: var(--space-7);
+
+  &::before {
+    display: none;
+  }
+
+  .news-card__heading {
+    align-items: center;
+  }
+}
+
+.market-summary__card--wide {
+  grid-column: 1 / -1;
+
+  .news-card__heading {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .news-card__eyebrow {
+    font-size: var(--font-size-label);
+  }
+
+  .market-summary__card-title {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .market-summary__card-title h2,
+  .news-card__body p {
+    margin-inline: auto;
+    max-width: 59rem;
+    width: 100%;
+  }
+
+  .news-card__body p {
+    text-align: left;
+    text-wrap: balance;
+  }
+}
+
+.market-summary__meta,
+.market-summary__card-title,
+.market-summary__entry-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  width: 100%;
+}
+
+.market-summary__meta {
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.market-summary__card-title {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.market-summary__meta .app-badge,
+.market-summary__entry-heading .app-badge {
+  flex: 0 0 auto;
+  text-transform: capitalize;
+}
+
+.market-summary__entry-heading .app-badge {
+  min-width: 4.5rem;
+}
+
+.market-summary__entry h3 {
+  font-size: var(--font-size-paragraph);
+  line-height: var(--font-leading-snug);
+  font-weight: 500;
+}
+
+.market-summary__entries {
+  display: grid;
+  gap: var(--space-7);
+  margin-top: 0;
+}
+
+.market-summary__entries .market-summary__entry {
+  align-items: flex-start;
+  padding: 0;
+
+  &::before {
+    margin-top: 0.55rem;
+  }
+}
+
+.market-summary__entry-content {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+@media (max-width: 46rem) {
+  .market-summary__card {
+    padding: var(--default-container-inner-padding);
+  }
+
+  .market-summary__card-title,
+  .market-summary__entry-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

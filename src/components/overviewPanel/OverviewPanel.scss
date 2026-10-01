@@ -7,6 +7,19 @@
   overflow: hidden;
 }
 
+.app-overview-panel--two-featured {
+  grid-template-columns:
+    minmax(min-content, 1.2fr) minmax(min-content, 0.7fr)
+    repeat(2, fit-content(24rem));
+}
+
+.app-overview-panel--three-featured {
+  grid-template-columns: minmax(min-content, 1.2fr) repeat(
+      3,
+      minmax(min-content, 0.8fr)
+    );
+}
+
 .app-overview-metric {
   box-sizing: border-box;
   min-height: 8rem;
@@ -62,7 +75,8 @@
 .app-overview-metric--featured {
   column-gap: var(--space-3);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(3rem, 4.25rem);
+  grid-template-columns: minmax(min-content, 1fr) minmax(3rem, 4.25rem);
+  min-width: min-content;
 
   > .app-overview-metric-content {
     grid-column: 1;

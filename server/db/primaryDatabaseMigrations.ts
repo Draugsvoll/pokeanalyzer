@@ -21,6 +21,8 @@ function loadMigration(fileName: string) {
 
 const initialSchema = loadMigration("001_initial_schema.sql");
 const removeLegacyNewsFeed = loadMigration("002_remove_legacy_news_feed.sql");
+const addMarketSummaryFeed = loadMigration("003_add_market_summary_feed.sql");
+const separateMarketSummary = loadMigration("004_separate_market_summary.sql");
 
 /**
  * Applied migrations are immutable. Add the next numbered migration instead
@@ -38,5 +40,17 @@ export const PRIMARY_DATABASE_MIGRATIONS = [
     name: "remove_legacy_news_feed",
     sql: removeLegacyNewsFeed.sql,
     version: 2,
+  },
+  {
+    checksum: addMarketSummaryFeed.checksum,
+    name: "add_market_summary_feed",
+    sql: addMarketSummaryFeed.sql,
+    version: 3,
+  },
+  {
+    checksum: separateMarketSummary.checksum,
+    name: "separate_market_summary",
+    sql: separateMarketSummary.sql,
+    version: 4,
   },
 ] as const satisfies readonly PrimaryDatabaseMigration[];

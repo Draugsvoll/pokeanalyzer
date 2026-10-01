@@ -135,6 +135,7 @@ describe("Portfolio", () => {
     const valueMetric = screen.getByText("Collection value").closest("article");
     expect(valueMetric?.closest(".portfolio__summary")).toHaveClass(
       "app-overview-panel",
+      "app-overview-panel--two-featured",
     );
     expect(valueMetric).toHaveClass("app-overview-metric");
     expect(

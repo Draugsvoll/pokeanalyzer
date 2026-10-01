@@ -46,12 +46,6 @@
     gap: var(--space-2);
   }
 
-  &__summary {
-    grid-template-columns:
-      minmax(0, 1.2fr) minmax(0, 0.7fr) fit-content(24rem)
-      fit-content(24rem);
-  }
-
   &__collection-value,
   &__holding-value {
     align-items: center;
@@ -322,10 +316,6 @@
   }
 
   @media (max-width: 64rem) {
-    &__summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     &__controls {
       align-items: stretch;
       grid-template-columns: 1fr;
@@ -348,10 +338,6 @@
     &__page-actions .app-btn,
     &__guest-actions .app-btn {
       flex: 1 1 auto;
-    }
-
-    &__summary {
-      grid-template-columns: 1fr;
     }
 
     &__control-group {

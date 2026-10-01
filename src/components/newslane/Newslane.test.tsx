@@ -1,15 +1,22 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { NewsFeedsResponse } from "../../types/news";
+import type { MarketSummaryPayload, NewsFeedsResponse } from "../../types/news";
 import { NewsLane } from "./Newslane";
 
-const mocks = vi.hoisted(() => ({
+const newsMocks = vi.hoisted(() => ({
   cacheNewsFeeds: vi.fn(),
   fetchNewsFeeds: vi.fn(),
   readCachedNewsFeeds: vi.fn(),
 }));
 
-vi.mock("../../services/newsApi", () => mocks);
+const summaryMocks = vi.hoisted(() => ({
+  cacheMarketSummary: vi.fn(),
+  fetchMarketSummary: vi.fn(),
+  readCachedMarketSummary: vi.fn(),
+}));
+
+vi.mock("../../services/newsApi", () => newsMocks);
+vi.mock("../../services/marketSummaryApi", () => summaryMocks);
 
 const cachedFeeds: NewsFeedsResponse = {
   generalNews: {
@@ -41,46 +48,150 @@ const freshFeeds: NewsFeedsResponse = {
   },
 };
 
+const marketSummary: MarketSummaryPayload = {
+  generatedAt: "2026-09-30T12:00:00.000Z",
+  marketTone: {
+    headline: "The market was mixed",
+    label: "mixed",
+  },
+  marketOverview: ["Demand varied across product segments."],
+  keyThemesAndChanges: [],
+  liquidity: [],
+  marketDrivers: [],
+  segmentSummary: [],
+  collectorOutlook: null,
+  whatToWatch: [],
+};
+
 beforeEach(() => {
-  mocks.cacheNewsFeeds.mockReset();
-  mocks.fetchNewsFeeds.mockReset();
-  mocks.readCachedNewsFeeds.mockReset();
-  mocks.readCachedNewsFeeds.mockReturnValue(null);
+  newsMocks.cacheNewsFeeds.mockReset();
+  newsMocks.fetchNewsFeeds.mockReset().mockResolvedValue({
+    generalNews: null,
+  });
+  newsMocks.readCachedNewsFeeds.mockReset().mockReturnValue(null);
+  summaryMocks.cacheMarketSummary.mockReset();
+  summaryMocks.fetchMarketSummary.mockReset().mockResolvedValue(null);
+  summaryMocks.readCachedMarketSummary.mockReset().mockReturnValue(null);
 });
 
-test("uses a cache younger than 24 hours without fetching", () => {
-  mocks.readCachedNewsFeeds.mockReturnValue({
+test("uses fresh caches without refetching either resource", () => {
+  newsMocks.readCachedNewsFeeds.mockReturnValue({
     feeds: cachedFeeds,
+    isFresh: true,
+  });
+  summaryMocks.readCachedMarketSummary.mockReturnValue({
+    marketSummary,
     isFresh: true,
   });
 
   render(<NewsLane />);
 
   expect(screen.getByText("Cached market news")).toBeInTheDocument();
-  expect(mocks.fetchNewsFeeds).not.toHaveBeenCalled();
+  expect(screen.getByText("The market was mixed")).toBeInTheDocument();
+  const marketNewsSection = screen.getByRole("region", {
+    name: "Market news",
+  });
+  expect(marketNewsSection).toHaveClass("ui-render-fade");
+  expect(marketNewsSection).not.toHaveClass(
+    "ui-scroll-reveal",
+    "ui-scroll-reveal--visible",
+  );
+  expect(marketNewsSection.querySelector(".general-news")).not.toHaveClass(
+    "ui-render-fade",
+  );
+  expect(newsMocks.fetchNewsFeeds).not.toHaveBeenCalled();
+  expect(summaryMocks.fetchMarketSummary).not.toHaveBeenCalled();
 });
 
 test("renders stale cached news while refreshing it", async () => {
-  mocks.readCachedNewsFeeds.mockReturnValue({
+  newsMocks.readCachedNewsFeeds.mockReturnValue({
     feeds: cachedFeeds,
     isFresh: false,
   });
-  mocks.fetchNewsFeeds.mockResolvedValue(freshFeeds);
+  newsMocks.fetchNewsFeeds.mockResolvedValue(freshFeeds);
 
   render(<NewsLane />);
 
   expect(screen.getByText("Cached market news")).toBeInTheDocument();
   expect(await screen.findByText("Fresh market news")).toBeInTheDocument();
-  expect(mocks.cacheNewsFeeds).toHaveBeenCalledWith(freshFeeds);
+  expect(newsMocks.cacheNewsFeeds).toHaveBeenCalledWith(freshFeeds);
 });
 
-test("retries once when the first news request fails", async () => {
-  mocks.fetchNewsFeeds
+test("retries once when the market-news request fails", async () => {
+  newsMocks.fetchNewsFeeds
     .mockRejectedValueOnce(new Error("Temporary failure"))
     .mockResolvedValueOnce(freshFeeds);
 
   render(<NewsLane />);
 
   expect(await screen.findByText("Fresh market news")).toBeInTheDocument();
-  await waitFor(() => expect(mocks.fetchNewsFeeds).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(newsMocks.fetchNewsFeeds).toHaveBeenCalledTimes(2),
+  );
+});
+
+test("loads a market summary independently from market news", async () => {
+  summaryMocks.fetchMarketSummary.mockResolvedValue(marketSummary);
+
+  render(<NewsLane />);
+
+  expect(
+    await screen.findByRole("heading", { name: "Weekly Market Summary" }),
+  ).toBeVisible();
+  const summarySection = screen.getByRole("region", {
+    name: "Market summary",
+  });
+  expect(summarySection).toHaveClass(
+    "ui-scroll-reveal",
+    "ui-scroll-reveal--visible",
+    "ui-render-fade",
+  );
+  expect(summarySection.querySelector(".market-summary")).not.toHaveClass(
+    "ui-render-fade",
+  );
+  expect(screen.getByText("The market was mixed")).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Market News" })).toBeNull();
+  expect(summaryMocks.cacheMarketSummary).toHaveBeenCalledWith(marketSummary);
+});
+
+test("a fresh market-news cache does not suppress the summary request", async () => {
+  newsMocks.readCachedNewsFeeds.mockReturnValue({
+    feeds: cachedFeeds,
+    isFresh: true,
+  });
+  summaryMocks.fetchMarketSummary.mockResolvedValue(marketSummary);
+
+  render(<NewsLane />);
+
+  expect(await screen.findByText("The market was mixed")).toBeVisible();
+  expect(newsMocks.fetchNewsFeeds).not.toHaveBeenCalled();
+  expect(summaryMocks.fetchMarketSummary).toHaveBeenCalledTimes(1);
+});
+
+test("skips market summary when its request fails", async () => {
+  newsMocks.fetchNewsFeeds.mockResolvedValue(freshFeeds);
+  summaryMocks.fetchMarketSummary.mockRejectedValue(
+    new Error("Market summary unavailable"),
+  );
+
+  render(<NewsLane />);
+
+  expect(await screen.findByText("Fresh market news")).toBeVisible();
+  await waitFor(() =>
+    expect(summaryMocks.fetchMarketSummary).toHaveBeenCalledTimes(2),
+  );
+  expect(screen.queryByRole("region", { name: "Market summary" })).toBeNull();
+});
+
+test("skips market summary when the API has no stored summary", async () => {
+  newsMocks.fetchNewsFeeds.mockResolvedValue(freshFeeds);
+  summaryMocks.fetchMarketSummary.mockResolvedValue(null);
+
+  render(<NewsLane />);
+
+  expect(await screen.findByText("Fresh market news")).toBeVisible();
+  await waitFor(() =>
+    expect(summaryMocks.fetchMarketSummary).toHaveBeenCalledTimes(2),
+  );
+  expect(screen.queryByRole("region", { name: "Market summary" })).toBeNull();
 });

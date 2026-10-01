@@ -42,12 +42,14 @@ async function appliedMigrations(database: Client) {
 
 async function assertPrimaryMigrationsApplied(database: Client) {
   const migrations = await appliedMigrations(database);
-  assert.equal(migrations.length, 2);
+  assert.equal(migrations.length, 4);
   assert.deepEqual(
     migrations.map(({ name, version }) => ({ name, version })),
     [
       { name: "initial_schema", version: 1 },
       { name: "remove_legacy_news_feed", version: 2 },
+      { name: "add_market_summary_feed", version: 3 },
+      { name: "separate_market_summary", version: 4 },
     ],
   );
   for (const migration of migrations) {
@@ -71,7 +73,12 @@ test("primary migrations initialize a fresh database and are idempotent", async 
     `);
     assert.deepEqual(
       tables.rows.map((row) => row.name),
-      ["news_content", "primary_schema_migrations", "sync_locks"],
+      [
+        "market_summary_content",
+        "news_content",
+        "primary_schema_migrations",
+        "sync_locks",
+      ],
     );
   } finally {
     database.close();
@@ -112,6 +119,44 @@ test("primary migrations baseline an existing compatible database", async () => 
   }
 });
 
+test("market summary migration moves existing JSON out of news storage", async () => {
+  const database = createTestDatabase("separate-market-summary");
+
+  try {
+    for (const migration of PRIMARY_DATABASE_MIGRATIONS.slice(0, 3)) {
+      await database.executeMultiple(migration.sql);
+    }
+    await database.execute({
+      sql: `
+        INSERT INTO news_content (feed, payload_json, source_date)
+        VALUES (?, ?, ?)
+      `,
+      args: [
+        "market_summary",
+        JSON.stringify({ generatedAt: "2026-10-01T10:00:00.000Z" }),
+        "2026-10-01T10:00:00.000Z",
+      ],
+    });
+
+    await database.executeMultiple(PRIMARY_DATABASE_MIGRATIONS[3].sql);
+
+    const newsRows = await database.execute("SELECT feed FROM news_content");
+    assert.equal(newsRows.rows.length, 0);
+
+    const summaryRows = await database.execute(`
+      SELECT payload_json, generated_at
+      FROM market_summary_content
+    `);
+    assert.equal(summaryRows.rows.length, 1);
+    assert.equal(summaryRows.rows[0]?.generated_at, "2026-10-01T10:00:00.000Z");
+    assert.deepEqual(JSON.parse(String(summaryRows.rows[0]?.payload_json)), {
+      generatedAt: "2026-10-01T10:00:00.000Z",
+    });
+  } finally {
+    database.close();
+  }
+});
+
 test("primary migrations rebuild an existing schema with missing constraints", async () => {
   const database = createTestDatabase("constraint-repair");
 
@@ -135,6 +180,17 @@ test("primary migrations rebuild an existing schema with missing constraints", a
       `),
       /constraint/i,
     );
+    await assert.rejects(
+      database.execute(`
+        INSERT INTO news_content (feed, payload_json)
+        VALUES ('market_summary', '{}')
+      `),
+      /constraint/i,
+    );
+    await database.execute(`
+      INSERT INTO market_summary_content (id, payload_json)
+      VALUES (1, '{}')
+    `);
   } finally {
     database.close();
   }
@@ -167,7 +223,7 @@ test("primary migrations reject a non-contiguous migration history", async () =>
     await migratePrimaryDatabase(database);
     await database.execute(`
       UPDATE primary_schema_migrations
-      SET version = 3
+      SET version = 5
       WHERE version = 1
     `);
 

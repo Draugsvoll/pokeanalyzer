@@ -5,6 +5,7 @@ type OverviewPanelProps = {
   ariaLabel: string;
   children: ReactNode;
   className?: string;
+  layout: "three-featured" | "two-featured";
 };
 
 type OverviewMetricProps = {
@@ -22,11 +23,15 @@ function joinClassNames(...classNames: Array<string | undefined>) {
 }
 
 export const OverviewPanel = forwardRef<HTMLElement, OverviewPanelProps>(
-  function OverviewPanel({ ariaLabel, children, className }, ref) {
+  function OverviewPanel({ ariaLabel, children, className, layout }, ref) {
     return (
       <section
         aria-label={ariaLabel}
-        className={joinClassNames("app-overview-panel", className)}
+        className={joinClassNames(
+          "app-overview-panel",
+          `app-overview-panel--${layout}`,
+          className,
+        )}
         ref={ref}
       >
         {children}

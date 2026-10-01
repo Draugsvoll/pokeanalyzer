@@ -1,6 +1,7 @@
 import type { Client, Transaction } from "@libsql/client";
 import { db } from "./db.js";
 import { assertNewsContentSchemaCompatible } from "./newsStore.js";
+import { assertMarketSummarySchemaCompatible } from "./marketSummaryStore.js";
 import {
   PRIMARY_DATABASE_MIGRATIONS,
   type PrimaryDatabaseMigration,
@@ -104,6 +105,40 @@ const EXPECTED_PRIMARY_TABLES = [
       "check(feed='general_news')",
       "check(json_valid(payload_json))",
     ],
+  },
+  {
+    columns: [
+      {
+        defaultValue: null,
+        name: "id",
+        notNull: false,
+        primaryKeyPosition: 1,
+        type: "INTEGER",
+      },
+      {
+        defaultValue: null,
+        name: "payload_json",
+        notNull: true,
+        primaryKeyPosition: 0,
+        type: "TEXT",
+      },
+      {
+        defaultValue: null,
+        name: "generated_at",
+        notNull: false,
+        primaryKeyPosition: 0,
+        type: "TEXT",
+      },
+      {
+        defaultValue: "CURRENT_TIMESTAMP",
+        name: "updated_at",
+        notNull: true,
+        primaryKeyPosition: 0,
+        type: "TEXT",
+      },
+    ],
+    name: "market_summary_content",
+    requiredSqlFragments: ["check(id=1)", "check(json_valid(payload_json))"],
   },
 ] as const satisfies readonly ExpectedPrimaryTable[];
 
@@ -292,4 +327,5 @@ export async function migratePrimaryDatabase(
   }
 
   await assertNewsContentSchemaCompatible(database);
+  await assertMarketSummarySchemaCompatible(database);
 }

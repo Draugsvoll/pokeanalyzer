@@ -6,27 +6,41 @@ import {
   fetchNewsFeeds,
   readCachedNewsFeeds,
 } from "../../services/newsApi";
-import type { NewsFeedsResponse } from "../../types/news";
+import {
+  cacheMarketSummary,
+  fetchMarketSummary,
+  readCachedMarketSummary,
+} from "../../services/marketSummaryApi";
+import type { MarketSummaryPayload, NewsFeedsResponse } from "../../types/news";
 import { logClientError } from "../../utils/logClientError";
 import { GeneralNews } from "./news/general/GeneralNews";
+import { MarketSummary } from "./news/summary/MarketSummary";
 import "./Newslane.scss";
 
-function hasVisibleNewsFeeds(feeds: NewsFeedsResponse): boolean {
-  return Boolean(feeds.generalNews);
+function formatUpdatedAt(value: string): string {
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+  }).format(timestamp);
 }
 
 export function NewsLane() {
-  const revealRef = useScrollReveal<HTMLElement>();
+  const marketSummaryRevealRef = useScrollReveal<HTMLElement>();
   const [cachedNews] = useState(() => readCachedNewsFeeds());
   const [newsFeeds, setNewsFeeds] = useState<NewsFeedsResponse | null>(() => {
-    return cachedNews && hasVisibleNewsFeeds(cachedNews.feeds)
-      ? cachedNews.feeds
-      : null;
+    return cachedNews?.feeds ?? null;
   });
+  const [cachedSummary] = useState(() => readCachedMarketSummary());
+  const [marketSummary, setMarketSummary] =
+    useState<MarketSummaryPayload | null>(
+      () => cachedSummary?.marketSummary ?? null,
+    );
+
   useEffect(() => {
     const controller = new AbortController();
 
-    if (cachedNews?.isFresh && hasVisibleNewsFeeds(cachedNews.feeds)) {
+    if (cachedNews?.isFresh) {
       return () => controller.abort();
     }
 
@@ -38,7 +52,7 @@ export function NewsLane() {
           const feeds = await fetchNewsFeeds(controller.signal);
           if (controller.signal.aborted) return;
 
-          if (hasVisibleNewsFeeds(feeds)) {
+          if (feeds.generalNews) {
             cacheNewsFeeds(feeds);
             setNewsFeeds(feeds);
             return;
@@ -59,23 +73,89 @@ export function NewsLane() {
     return () => controller.abort();
   }, [cachedNews]);
 
-  if (!newsFeeds?.generalNews) {
+  useEffect(() => {
+    const controller = new AbortController();
+
+    if (cachedSummary?.isFresh) {
+      return () => controller.abort();
+    }
+
+    async function refreshMarketSummary() {
+      let lastError: unknown;
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const summary = await fetchMarketSummary(controller.signal);
+          if (controller.signal.aborted) return;
+
+          if (summary) {
+            cacheMarketSummary(summary);
+            setMarketSummary(summary);
+            return;
+          }
+
+          lastError = new Error(
+            "Market summary response did not contain a summary",
+          );
+        } catch (error: unknown) {
+          if (isAbortError(error)) return;
+          lastError = error;
+        }
+      }
+
+      logClientError("Failed to refresh market summary", lastError);
+    }
+
+    void refreshMarketSummary();
+
+    return () => controller.abort();
+  }, [cachedSummary]);
+
+  if (!newsFeeds?.generalNews && !marketSummary) {
     return null;
   }
 
-  return (
-    <section
-      className="news-lane ui-scroll-reveal"
-      aria-label="News"
-      ref={revealRef}
-    >
-      <header className="news-lane__header grid-header">
-        <h3 className="news-lane__title">Market News</h3>
-      </header>
+  const summaryUpdatedAt = marketSummary
+    ? formatUpdatedAt(marketSummary.generatedAt)
+    : "";
 
-      <div className="news-lane__panel">
-        <GeneralNews payload={newsFeeds.generalNews} />
-      </div>
-    </section>
+  return (
+    <div className="news-lane" aria-label="News">
+      {newsFeeds?.generalNews && (
+        <section
+          aria-label="Market news"
+          className="news-lane__section ui-render-fade"
+        >
+          <header className="news-lane__header grid-header">
+            <h3 className="news-lane__title">Market News</h3>
+          </header>
+
+          <div className="news-lane__panel">
+            <GeneralNews payload={newsFeeds.generalNews} />
+          </div>
+        </section>
+      )}
+
+      {marketSummary && (
+        <section
+          aria-label="Market summary"
+          className="news-lane__section ui-scroll-reveal ui-render-fade"
+          ref={marketSummaryRevealRef}
+        >
+          <header className="news-lane__header grid-header">
+            <h3 className="news-lane__title">Weekly Market Summary</h3>
+            {summaryUpdatedAt && (
+              <span className="news-lane__updated">
+                Updated {summaryUpdatedAt}
+              </span>
+            )}
+          </header>
+
+          <div className="news-lane__panel">
+            <MarketSummary payload={marketSummary} />
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

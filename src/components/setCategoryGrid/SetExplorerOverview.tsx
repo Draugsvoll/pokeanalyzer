@@ -77,6 +77,7 @@ export function SetExplorerOverview({
       <OverviewPanel
         ariaLabel={`${activeSetName} summary`}
         className="set-explorer-overview__summary ui-render-fade"
+        layout="three-featured"
       >
         <OverviewMetric
           className="set-explorer-overview__market"
