@@ -93,7 +93,10 @@ minimum new sales, result limit, and percentage or absolute sorting.
 The `mostSold` query compares the combined `saleCount` totals across the selected
 conditions for one source and period. A negative combined difference becomes
 zero. These are changes in upstream reported sales-window counts, not locally
-calculated lifetime sales.
+calculated lifetime sales. The configured TCGPlayer and eBay best-seller feeds
+use the latest three consecutive daily snapshots, require the combined total to
+increase on both day-to-day transitions, and rank by the increase from the
+oldest snapshot to the newest.
 
 The backend serves the stored payload from `GET /api/market-categories`.
 Homepage and Explore cache the complete response in browser storage for 24

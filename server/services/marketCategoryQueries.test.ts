@@ -394,6 +394,133 @@ test("calculates new sales from the combined condition totals", async () => {
   database.close();
 });
 
+test("requires increasing sales across all three days for both sources", async () => {
+  const database = await createDatabase();
+  await database.batch(
+    [
+      [
+        "a",
+        "2026-09-20",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":10}}',
+        '{"NEAR_MINT":{"avg":40,"saleCount":20}}',
+      ],
+      [
+        "a",
+        "2026-09-21",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":12}}',
+        '{"NEAR_MINT":{"avg":40,"saleCount":23}}',
+      ],
+      [
+        "a",
+        "2026-09-22",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":15}}',
+        '{"NEAR_MINT":{"avg":40,"saleCount":25}}',
+      ],
+      [
+        "b",
+        "2026-09-20",
+        "USD",
+        '{"NEAR_MINT":{"avg":25,"saleCount":10}}',
+        '{"NEAR_MINT":{"avg":35,"saleCount":20}}',
+      ],
+      [
+        "b",
+        "2026-09-21",
+        "USD",
+        '{"NEAR_MINT":{"avg":25,"saleCount":9}}',
+        '{"NEAR_MINT":{"avg":35,"saleCount":19}}',
+      ],
+      [
+        "b",
+        "2026-09-22",
+        "USD",
+        '{"NEAR_MINT":{"avg":25,"saleCount":20}}',
+        '{"NEAR_MINT":{"avg":35,"saleCount":30}}',
+      ],
+    ].map((args) => ({
+      sql: `INSERT INTO poketrace_market_snapshots
+        (card_id, recorded_at, currency, tcg, ebay) VALUES (?, ?, ?, ?, ?)`,
+      args,
+    })),
+    "write",
+  );
+
+  const tcgplayer = await findMostSold(database, {
+    requireThreeDayIncrease: true,
+  });
+  const ebay = await findMostSold(database, {
+    requireThreeDayIncrease: true,
+    source: "ebay",
+  });
+
+  assert.equal(tcgplayer.parameters.periodDays, 3);
+  assert.equal(tcgplayer.comparisonSnapshotDate, "2026-09-20");
+  assert.deepEqual(
+    tcgplayer.items.map((item) => [item.name, item.newSales]),
+    [["Alpha", 5]],
+  );
+  assert.deepEqual(
+    ebay.items.map((item) => [item.name, item.newSales]),
+    [["Alpha", 5]],
+  );
+  database.close();
+});
+
+test("requires source-specific history for each day in the sales trend", async () => {
+  const database = await createDatabase();
+  await database.batch(
+    [
+      [
+        "a",
+        "2026-09-20",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":10}}',
+        '{"NEAR_MINT":{"avg":40,"saleCount":20}}',
+      ],
+      [
+        "a",
+        "2026-09-21",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":12}}',
+        null,
+      ],
+      [
+        "a",
+        "2026-09-22",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":15}}',
+        '{"NEAR_MINT":{"avg":40,"saleCount":25}}',
+      ],
+      [
+        "a",
+        "2026-09-23",
+        "USD",
+        '{"NEAR_MINT":{"avg":30,"saleCount":18}}',
+        null,
+      ],
+    ].map((args) => ({
+      sql: `INSERT INTO poketrace_market_snapshots
+        (card_id, recorded_at, currency, tcg, ebay) VALUES (?, ?, ?, ?, ?)`,
+      args,
+    })),
+    "write",
+  );
+
+  const result = await findMostSold(database, {
+    requireThreeDayIncrease: true,
+    source: "ebay",
+  });
+
+  assert.equal(result.currentSnapshotDate, "2026-09-22");
+  assert.equal(result.comparisonSnapshotDate, "2026-09-20");
+  assert.equal(result.status, "insufficient_history");
+  assert.deepEqual(result.items, []);
+  database.close();
+});
+
 test("uses condition snapshots for other customizable conditions", async () => {
   const database = await createDatabase();
   await database.batch(

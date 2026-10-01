@@ -64,7 +64,7 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   ),
 }));
 
-test("renders the current price with the number of new sales", async () => {
+test("renders the current price without a visible sales label", async () => {
   render(<MostSoldGrid />);
 
   await waitFor(() =>
@@ -74,8 +74,7 @@ test("renders the current price with the number of new sales", async () => {
     ),
   );
   expect(
-    screen.getByText(
-      /Charizard Unknown set 120 20 new sales NEAR_MINT tcgplayer 100/,
-    ),
+    screen.getByText(/Charizard Unknown set 120\s+NEAR_MINT tcgplayer 100/),
   ).toBeVisible();
+  expect(screen.queryByText("20 new sales")).toBeNull();
 });

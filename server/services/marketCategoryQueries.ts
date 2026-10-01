@@ -63,6 +63,7 @@ export type MostSoldOptions = {
   minimumNewSales: number;
   minimumPrice: number;
   periodDays: number;
+  requireThreeDayIncrease: boolean;
   source: MarketSource;
 };
 
@@ -125,6 +126,7 @@ const DEFAULT_MOST_SOLD_OPTIONS: MostSoldOptions = {
   minimumNewSales: 1,
   minimumPrice: 0,
   periodDays: 1,
+  requireThreeDayIncrease: false,
   source: "tcgplayer",
 };
 
@@ -208,6 +210,9 @@ export function normalizeMostSoldOptions(
       `Unsupported most-sold condition: ${String(merged.condition)}`,
     );
   }
+  if (typeof merged.requireThreeDayIncrease !== "boolean") {
+    throw new Error("requireThreeDayIncrease must be a boolean");
+  }
   return {
     condition: merged.condition,
     limit: integer(merged.limit, "limit", 1, 100),
@@ -218,7 +223,10 @@ export function normalizeMostSoldOptions(
       1_000_000,
     ),
     minimumPrice: finiteNumber(merged.minimumPrice, "minimumPrice", 0),
-    periodDays: integer(merged.periodDays, "periodDays", 1, 365),
+    periodDays: merged.requireThreeDayIncrease
+      ? 3
+      : integer(merged.periodDays, "periodDays", 1, 365),
+    requireThreeDayIncrease: merged.requireThreeDayIncrease,
     source: merged.source,
   };
 }
@@ -275,6 +283,36 @@ async function snapshotDateExists(
 ) {
   const result = await database.execute({
     sql: `SELECT 1 AS found FROM ${table} WHERE recorded_at = ? LIMIT 1`,
+    args: [date],
+  });
+  return result.rows.length > 0;
+}
+
+type MarketSnapshotSourceColumn = "ebay" | "tcg";
+
+async function latestMarketSnapshotDate(
+  database: Pick<Client, "execute">,
+  sourceColumn: MarketSnapshotSourceColumn,
+) {
+  const result = await database.execute(
+    `SELECT MAX(recorded_at) AS recorded_at
+     FROM poketrace_market_snapshots
+     WHERE ${sourceColumn} IS NOT NULL`,
+  );
+  const value = result.rows[0]?.recorded_at;
+  return typeof value === "string" ? value : null;
+}
+
+async function marketSnapshotDateExists(
+  database: Pick<Client, "execute">,
+  sourceColumn: MarketSnapshotSourceColumn,
+  date: string,
+) {
+  const result = await database.execute({
+    sql: `SELECT 1 AS found
+          FROM poketrace_market_snapshots
+          WHERE recorded_at = ? AND ${sourceColumn} IS NOT NULL
+          LIMIT 1`,
     args: [date],
   });
   return result.rows.length > 0;
@@ -495,15 +533,21 @@ export async function findPriceMovers(
 function newSalesExpression(
   column: "ebay" | "tcg",
   conditions: readonly MarketCondition[],
+  requiredSnapshots: readonly ("current" | "middle" | "previous")[] = [
+    "current",
+    "previous",
+  ],
 ) {
-  const comparableSales = (snapshot: "current" | "previous") =>
+  const comparableSales = (snapshot: "current" | "middle" | "previous") =>
     conditions
       .map(
         (condition) => `CASE
-        WHEN json_type(current.${column}, '$.${condition}.saleCount')
-               IN ('integer', 'real')
-          AND json_type(previous.${column}, '$.${condition}.saleCount')
-               IN ('integer', 'real')
+        WHEN ${requiredSnapshots
+          .map(
+            (requiredSnapshot) =>
+              `json_type(${requiredSnapshot}.${column}, '$.${condition}.saleCount') IN ('integer', 'real')`,
+          )
+          .join(" AND ")}
         THEN CAST(
           json_extract(${snapshot}.${column}, '$.${condition}.saleCount') AS REAL
         )
@@ -512,10 +556,15 @@ function newSalesExpression(
       )
       .join(" + ");
 
-  return `MAX(
-    (${comparableSales("current")}) - (${comparableSales("previous")}),
-    0
-  )`;
+  return {
+    current: comparableSales("current"),
+    difference: `MAX(
+      (${comparableSales("current")}) - (${comparableSales("previous")}),
+      0
+    )`,
+    middle: comparableSales("middle"),
+    previous: comparableSales("previous"),
+  };
 }
 
 export async function findMostSold(
@@ -523,21 +572,28 @@ export async function findMostSold(
   requestedOptions: Partial<MostSoldOptions> = {},
 ): Promise<MostSoldResult> {
   const parameters = normalizeMostSoldOptions(requestedOptions);
-  const currentSnapshotDate = await latestDate(
-    database,
-    "poketrace_market_snapshots",
-  );
+  const column = parameters.source === "tcgplayer" ? "tcg" : "ebay";
+  const currentSnapshotDate = await latestMarketSnapshotDate(database, column);
+  const comparisonOffset = parameters.requireThreeDayIncrease
+    ? 2
+    : parameters.periodDays;
   const comparisonSnapshotDate = currentSnapshotDate
-    ? dateDaysBefore(currentSnapshotDate, parameters.periodDays)
+    ? dateDaysBefore(currentSnapshotDate, comparisonOffset)
     : null;
+  const middleSnapshotDate =
+    currentSnapshotDate && parameters.requireThreeDayIncrease
+      ? dateDaysBefore(currentSnapshotDate, 1)
+      : null;
   if (
     !currentSnapshotDate ||
     !comparisonSnapshotDate ||
-    !(await snapshotDateExists(
+    !(await marketSnapshotDateExists(
       database,
-      "poketrace_market_snapshots",
+      column,
       comparisonSnapshotDate,
-    ))
+    )) ||
+    (middleSnapshotDate !== null &&
+      !(await marketSnapshotDateExists(database, column, middleSnapshotDate)))
   ) {
     return {
       comparisonSnapshotDate,
@@ -548,12 +604,23 @@ export async function findMostSold(
     };
   }
 
-  const column = parameters.source === "tcgplayer" ? "tcg" : "ebay";
   const conditions =
     parameters.condition === "ALL" ? MARKET_CONDITIONS : [parameters.condition];
   const priceCondition =
     parameters.condition === "ALL" ? "NEAR_MINT" : parameters.condition;
-  const newSales = newSalesExpression(column, conditions);
+  const requiredSnapshots = parameters.requireThreeDayIncrease
+    ? (["current", "middle", "previous"] as const)
+    : (["current", "previous"] as const);
+  const sales = newSalesExpression(column, conditions, requiredSnapshots);
+  const middleJoin = middleSnapshotDate
+    ? `INNER JOIN poketrace_market_snapshots AS middle
+          ON middle.card_id = current.card_id
+          AND middle.recorded_at = ?`
+    : "";
+  const dailyIncreaseFilter = middleSnapshotDate
+    ? `AND (${sales.middle}) > (${sales.previous})
+        AND (${sales.current}) > (${sales.middle})`
+    : "";
   const result = await database.execute({
     sql: `
       WITH sales_by_card AS (
@@ -564,12 +631,14 @@ export async function findMostSold(
           CAST(
             json_extract(current.${column}, '$.${priceCondition}.avg') AS REAL
           ) AS current_price,
-          ${newSales} AS new_sales
+          ${sales.difference} AS new_sales
         FROM poketrace_market_snapshots AS current
         INNER JOIN poketrace_market_snapshots AS previous
           ON previous.card_id = current.card_id
           AND previous.recorded_at = ?
+        ${middleJoin}
         WHERE current.recorded_at = ?
+        ${dailyIncreaseFilter}
       )
       SELECT
         cards.id AS card_id,
@@ -593,6 +662,7 @@ export async function findMostSold(
     `,
     args: [
       comparisonSnapshotDate,
+      ...(middleSnapshotDate ? [middleSnapshotDate] : []),
       currentSnapshotDate,
       parameters.minimumPrice,
       parameters.minimumNewSales,

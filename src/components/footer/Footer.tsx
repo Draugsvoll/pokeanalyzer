@@ -7,7 +7,6 @@ const productLinks = [
   { label: "Explore cards", to: "/search" },
   { label: "Explore sets", to: "/set" },
   { label: "Portfolio", to: "/portfolio" },
-  { label: "Free demo", to: "/card/demo" },
   { label: "Account", to: "/profile" },
 ];
 
@@ -49,17 +48,17 @@ export function Footer() {
             </section>
 
             <section className="site-footer__link-group">
-              <h2>Company</h2>
-              <Link to="/contact">Contact Us</Link>
-            </section>
-
-            <section className="site-footer__link-group">
               <h2>Legal</h2>
               {legalLinks.map((link) => (
                 <Link key={link.to} to={link.to}>
                   {link.label}
                 </Link>
               ))}
+            </section>
+
+            <section className="site-footer__link-group">
+              <h2>Company</h2>
+              <Link to="/contact">Contact Us</Link>
             </section>
           </nav>
         </div>
