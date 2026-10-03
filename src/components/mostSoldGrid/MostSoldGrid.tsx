@@ -101,7 +101,7 @@ export function MostSoldGrid({
 
   return (
     <CardCategoryGrid
-      emptyMessage="Most-sold cards will appear after sales snapshots are available."
+      emptyMessage="No recent sales data is available yet."
       error={result.error}
       items={result.items}
       loading={result.loading}

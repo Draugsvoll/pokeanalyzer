@@ -22,7 +22,7 @@ export function usePokemonPortfolio() {
       return true;
     } catch (error) {
       logClientError("Failed to save card", error);
-      alert("Failed to save card.");
+      alert("We couldn’t save this card. Please try again.");
       return false;
     }
   };
@@ -46,7 +46,7 @@ export function usePokemonPortfolio() {
       return true;
     } catch (err) {
       logClientError("Failed to remove card", err);
-      alert("Failed to remove card.");
+      alert("We couldn’t remove this card. Please try again.");
       return false;
     }
   };
@@ -64,7 +64,7 @@ export function usePokemonPortfolio() {
       return true;
     } catch (error) {
       logClientError("Failed to update card quantity", error);
-      alert("Failed to update card quantity.");
+      alert("We couldn’t update the card quantity. Please try again.");
       return false;
     }
   };

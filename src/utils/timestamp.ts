@@ -44,7 +44,7 @@ export function formatTimestampDate(value: TimestampLike): string {
 
 export function formatTimestampDateTime(value: TimestampLike): string {
   const time = getTimestampMillis(value);
-  return time ? new Date(time).toLocaleString() : "N/A";
+  return time ? new Date(time).toLocaleString("en-US") : "N/A";
 }
 
 export function formatTimestampString(value: TimestampLike): string {

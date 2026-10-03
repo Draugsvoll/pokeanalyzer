@@ -10,30 +10,25 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { initializeFreeSubscription } from "../subscriptions/subscriptionApi";
 
-export async function register(
-  email: string,
-  password: string
-) {
-  return createUserWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
+export async function register(email: string, password: string) {
+  return createUserWithEmailAndPassword(auth, email, password);
 }
 
-export async function login(
-  email: string,
-  password: string
-) {
+export async function login(email: string, password: string) {
   const userCredential = await signInWithEmailAndPassword(
     auth,
     email,
-    password
+    password,
   );
 
   if (!userCredential.user.emailVerified) {
     await signOut(auth);
-    throw new Error("Bekreft e-postadressen din før du logger inn. Sjekk innboksen og søppelpost.");
+    throw Object.assign(
+      new Error(
+        "Verify your email address before logging in. Check your inbox and spam folder.",
+      ),
+      { code: "auth/email-not-verified" },
+    );
   }
 
   await initializeFreeSubscription(userCredential.user);

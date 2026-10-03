@@ -158,7 +158,7 @@ test("disables a scheduled downgrade and shows its effective date", async () => 
   renderProfile();
 
   const scheduledDowngrade = await screen.findByRole("button", {
-    name: `Switching ${new Date(currentPeriodEnd).toLocaleDateString()}`,
+    name: `Switching ${new Date(currentPeriodEnd).toLocaleDateString("en-US")}`,
   });
 
   expect(scheduledDowngrade).toBeDisabled();

@@ -95,7 +95,7 @@ export function PricingBar({
               >
                 {action.busy ? (
                   <span
-                    aria-label="Opening billing"
+                    aria-label="Opening billing settings"
                     className="app-btn__spinner"
                   />
                 ) : (

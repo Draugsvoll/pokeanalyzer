@@ -74,7 +74,9 @@ function useMembershipSubscriptionState() {
         if (requestSequence !== subscriptionRefreshSequenceRef.current)
           return null;
         logClientError("Failed to fetch subscription", error);
-        setSubscriptionMessage("Could not load subscription");
+        setSubscriptionMessage(
+          "We couldn’t load your subscription. Please try again.",
+        );
         return null;
       } finally {
         if (
@@ -100,9 +102,7 @@ function useMembershipSubscriptionState() {
       return true;
     } catch (error) {
       logClientError("Failed to activate membership plan", error);
-      setSubscriptionMessage(
-        error instanceof Error ? error.message : "Could not activate plan",
-      );
+      setSubscriptionMessage("We couldn’t open checkout. Please try again.");
       subscriptionActionInProgressRef.current = false;
       setUpdatingSubscription(false);
       return false;
@@ -122,9 +122,7 @@ function useMembershipSubscriptionState() {
     } catch (error) {
       logClientError("Failed to open billing portal", error);
       setSubscriptionMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not open billing portal",
+        "We couldn’t open your billing settings. Please try again.",
       );
       subscriptionActionInProgressRef.current = false;
       setUpdatingSubscription(false);
@@ -142,14 +140,14 @@ function useMembershipSubscriptionState() {
       setSubscriptionMessage(null);
       const response = await cancelSubscriptionAtPeriodEnd(user);
       updateSubscription(response.subscription);
-      setSubscriptionMessage("Subscription will cancel at period end");
+      setSubscriptionMessage(
+        "Your subscription will end after the current billing period.",
+      );
       return true;
     } catch (error) {
       logClientError("Failed to cancel subscription", error);
       setSubscriptionMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not cancel subscription",
+        "We couldn’t update your subscription. Please try again.",
       );
       return false;
     } finally {

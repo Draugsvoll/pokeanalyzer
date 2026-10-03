@@ -310,7 +310,9 @@ test("distinguishes an empty search from a failed request", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(
-    await screen.findByText("Something went wrong. Please try again later."),
+    await screen.findByText(
+      "We couldn’t complete your search. Please try again.",
+    ),
   ).toHaveAttribute("role", "alert");
   expect(screen.queryByText("No cards found.")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));

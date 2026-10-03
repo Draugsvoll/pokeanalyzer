@@ -657,7 +657,7 @@ export default function EbaySoldView({
         <>
           {selectedResponseUnavailable ? (
             <p className="ebay-sold-view__state">
-              Could not fetch eBay{" "}
+              We couldn’t load these eBay{" "}
               {listingTypeFilter === "sold" ? "sales" : "listings"}.
             </p>
           ) : visibleResults.length === 0 ? (

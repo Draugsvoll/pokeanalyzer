@@ -95,7 +95,7 @@ function gradeLabel(grade: string) {
 
 function formatSales(price: TierPrice) {
   if (typeof price.saleCount !== "number") return "—";
-  return price.saleCount.toLocaleString();
+  return price.saleCount.toLocaleString("en-US");
 }
 
 function formatSalesLabel(price: TierPrice) {

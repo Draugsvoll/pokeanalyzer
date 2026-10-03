@@ -27,15 +27,17 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const activeRequestRef = useRef(0);
   const dataRevisionRef = useRef(0);
   const successfullyLoadedUidRef = useRef<string | null>(null);
-  const [portfolioState, setPortfolioState] =
-    useState<PortfolioReferenceState>({
+  const [portfolioState, setPortfolioState] = useState<PortfolioReferenceState>(
+    {
       uid: null,
       references: new Map(),
-    });
+    },
+  );
   const [refreshingPortfolioReferences, setRefreshingPortfolioReferences] =
     useState(false);
-  const [portfolioReferencesError, setPortfolioReferencesError] =
-    useState<string | null>(null);
+  const [portfolioReferencesError, setPortfolioReferencesError] = useState<
+    string | null
+  >(null);
 
   const portfolioReferences =
     portfolioState.uid === authUid
@@ -54,9 +56,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       setPortfolioReferencesError(null);
       setPortfolioState({
         uid: authUid,
-        references: new Map(
-          entries.map((entry) => [entry.cardId, entry]),
-        ),
+        references: new Map(entries.map((entry) => [entry.cardId, entry])),
       });
     },
     [authUid],
@@ -84,19 +84,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         requestId !== activeRequestRef.current ||
         startingRevision !== dataRevisionRef.current ||
         activeUidRef.current !== requestedUid
-      ) return;
+      )
+        return;
       replacePortfolioReferences(entries);
     } catch (error) {
       if (
         requestId !== activeRequestRef.current ||
         startingRevision !== dataRevisionRef.current ||
         activeUidRef.current !== requestedUid
-      ) return;
+      )
+        return;
       logClientError("Failed to refresh portfolio", error);
       setPortfolioReferencesError(
-        error instanceof Error
-          ? error.message
-          : "Portfolio references could not be loaded",
+        "We couldn’t load your collection. Please try again.",
       );
       setPortfolioState((current) =>
         current.uid === requestedUid
@@ -113,35 +113,41 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }
   }, [authUid, replacePortfolioReferences]);
 
-  const upsertPortfolioReference = useCallback((entry: PortfolioReference) => {
-    if (!authUid || activeUidRef.current !== authUid) return;
+  const upsertPortfolioReference = useCallback(
+    (entry: PortfolioReference) => {
+      if (!authUid || activeUidRef.current !== authUid) return;
 
-    const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
-    dataRevisionRef.current += 1;
-    setPortfolioState((current) => {
-      const next = new Map(
-        current.uid === authUid ? current.references : undefined,
-      );
-      next.set(entry.cardId, entry);
-      return { uid: authUid, references: next };
-    });
-    if (needsFullRefresh) void refreshPortfolioReferences();
-  }, [authUid, refreshPortfolioReferences]);
+      const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
+      dataRevisionRef.current += 1;
+      setPortfolioState((current) => {
+        const next = new Map(
+          current.uid === authUid ? current.references : undefined,
+        );
+        next.set(entry.cardId, entry);
+        return { uid: authUid, references: next };
+      });
+      if (needsFullRefresh) void refreshPortfolioReferences();
+    },
+    [authUid, refreshPortfolioReferences],
+  );
 
-  const removePortfolioReference = useCallback((cardId: string) => {
-    if (!authUid || activeUidRef.current !== authUid) return;
+  const removePortfolioReference = useCallback(
+    (cardId: string) => {
+      if (!authUid || activeUidRef.current !== authUid) return;
 
-    const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
-    dataRevisionRef.current += 1;
-    setPortfolioState((current) => {
-      const next = new Map(
-        current.uid === authUid ? current.references : undefined,
-      );
-      next.delete(cardId);
-      return { uid: authUid, references: next };
-    });
-    if (needsFullRefresh) void refreshPortfolioReferences();
-  }, [authUid, refreshPortfolioReferences]);
+      const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
+      dataRevisionRef.current += 1;
+      setPortfolioState((current) => {
+        const next = new Map(
+          current.uid === authUid ? current.references : undefined,
+        );
+        next.delete(cardId);
+        return { uid: authUid, references: next };
+      });
+      if (needsFullRefresh) void refreshPortfolioReferences();
+    },
+    [authUid, refreshPortfolioReferences],
+  );
 
   const isCardSaved = useCallback(
     (cardId: string) => portfolioReferences.has(cardId),

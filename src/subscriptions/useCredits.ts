@@ -23,7 +23,7 @@ export function useCredits(subscription: UserSubscription | null) {
     } catch (error) {
       logClientError("Failed to top up credits", error);
       setCreditMessage(
-        error instanceof Error ? error.message : "Could not top up credits",
+        "We couldn’t open the credit purchase. Please try again.",
       );
       creditActionInProgressRef.current = false;
       setUpdatingCredits(false);

@@ -104,7 +104,9 @@ describe("CollectorAnalysis", () => {
       />,
     );
 
-    expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
+    expect(
+      screen.getByText("We couldn’t load this analysis. Please try again."),
+    ).toBeInTheDocument();
   });
 
   it("rejects category scores outside the 1–100 integer range", () => {
@@ -124,6 +126,8 @@ describe("CollectorAnalysis", () => {
         }}
       />,
     );
-    expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
+    expect(
+      screen.getByText("We couldn’t load this analysis. Please try again."),
+    ).toBeInTheDocument();
   });
 });

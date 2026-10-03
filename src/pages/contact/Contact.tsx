@@ -11,7 +11,7 @@ export default function Contact() {
     <div className="contact-page default-container">
       <header className="contact-page__header">
         <span className="app-subheader">Support</span>
-        <h1>Contact Us</h1>
+        <h1>Contact us</h1>
         <p>
           For account and billing support, card data corrections, general
           inquiries, or feedback, contact us by email.

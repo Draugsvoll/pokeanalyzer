@@ -25,16 +25,16 @@ type CardImage = {
 const uploadOptions = [
   {
     side: "front",
-    heading: "Front Side",
+    heading: "Front side",
     badge: "Required",
     badgeAccent: "red",
     prompt: "Upload front",
-    promptNote: "PNG, JPG up to 10MB",
+    promptNote: "PNG or JPG, up to 10 MB",
     showDropHint: true,
   },
   {
     side: "back",
-    heading: "Back Side",
+    heading: "Back side",
     badge: "Recommended",
     badgeAccent: "yellow",
     prompt: "Upload back",
@@ -55,7 +55,7 @@ const analysisOptions = [
   {
     type: "psa",
     endpoint: "/ai/psa-grade",
-    label: "Get PSA Estimate",
+    label: "Get PSA estimate",
     loadingLabel: "Analyzing...",
     includeBackImage: true,
     ResultView: PsaEstimateResultView,
@@ -63,7 +63,7 @@ const analysisOptions = [
   {
     type: "authenticity",
     endpoint: "/ai/authenticity-check",
-    label: "Check Authenticity",
+    label: "Check authenticity",
     loadingLabel: "Checking...",
     includeBackImage: true,
     ResultView: AuthenticityResultView,
@@ -109,12 +109,12 @@ export default function UploadCardPage() {
   const selectImage = (side: CardSide, file: File | null) => {
     abortActiveRequest();
     if (file && !file.type.startsWith("image/")) {
-      setError("Please choose an image file");
+      setError("Choose an image file.");
       return;
     }
 
     if (file && file.size > MAX_IMAGE_SIZE_BYTES) {
-      setError("Each image must be 10MB or smaller");
+      setError("Each image must be 10 MB or smaller.");
       return;
     }
 
@@ -133,12 +133,12 @@ export default function UploadCardPage() {
 
   const handleFileChange = (
     side: CardSide,
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => selectImage(side, event.target.files?.[0] ?? null);
 
   const handleDrop = (
     side: CardSide,
-    event: React.DragEvent<HTMLLabelElement>
+    event: React.DragEvent<HTMLLabelElement>,
   ) => {
     event.preventDefault();
     setDraggingSide(null);
@@ -160,9 +160,10 @@ export default function UploadCardPage() {
     try {
       const signal = startRequest();
       const frontImageBase64 = await readFileAsDataUrl(frontFile);
-      const backImageBase64 = includeBackImage && cardImages.back.file
-        ? await readFileAsDataUrl(cardImages.back.file)
-        : undefined;
+      const backImageBase64 =
+        includeBackImage && cardImages.back.file
+          ? await readFileAsDataUrl(cardImages.back.file)
+          : undefined;
       const response = await authenticatedFetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
@@ -177,34 +178,31 @@ export default function UploadCardPage() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          typeof data?.error === "string"
-            ? data.error
-            : "Card grading request failed"
-        );
-      }
+      if (!response.ok) throw new Error("Card analysis request failed");
 
       // API usually returns a string; if the model/path already gave an object, keep it usable.
       let text = "";
       if (typeof data?.text === "string") {
         text = data.text;
       } else if (data?.text != null && typeof data.text === "object") {
-        console.warn("[UploadCard] response.text was an object; stringifying for ResultView", data.text);
+        console.warn(
+          "[UploadCard] response.text was an object; stringifying for ResultView",
+          data.text,
+        );
         text = JSON.stringify(data.text);
       } else if (data?.text != null) {
-        console.warn("[UploadCard] unexpected response.text type", typeof data.text, data.text);
+        console.warn(
+          "[UploadCard] unexpected response.text type",
+          typeof data.text,
+          data.text,
+        );
         text = String(data.text);
       }
 
       setResult(text);
     } catch (scanError) {
       if (isAbortError(scanError)) return;
-      setError(
-        scanError instanceof Error
-          ? scanError.message
-          : "Could not analyze this card"
-      );
+      setError("We couldn’t analyze this card. Please try again.");
     } finally {
       setActiveRequest(null);
     }
@@ -213,8 +211,8 @@ export default function UploadCardPage() {
   return (
     <div className="card-grader">
       <header className="card-grader__header">
-        <h1>Analyze Your Card</h1>
-        <p>Get an estimated PSA Grade or Authenticity score</p>
+        <h1>Analyze your card</h1>
+        <p>Get an estimated PSA grade or authenticity score.</p>
       </header>
       <div className="card-grader__upload">
         <div className="card-grader__upload-grid">
@@ -231,25 +229,50 @@ export default function UploadCardPage() {
                 </div>
                 <label
                   className={`card-grader__dropzone${draggingSide === option.side ? " card-grader__dropzone--dragging" : ""}`}
-                  onDragEnter={(event) => { event.preventDefault(); setDraggingSide(option.side); }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setDraggingSide(option.side);
+                  }}
                   onDragOver={(event) => event.preventDefault()}
-                  onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDraggingSide(null); }}
+                  onDragLeave={(event) => {
+                    if (
+                      !event.currentTarget.contains(event.relatedTarget as Node)
+                    )
+                      setDraggingSide(null);
+                  }}
                   onDrop={(event) => handleDrop(option.side, event)}
                 >
                   {image.previewUrl ? (
-                    <img src={image.previewUrl} alt={`${option.heading} of card preview`} />
+                    <img
+                      src={image.previewUrl}
+                      alt={`${option.heading} of card preview`}
+                    />
                   ) : (
                     <span className="card-grader__upload-prompt">
-                      <span className="card-grader__upload-icon"><ImageUp aria-hidden="true" /></span>
+                      <span className="card-grader__upload-icon">
+                        <ImageUp aria-hidden="true" />
+                      </span>
                       <strong>{option.prompt}</strong>
                       <small>{option.promptNote}</small>
                       {option.showDropHint && <em>Drag &amp; drop or click</em>}
                     </span>
                   )}
-                  <input key={image.previewUrl} accept="image/*" type="file" onChange={(event) => handleFileChange(option.side, event)} />
+                  <input
+                    key={image.previewUrl}
+                    accept="image/*"
+                    type="file"
+                    onChange={(event) => handleFileChange(option.side, event)}
+                  />
                 </label>
                 {image.previewUrl && (
-                  <button aria-label={`Clear ${option.side} image`} className="card-grader__clear" type="button" onClick={() => clearImage(option.side)}><X aria-hidden="true" /></button>
+                  <button
+                    aria-label={`Clear ${option.side} image`}
+                    className="card-grader__clear"
+                    type="button"
+                    onClick={() => clearImage(option.side)}
+                  >
+                    <X aria-hidden="true" />
+                  </button>
                 )}
               </div>
             );
@@ -268,21 +291,23 @@ export default function UploadCardPage() {
                 disabled={actionDisabled}
                 onClick={() => runAnalysis(option)}
               >
-                {isLoading ? <LoaderCircle className="card-grader__spin" /> : <ScanSearch />}
+                {isLoading ? (
+                  <LoaderCircle className="card-grader__spin" />
+                ) : (
+                  <ScanSearch />
+                )}
                 {isLoading ? option.loadingLabel : option.label}
               </Button>
             );
           })}
         </div>
-
       </div>
 
       {analysisOptions.map(({ type, ResultView }) =>
         selectedAnalysis === type ? (
           <ResultView key={type} error={error} result={result} />
-        ) : null
+        ) : null,
       )}
-
     </div>
   );
 }

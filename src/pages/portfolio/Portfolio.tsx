@@ -202,11 +202,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
     } catch (cause) {
       if (controller.signal.aborted) return;
       logClientError("Failed to load portfolio cards", cause);
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Failed to load your collection.",
-      );
+      setError("We couldn’t load your collection. Please try again.");
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;

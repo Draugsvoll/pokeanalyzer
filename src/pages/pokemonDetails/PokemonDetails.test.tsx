@@ -581,7 +581,7 @@ test("keeps navigation data and offers retry when complete card loading fails", 
   );
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Couldn't refresh complete card data.",
+    "Some card details couldn’t be refreshed.",
   );
   expect(screen.getByText("$10.00")).toBeInTheDocument();
   expect(screen.queryAllByText("No price data")).toHaveLength(0);

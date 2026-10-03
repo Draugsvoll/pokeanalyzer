@@ -7,6 +7,7 @@ import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
 import { useNotification } from "../../context/notificationContextValue";
 import { useModalDialog } from "../../hooks/useModalDialog";
 import { Link } from "react-router-dom";
+import { getAuthErrorMessage } from "../../utils/userFacingError";
 
 type ModalProps = {
   isOpen: boolean;
@@ -54,7 +55,12 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       await login(trimmedEmail, password);
       finishLogin();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      setError(
+        getAuthErrorMessage(
+          err,
+          "We couldn’t log you in. Check your details and try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -69,7 +75,12 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       await signInWithGoogle();
       finishLogin();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Google login failed.");
+      setError(
+        getAuthErrorMessage(
+          err,
+          "We couldn’t sign you in with Google. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }

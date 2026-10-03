@@ -72,7 +72,7 @@ const EMPTY_SEARCH_FILTERS: DatabaseSearchFilters = {
   rarity: "",
 };
 const GENERIC_SEARCH_ERROR_MESSAGE =
-  "Something went wrong. Please try again later.";
+  "We couldn’t complete your search. Please try again.";
 const SEARCH_REQUEST_TIMEOUT_MS = 15_000;
 
 const FALLBACK_SEARCH_RARITIES = [

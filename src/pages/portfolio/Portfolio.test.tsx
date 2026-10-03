@@ -347,7 +347,10 @@ describe("Portfolio", () => {
         name: "We couldn't load your portfolio.",
       }),
     ).toBeVisible();
-    expect(screen.getByText("Network unavailable")).toBeVisible();
+    expect(
+      screen.getByText("We couldn’t load your collection. Please try again."),
+    ).toBeVisible();
+    expect(screen.queryByText("Network unavailable")).toBeNull();
     expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
 
     await waitFor(() =>

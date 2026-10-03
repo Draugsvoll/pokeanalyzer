@@ -21,13 +21,25 @@ import {
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
-import type { MembershipPlan } from "../../subscriptions/types";
+import type {
+  MembershipPlan,
+  SubscriptionStatus,
+} from "../../subscriptions/types";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import {
   PricingBar,
   type PricingBarAction,
 } from "../../components/pricingBar/PricingBar";
+
+const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
+  active: "Active",
+  canceled: "Canceled",
+  expired: "Expired",
+  past_due: "Payment due",
+  paused: "Paused",
+  trialing: "Trial",
+};
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -95,7 +107,7 @@ export default function Profile() {
     if (planIsCurrent) label = "Your plan";
     else if (switchToFreeIsScheduled) {
       label = subscription?.currentPeriodEnd
-        ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+        ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US")}`
         : "Switch scheduled";
     } else if (isFreePlan) label = "Switch to Free";
     else if (useBillingPortal) label = "Switch plan";
@@ -154,7 +166,7 @@ export default function Profile() {
 
         if (!userSnap.exists()) {
           setProfile(null);
-          setError("Logged in but no user profile found.");
+          setError("We couldn’t find your profile details.");
           return;
         }
 
@@ -168,7 +180,7 @@ export default function Profile() {
         setProfile(userData);
       } catch (err) {
         logClientError("Failed to fetch user data", err);
-        setError("Failed to fetch user data.");
+        setError("We couldn’t load your profile. Please try again.");
         setProfile(null);
       } finally {
         setLoading(false);
@@ -339,13 +351,13 @@ export default function Profile() {
               aria-busy={loadingSubscription}
             >
               <div className="profile__section-heading">
-                <span className="profile__eyebrow">Current Plan</span>
+                <span className="profile__eyebrow">Current plan</span>
                 {subscription && (
                   <span
                     className={`profile__status profile__status--${canUseMembership ? "active" : "inactive"}`}
                   >
                     <i aria-hidden="true" />
-                    {subscription.status.replace("_", " ")}
+                    {SUBSCRIPTION_STATUS_LABELS[subscription.status]}
                   </span>
                 )}
               </div>
@@ -390,9 +402,10 @@ export default function Profile() {
                       <strong>
                         {new Date(
                           subscription.currentPeriodEnd,
-                        ).toLocaleDateString()}
+                        ).toLocaleDateString("en-US")}
                       </strong>
-                      {subscription.cancelAtPeriodEnd && " · Cancelling"}
+                      {subscription.cancelAtPeriodEnd &&
+                        " · Cancellation scheduled"}
                     </small>
                   )}
                   {subscription &&

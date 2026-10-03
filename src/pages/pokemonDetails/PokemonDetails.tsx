@@ -549,13 +549,13 @@ function PokemonDetailsForCard() {
       <div className="card-view card-view--status ui-render-fade">
         {cardLoadFailed ? (
           <>
-            <p>Couldn't load card details.</p>
+            <p>We couldn’t load this card. Please try again.</p>
             <Button fitContent onClick={retryCardRequest}>
               Retry
             </Button>
           </>
         ) : (
-          <p>Couldn't find Pokémon</p>
+          <p>We couldn’t find this Pokémon card.</p>
         )}
       </div>
     );
@@ -802,7 +802,7 @@ function PokemonDetailsForCard() {
               <div className="card-view__market-content">
                 {cardLoadFailed && (
                   <div className="card-view__data-error" role="alert">
-                    <span>Couldn't refresh complete card data.</span>
+                    <span>Some card details couldn’t be refreshed.</span>
                     <Button
                       fill="ghost"
                       fitContent
@@ -858,7 +858,7 @@ function PokemonDetailsForCard() {
             <span className="card-view__credit-cost">
               <Coins aria-hidden="true" />
               <strong>Credit</strong>
-              <span className="card-view__credit-meta">pay per-feature</span>
+              <span className="card-view__credit-meta">pay per feature</span>
             </span>
             <span className="card-view__credit-divider" aria-hidden="true" />
             <span className="card-view__credit-copy">
@@ -866,12 +866,12 @@ function PokemonDetailsForCard() {
                 <span
                   className="card-view__credit-spinner"
                   role="status"
-                  aria-label="Laster credits"
+                  aria-label="Loading credits"
                 />
               ) : subscription ? (
                 <span className="card-view__credit-balance">
                   <Wallet aria-hidden="true" />
-                  {creditsRemaining} Credits
+                  {creditsRemaining} credits
                 </span>
               ) : (
                 <>
@@ -886,7 +886,7 @@ function PokemonDetailsForCard() {
                     Sign up
                   </Link>
                   <span className="card-view__credit-auth-muted">
-                    for free credits
+                    to get free credits
                   </span>
                 </>
               )}

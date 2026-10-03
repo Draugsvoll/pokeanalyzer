@@ -222,7 +222,9 @@ describe("MarketAnalysisView", () => {
         }}
       />,
     );
-    expect(screen.getByText("Couldn't fetch data.")).toBeInTheDocument();
+    expect(
+      screen.getByText("We couldn’t load this analysis. Please try again."),
+    ).toBeInTheDocument();
   });
 
   it("uses a neutral detail for an old single-string healthiest segment", () => {

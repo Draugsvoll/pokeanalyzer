@@ -9,7 +9,6 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type GrokResponse = {
   text?: string;
-  error?: string;
   subscription?: UserSubscription;
   fromDatabase?: boolean;
 };
@@ -73,12 +72,20 @@ export async function askGrok(
     const data = (await res.json()) as GrokResponse;
 
     if (!res.ok) {
-      return { ok: false, error: data.error ?? "AI request failed" };
+      return {
+        ok: false,
+        error:
+          res.status === 409
+            ? "This feature is currently unavailable."
+            : res.status === 429
+              ? "This feature is busy right now. Please try again shortly."
+              : "We couldn’t complete this request. Please try again.",
+      };
     }
     if (!data.subscription) {
       return {
         ok: false,
-        error: "AI response did not include subscription data",
+        error: "We couldn’t complete this request. Please try again.",
       };
     }
 
@@ -92,10 +99,7 @@ export async function askGrok(
     if (isAbortError(error)) throw error;
     return {
       ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Could not reach the AI endpoint",
+      error: "We couldn’t complete this request. Please try again.",
     };
   }
 }

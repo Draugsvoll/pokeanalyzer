@@ -17,6 +17,7 @@ import { signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import { logClientError } from "../../utils/logClientError";
 import { useNotification } from "../../context/notificationContextValue";
+import { getAuthErrorMessage } from "../../utils/userFacingError";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -128,9 +129,10 @@ export default function SignUpForm() {
     } catch (err: unknown) {
       logClientError("Signup failed", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while creating your account.",
+        getAuthErrorMessage(
+          err,
+          "We couldn’t create your account. Please try again.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -150,7 +152,12 @@ export default function SignUpForm() {
       navigate("/profile");
     } catch (err: unknown) {
       logClientError("Google sign-in failed", err);
-      setError(err instanceof Error ? err.message : "Google login failed.");
+      setError(
+        getAuthErrorMessage(
+          err,
+          "We couldn’t sign you in with Google. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }

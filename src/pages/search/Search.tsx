@@ -18,14 +18,14 @@ export default function Search() {
         title="Daily Most Sold on eBay"
       />
       <MarketMoversGrid
-        changeLabel="Change since the previous daily TCGPlayer Near Mint snapshot"
+        changeLabel="Daily change in the TCGPlayer Near Mint price"
         loadMovers={dailyTcgNearMintLosers}
         showMarketLabel={false}
         subtitle=""
         title="TCG Daily Losers"
       />
       <MarketMoversGrid
-        changeLabel="Change since the previous daily TCGPlayer Near Mint snapshot"
+        changeLabel="Daily change in the TCGPlayer Near Mint price"
         loadMovers={dailyTcgNearMintGainers}
         showMarketLabel={false}
         subtitle=""

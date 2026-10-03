@@ -58,7 +58,7 @@ export function Footer() {
 
             <section className="site-footer__link-group">
               <h2>Company</h2>
-              <Link to="/contact">Contact Us</Link>
+              <Link to="/contact">Contact us</Link>
             </section>
           </nav>
         </div>
