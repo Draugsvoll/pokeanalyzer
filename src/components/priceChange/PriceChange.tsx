@@ -5,7 +5,7 @@ import {
 } from "../../../shared/priceChangePeriod";
 import {
   formatAbsolutePriceChangePercent,
-  priceChangeDirectionLabel,
+  formatPriceChangeAccessibleLabel,
   priceChangeTone,
   type PriceChangeTone,
 } from "./priceChangeUtils";
@@ -70,10 +70,7 @@ export function PriceChange({
   const formattedPercent = formatAbsolutePriceChangePercent(percent);
   return (
     <span
-      aria-label={
-        ariaLabel ??
-        `${priceChangeDirectionLabel(tone)} by ${formattedPercent}. ${title}`
-      }
+      aria-label={ariaLabel ?? formatPriceChangeAccessibleLabel(percent, title)}
       className={`app-price-change app-price-change--${tone}${animate ? " ui-render-fade" : ""}${className ? ` ${className}` : ""}`}
       title={title}
     >

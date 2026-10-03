@@ -9,10 +9,16 @@ import {
 export async function loadPokeTraceFilterOptions() {
   await ensurePokeTraceReady();
   const stored = await loadStoredPokeTraceFilterOptions(pokeTraceDb);
-  if (stored) return stored;
+  if (
+    stored &&
+    stored.setSummaries.length === stored.setNames.length &&
+    stored.setSummaries.every(({ asOf }) => asOf === stored.generatedAt)
+  ) {
+    return stored;
+  }
 
-  // Self-heal once after deployment if the endpoint is requested before the
-  // next daily refresh has created the dedicated payload.
+  // Self-heal after deployment if the endpoint is requested before the next
+  // daily refresh has created the current enriched payload.
   const options = createPokeTraceFilterOptions(
     await getCachedPokeTraceCatalog(),
   );

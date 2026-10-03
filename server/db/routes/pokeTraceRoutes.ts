@@ -118,7 +118,7 @@ export function createPokeTraceFilterOptionsHandler(
   return async (_req, res) => {
     try {
       const options = await loadOptions();
-      res.setHeader("Cache-Control", "public, max-age=604800");
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.json(options);
     } catch (error) {
       reportError("Failed to load PokeTrace filter options", error);

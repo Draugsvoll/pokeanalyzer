@@ -216,7 +216,7 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     expect(await service.loadPokeTraceCatalogSetNames()).toEqual(["Base Set"]);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/cards/filter-options",
+      "http://localhost:3001/api/cards/filter-options?v=2",
     );
   });
 

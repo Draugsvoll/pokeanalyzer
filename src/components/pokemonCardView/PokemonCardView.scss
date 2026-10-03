@@ -256,6 +256,11 @@
   flex: 1 1 auto;
   gap: 0.35rem;
   min-width: 0;
+
+  .app-price-change {
+    margin-top: 0.22rem;
+    margin-left: 0.1rem;
+  }
 }
 
 .pokemon-card__market-label {

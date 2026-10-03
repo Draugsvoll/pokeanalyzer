@@ -225,6 +225,11 @@
   --font-color-primary: var(--text);
   --font-color-body: var(--text);
   --font-color-secondary: var(--secondary);
+  --font-color-secondary-strong: color-mix(
+    in srgb,
+    var(--font-color-primary) 22%,
+    var(--font-color-secondary)
+  );
   --font-color-muted: var(--muted);
   --font-color-faint: #687385;
   --font-color-error: var(--red);

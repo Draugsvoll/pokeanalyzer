@@ -78,6 +78,10 @@
   grid-template-columns: minmax(min-content, 1fr) 4.25rem;
   min-width: min-content;
 
+  .app-overview-value {
+    font-size: clamp(1.25rem, 2vw, 1.6rem);
+  }
+
   > .app-overview-metric-content {
     grid-column: 1;
 

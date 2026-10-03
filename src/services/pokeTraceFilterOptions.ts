@@ -5,9 +5,9 @@ import {
 import { logClientError } from "../utils/logClientError";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options`;
-const CACHE_KEY = "pokelyzer:poketrace-filter-options:v1";
-export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 7 * 24 * 60 * 60 * 1_000;
+const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options?v=2`;
+const CACHE_KEY = "pokelyzer:poketrace-filter-options:v2";
+export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 24 * 60 * 60 * 1_000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
 
 type StoredFilterOptions = {

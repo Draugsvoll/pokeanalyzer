@@ -16,7 +16,10 @@ import {
   POKETRACE_RAW_CONDITION_LABELS,
   type PokeTraceRawCondition,
 } from "../../../shared/pokeTraceMarketConditions";
-import { usePokeTraceSetNameOptions } from "../../hooks/usePokeTraceSetNameOptions";
+import {
+  usePokeTraceSetNameOptions,
+  type PokeTraceSetNameOption,
+} from "../../hooks/usePokeTraceSetNameOptions";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import { loadPokeTraceSet } from "../../services/pokeTraceSets";
@@ -26,6 +29,7 @@ import {
 } from "../../services/pokeTraceSetSessionCache";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
+import { formatDateStamp } from "../../utils/formatDateStamp";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import { waitForUiPaint } from "../../utils/waitForUiPaint";
 import {
@@ -33,13 +37,12 @@ import {
   sortPokeTraceCards,
   type PokeTraceCardSort,
 } from "../../utils/sortPokeTraceCards";
-import {
-  AutosuggestCombobox,
-  type AutosuggestOption,
-} from "../autosuggestCombobox/AutosuggestCombobox";
+import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
 import { CardCategoryGrid } from "../cardCategoryGrid/CardCategoryGrid";
 import { FilterInput } from "../filterInput/FilterInput";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
+import { PriceChange } from "../priceChange/PriceChange";
+import { formatPriceChangeAccessibleLabel } from "../priceChange/priceChangeUtils";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { SetExplorerOverview } from "./SetExplorerOverview";
 import {
@@ -56,7 +59,9 @@ const DEFAULT_CONDITION: PokeTraceRawCondition = "NEAR_MINT";
 const DEFAULT_CARD_SCOPE: SetCardScope = "unique";
 const OTHER_SET_ERA = "Other";
 
-type SetDirectorySort = "newest" | "oldest";
+type SetDirectoryChronologicalSort = "newest" | "oldest";
+type SetDirectorySort =
+  SetDirectoryChronologicalSort | "change-high-low" | "change-low-high";
 
 const SET_DIRECTORY_SORT_OPTIONS: Array<{
   label: string;
@@ -64,12 +69,14 @@ const SET_DIRECTORY_SORT_OPTIONS: Array<{
 }> = [
   { label: "Newest", value: "newest" },
   { label: "Oldest", value: "oldest" },
+  { label: "% change: high-low", value: "change-high-low" },
+  { label: "% change: low-high", value: "change-low-high" },
 ];
 
-type SetDirectoryOption = AutosuggestOption & SetDirectoryMetadata;
+type SetDirectoryOption = PokeTraceSetNameOption & SetDirectoryMetadata;
 
 function enrichSetDirectoryOption(
-  option: AutosuggestOption,
+  option: PokeTraceSetNameOption,
 ): SetDirectoryOption {
   const metadata = getSetDirectoryMetadata(option.value);
   return metadata ? { ...option, ...metadata } : option;
@@ -89,7 +96,7 @@ function setDirectoryDetails(option: SetDirectoryOption) {
 function compareSetReleaseYears(
   left: SetDirectoryOption,
   right: SetDirectoryOption,
-  sort: SetDirectorySort,
+  sort: SetDirectoryChronologicalSort,
 ) {
   if (left.releaseYear == null && right.releaseYear == null) {
     return left.label.localeCompare(right.label, "en-US", {
@@ -107,6 +114,45 @@ function compareSetReleaseYears(
   );
 }
 
+function compareSetDirectoryOptions(
+  left: SetDirectoryOption,
+  right: SetDirectoryOption,
+  sort: SetDirectorySort,
+) {
+  if (sort === "newest" || sort === "oldest") {
+    return compareSetReleaseYears(left, right, sort);
+  }
+
+  const leftChange = left.setSummary?.sevenDayChangePercent ?? null;
+  const rightChange = right.setSummary?.sevenDayChangePercent ?? null;
+  if (leftChange === null && rightChange !== null) return 1;
+  if (leftChange !== null && rightChange === null) return -1;
+  if (
+    leftChange !== null &&
+    rightChange !== null &&
+    leftChange !== rightChange
+  ) {
+    return sort === "change-high-low"
+      ? rightChange - leftChange
+      : leftChange - rightChange;
+  }
+
+  return compareSetReleaseYears(left, right, "newest");
+}
+
+function eraReleaseYear(
+  options: readonly SetDirectoryOption[],
+  sort: SetDirectorySort,
+) {
+  const releaseYears = options.flatMap(({ releaseYear }) =>
+    releaseYear == null ? [] : [releaseYear],
+  );
+  if (releaseYears.length === 0) return null;
+  return sort === "oldest"
+    ? Math.min(...releaseYears)
+    : Math.max(...releaseYears);
+}
+
 function groupSetDirectoryOptions(
   options: readonly SetDirectoryOption[],
   sort: SetDirectorySort,
@@ -121,7 +167,9 @@ function groupSetDirectoryOptions(
   }
 
   for (const eraOptions of optionsByEra.values()) {
-    eraOptions.sort((left, right) => compareSetReleaseYears(left, right, sort));
+    eraOptions.sort((left, right) =>
+      compareSetDirectoryOptions(left, right, sort),
+    );
   }
 
   return [...optionsByEra.entries()].sort(
@@ -129,8 +177,8 @@ function groupSetDirectoryOptions(
       if (leftEra === OTHER_SET_ERA) return 1;
       if (rightEra === OTHER_SET_ERA) return -1;
 
-      const leftYear = leftOptions[0]?.releaseYear;
-      const rightYear = rightOptions[0]?.releaseYear;
+      const leftYear = eraReleaseYear(leftOptions, sort);
+      const rightYear = eraReleaseYear(rightOptions, sort);
       if (leftYear == null && rightYear == null) {
         return leftEra.localeCompare(rightEra, "en-US", {
           sensitivity: "base",
@@ -140,7 +188,7 @@ function groupSetDirectoryOptions(
       if (rightYear == null) return -1;
 
       return (
-        (sort === "newest" ? rightYear - leftYear : leftYear - rightYear) ||
+        (sort === "oldest" ? leftYear - rightYear : rightYear - leftYear) ||
         leftEra.localeCompare(rightEra, "en-US", { sensitivity: "base" })
       );
     },
@@ -161,10 +209,20 @@ function SetDirectoryCard({
   option,
 }: SetDirectoryCardProps) {
   const details = setDirectoryDetails(option);
+  const changeDescriptionId = useId();
+  const changePercent = option.setSummary?.sevenDayChangePercent;
+  const changeTitle = option.setSummary
+    ? `7-day Near Mint set value change as of ${formatDateStamp(option.setSummary.asOf)}`
+    : null;
 
   return (
     <button
       aria-current={active ? "true" : undefined}
+      aria-describedby={
+        changePercent != null && changeTitle != null
+          ? changeDescriptionId
+          : undefined
+      }
       aria-label={`Open ${option.label}`}
       className={`set-category-grid__set-card ui-render-fade${active ? " is-active" : ""}`}
       disabled={disabled}
@@ -181,6 +239,23 @@ function SetDirectoryCard({
         >
           {details.join(" · ")}
         </span>
+      )}
+      {changePercent != null && changeTitle != null && (
+        <>
+          <PriceChange
+            animate
+            className="set-category-grid__set-change"
+            percent={changePercent}
+            period="7d"
+            title={changeTitle}
+          />
+          <span
+            className="set-category-grid__visually-hidden"
+            id={changeDescriptionId}
+          >
+            {formatPriceChangeAccessibleLabel(changePercent, changeTitle)}
+          </span>
+        </>
       )}
     </button>
   );

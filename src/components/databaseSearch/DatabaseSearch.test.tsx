@@ -13,7 +13,12 @@ import { DatabaseSearch } from "./DatabaseSearch";
 const mocks = vi.hoisted(() => ({
   loadPokeTraceCatalogRarities: vi.fn(),
   loadPokeTraceCatalogSetNames: vi.fn(),
+  loadPokeTraceFilterOptions: vi.fn(),
   searchCachedPokeTraceCatalog: vi.fn(),
+}));
+
+vi.mock("../../services/pokeTraceFilterOptions", () => ({
+  loadPokeTraceFilterOptions: mocks.loadPokeTraceFilterOptions,
 }));
 
 vi.mock("../../services/pokeTraceCatalog", () => ({
@@ -82,6 +87,8 @@ beforeEach(() => {
   mocks.loadPokeTraceCatalogRarities.mockResolvedValue(null);
   mocks.loadPokeTraceCatalogSetNames.mockReset();
   mocks.loadPokeTraceCatalogSetNames.mockResolvedValue(null);
+  mocks.loadPokeTraceFilterOptions.mockReset();
+  mocks.loadPokeTraceFilterOptions.mockResolvedValue(null);
   mocks.searchCachedPokeTraceCatalog.mockReset();
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
 });

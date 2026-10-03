@@ -17,16 +17,17 @@ import { requestFromTestServer } from "./httpTestServer.js";
 
 const cardId = "019bff77-befa-771d-bab0-f5909f0a78c9";
 
-test("filter options are publicly cached for seven days", async () => {
+test("filter options are publicly cached for one day", async () => {
   const app = express();
   app.get(
     "/api/cards/filter-options",
     createPokeTraceFilterOptionsHandler({
       loadOptions: async () => ({
-        schemaVersion: 1,
+        schemaVersion: 2,
         generatedAt: "2026-09-26T08:00:00.000Z",
         rarities: ["Holo Rare"],
         setNames: ["Base Set"],
+        setSummaries: [],
       }),
     }),
   );
@@ -37,12 +38,13 @@ test("filter options are publicly cached for seven days", async () => {
   );
 
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get("cache-control"), "public, max-age=604800");
+  assert.equal(response.headers.get("cache-control"), "public, max-age=86400");
   assert.deepEqual(await response.json(), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: "2026-09-26T08:00:00.000Z",
     rarities: ["Holo Rare"],
     setNames: ["Base Set"],
+    setSummaries: [],
   });
 });
 

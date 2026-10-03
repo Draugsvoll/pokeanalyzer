@@ -56,6 +56,20 @@ return are omitted, missing sources are stored as `NULL`, and no locally
 calculated market values are added.
 Supplemental snapshots older than 35 days are removed automatically.
 
+After a completed refresh, the same job rebuilds the saved set list from the
+generated catalog. Cards are grouped by set and deduplicated by card number
+using the cheapest valid Near Mint printing. Each set receives an optional
+aggregate 7-day change and the catalog timestamp. The complete list is
+validated before one atomic replacement, so the previous list remains
+available if generation fails.
+
+Rebuild the set list independently, reusing the saved catalog or generating a
+missing catalog first, with:
+
+```sh
+npm run poketrace:generate-set-list
+```
+
 Set `POKETRACE_DAILY_CARD_LIMIT` to the maximum number of cards for one run.
 The default and maximum are 50,000, which covers the whole current catalogue.
 Set

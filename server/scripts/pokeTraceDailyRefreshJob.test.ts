@@ -132,13 +132,24 @@ test("a successful daily refresh stores the regenerated catalog before completin
   const storedFilterOptions = await loadStoredPokeTraceFilterOptions(database);
 
   assert.deepEqual(completion, { catalogCards: 1, result: "SUCCESS" });
-  assert.equal(lockChecks, 1);
+  assert.equal(lockChecks, 2);
   assert.equal(storedCatalog?.cards[0]?.id, "refreshed-card");
   assert.deepEqual(storedFilterOptions, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: storedCatalog?.generatedAt,
     rarities: ["Holo Rare"],
     setNames: ["Base Set"],
+    setSummaries: [
+      {
+        asOf: storedCatalog?.generatedAt,
+        comparableCards: 0,
+        currency: "USD",
+        pricedCards: 1,
+        setName: "Base Set",
+        sevenDayChangePercent: null,
+        uniqueCards: 1,
+      },
+    ],
   });
   database.close();
 });

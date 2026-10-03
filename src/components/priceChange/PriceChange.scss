@@ -11,7 +11,6 @@
   gap: 0.2rem;
   justify-content: center;
   letter-spacing: var(--font-tracking-normal);
-  margin-top: 0.1rem;
   padding: 0;
   white-space: nowrap;
 
@@ -41,13 +40,16 @@
 
   &--up {
     border-bottom: 0.34rem solid var(--price-value-positive);
+    margin-top: 0.1rem;
   }
 
   &--down {
     border-top: 0.34rem solid var(--price-value-negative);
+    margin-top: 0.1rem;
   }
 
   &--flat {
+    margin-top: 0.1rem;
     border-top: 0.34rem solid var(--font-color-muted);
   }
 }
@@ -62,4 +64,5 @@
   opacity: 0.72;
   white-space: nowrap;
   margin-left: 0.1rem;
+  margin-bottom: -0.02rem;
 }

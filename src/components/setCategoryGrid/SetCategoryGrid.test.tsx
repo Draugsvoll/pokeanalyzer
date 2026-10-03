@@ -13,8 +13,32 @@ import { SetCategoryGrid } from "./SetCategoryGrid";
 
 vi.mock("../../hooks/usePokeTraceSetNameOptions", () => ({
   usePokeTraceSetNameOptions: () => [
-    { label: "Base Set", value: "Base Set" },
-    { label: "Base Set 2", value: "Base Set 2" },
+    {
+      label: "Base Set",
+      value: "Base Set",
+      setSummary: {
+        asOf: "2026-10-03T01:00:00.000Z",
+        comparableCards: 100,
+        currency: "USD",
+        pricedCards: 101,
+        setName: "Base Set",
+        sevenDayChangePercent: 10,
+        uniqueCards: 102,
+      },
+    },
+    {
+      label: "Base Set 2",
+      value: "Base Set 2",
+      setSummary: {
+        asOf: "2026-10-03T01:00:00.000Z",
+        comparableCards: 120,
+        currency: "USD",
+        pricedCards: 125,
+        setName: "Base Set 2",
+        sevenDayChangePercent: -5,
+        uniqueCards: 130,
+      },
+    },
     { label: "Arceus", value: "Arceus" },
     { label: "Battle Academy", value: "Battle Academy" },
     { label: "Unmapped Set", value: "Unmapped Set" },
@@ -184,6 +208,21 @@ test("filters the set directory and opens a set from its card", async () => {
   expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue(
     "Base Set 2",
   );
+});
+
+test("shows a generated seven-day change on its set card", () => {
+  renderSetExplorer();
+
+  const setCard = screen.getByRole("button", { name: "Open Base Set" });
+  expect(setCard).toHaveTextContent("10.0%7d");
+  expect(setCard).toHaveAccessibleDescription(
+    "Price increased by 10.0%. 7-day Near Mint set value change as of 3 Oct 2026",
+  );
+  expect(
+    within(setCard).getByTitle(
+      "7-day Near Mint set value change as of 3 Oct 2026",
+    ),
+  ).toBeVisible();
 });
 
 test("opens the set named in the URL", async () => {
@@ -393,6 +432,36 @@ test("sorts eras and their sets by oldest release year with Other last", () => {
       ...(baseGroup?.querySelectorAll(".set-category-grid__set-card") ?? []),
     ].map((cardElement) => cardElement.getAttribute("aria-label")),
   ).toEqual(["Open Base Set", "Open Base Set 2"]);
+});
+
+test("sorts sets by percentage change within each era", () => {
+  renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: high-low" }));
+
+  const headings = screen
+    .getAllByRole("heading", { level: 3 })
+    .map((heading) => heading.textContent);
+  expect(headings).toEqual(["Sword & Shield", "Platinum", "Base", "Other"]);
+
+  const baseGroup = screen
+    .getByRole("heading", { level: 3, name: "Base" })
+    .closest("section");
+  expect(
+    [
+      ...(baseGroup?.querySelectorAll(".set-category-grid__set-card") ?? []),
+    ].map((cardElement) => cardElement.getAttribute("aria-label")),
+  ).toEqual(["Open Base Set", "Open Base Set 2"]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: low-high" }));
+
+  expect(
+    [
+      ...(baseGroup?.querySelectorAll(".set-category-grid__set-card") ?? []),
+    ].map((cardElement) => cardElement.getAttribute("aria-label")),
+  ).toEqual(["Open Base Set 2", "Open Base Set"]);
 });
 
 test("clears the set filter and restores the full directory", () => {

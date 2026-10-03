@@ -203,7 +203,7 @@
 .set-category-grid__set-list {
   display: grid;
   gap: var(--space-2);
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .set-category-grid__era-list {
@@ -252,7 +252,7 @@
   min-height: 4rem;
   min-width: 0;
   padding: var(--space-3);
-  padding-block: var(--space-4);
+  padding-block: 1rem;
   text-align: center;
   transition:
     background-color var(--animation-duration-fast)
@@ -263,9 +263,11 @@
 }
 
 .set-category-grid__set-name {
+  color: var(--font-color-secondary-strong);
   display: -webkit-box;
   line-height: var(--font-leading-snug);
   min-width: 0;
+  font-size: var(--font-size-paragraph-sm);
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -273,7 +275,7 @@
 
 .set-category-grid__set-metadata {
   color: var(--font-color-faint);
-  font-size: var(--font-size-badge);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-snug);
   margin-top: var(--space-1);
@@ -281,6 +283,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 100%;
+}
+
+.set-category-grid__set-change {
+  align-self: center;
+  margin-top: var(--space-1);
+  margin-bottom: -0.1rem;
 }
 
 .set-category-grid__set-card {

@@ -64,6 +64,23 @@ npm run poketrace:generate-catalog
 The standalone generator uses the same maintenance lock as import and refresh,
 so it skips safely rather than reading while another catalogue job is writing.
 
+The generated filter-options payload also acts as the saved set list. It
+contains optional per-set 7-day Near Mint changes derived from the same catalog.
+Each set uses one card per card number, choosing the cheapest valid Near Mint
+printing, and compares the sum of current prices with the sum of matching
+7-day prices. Missing history leaves that set without a change value. The
+complete payload is validated and replaced atomically only after every set has
+been processed.
+
+Rebuild this set list without refreshing upstream prices with:
+
+```sh
+npm run poketrace:generate-set-list
+```
+
+The command reuses the saved catalog and generates and saves it from the cards
+table only when it is missing.
+
 The same refresh also writes one supplemental `poketrace_market_snapshots` row
 per card and UTC date. Its `tcg` and `ebay` JSON fields preserve the complete
 Near Mint, Lightly Played, Moderately Played, and Damaged objects returned by

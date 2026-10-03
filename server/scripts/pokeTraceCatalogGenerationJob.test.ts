@@ -89,10 +89,21 @@ test("catalog generation stores the complete payload while holding the lock", as
   assert.equal(catalog?.cards[0]?.id, "card-1");
   assert.deepEqual(await loadStoredPokeTraceCatalog(database), catalog);
   assert.deepEqual(await loadStoredPokeTraceFilterOptions(database), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: catalog?.generatedAt,
     rarities: ["Holo Rare"],
     setNames: ["Base Set"],
+    setSummaries: [
+      {
+        asOf: catalog?.generatedAt,
+        comparableCards: 0,
+        currency: "USD",
+        pricedCards: 1,
+        setName: "Base Set",
+        sevenDayChangePercent: null,
+        uniqueCards: 1,
+      },
+    ],
   });
   database.close();
 });

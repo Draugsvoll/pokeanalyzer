@@ -15,3 +15,11 @@ export function priceChangeDirectionLabel(tone: PriceChangeTone) {
   if (tone === "down") return "Price decreased";
   return "Price unchanged";
 }
+
+export function formatPriceChangeAccessibleLabel(
+  percent: number,
+  title: string,
+) {
+  const tone = priceChangeTone(percent);
+  return `${priceChangeDirectionLabel(tone)} by ${formatAbsolutePriceChangePercent(percent)}. ${title}`;
+}

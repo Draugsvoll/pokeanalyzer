@@ -13,6 +13,7 @@ export async function generateAndSavePokeTraceCatalog(
   const catalog = await generatePokeTraceCatalog(database);
   assertHeld();
   await savePokeTraceCatalog(database, catalog);
+  assertHeld();
   await savePokeTraceFilterOptions(
     database,
     createPokeTraceFilterOptions(catalog),
