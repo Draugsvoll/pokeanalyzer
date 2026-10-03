@@ -28,6 +28,7 @@ import {
   type PokeTraceSearchResponse,
 } from "../../../shared/pokeTraceSearch";
 import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
+import Button from "../button/Button";
 import { usePokeTraceSetNameOptions } from "../../hooks/usePokeTraceSetNameOptions";
 import {
   POKETRACE_DEFAULT_CARD_SORT,
@@ -72,6 +73,7 @@ const EMPTY_SEARCH_FILTERS: DatabaseSearchFilters = {
 };
 const GENERIC_SEARCH_ERROR_MESSAGE =
   "Something went wrong. Please try again later.";
+const SEARCH_REQUEST_TIMEOUT_MS = 15_000;
 
 const FALLBACK_SEARCH_RARITIES = [
   "Common",
@@ -184,7 +186,7 @@ async function fetchServerSearch(
 
       return result as PokeTraceSearchResponse<PokemonCardType>;
     },
-    { signal },
+    { signal, timeoutMs: SEARCH_REQUEST_TIMEOUT_MS },
   );
 }
 
@@ -669,6 +671,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         kind: "error",
         message: GENERIC_SEARCH_ERROR_MESSAGE,
       });
+      setCanSearch(true);
     } finally {
       if (requestId === searchRequestIdRef.current) {
         if (searchRequestControllerRef.current === requestController) {
@@ -746,12 +749,22 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       <div className={embedded ? undefined : "explore-page__inner"}>
         {embedded ? searchBar : <SearchHero>{searchBar}</SearchHero>}
         {searchFeedback && !isSearching && (
-          <p
+          <div
             className={`database-search-feedback database-search-feedback--${searchFeedback.kind}`}
             role={searchFeedback.kind === "error" ? "alert" : "status"}
           >
             {searchFeedback.message}
-          </p>
+            {searchFeedback.kind === "error" && (
+              <Button
+                disabled={!canSearch || isSearching}
+                fill="ghost"
+                fitContent
+                onClick={submitSearch}
+              >
+                Retry
+              </Button>
+            )}
+          </div>
         )}
         {(() => {
           if (results.length === 0) return null;

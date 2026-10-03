@@ -526,8 +526,12 @@
 }
 
 .database-search-feedback {
+  align-items: center;
   color: var(--font-color-muted);
+  display: flex;
   font-size: var(--font-size-caption);
+  gap: var(--space-3);
+  justify-content: center;
   margin: var(--space-6) auto 0;
   text-align: center;
 

@@ -168,11 +168,15 @@ export const Header: React.FC = () => {
           ) : (
             <div className="header__guest-actions">
               <span className="header__signup-action">
-                <Button size="large" onClick={() => navigate("/signup")}>
+                <Button
+                  fill="ghost"
+                  size="medium"
+                  onClick={() => navigate("/signup")}
+                >
                   Sign up
                 </Button>
               </span>
-              <Button fill="ghost" size="large" onClick={() => setOpen(true)}>
+              <Button fill="ghost" size="medium" onClick={() => setOpen(true)}>
                 Log in
               </Button>
             </div>

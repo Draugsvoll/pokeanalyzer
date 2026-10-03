@@ -55,16 +55,16 @@
   display: none;
 }
 
-.grid-view--sorting .card-grid {
+.card-grid--sorting {
   position: relative;
 
   > .pokemon-card-view {
-    opacity: 0.92;
+    opacity: 0.87;
     pointer-events: none;
   }
 
   &::after {
-    background: color-mix(in srgb, var(--surface) 3%, transparent);
+    background: color-mix(in srgb, var(--surface) 5%, transparent);
     content: "";
     inset: 0;
     pointer-events: none;

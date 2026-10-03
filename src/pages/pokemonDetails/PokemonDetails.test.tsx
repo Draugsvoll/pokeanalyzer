@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
@@ -262,6 +268,29 @@ beforeEach(() => {
   }));
 });
 
+test("shows links to the card directory and current set in the breadcrumb", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  const breadcrumb = await screen.findByRole("navigation", {
+    name: "Breadcrumb",
+  });
+
+  expect(
+    within(breadcrumb).getByRole("link", { name: "Cards" }),
+  ).toHaveAttribute("href", "/search");
+  expect(
+    within(breadcrumb).getByRole("link", { name: "Base Set" }),
+  ).toHaveAttribute("href", "/set?set=Base%20Set");
+  expect(within(breadcrumb).getByText("Pikachu · 58/102")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});
+
 test("keeps the embedded card search open while using its controls", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
@@ -313,6 +342,22 @@ test("closes the embedded card search with its visible close button", async () =
     screen.queryByRole("dialog", { name: "Switch card" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Next Card" })).toHaveFocus();
+});
+
+test("shows membership pricing at the bottom of the demo card page", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/demo"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Compare plans" }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Your plan" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Choose Collector" }),
+  ).toBeVisible();
 });
 
 test("contains focus and lets autocomplete dismiss itself before the dialog", async () => {

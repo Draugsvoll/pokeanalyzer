@@ -72,6 +72,21 @@
   outline-offset: 2px;
 }
 
+.segmented-radio-group--small {
+  gap: 0;
+  padding: 0.1rem;
+
+  .segmented-radio-group__option {
+    min-width: 2.5rem;
+  }
+
+  .segmented-radio-group__option > span {
+    font-size: var(--font-size-badge);
+    line-height: 1;
+    padding: 0.28rem 0.48rem;
+  }
+}
+
 @media (max-width: 40rem) {
   .segmented-radio-group {
     width: 100%;

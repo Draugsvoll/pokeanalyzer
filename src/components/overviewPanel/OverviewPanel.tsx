@@ -64,7 +64,7 @@ export function OverviewMetric({
         >
           {value}
         </strong>
-        <small>{detail}</small>
+        <div className="app-overview-metric-detail">{detail}</div>
       </div>
 
       {imageSrc && (

@@ -3,12 +3,13 @@
    ========================================================================== */
 
 :root {
-  --bg: #080a0f;
+  --bg: #0a0c12;
   --bg2: #0f141d;
   --surface: #131a25;
   --surface2: #182230;
   --surface3: #202c3c;
   --border-color: rgba(170, 190, 220, 0.09);
+  --card-border-color: rgba(170, 190, 220, 0.12);
   --border-color-strong: rgba(170, 190, 220, 0.17);
   --text: #f3f6fa;
   --secondary: #b8c0cc;
@@ -284,11 +285,3 @@
 }
 
 $price-value-letter-spacing: 0.04em;
-$price-value-font-family:
-  Inter,
-  system-ui,
-  -apple-system,
-  "Segoe UI",
-  Helvetica,
-  Arial,
-  sans-serif;

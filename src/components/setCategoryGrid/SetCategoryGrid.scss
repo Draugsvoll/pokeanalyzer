@@ -5,7 +5,7 @@
 
 .set-category-grid {
   display: grid;
-  gap: var(--space-7);
+  gap: var(--space-6);
   min-width: 0;
   padding-top: var(--space-5);
   width: 100%;
@@ -27,7 +27,7 @@
 
 .set-category-grid__discovery {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-6);
   min-width: 0;
 }
 
@@ -38,6 +38,7 @@
 }
 
 .set-category-grid__picker {
+  grid-column: 2;
   margin-inline: auto;
   max-width: 12rem;
   position: relative;
@@ -48,9 +49,22 @@
 .set-category-grid__filters {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: repeat(2, minmax(0, 12rem)) max-content;
-  justify-content: center;
+  grid-template-columns:
+    minmax(0, 1fr) repeat(2, minmax(0, 12rem))
+    minmax(0, 1fr);
   min-width: 0;
+  position: relative;
+}
+
+.set-category-grid__filters::after {
+  background: var(--border-divider);
+  bottom: calc(var(--space-3) * -1);
+  content: "";
+  height: 1px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
 }
 
 .set-category-grid__directory-select,
@@ -60,10 +74,19 @@
   width: 100%;
 }
 
+.set-category-grid__directory-select {
+  grid-column: 3;
+}
+
 .set-category-grid__directory-select--sort,
 .set-category-grid__directory-select--sort .ui-select-dropdown,
 .set-category-grid__directory-select--sort .ui-select-dropdown__toggle {
   width: max-content;
+}
+
+.set-category-grid__directory-select--sort {
+  grid-column: 4;
+  justify-self: end;
 }
 
 .set-category-grid__era-select .ui-select-dropdown__toggle {
@@ -261,7 +284,7 @@
 }
 
 .set-category-grid__set-card {
-  &:hover:not(:disabled) {
+  &:hover:not(:disabled):not(.is-active) {
     background: var(--bg-card-hover);
     border-color: var(--border-color-strong);
     color: var(--font-color-primary);
@@ -286,7 +309,7 @@
 
   &:disabled {
     cursor: wait;
-    opacity: 0.62;
+    opacity: 1;
   }
 }
 
@@ -364,6 +387,11 @@
 @media (max-width: 44rem) {
   .set-category-grid__filters {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .set-category-grid__picker,
+  .set-category-grid__directory-select {
+    grid-column: auto;
   }
 
   .set-category-grid__picker {

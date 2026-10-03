@@ -15,6 +15,7 @@ type SegmentedRadioGroupProps<T extends string> = {
   name: string;
   onChange: (value: T) => void;
   options: readonly SegmentedRadioOption<T>[];
+  size?: "medium" | "small";
   value: T;
 };
 
@@ -25,11 +26,18 @@ export function SegmentedRadioGroup<T extends string>({
   name,
   onChange,
   options,
+  size = "medium",
   value,
 }: SegmentedRadioGroupProps<T>) {
   return (
     <div
-      className={["segmented-radio-group", className].filter(Boolean).join(" ")}
+      className={[
+        "segmented-radio-group",
+        size === "small" && "segmented-radio-group--small",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       role="radiogroup"
       aria-label={ariaLabel}
     >

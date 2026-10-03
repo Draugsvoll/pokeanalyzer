@@ -57,7 +57,7 @@
     min-width: 0;
   }
 
-  > small {
+  > .app-overview-metric-detail {
     color: var(--font-color-faint);
     display: block;
     font-size: var(--font-size-caption);
@@ -75,11 +75,21 @@
 .app-overview-metric--featured {
   column-gap: var(--space-3);
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) minmax(3rem, 4.25rem);
+  grid-template-columns: minmax(min-content, 1fr) 4.25rem;
   min-width: min-content;
 
   > .app-overview-metric-content {
     grid-column: 1;
+
+    > strong {
+      white-space: nowrap;
+    }
+
+    > .app-overview-metric-detail {
+      // Keep detail text in flow without letting it set the metric width.
+      contain: inline-size;
+      width: 100%;
+    }
   }
 }
 

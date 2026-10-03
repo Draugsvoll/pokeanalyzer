@@ -9,6 +9,7 @@ import {
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
+  ChevronRight,
   CircleDollarSign,
   Coins,
   Gem,
@@ -61,6 +62,8 @@ import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
+import { PricingBar } from "../../components/pricingBar/PricingBar";
+import { MEMBERSHIP_PLANS } from "../../../shared/subscriptions/plans";
 
 type ActiveView =
   | "empty_view"
@@ -563,6 +566,9 @@ function PokemonDetailsForCard() {
     card,
     displayedCardNumber,
   );
+  const breadcrumbCardLabel = formattedDisplayedCardNumber
+    ? `${card.name} · ${formattedDisplayedCardNumber}`
+    : card.name;
   const displayRarity = card.rarity?.trim() || "N/A";
   const pokeTraceVariants = card.pokeTrace.variants?.length
     ? card.pokeTrace.variants
@@ -632,6 +638,22 @@ function PokemonDetailsForCard() {
   return (
     <div className="card-view card-view--poketrace ui-render-fade">
       <div className="card-view__panel-wrap">
+        <nav aria-label="Breadcrumb" className="card-view__breadcrumb">
+          <Link className="card-view__breadcrumb-link" to="/search">
+            Cards
+          </Link>
+          <ChevronRight aria-hidden="true" />
+          <Link
+            className="card-view__breadcrumb-link card-view__breadcrumb-link--set"
+            to={`/set?set=${encodeURIComponent(card.set.name)}`}
+          >
+            {card.set.name}
+          </Link>
+          <ChevronRight aria-hidden="true" />
+          <span aria-current="page" className="card-view__breadcrumb-current">
+            {breadcrumbCardLabel}
+          </span>
+        </nav>
         {isDemo && (
           <aside className="card-view__demo-disclaimer" role="note">
             Demo - prices and analyses are not live data.
@@ -1027,6 +1049,35 @@ function PokemonDetailsForCard() {
           )}
         </div>
       </section>
+
+      {isDemo && (
+        <section
+          aria-labelledby="demo-pricing-title"
+          className="card-view__demo-pricing"
+        >
+          <header className="card-view__demo-pricing-heading">
+            <span>Pricing</span>
+            <h2 id="demo-pricing-title">Compare plans</h2>
+          </header>
+          <PricingBar
+            currentPlanId={subscription?.planId}
+            getPlanAction={(plan) => {
+              const isCurrentPlan = subscription?.planId === plan.id;
+
+              return {
+                disabled: loadingSubscription || isCurrentPlan,
+                label: isCurrentPlan
+                  ? "Your plan"
+                  : plan.id === "free"
+                    ? "Get started"
+                    : `Choose ${plan.name}`,
+                onClick: () => navigate(authUser ? "/profile" : "/signup"),
+              };
+            }}
+            plans={MEMBERSHIP_PLANS}
+          />
+        </section>
+      )}
     </div>
   );
 }

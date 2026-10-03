@@ -4,7 +4,6 @@ import Layout from "./Layout";
 import Homepage from "./pages/homepage/Homepage";
 import NotFound from "./pages/notfound/NotFound";
 import { initializePokeTraceCatalog } from "./services/pokeTraceCatalog";
-import { LoadingState } from "./components/loadingState/LoadingState";
 
 const Search = lazy(() => import("./pages/search/Search"));
 const SetExplorer = lazy(() => import("./pages/set/Set"));
@@ -22,8 +21,14 @@ function withRouteLoader(children: ReactNode) {
   return (
     <Suspense
       fallback={
-        <div className="route-loading" aria-busy="true">
-          <LoadingState>Loading page</LoadingState>
+        <div
+          aria-busy="true"
+          aria-label="Loading"
+          aria-live="polite"
+          className="route-loading"
+          role="status"
+        >
+          <span aria-hidden="true" className="app-loading-spinner" />
         </div>
       }
     >

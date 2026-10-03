@@ -15,17 +15,19 @@ import {
   CircleAlert,
   Coins,
   Crown,
-  Leaf,
   LogIn,
   LogOut,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
-import { getCustomColors, type CustomColors } from "../../utils/customStylings";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
+import type { MembershipPlan } from "../../subscriptions/types";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import {
+  PricingBar,
+  type PricingBarAction,
+} from "../../components/pricingBar/PricingBar";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -41,13 +43,10 @@ export default function Profile() {
   } = useMembershipSubscription();
   const {
     bonusCreditsRemaining,
-    creditMessage,
     creditsRemaining,
     creditsTotal,
     membershipCreditsRemaining,
     membershipCreditsTotal,
-    topUpCredits,
-    updatingCredits,
   } = useCredits(subscription);
 
   const [loading, setLoading] = useState(true);
@@ -79,6 +78,44 @@ export default function Profile() {
     creditsTotal > 0
       ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
       : 0;
+
+  const getPlanAction = (plan: MembershipPlan): PricingBarAction => {
+    const isFreePlan = plan.id === "free";
+    const planIsCurrent = subscription?.planId === plan.id;
+    const switchToFreeIsScheduled = Boolean(
+      isFreePlan &&
+      subscription?.planId !== "free" &&
+      subscription?.cancelAtPeriodEnd,
+    );
+    const useBillingPortal = Boolean(
+      !isFreePlan && !canStartMembershipCheckout && canManageBilling,
+    );
+
+    let label = `Choose ${plan.name}`;
+    if (planIsCurrent) label = "Your plan";
+    else if (switchToFreeIsScheduled) {
+      label = subscription?.currentPeriodEnd
+        ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+        : "Switch scheduled";
+    } else if (isFreePlan) label = "Switch to Free";
+    else if (useBillingPortal) label = "Switch plan";
+
+    return {
+      busy: updatingSubscription && !planIsCurrent && !switchToFreeIsScheduled,
+      disabled:
+        planIsCurrent ||
+        switchToFreeIsScheduled ||
+        updatingSubscription ||
+        (isFreePlan
+          ? !canManageBilling
+          : !canStartMembershipCheckout && !canManageBilling),
+      label,
+      onClick: () => {
+        if (isFreePlan || useBillingPortal) return void openBillingPortal();
+        return void startMembershipCheckout(plan.id);
+      },
+    };
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -181,6 +218,7 @@ export default function Profile() {
     return (
       <div className="profile profile--status" aria-busy="true">
         <header className="profile__page-heading">
+          <span className="profile__eyebrow">Profile</span>
           <h1>My Account</h1>
         </header>
         <section className="profile__loading-state default-container">
@@ -245,6 +283,7 @@ export default function Profile() {
   return (
     <div className="profile">
       <header className="profile__page-heading">
+        <span className="profile__eyebrow">Profile</span>
         <h1>My Account</h1>
       </header>
 
@@ -428,160 +467,22 @@ export default function Profile() {
           </div>
 
           <div className="profile__plan-actions">
-            <div className="profile__upgrade-copy">
-              <span className="profile__eyebrow">Plans and credits</span>
-              <h3>Choose your membership</h3>
-            </div>
-
-            <div className="profile__purchase-group-heading">
-              <span>Membership plans</span>
-              <small>Renews monthly</small>
-            </div>
-
-            {(subscriptionMessage || creditMessage) && (
+            {subscriptionMessage && (
               <div className="profile__billing-notices" aria-live="polite">
-                {subscriptionMessage && <small>{subscriptionMessage}</small>}
-                {creditMessage && (
-                  <small className="is-warning">{creditMessage}</small>
-                )}
+                <small>{subscriptionMessage}</small>
               </div>
             )}
 
-            <div className="profile__purchase-options">
-              {planOptions.map((plan) => {
-                const isFreePlan = plan.id === "free";
-                const planIsCurrent = subscription?.planId === plan.id;
-                const switchToFreeIsScheduled = Boolean(
-                  isFreePlan &&
-                  subscription?.planId !== "free" &&
-                  subscription?.cancelAtPeriodEnd,
-                );
-                const useBillingPortal = Boolean(
-                  !isFreePlan &&
-                  !canStartMembershipCheckout &&
-                  canManageBilling,
-                );
-                const PlanIcon = isFreePlan
-                  ? Leaf
-                  : plan.id === "pro"
-                    ? Sparkles
-                    : Crown;
-                const planAccent: CustomColors = isFreePlan
-                  ? "teal"
-                  : plan.id === "pro"
-                    ? "purple"
-                    : "blue";
-                const planAction = () => {
-                  if (isFreePlan) {
-                    return openBillingPortal();
-                  }
-                  if (useBillingPortal) return openBillingPortal();
-                  return startMembershipCheckout(plan.id);
-                };
+            <header className="profile__pricing-heading">
+              <span className="profile__eyebrow">Plans and credits</span>
+              <h2>Choose your membership</h2>
+            </header>
 
-                return (
-                  <article
-                    key={plan.id}
-                    className={`profile__purchase-card${isFreePlan ? " profile__purchase-card--free" : plan.id === "collector" ? " profile__purchase-card--collector" : plan.id === "pro" ? " profile__purchase-card--pro" : ""}${planIsCurrent ? " is-current" : ""}${switchToFreeIsScheduled ? " is-scheduled" : ""}`}
-                  >
-                    <span className="profile__purchase-icon" aria-hidden="true">
-                      <PlanIcon />
-                    </span>
-                    <span className="profile__purchase-name">{plan.name}</span>
-                    <strong>
-                      {isFreePlan
-                        ? `${plan.credits} credits`
-                        : `${plan.credits} credits`}
-                    </strong>
-                    <small>
-                      {isFreePlan
-                        ? "Renews monthly · Free forever"
-                        : `${plan.price} ${plan.currency} / month`}
-                    </small>
-                    <Button
-                      fill="ghost"
-                      fitContent
-                      size="medium"
-                      style={getCustomColors(planAccent)}
-                      disabled={
-                        planIsCurrent ||
-                        switchToFreeIsScheduled ||
-                        updatingSubscription ||
-                        (isFreePlan
-                          ? !canManageBilling
-                          : !canStartMembershipCheckout && !canManageBilling)
-                      }
-                      onClick={() => void planAction()}
-                      aria-busy={
-                        updatingSubscription &&
-                        !planIsCurrent &&
-                        !switchToFreeIsScheduled
-                      }
-                    >
-                      {planIsCurrent ? (
-                        "Current Plan"
-                      ) : switchToFreeIsScheduled ? (
-                        subscription?.currentPeriodEnd ? (
-                          `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                        ) : (
-                          "Switch scheduled"
-                        )
-                      ) : updatingSubscription ? (
-                        <span
-                          className="app-btn__spinner"
-                          aria-label="Opening checkout"
-                        />
-                      ) : isFreePlan ? (
-                        "Switch to Free"
-                      ) : useBillingPortal ? (
-                        "Switch plan"
-                      ) : (
-                        `Choose ${plan.name}`
-                      )}
-                    </Button>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="profile__purchase-divider" aria-hidden="true">
-              <span>or</span>
-            </div>
-
-            <div className="profile__purchase-group-heading profile__purchase-group-heading--one-time">
-              <span>One-time payment</span>
-            </div>
-
-            <div className="profile__top-up-row">
-              <article className="profile__purchase-card profile__purchase-card--top-up">
-                <span className="profile__purchase-icon" aria-hidden="true">
-                  <Coins />
-                </span>
-                <div className="profile__top-up-copy">
-                  <span className="profile__purchase-name">Credit top-up</span>
-                  <strong>20 extra credits</strong>
-                  <small>One-time payment · No subscription</small>
-                </div>
-                <Button
-                  fill="solid"
-                  fitContent
-                  size="medium"
-                  style={getCustomColors("orange")}
-                  disabled={!canUseMembership || updatingCredits}
-                  onClick={() => void topUpCredits()}
-                  aria-busy={updatingCredits}
-                >
-                  {updatingCredits ? (
-                    <span
-                      className="app-btn__spinner"
-                      aria-label="Opening checkout"
-                    />
-                  ) : (
-                    "Buy Credits"
-                  )}
-                </Button>
-              </article>
-            </div>
+            <PricingBar
+              currentPlanId={subscription?.planId}
+              getPlanAction={getPlanAction}
+              plans={planOptions}
+            />
 
             {canUseMembership &&
               subscription &&

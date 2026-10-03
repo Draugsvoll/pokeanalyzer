@@ -25,6 +25,9 @@ export type SetExplorerOverview = {
 type SetSalesLeader = {
   approximate: boolean;
   card: PokemonCard;
+  currency: string;
+  percentChange: number | null;
+  price: number | null;
   sales: number;
 };
 
@@ -47,6 +50,7 @@ function dominantCurrency(cards: readonly PokemonCard[]) {
 export function buildSetExplorerOverview(
   cards: readonly PokemonCard[],
   salesLeaders?: PokeTraceSetSalesLeaders | null,
+  salesLeaderCards: readonly PokemonCard[] = cards,
 ): SetExplorerOverview {
   const changePeriod = "7d" satisfies PriceChangePeriod;
   const currency = dominantCurrency(cards);
@@ -89,8 +93,22 @@ export function buildSetExplorerOverview(
     leader: PokeTraceSetSalesLeaders["total"] | undefined,
   ): SetSalesLeader | null => {
     if (!leader) return null;
-    const card = cards.find(({ id }) => id === leader.cardId);
-    return card ? { ...leader, card } : null;
+    const card = salesLeaderCards.find(({ id }) => id === leader.cardId);
+    if (!card) return null;
+
+    const currentPrice = resolvePokeTraceCardPrice(card, "NEAR_MINT");
+    return {
+      ...leader,
+      card,
+      currency: currentPrice?.currency ?? card.pokeTrace.currency ?? currency,
+      percentChange: currentPrice
+        ? calculateDisplayedPriceChangePercent(
+            currentPrice.price,
+            card.pokeTrace.marketPriceSnapshots?.[changePeriod],
+          )
+        : null,
+      price: currentPrice?.price ?? null,
+    };
   };
 
   return {

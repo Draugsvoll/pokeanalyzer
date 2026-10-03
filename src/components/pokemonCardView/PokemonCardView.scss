@@ -1,6 +1,6 @@
 .pokemon-card-view__card {
+  border: 2px solid var(--card-border-color);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
   border-radius: var(--border-radius-card);
   box-shadow: var(--shadow);
   box-sizing: border-box;
@@ -274,7 +274,7 @@
   color: var(--font-color-primary);
   flex: 0 0 auto;
   font-family: var(--font-family-price);
-  font-size: 1.02rem;
+  font-size: var(--font-size-price);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-tight);

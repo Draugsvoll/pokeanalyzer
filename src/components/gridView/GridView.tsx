@@ -30,7 +30,7 @@ export function GridView({
   return (
     <div
       aria-busy={sorting || undefined}
-      className={`grid-view${revealOnScroll ? " ui-scroll-reveal" : ""}${sorting ? " grid-view--sorting" : ""}`}
+      className={`grid-view${revealOnScroll ? " ui-scroll-reveal" : ""}`}
       ref={revealOnScroll ? revealRef : undefined}
     >
       {(title || subtitle) && (
@@ -64,7 +64,7 @@ export function GridView({
         </header>
       )}
       <div
-        className="card-grid"
+        className={`card-grid${sorting ? " card-grid--sorting" : ""}`}
         hidden={collapsible && collapsed}
         id={collapsible ? contentId : undefined}
       >

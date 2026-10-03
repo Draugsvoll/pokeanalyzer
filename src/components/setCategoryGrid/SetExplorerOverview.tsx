@@ -1,21 +1,31 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import { CardIdentity } from "../cardIdentity/CardIdentity";
 import { OverviewMetric, OverviewPanel } from "../overviewPanel/OverviewPanel";
 import { PriceChange } from "../priceChange/PriceChange";
+import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
 import {
   formatAbsolutePriceChangePercent,
   priceChangeTone,
 } from "../priceChange/priceChangeUtils";
 import type { SetExplorerOverview as SetExplorerOverviewData } from "./setExplorerMetrics";
+import type { SetCardScope } from "./setCardScope";
 import "./SetExplorerOverview.scss";
 
 type SetExplorerOverviewProps = {
   activeSetName: string;
+  cardScope: SetCardScope;
   controls: ReactNode;
+  onCardScopeChange: (scope: SetCardScope) => void;
   overview: SetExplorerOverviewData;
+  updating: boolean;
 };
+
+const CARD_SCOPE_OPTIONS = [
+  { label: "Unique", value: "unique" },
+  { label: "All", value: "all" },
+] as const;
 
 function moneyFormatter(currency: string) {
   try {
@@ -36,10 +46,14 @@ function moneyFormatter(currency: string) {
 
 export function SetExplorerOverview({
   activeSetName,
+  cardScope,
   controls,
+  onCardScopeChange,
   overview,
+  updating,
 }: SetExplorerOverviewProps) {
   const revealRef = useScrollReveal<HTMLElement>();
+  const cardScopeName = useId();
   const money = moneyFormatter(overview.currency);
   const changePeriodLong = formatPriceChangePeriodLong(overview.changePeriod);
   const tone =
@@ -54,13 +68,11 @@ export function SetExplorerOverview({
   const movementDirection =
     tone === "up" ? "Up" : tone === "down" ? "Down" : "Unchanged";
   const cardLabel = overview.totalCards === 1 ? "card" : "cards";
-  const integer = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  });
 
   return (
     <section
       aria-label={`${activeSetName} market overview`}
+      aria-busy={updating || undefined}
       className="set-explorer-overview ui-scroll-reveal"
       ref={revealRef}
     >
@@ -69,7 +81,6 @@ export function SetExplorerOverview({
           <h2 className="app-overview-value">{activeSetName}</h2>
           <p>
             {overview.totalCards.toLocaleString("en-US")} {cardLabel}{" "}
-            <span aria-hidden="true">·</span> TCGplayer market data
           </p>
         </div>
       </header>
@@ -81,7 +92,24 @@ export function SetExplorerOverview({
       >
         <OverviewMetric
           className="set-explorer-overview__market"
-          detail={`${overview.pricedCards.toLocaleString("en-US")} of ${overview.totalCards.toLocaleString("en-US")} ${cardLabel} priced`}
+          detail={
+            <div className="set-explorer-overview__market-detail">
+              <SegmentedRadioGroup
+                ariaLabel="Cards included in set value"
+                className="set-explorer-overview__card-scope"
+                disabled={updating}
+                name={cardScopeName}
+                onChange={onCardScopeChange}
+                options={CARD_SCOPE_OPTIONS}
+                size="small"
+                value={cardScope}
+              />
+              <span>
+                {overview.pricedCards.toLocaleString("en-US")} of{" "}
+                {overview.totalCards.toLocaleString("en-US")} {cardLabel} priced
+              </span>
+            </div>
+          }
           label="Set value"
           value={
             <>
@@ -149,7 +177,7 @@ export function SetExplorerOverview({
               )}
             </>
           }
-          valueClassName="set-explorer-overview__valuable-value"
+          valueClassName="set-explorer-overview__card-value"
         />
 
         {(
@@ -157,37 +185,45 @@ export function SetExplorerOverview({
             ["Most sold", overview.salesLeaders.total],
             ["Least sold", overview.salesLeaders.leastTotal],
           ] as const
-        ).map(([label, leader]) => (
-          <OverviewMetric
-            className="set-explorer-overview__featured"
-            detail={
-              leader ? (
-                <CardIdentity
-                  name={leader.card.name}
-                  number={leader.card.number}
-                />
-              ) : (
-                "Sales data unavailable"
-              )
-            }
-            imageSrc={leader?.card.image}
-            key={label}
-            label={label}
-            value={
-              <span
-                aria-label={
-                  leader
-                    ? `${leader.approximate ? "Approximately " : ""}${integer.format(leader.sales)} sales`
-                    : undefined
-                }
-              >
-                {leader
-                  ? `${leader.approximate ? "≈" : ""}${integer.format(leader.sales)}`
-                  : "—"}
-              </span>
-            }
-          />
-        ))}
+        ).map(([label, leader]) => {
+          const priceChange = leader?.percentChange ?? null;
+          return (
+            <OverviewMetric
+              className="set-explorer-overview__featured"
+              detail={
+                leader ? (
+                  <CardIdentity
+                    name={leader.card.name}
+                    number={leader.card.number}
+                  />
+                ) : (
+                  "Sales data unavailable"
+                )
+              }
+              imageSrc={leader?.card.image}
+              key={label}
+              label={label}
+              value={
+                <>
+                  <span>
+                    {leader?.price != null
+                      ? moneyFormatter(leader.currency).format(leader.price)
+                      : "—"}
+                  </span>
+                  {priceChange != null && (
+                    <PriceChange
+                      ariaLabel={`${label} card ${changePeriodLong} price change ${formatAbsolutePriceChangePercent(priceChange)}`}
+                      percent={priceChange}
+                      period={overview.changePeriod}
+                      title={`${changePeriodLong} price change`}
+                    />
+                  )}
+                </>
+              }
+              valueClassName="set-explorer-overview__card-value"
+            />
+          );
+        })}
       </OverviewPanel>
 
       {controls}

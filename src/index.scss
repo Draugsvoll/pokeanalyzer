@@ -254,6 +254,12 @@ body {
   display: flex;
   justify-content: center;
   min-height: min(32rem, calc(100vh - var(--header-height) - 8rem));
+
+  .app-loading-spinner {
+    border-width: 2px;
+    height: 1.5rem;
+    width: 1.5rem;
+  }
 }
 
 /*

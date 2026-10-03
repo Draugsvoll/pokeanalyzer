@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type KeyboardEvent,
 } from "react";
 import { ChevronDown } from "lucide-react";
@@ -45,12 +46,14 @@ import {
   getSetDirectoryMetadata,
   type SetDirectoryMetadata,
 } from "./setDirectoryMetadata";
+import { selectUniqueSetCards, type SetCardScope } from "./setCardScope";
 import { buildSetExplorerOverview } from "./setExplorerMetrics";
 import "./SetCategoryGrid.scss";
 
 const INVALID_SET_MESSAGE =
   "Choose a set from the suggestions before opening it.";
 const DEFAULT_CONDITION: PokeTraceRawCondition = "NEAR_MINT";
+const DEFAULT_CARD_SCOPE: SetCardScope = "unique";
 const OTHER_SET_ERA = "Other";
 
 type SetDirectorySort = "newest" | "oldest";
@@ -254,15 +257,20 @@ export function SetCategoryGrid() {
   const validationId = useId();
   const setNameOptions = usePokeTraceSetNameOptions();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSetParameter = searchParams.get("set")?.trim() ?? "";
   const requestControllerRef = useRef<AbortController | null>(null);
   const sortRequestIdRef = useRef(0);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(requestedSetParameter);
   const [eraFilter, setEraFilter] = useState("");
   const [directorySort, setDirectorySort] =
     useState<SetDirectorySort>("newest");
   const [selectedSetName, setSelectedSetName] = useState<string | null>(null);
   const [activeSetName, setActiveSetName] = useState<string | null>(null);
   const [cards, setCards] = useState<PokemonCard[]>([]);
+  const [cardScope, setCardScope] = useState<SetCardScope>(DEFAULT_CARD_SCOPE);
+  const [appliedCardScope, setAppliedCardScope] =
+    useState<SetCardScope>(DEFAULT_CARD_SCOPE);
+  const [isScopePending, startScopeTransition] = useTransition();
   const [salesLeaders, setSalesLeaders] =
     useState<PokeTraceSetSalesLeaders | null>(null);
   const [cardFilter, setCardFilter] = useState("");
@@ -285,9 +293,14 @@ export function SetCategoryGrid() {
     [],
   );
 
+  const isUpdatingResults = isSorting || isScopePending;
+  const scopedCards = useMemo(
+    () => (appliedCardScope === "unique" ? selectUniqueSetCards(cards) : cards),
+    [appliedCardScope, cards],
+  );
   const filteredCards = useMemo(
-    () => cards.filter((card) => cardMatchesFilter(card, cardFilter)),
-    [cardFilter, cards],
+    () => scopedCards.filter((card) => cardMatchesFilter(card, cardFilter)),
+    [cardFilter, scopedCards],
   );
   const sortedCards = useMemo(
     () =>
@@ -297,8 +310,8 @@ export function SetCategoryGrid() {
     [filteredCards, sort],
   );
   const overview = useMemo(
-    () => buildSetExplorerOverview(cards, salesLeaders),
-    [cards, salesLeaders],
+    () => buildSetExplorerOverview(scopedCards, salesLeaders, cards),
+    [cards, salesLeaders, scopedCards],
   );
   const visibleCards = sortedCards.slice(0, visibleCount);
   const normalizedSetFilter = inputValue.trim().toLocaleLowerCase("en-US");
@@ -306,7 +319,6 @@ export function SetCategoryGrid() {
     () => setNameOptions.map(enrichSetDirectoryOption),
     [setNameOptions],
   );
-  const requestedSetParameter = searchParams.get("set")?.trim() ?? "";
   const requestedSetName = useMemo(() => {
     if (!requestedSetParameter) return null;
     return (
@@ -318,6 +330,9 @@ export function SetCategoryGrid() {
       )?.value ?? null
     );
   }, [requestedSetParameter, setNameOptions]);
+  const highlightedSetName = loading
+    ? (requestedSetName ?? activeSetName)
+    : activeSetName;
   const setEraOptions = useMemo(
     () => [
       { label: "Any Era", value: "" },
@@ -353,6 +368,8 @@ export function SetCategoryGrid() {
     setIsSorting(false);
     setInvalid(false);
     setError(null);
+    setCardScope(DEFAULT_CARD_SCOPE);
+    setAppliedCardScope(DEFAULT_CARD_SCOPE);
 
     const cached = loadPokeTraceSetFromSession(setName);
     if (cached) {
@@ -455,8 +472,17 @@ export function SetCategoryGrid() {
     openSelectedSet();
   }
 
+  function handleCardScopeChange(nextScope: SetCardScope) {
+    if (nextScope === cardScope || isUpdatingResults) return;
+    setCardScope(nextScope);
+    startScopeTransition(() => {
+      setAppliedCardScope(nextScope);
+      setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+    });
+  }
+
   async function handleSortChange(nextSort: PokeTraceCardSort) {
-    if (nextSort === sort || isSorting) return;
+    if (nextSort === sort || isUpdatingResults) return;
     const requestId = ++sortRequestIdRef.current;
     setIsSorting(true);
     try {
@@ -616,7 +642,7 @@ export function SetCategoryGrid() {
             <div className="set-category-grid__era-list">
               {groupedSetOptions.map(([era, options]) => (
                 <SetDirectoryGroup
-                  activeSetName={activeSetName}
+                  activeSetName={highlightedSetName}
                   disabled={loading}
                   era={era}
                   key={era}
@@ -638,8 +664,11 @@ export function SetCategoryGrid() {
           {!loading && activeSetName && cards.length > 0 && (
             <SetExplorerOverview
               activeSetName={activeSetName}
+              cardScope={cardScope}
               controls={resultControls}
+              onCardScopeChange={handleCardScopeChange}
               overview={overview}
+              updating={isScopePending}
             />
           )}
 
@@ -672,7 +701,7 @@ export function SetCategoryGrid() {
             })}
             loading={loading}
             revealOnScroll
-            sorting={isSorting}
+            sorting={isUpdatingResults}
           />
         </div>
       )}

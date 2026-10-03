@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import type {
   PaidFeatureResponse,
@@ -11,13 +10,7 @@ import {
   type EbayCompsResponse,
   type EbayCompResult,
 } from "../../../../utils/ebayComps";
-import {
-  CalendarDays,
-  ChevronDown,
-  ExternalLink,
-  Gavel,
-  Search,
-} from "lucide-react";
+import { ChevronDown, ExternalLink, Gavel } from "lucide-react";
 import "./EbaySoldView.scss";
 import {
   isAbortError,
@@ -26,6 +19,7 @@ import {
 import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { LoadingState } from "../../../../components/loadingState/LoadingState";
+import { FilterInput } from "../../../../components/filterInput/FilterInput";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
 
@@ -143,12 +137,10 @@ function isTrue(value?: string) {
 
 type EbayResultCardProps = {
   result: EbayCompResult;
-  index: number;
   isActive: boolean;
 };
 
 type EbayListingMetadataItem = {
-  icon?: ReactNode;
   label: string;
 };
 
@@ -158,7 +150,7 @@ function isMetadataItem(
   return Boolean(item);
 }
 
-function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
+function EbayResultCard({ result, isActive }: EbayResultCardProps) {
   const title = getField(result, "title") ?? "eBay listing";
   const url = getField(result, "url");
   const endedAt = getField(result, "endedAt");
@@ -173,7 +165,6 @@ function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
   const metadataCandidates: (EbayListingMetadataItem | null)[] = [
     !isActive
       ? {
-          icon: <CalendarDays aria-hidden="true" />,
           label: `Sold ${formatDate(endedAt)}`,
         }
       : null,
@@ -185,13 +176,7 @@ function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
   const metadataItems = metadataCandidates.filter(isMetadataItem);
 
   return (
-    <article
-      key={url ?? `${title}-${index}`}
-      className="ebay-sold-view__result card-hover"
-      onClick={() => {
-        if (hasListingUrl) window.open(url, "_blank", "noopener,noreferrer");
-      }}
-    >
+    <article className="ebay-sold-view__result">
       <div className="ebay-sold-view__visual">
         <div className="ebay-sold-view__media">
           {result.thumbnailUrl ? (
@@ -213,7 +198,6 @@ function EbayResultCard({ result, index, isActive }: EbayResultCardProps) {
                   key={`${item.label}-${itemIndex}`}
                 >
                   {itemIndex > 0 && <span>{"\u2022"}</span>}
-                  {item.icon}
                   {item.label}
                 </span>
               ))}
@@ -639,31 +623,25 @@ export default function EbaySoldView({
               ))}
             </div>
           </fieldset>
-          <label className="ebay-sold-view__text-filter">
-            <div>
-              <Search aria-hidden="true" />
-              <input
-                aria-label="Filter eBay results"
-                onChange={(event) =>
-                  handleTextFilterChange(event.currentTarget.value)
-                }
-                minLength={2}
-                placeholder="Filter"
-                type="search"
-                value={textFilter}
+          <div className="ebay-sold-view__control-group">
+            <FilterInput
+              ariaLabel="Filter eBay results"
+              className="ebay-sold-view__text-filter"
+              clearLabel="Clear eBay results filter"
+              onChange={handleTextFilterChange}
+              placeholder="Filter"
+              value={textFilter}
+            />
+            <div className="ebay-sold-view__sorting">
+              <span>Sort by</span>
+              <SelectDropdown
+                ariaLabel="Sort eBay listings"
+                options={EBAY_SORT_OPTIONS}
+                value={sortOrder}
+                onChange={handleSortChange}
               />
             </div>
-          </label>
-          <label className="ebay-sold-view__sorting">
-            <span>Sort by</span>
-            <SelectDropdown
-              ariaLabel="Sort eBay listings"
-              compact
-              options={EBAY_SORT_OPTIONS}
-              value={sortOrder}
-              onChange={handleSortChange}
-            />
-          </label>
+          </div>
         </div>
       </div>
       <div className="ebay-sold-view__results-region" aria-busy={filtering}>
@@ -698,7 +676,6 @@ export default function EbaySoldView({
                   getField(result, "url") ??
                   `${getField(result, "title")}-${index}`
                 }
-                index={index}
                 isActive={getField(result, "listingType") === "active"}
                 result={result}
               />

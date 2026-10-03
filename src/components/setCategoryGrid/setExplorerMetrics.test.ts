@@ -79,11 +79,17 @@ describe("buildSetExplorerOverview", () => {
       leastTotal: {
         approximate: false,
         card: { id: "weekly" },
+        currency: "USD",
+        percentChange: (5 / 35) * 100,
+        price: 40,
         sales: 8,
       },
       total: {
         approximate: true,
         card: { id: "total" },
+        currency: "USD",
+        percentChange: (10 / 90) * 100,
+        price: 100,
         sales: 602,
       },
     });
