@@ -1,9 +1,6 @@
 import type { Client, InValue } from "@libsql/client";
 import { toPokeTraceCatalogPokemonCard } from "../../shared/pokeTraceCatalog.js";
-import {
-  searchPokeTraceCatalogCards,
-  type PokeTraceCatalogSearch,
-} from "../../shared/pokeTraceCatalogSearch.js";
+import type { PokeTraceCatalogSearch } from "../../shared/pokeTraceCatalogSearch.js";
 import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions.js";
 import {
   POKETRACE_SEARCH_RESULT_LIMIT,
@@ -31,6 +28,10 @@ function cardNumberNumerator(value: string) {
   return value.split("/", 1)[0]?.trim() ?? "";
 }
 
+function containsPattern(value: string) {
+  return `%${value.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
 export async function loadDirectPokeTraceSearch(
   search: PokeTraceDirectSearchQuery,
   dependencies: Partial<DirectSearchDependencies> = {},
@@ -45,8 +46,8 @@ export async function loadDirectPokeTraceSearch(
 
   const pokemonName = search.pokemonName.trim();
   if (pokemonName) {
-    where.push("instr(lower(name), lower(?)) > 0");
-    args.push(pokemonName);
+    where.push("name LIKE ? ESCAPE '\\' COLLATE NOCASE");
+    args.push(containsPattern(pokemonName));
   }
 
   const setName = search.setName.trim();
@@ -54,15 +55,15 @@ export async function loadDirectPokeTraceSearch(
     where.push(
       search.setNameExact
         ? "set_name = ? COLLATE NOCASE"
-        : "instr(lower(set_name), lower(?)) > 0",
+        : "set_name LIKE ? ESCAPE '\\' COLLATE NOCASE",
     );
-    args.push(setName);
+    args.push(search.setNameExact ? setName : containsPattern(setName));
   }
 
   const cardId = search.cardId?.trim() ?? "";
   if (cardId) {
-    where.push("instr(lower(id), lower(?)) > 0");
-    args.push(cardId);
+    where.push("id LIKE ? ESCAPE '\\' COLLATE NOCASE");
+    args.push(containsPattern(cardId));
   }
 
   const cardNumber = search.cardNumber.trim();
@@ -103,7 +104,13 @@ export async function loadDirectPokeTraceSearch(
 
   const condition = search.condition || "NEAR_MINT";
   const priceExpression = `CAST(json_extract(raw_json, '${CONDITION_PATHS[condition]}') AS REAL)`;
-  if (search.condition) where.push(`${priceExpression} IS NOT NULL`);
+  if (
+    search.condition ||
+    search.minPrice !== undefined ||
+    search.maxPrice !== undefined
+  ) {
+    where.push(`${priceExpression} > 0`);
+  }
   if (search.minPrice !== undefined) {
     where.push(`${priceExpression} >= ?`);
     args.push(search.minPrice);
@@ -132,7 +139,6 @@ export async function loadDirectPokeTraceSearch(
         tcg_market_comparisons
       FROM poketrace_cards
       ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
-      ORDER BY lower(name), lower(set_name), card_number, variant, id
       LIMIT ${POKETRACE_SEARCH_RESULT_LIMIT}
     `,
     args,
@@ -140,9 +146,7 @@ export async function loadDirectPokeTraceSearch(
   const cards = result.rows.map((row) =>
     toPokeTraceCatalogCard(row as unknown as Record<string, unknown>),
   );
-  const items = searchPokeTraceCatalogCards(cards, search, {
-    limit: POKETRACE_SEARCH_RESULT_LIMIT,
-  }).map(toPokeTraceCatalogPokemonCard);
+  const items = cards.map(toPokeTraceCatalogPokemonCard);
 
   return { items, total: items.length };
 }
