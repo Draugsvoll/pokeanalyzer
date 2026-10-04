@@ -24,6 +24,7 @@
     "poketrace:refresh-oldest": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
     "poketrace:refresh-daily": "tsx server/scripts/refreshOldestPokeTraceCards.ts",
     "poketrace:generate-catalog": "tsx server/scripts/generatePokeTraceCatalog.ts",
+    "poketrace:warm-catalog": "tsx server/scripts/warmPokeTraceCatalog.ts",
     "poketrace:generate-set-list": "tsx server/scripts/generatePokeTraceSetList.ts",
     "poketrace:generate-market-categories": "tsx server/scripts/generateMarketCategories.ts",
     "news:generate": "tsx server/scripts/generateNews.ts",

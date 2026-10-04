@@ -1,4 +1,5 @@
 import { Router, type RequestHandler } from "express";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { ensurePokeTraceReady, pokeTraceDb } from "../pokeTraceDb.js";
 import { logError } from "../../security/logging.js";
 import { POKETRACE_CARD_ID_PATTERN } from "../../services/pokeTraceApi.js";
@@ -6,7 +7,10 @@ import { parsePokeTraceSavedResponses } from "../../../shared/pokeTraceSavedResp
 import { toPokemonCard } from "../../services/pokeTraceCardView.js";
 import { gzip } from "node:zlib";
 import { promisify } from "node:util";
-import { getCachedPokeTraceCatalog } from "../../services/pokeTraceCatalog.js";
+import {
+  getCachedPokeTraceCatalog,
+  refreshPokeTraceCatalog,
+} from "../../services/pokeTraceCatalog.js";
 import {
   loadMarketPriceHistory,
   PokeTracePriceHistoryUnavailableError,
@@ -108,6 +112,51 @@ type PokeTraceFilterOptionsHandlerDependencies = {
   loadOptions: () => Promise<PokeTraceFilterOptions>;
   reportError: (context: string, error: unknown) => void;
 };
+
+type PokeTraceCatalogRefreshHandlerDependencies = {
+  refreshCatalog: typeof refreshPokeTraceCatalog;
+  refreshToken: string | undefined;
+  reportError: (context: string, error: unknown) => void;
+};
+
+function tokensMatch(provided: string, expected: string) {
+  const providedHash = createHash("sha256").update(provided).digest();
+  const expectedHash = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(providedHash, expectedHash);
+}
+
+export function createPokeTraceCatalogRefreshHandler(
+  dependencies: Partial<PokeTraceCatalogRefreshHandlerDependencies> = {},
+): RequestHandler {
+  const refreshCatalog = dependencies.refreshCatalog ?? refreshPokeTraceCatalog;
+  const refreshToken = (
+    dependencies.refreshToken ?? process.env.POKETRACE_CATALOG_REFRESH_TOKEN
+  )?.trim();
+  const reportError = dependencies.reportError ?? logError;
+
+  return async (req, res) => {
+    if (!refreshToken) {
+      res.status(503).json({ error: "Catalog refresh is not configured" });
+      return;
+    }
+
+    const authorization = req.header("authorization") ?? "";
+    const providedToken =
+      authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() ?? "";
+    if (!providedToken || !tokensMatch(providedToken, refreshToken)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      await refreshCatalog();
+      res.status(204).end();
+    } catch (error) {
+      reportError("Failed to force-refresh PokeTrace catalog", error);
+      res.status(500).json({ error: "Failed to refresh card catalog" });
+    }
+  };
+}
 
 export function createPokeTraceFilterOptionsHandler(
   dependencies: Partial<PokeTraceFilterOptionsHandlerDependencies> = {},
@@ -548,6 +597,8 @@ router.get("/search", createPokeTraceSearchHandler());
 router.get("/set", createPokeTraceSetHandler());
 
 router.get("/filter-options", createPokeTraceFilterOptionsHandler());
+
+router.post("/catalog/refresh", createPokeTraceCatalogRefreshHandler());
 
 router.get("/catalog", async (req, res) => {
   try {

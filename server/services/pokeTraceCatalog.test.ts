@@ -168,3 +168,58 @@ test("server catalog cache serves stale data after a refresh failure", async () 
   assert.notEqual((await getCatalog()).generatedAt, initial.generatedAt);
   assert.equal(loads, 3);
 });
+
+test("server catalog cache force-refreshes fresh data", async () => {
+  let loads = 0;
+  const getCatalog = createPokeTraceCatalogCache(async () => {
+    loads += 1;
+    return catalog(`2026-09-25T00:00:0${loads}.000Z`);
+  });
+
+  const initial = await getCatalog();
+  const refreshed = await getCatalog.refresh();
+
+  assert.equal(loads, 2);
+  assert.notEqual(refreshed.generatedAt, initial.generatedAt);
+  assert.equal(getCatalog.peek(), refreshed);
+});
+
+test("forced refresh waits for an existing load before loading again", async () => {
+  let finishInitialLoad!: () => void;
+  const initialLoadGate = new Promise<void>((resolve) => {
+    finishInitialLoad = resolve;
+  });
+  let loads = 0;
+  const getCatalog = createPokeTraceCatalogCache(async () => {
+    loads += 1;
+    if (loads === 1) await initialLoadGate;
+    return catalog(`2026-09-25T00:00:0${loads}.000Z`);
+  });
+
+  const initialLoad = getCatalog();
+  await Promise.resolve();
+  const refresh = getCatalog.refresh();
+
+  assert.equal(loads, 1);
+  finishInitialLoad();
+
+  const [initial, refreshed] = await Promise.all([initialLoad, refresh]);
+  assert.equal(loads, 2);
+  assert.notEqual(refreshed.generatedAt, initial.generatedAt);
+  assert.equal(getCatalog.peek(), refreshed);
+});
+
+test("failed forced refresh preserves the existing catalog", async () => {
+  let refreshFails = false;
+  const getCatalog = createPokeTraceCatalogCache(async () => {
+    if (refreshFails) throw new Error("temporary Turso failure");
+    return catalog("2026-09-25T00:00:00.000Z");
+  });
+
+  const initial = await getCatalog();
+  refreshFails = true;
+
+  await assert.rejects(getCatalog.refresh(), /temporary Turso failure/);
+  assert.equal(getCatalog.peek(), initial);
+  assert.equal(await getCatalog(), initial);
+});

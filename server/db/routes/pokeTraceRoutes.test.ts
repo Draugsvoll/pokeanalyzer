@@ -6,6 +6,7 @@ import {
   acceptsGzip,
   createMarketPriceHistoryHandler,
   createMarketMoversHandler,
+  createPokeTraceCatalogRefreshHandler,
   createPokeTraceFilterOptionsHandler,
   createPokeTraceSearchHandler,
   createPokeTraceSetHandler,
@@ -53,6 +54,64 @@ test("catalog gzip negotiation respects an explicit zero quality", () => {
   assert.equal(acceptsGzip("gzip; q=1.0, br"), true);
   assert.equal(acceptsGzip("gzip;q=0, br"), false);
   assert.equal(acceptsGzip(undefined), false);
+});
+
+test("catalog force refresh requires the configured internal token", async () => {
+  const app = express();
+  let refreshes = 0;
+  app.post(
+    "/api/cards/catalog/refresh",
+    createPokeTraceCatalogRefreshHandler({
+      refreshCatalog: async () => {
+        refreshes += 1;
+        throw new Error("must not refresh");
+      },
+      refreshToken: "catalog-refresh-secret",
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/catalog/refresh",
+    { method: "POST" },
+  );
+
+  assert.equal(response.status, 401);
+  assert.equal(refreshes, 0);
+});
+
+test("catalog force refresh accepts the configured internal token", async () => {
+  const app = express();
+  let refreshes = 0;
+  app.post(
+    "/api/cards/catalog/refresh",
+    createPokeTraceCatalogRefreshHandler({
+      refreshCatalog: async () => {
+        refreshes += 1;
+        return {
+          schemaVersion: 2,
+          generatedAt: "2026-10-04T00:00:00.000Z",
+          cards: [],
+        };
+      },
+      refreshToken: "catalog-refresh-secret",
+      reportError: () => {
+        assert.fail("The successful refresh must not be logged as an error");
+      },
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/catalog/refresh",
+    {
+      method: "POST",
+      headers: { Authorization: "Bearer catalog-refresh-secret" },
+    },
+  );
+
+  assert.equal(response.status, 204);
+  assert.equal(refreshes, 1);
 });
 
 test("market movers forwards validated customizable filters", async () => {

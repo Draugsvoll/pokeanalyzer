@@ -70,6 +70,18 @@ missing catalog first, with:
 npm run poketrace:generate-set-list
 ```
 
+Force the running backend to reload the saved catalog regardless of its current
+cache age with:
+
+```sh
+npm run poketrace:warm-catalog
+```
+
+Configure `POKETRACE_CATALOG_REFRESH_URL` with the full backend refresh endpoint
+and set the same private `POKETRACE_CATALOG_REFRESH_TOKEN` on the script and
+backend services. The command keeps the existing backend cache active until the
+replacement loads successfully.
+
 Set `POKETRACE_DAILY_CARD_LIMIT` to the maximum number of cards for one run.
 The default and maximum are 50,000, which covers the whole current catalogue.
 Set

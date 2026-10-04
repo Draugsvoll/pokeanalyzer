@@ -21,6 +21,7 @@ export type PokeTraceCatalogCache =
   (() => Promise<PokeTraceCatalogResponse>) & {
     canWarm: () => boolean;
     peek: () => PokeTraceCatalogResponse | null;
+    refresh: () => Promise<PokeTraceCatalogResponse>;
   };
 
 function optionalText(value: unknown) {
@@ -117,11 +118,8 @@ export function createPokeTraceCatalogCache(
   let coldRetryAt = 0;
   let coldLoadError: unknown;
 
-  const getCatalog = async () => {
-    const currentTime = now();
-    if (cached && cached.expiresAt > currentTime) return cached.catalog;
+  const startLoad = () => {
     if (loadPromise) return loadPromise;
-    if (!cached && coldRetryAt > currentTime) throw coldLoadError;
 
     const load = Promise.resolve()
       .then(loadCatalog)
@@ -136,21 +134,48 @@ export function createPokeTraceCatalogCache(
           coldLoadError = error;
           coldRetryAt =
             now() + Math.min(maxAgeMs, POKETRACE_CATALOG_STALE_RETRY_MS);
-          throw error;
         }
-        cached = {
-          catalog: cached.catalog,
-          expiresAt:
-            now() + Math.min(maxAgeMs, POKETRACE_CATALOG_STALE_RETRY_MS),
-        };
-        return cached.catalog;
+        throw error;
       });
     loadPromise = load;
 
+    void load.then(
+      () => {
+        if (loadPromise === load) loadPromise = undefined;
+      },
+      () => {
+        if (loadPromise === load) loadPromise = undefined;
+      },
+    );
+    return load;
+  };
+
+  const forceRefresh = async () => {
+    const pendingLoad = loadPromise;
+    if (pendingLoad) {
+      try {
+        await pendingLoad;
+      } catch {
+        // The forced refresh below is an independent retry.
+      }
+    }
+    return startLoad();
+  };
+
+  const getCatalog = async () => {
+    const currentTime = now();
+    if (cached && cached.expiresAt > currentTime) return cached.catalog;
+    if (!cached && coldRetryAt > currentTime) throw coldLoadError;
+
     try {
-      return await load;
-    } finally {
-      loadPromise = undefined;
+      return await startLoad();
+    } catch (error) {
+      if (!cached) throw error;
+      cached = {
+        catalog: cached.catalog,
+        expiresAt: now() + Math.min(maxAgeMs, POKETRACE_CATALOG_STALE_RETRY_MS),
+      };
+      return cached.catalog;
     }
   };
   getCatalog.canWarm = () => {
@@ -160,6 +185,7 @@ export function createPokeTraceCatalogCache(
     return coldRetryAt <= currentTime;
   };
   getCatalog.peek = () => cached?.catalog ?? null;
+  getCatalog.refresh = forceRefresh;
   return getCatalog;
 }
 
@@ -179,6 +205,10 @@ export const getCachedPokeTraceCatalog =
 
 export function peekCachedPokeTraceCatalog() {
   return getCachedPokeTraceCatalog.peek();
+}
+
+export function refreshPokeTraceCatalog() {
+  return getCachedPokeTraceCatalog.refresh();
 }
 
 export function warmPokeTraceCatalogInBackground() {
