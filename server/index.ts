@@ -33,6 +33,7 @@ import {
   saveCardGrokResponse,
 } from "./db/cardGrokStore.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "./db/pokeTraceDb.js";
+import { warmPokeTraceCatalogInBackground } from "./services/pokeTraceCatalog.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -337,6 +338,7 @@ async function startServer() {
     await ensurePokeTraceReady();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
+      warmPokeTraceCatalogInBackground();
     });
   } catch (error) {
     logError("Failed to initialize PokeTrace database", error);
