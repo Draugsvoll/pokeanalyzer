@@ -69,8 +69,8 @@ const SET_DIRECTORY_SORT_OPTIONS: Array<{
 }> = [
   { label: "Newest", value: "newest" },
   { label: "Oldest", value: "oldest" },
-  { label: "% change: high-low", value: "change-high-low" },
-  { label: "% change: low-high", value: "change-low-high" },
+  { label: "% Change: high–low", value: "change-high-low" },
+  { label: "% Change: low–high", value: "change-low-high" },
 ];
 
 type SetDirectoryOption = PokeTraceSetNameOption & SetDirectoryMetadata;

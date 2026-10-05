@@ -17,6 +17,16 @@
   --blue: #58aaff;
   --blue-soft: color-mix(in srgb, var(--blue) 14%, transparent);
   --ai: #a879ff;
+  --app-background-glow-primary: color-mix(
+    in srgb,
+    var(--blue) 2%,
+    transparent
+  );
+  --app-background-glow-secondary: color-mix(
+    in srgb,
+    var(--ai) 0.75%,
+    transparent
+  );
   --green: #4fd58b;
   --red: #ff7373;
   --yellow: #f4c95d;

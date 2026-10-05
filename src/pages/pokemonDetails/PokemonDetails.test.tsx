@@ -285,10 +285,30 @@ test("shows links to the card directory and current set in the breadcrumb", asyn
   expect(
     within(breadcrumb).getByRole("link", { name: "Base Set" }),
   ).toHaveAttribute("href", "/set?set=Base%20Set");
-  expect(within(breadcrumb).getByText("Pikachu · 58/102")).toHaveAttribute(
+  expect(within(breadcrumb).getByText("Pikachu")).toHaveAttribute(
     "aria-current",
     "page",
   );
+});
+
+test("places the card number between the title and rarity without repeating the set", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  const title = await screen.findByRole("heading", { name: "Pikachu" });
+  const number = screen.getByLabelText("Card number 58/102");
+  const rarity = screen.getByText("Common");
+
+  expect(title.compareDocumentPosition(number)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(number.compareDocumentPosition(rarity)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(screen.getAllByText("Base Set")).toHaveLength(1);
 });
 
 test("keeps the embedded card search open while using its controls", async () => {

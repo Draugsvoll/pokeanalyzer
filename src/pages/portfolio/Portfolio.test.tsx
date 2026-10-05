@@ -344,11 +344,12 @@ describe("Portfolio", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "We couldn't load your portfolio.",
+        name: "We couldn't load your collection",
       }),
     ).toBeVisible();
+    expect(screen.getByText("Please try again in a moment.")).toBeVisible();
     expect(
-      screen.getByText("We couldn’t load your collection. Please try again."),
+      screen.getByRole("heading", { name: "My collection" }),
     ).toBeVisible();
     expect(screen.queryByText("Network unavailable")).toBeNull();
     expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();

@@ -117,16 +117,10 @@
   }
 
   &__shell {
-    background: var(--bg2);
-    backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 100%;
-    border: var(--border);
-    border-radius: var(--border-radius-card);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
-    overflow: hidden;
     position: relative;
   }
 
@@ -166,6 +160,16 @@
     gap: 2.25rem;
     grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
     padding: 1.65rem;
+    width: 100%;
+  }
+
+  &__body {
+    align-items: stretch;
+    box-sizing: border-box;
+    display: grid;
+    gap: 2.25rem;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
     width: 100%;
   }
 
@@ -293,14 +297,6 @@
     min-width: 0;
   }
 
-  &__number-meta-row {
-    align-items: flex-end;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    min-width: 0;
-  }
-
   &__product-meta {
     align-items: center;
     display: flex;
@@ -315,7 +311,7 @@
     gap: 0;
     margin-left: auto;
     padding: 0;
-    margin-bottom: -0.5rem;
+    margin-bottom: -0.25rem;
 
     .segmented-radio-group__option {
       min-width: auto;
@@ -351,15 +347,8 @@
     }
   }
 
-  &__product-set {
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-medium);
-  }
-
   &__title-number {
-    justify-self: start;
-    margin-bottom: -0.15rem;
+    flex: 0 0 auto;
   }
 
   &__title-row {
@@ -892,17 +881,21 @@
 
   .card-view__details {
     align-items: start;
-    column-gap: clamp(1.25rem, 2vw, 2rem);
-    grid-template-columns: minmax(14rem, 17.5rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     padding: 0;
-    row-gap: 1.25rem;
+    row-gap: 0.9rem;
+  }
+
+  .card-view__body {
+    gap: var(--default-container-padding);
+    grid-template-columns: 17.5rem minmax(0, 1fr);
+    padding: var(--default-container-padding);
   }
 
   .card-view__details > .card-view__identity-top {
     border-bottom: 1px solid var(--border-divider);
     grid-column: 1 / -1;
-    padding-bottom: 1rem;
-    padding-inline: 0.5rem;
+    padding-bottom: 0.7rem;
   }
 
   .poketrace-market {
@@ -912,7 +905,10 @@
   }
 
   .card-view__image-side {
-    align-self: start;
+    align-content: start;
+    align-self: stretch;
+    box-sizing: border-box;
+    justify-content: start;
   }
 
   .card-view__image-frame,
@@ -941,15 +937,9 @@
     row-gap: 0.4rem;
   }
 
-  .card-view__number-meta-row {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
   .card-view__name-meta-row {
     grid-column: 1;
-    grid-row: 2;
-    margin-bottom: -0.3rem;
+    grid-row: 1;
   }
 
   .card-view__product-meta {
@@ -959,15 +949,9 @@
     flex-wrap: wrap;
     gap: 0.55rem;
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 1;
     justify-self: end;
     width: auto;
-  }
-
-  .card-view__product-set {
-    color: var(--font-color-secondary);
-    font-size: var(--font-size-paragraph-sm);
-    font-weight: var(--font-weight-medium);
   }
 
   .card-view__title {
@@ -1055,7 +1039,7 @@
 
 @media (max-width: 48rem) {
   .card-view--poketrace {
-    .card-view__details {
+    .card-view__body {
       grid-template-columns: 1fr;
     }
 
