@@ -179,6 +179,9 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<PortfolioSort>("unsorted");
   const [cardSearchOpen, setCardSearchOpen] = useState(false);
+  const [quantityDialogCardId, setQuantityDialogCardId] = useState<
+    string | null
+  >(null);
   const addCardsTriggerRef = useRef<HTMLButtonElement>(null);
   const cardSearchChangedPortfolioRef = useRef(false);
   const [changePeriod, setChangePeriod] =
@@ -448,6 +451,12 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
                   comparisonPriceSnapshot={
                     card.priceSnapshots?.[changePeriod] ?? null
                   }
+                  quantityDialogOpen={quantityDialogCardId === card.id}
+                  onQuantityDialogOpenChange={(open) =>
+                    setQuantityDialogCardId((current) =>
+                      open ? card.id : current === card.id ? null : current,
+                    )
+                  }
                   onQuantityUpdated={(cardId, nextQuantity) =>
                     setCards((current) =>
                       current.map((item) =>
@@ -457,11 +466,14 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
                       ),
                     )
                   }
-                  onRemoved={(cardId) =>
+                  onRemoved={(cardId) => {
                     setCards((current) =>
                       current.filter((item) => item.id !== cardId),
-                    )
-                  }
+                    );
+                    setQuantityDialogCardId((current) =>
+                      current === cardId ? null : current,
+                    );
+                  }}
                 />
               ))}
             </GridView>

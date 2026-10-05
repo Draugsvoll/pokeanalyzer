@@ -809,7 +809,6 @@ input[type="radio"] {
     border-color var(--delay-short) ease,
     color var(--delay-short) ease,
     opacity var(--delay-short) ease,
-    transform var(--delay-short) ease,
     visibility var(--delay-short) ease;
   visibility: hidden;
   width: 2rem;
@@ -840,8 +839,6 @@ input[type="radio"] {
       var(--bg5) 88%,
       var(--font-color-primary) 12%
     );
-    color: var(--font-color-primary);
-    transform: translateY(-1px);
   }
 
   &.is-saved {

@@ -1,4 +1,11 @@
 .app-overview-panel {
+  --overview-divider-color: color-mix(
+    in srgb,
+    var(--border-divider) 70%,
+    var(--border-color-strong)
+  );
+  --overview-divider-size: 1px;
+
   background: var(--bg-card);
   border: var(--border);
   border-radius: var(--border-radius-card);
@@ -28,13 +35,13 @@
   position: relative;
 
   & + &::before {
-    background: var(--border-divider);
+    background: var(--overview-divider-color);
     bottom: var(--space-5);
     content: "";
     left: 0;
     position: absolute;
     top: var(--space-5);
-    width: 1px;
+    width: var(--overview-divider-size);
   }
 }
 
@@ -53,6 +60,10 @@
   }
 
   > strong {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
     margin-top: var(--space-3);
     min-width: 0;
   }
@@ -116,7 +127,8 @@
 
   .app-overview-metric {
     &:nth-child(n + 3) {
-      border-top: 1px solid var(--border-divider);
+      border-top: var(--overview-divider-size) solid
+        var(--overview-divider-color);
     }
 
     & + &::before {
@@ -136,7 +148,8 @@
 
   .app-overview-metric {
     &:nth-child(n + 2) {
-      border-top: 1px solid var(--border-divider);
+      border-top: var(--overview-divider-size) solid
+        var(--overview-divider-color);
     }
 
     &:nth-child(even)::before {

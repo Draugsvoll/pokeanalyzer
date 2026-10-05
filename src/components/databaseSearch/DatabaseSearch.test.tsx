@@ -303,11 +303,7 @@ test("distinguishes an empty search from a failed request", async () => {
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
   const fetchMock = vi
     .fn()
-    .mockResolvedValueOnce({ json: async () => [], ok: false, status: 503 })
-    .mockResolvedValueOnce({
-      json: async () => serverResponse([card("card-api", "API Charizard")]),
-      ok: true,
-    });
+    .mockResolvedValue({ json: async () => [], ok: false, status: 503 });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -322,10 +318,10 @@ test("distinguishes an empty search from a failed request", async () => {
     ),
   ).toHaveAttribute("role", "alert");
   expect(screen.queryByText("No cards found.")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-
-  expect(await screen.findByText("API Charizard")).toBeInTheDocument();
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(
+    screen.queryByRole("button", { name: "Retry" }),
+  ).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
 test("loads every match and reveals results 50 at a time", async () => {

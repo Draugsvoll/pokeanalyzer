@@ -121,3 +121,34 @@ test("saved market news remains successful when saving market summary fails", as
     { name: "market summary", error: summarySaveError },
   ]);
 });
+
+test("a fresh market summary skips generation and saving", async () => {
+  const calls: string[] = [];
+
+  const failures = await runNewsGenerationWorkflow(
+    {
+      name: "latest news",
+      generate: async () => {
+        calls.push("generate latest news");
+        return { ok: true, payload: { headline: "Latest news" } };
+      },
+      save: async () => {
+        calls.push("save latest news");
+        return null;
+      },
+    },
+    {
+      name: "market summary",
+      skip: true,
+      generate: async () => {
+        assert.fail("Fresh market summary must not be generated");
+      },
+      save: async () => {
+        assert.fail("Fresh market summary must not be saved");
+      },
+    },
+  );
+
+  assert.deepEqual(calls, ["generate latest news", "save latest news"]);
+  assert.deepEqual(failures, []);
+});

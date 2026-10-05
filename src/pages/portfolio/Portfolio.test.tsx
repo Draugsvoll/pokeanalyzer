@@ -160,7 +160,7 @@ describe("Portfolio", () => {
       topHoldingMetric!.querySelector(
         ".app-overview-metric-content .app-card-identity",
       ),
-    ).toHaveTextContent("4/102·Charizard");
+    ).toHaveTextContent("4/102Charizard");
     expect(screen.queryByText("Collection cards")).toBeNull();
     expect(screen.queryByRole("button", { name: "Export CSV" })).toBeNull();
     expect(mocks.replacePortfolioReferences).toHaveBeenCalledWith([

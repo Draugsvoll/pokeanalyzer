@@ -94,9 +94,8 @@
 
     &:focus {
       background: color-mix(in srgb, var(--bg) 88%, transparent);
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px
-        color-mix(in srgb, var(--custom-color-blue) 14%, transparent);
+      border-color: var(--search-border-focus);
+      box-shadow: var(--search-ring-focus);
     }
   }
 }

@@ -16,17 +16,12 @@ export function CardIdentity({
   return (
     <span className={classes}>
       {number && (
-        <>
-          <span
-            className="app-card-identity__number"
-            title={`Card number ${number}`}
-          >
-            {number}
-          </span>
-          <span aria-hidden="true" className="app-card-identity__separator">
-            ·
-          </span>
-        </>
+        <span
+          className="app-card-identity__number"
+          title={`Card number ${number}`}
+        >
+          {number}
+        </span>
       )}
       <span className="app-card-identity__name" title={name}>
         {name}

@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp, Star, X } from "lucide-react";
-import { ConfirmPopover } from "../confirmPopover/ConfirmPopover";
+import {
+  ConfirmPopover,
+  type ConfirmPopoverCancelReason,
+} from "../confirmPopover/ConfirmPopover";
 import { PriceChange } from "../priceChange/PriceChange";
 import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
@@ -312,6 +315,8 @@ export function PokemonCardView({
 type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
   card: PortfolioCard;
   quantity?: number;
+  quantityDialogOpen?: boolean;
+  onQuantityDialogOpenChange?: (open: boolean) => void;
   onQuantityUpdated?: (cardId: string, quantity: number) => void;
   onRemoved?: (cardId: string) => void;
 };
@@ -319,31 +324,63 @@ type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
 export function PokemonCardPortfolioView({
   card,
   quantity = card.quantity ?? 1,
+  quantityDialogOpen,
+  onQuantityDialogOpenChange,
   onQuantityUpdated,
   onRemoved,
   onPortfolioChanged,
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const quantityTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { updatePokemonQuantity } = usePokemonPortfolio();
   const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
+  const [quantityControlsDismissed, setQuantityControlsDismissed] =
+    useState(false);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
+  const quantityDialogVisible =
+    pendingQuantity != null && quantityDialogOpen !== false;
 
-  const requestQuantityChange = (amount: number) => {
+  const requestQuantityChange = (
+    amount: number,
+    trigger: HTMLButtonElement,
+  ) => {
     if (updatingQuantity) return;
 
-    const currentQuantity = pendingQuantity ?? quantity;
+    const currentQuantity = quantityDialogVisible ? pendingQuantity : quantity;
     const nextQuantity = currentQuantity + amount;
     if (nextQuantity < 1) return;
 
+    quantityTriggerRef.current = trigger;
+    setQuantityControlsDismissed(false);
     setPendingQuantity(nextQuantity);
+    onQuantityDialogOpenChange?.(true);
   };
 
-  const cancelQuantityChange = () => {
+  const cancelQuantityChange = (reason: ConfirmPopoverCancelReason) => {
+    const cancelledWithKeyboard = reason === "keyboard";
+    const activeElement = document.activeElement;
+    if (
+      !cancelledWithKeyboard &&
+      activeElement instanceof HTMLElement &&
+      cardRef.current?.contains(activeElement)
+    ) {
+      activeElement.blur();
+    }
+
+    setQuantityControlsDismissed(!cancelledWithKeyboard);
     setPendingQuantity(null);
+    onQuantityDialogOpenChange?.(false);
+
+    if (cancelledWithKeyboard) {
+      requestAnimationFrame(() =>
+        quantityTriggerRef.current?.focus({ preventScroll: true }),
+      );
+    }
   };
 
   const confirmQuantityChange = async () => {
-    if (pendingQuantity == null) return;
+    if (!quantityDialogVisible) return;
 
     setUpdatingQuantity(true);
     try {
@@ -352,6 +389,7 @@ export function PokemonCardPortfolioView({
 
       onQuantityUpdated?.(card.id, pendingQuantity);
       setPendingQuantity(null);
+      onQuantityDialogOpenChange?.(false);
     } finally {
       setUpdatingQuantity(false);
     }
@@ -360,11 +398,16 @@ export function PokemonCardPortfolioView({
   return (
     // Portfolio-only shell: do not restyle PokemonCardView internals here.
     <div
-      className={`pokemon-card-portfolio-view${
-        pendingQuantity != null
-          ? " pokemon-card-portfolio-view--confirming"
-          : ""
-      }`}
+      ref={cardRef}
+      className={[
+        "pokemon-card-portfolio-view",
+        quantityDialogVisible && "pokemon-card-portfolio-view--confirming",
+        quantityControlsDismissed &&
+          "pokemon-card-portfolio-view--quantity-controls-dismissed",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onPointerEnter={() => setQuantityControlsDismissed(false)}
     >
       {quantity > 1 && (
         <div className="pokemon-card-portfolio-view__quantity-anchor">
@@ -399,7 +442,7 @@ export function PokemonCardPortfolioView({
           aria-label={`Increase ${card.name} quantity`}
           disabled={updatingQuantity}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => requestQuantityChange(1)}
+          onClick={(event) => requestQuantityChange(1, event.currentTarget)}
         >
           <ChevronUp aria-hidden="true" />
         </button>
@@ -409,9 +452,9 @@ export function PokemonCardPortfolioView({
             className="pokemon-card-portfolio-view__quantity"
             aria-label={`${card.name} quantity`}
           >
-            {pendingQuantity ?? quantity}
+            {quantityDialogVisible ? pendingQuantity : quantity}
           </output>
-          {pendingQuantity != null && (
+          {quantityDialogVisible && (
             <ConfirmPopover
               actionSize="small"
               className="pokemon-card-portfolio-view__quantity-confirm"
@@ -435,9 +478,12 @@ export function PokemonCardPortfolioView({
           type="button"
           className="pokemon-card-portfolio-view__quantity-button"
           aria-label={`Decrease ${card.name} quantity`}
-          disabled={(pendingQuantity ?? quantity) <= 1 || updatingQuantity}
+          disabled={
+            (quantityDialogVisible ? pendingQuantity : quantity) <= 1 ||
+            updatingQuantity
+          }
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => requestQuantityChange(-1)}
+          onClick={(event) => requestQuantityChange(-1, event.currentTarget)}
         >
           <ChevronDown aria-hidden="true" />
         </button>

@@ -48,16 +48,7 @@
 
   &__collection-value,
   &__holding-value {
-    align-items: center;
-    display: flex;
-    gap: var(--space-2);
     white-space: nowrap;
-
-    .app-price-change {
-      align-self: flex-end;
-      margin-top: 0;
-      margin-bottom: 0.1rem;
-    }
   }
 
   &__notice {
@@ -315,14 +306,31 @@
     margin-top: var(--space-5);
   }
 
-  @media (max-width: 64rem) {
+  @media (max-width: 48rem) {
     &__controls {
       align-items: stretch;
       grid-template-columns: 1fr;
     }
 
     &__control-group {
-      justify-content: flex-end;
+      align-items: stretch;
+    }
+
+    &__sort-group,
+    &__timeframe {
+      flex: 1 1 0;
+      width: 100%;
+    }
+
+    &__sort,
+    &__sort .ui-select-dropdown__toggle,
+    &__timeframe-options {
+      width: 100%;
+    }
+
+    &__timeframe-option {
+      flex: 1 1 0;
+      justify-content: center;
     }
   }
 
@@ -341,27 +349,7 @@
     }
 
     &__control-group {
-      align-items: stretch;
       flex-direction: column;
-    }
-
-    &__sort-group,
-    &__timeframe {
-      width: 100%;
-    }
-
-    &__sort,
-    &__sort .ui-select-dropdown__toggle {
-      width: 100%;
-    }
-
-    &__timeframe-options {
-      width: 100%;
-    }
-
-    &__timeframe-option {
-      flex: 1 1 0;
-      justify-content: center;
     }
 
     &__guest-actions .app-btn {

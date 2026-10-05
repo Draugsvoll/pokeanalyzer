@@ -23,8 +23,8 @@ type SetExplorerOverviewProps = {
 };
 
 const CARD_SCOPE_OPTIONS = [
-  { label: "Unique", value: "unique" },
-  { label: "All", value: "all" },
+  { label: "One of each", value: "unique" },
+  { label: "All variants", value: "all" },
 ] as const;
 
 function moneyFormatter(currency: string) {

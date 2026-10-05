@@ -22,8 +22,9 @@
   padding: 1rem;
 
   &:focus {
-    outline: 0.125rem solid var(--font-color-muted);
-    outline-offset: 0.125rem;
+    border-color: var(--search-border-focus);
+    box-shadow: var(--search-ring-focus);
+    outline: none;
   }
 }
 

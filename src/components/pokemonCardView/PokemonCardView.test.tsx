@@ -1,9 +1,10 @@
-import { render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState, type ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
-import { PokemonCardView } from "./PokemonCardView";
+import type { PortfolioCard } from "../../types/portfolio";
+import { PokemonCardPortfolioView, PokemonCardView } from "./PokemonCardView";
 
 vi.mock("../../context/authContextValue", () => ({
   useAuth: () => ({ user: null }),
@@ -21,6 +22,7 @@ vi.mock("../../hooks/pokemonPortfolio", () => ({
   usePokemonPortfolio: () => ({
     removePokemonFromPortfolio: vi.fn(),
     savePokemonToPortfolio: vi.fn(),
+    updatePokemonQuantity: vi.fn(),
   }),
 }));
 
@@ -167,5 +169,90 @@ describe("PokemonCardView default price change", () => {
       "title",
       "30-day change since 29 Aug 2026",
     );
+  });
+});
+
+describe("PokemonCardPortfolioView quantity dialog", () => {
+  test("coordinates dialogs and preserves input-appropriate cancellation", async () => {
+    const cards: PortfolioCard[] = [
+      { ...card(), id: "card-1", name: "Pikachu", quantity: 1 },
+      { ...card(), id: "card-2", name: "Sylveon", quantity: 5 },
+    ];
+
+    function QuantityGrid() {
+      const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+      return (
+        <>
+          {cards.map((portfolioCard) => (
+            <PokemonCardPortfolioView
+              key={portfolioCard.id}
+              card={portfolioCard}
+              quantityDialogOpen={openCardId === portfolioCard.id}
+              onQuantityDialogOpenChange={(open) =>
+                setOpenCardId((current) =>
+                  open
+                    ? portfolioCard.id
+                    : current === portfolioCard.id
+                      ? null
+                      : current,
+                )
+              }
+            />
+          ))}
+        </>
+      );
+    }
+
+    render(
+      <MemoryRouter>
+        <QuantityGrid />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase Pikachu quantity" }),
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Quantity: 2");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase Sylveon quantity" }),
+    );
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog")).toHaveTextContent("Quantity: 6");
+    expect(screen.queryByText("Quantity: 2")).not.toBeInTheDocument();
+
+    const sylveonIncrease = screen.getByRole("button", {
+      name: "Increase Sylveon quantity",
+    });
+    const sylveonCard = sylveonIncrease.closest(".pokemon-card-portfolio-view");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cancel quantity change" }),
+      { detail: 1 },
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(sylveonCard).toHaveClass(
+      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+    );
+
+    fireEvent.pointerEnter(sylveonCard!);
+    expect(sylveonCard).not.toHaveClass(
+      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+    );
+
+    fireEvent.click(sylveonIncrease);
+    const keyboardCancel = screen.getByRole("button", {
+      name: "Cancel quantity change",
+    });
+    keyboardCancel.focus();
+    fireEvent.click(keyboardCancel, { detail: 0 });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(sylveonCard).not.toHaveClass(
+      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+    );
+    await waitFor(() => expect(sylveonIncrease).toHaveFocus());
   });
 });

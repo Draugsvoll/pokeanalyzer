@@ -28,7 +28,6 @@ import {
   type PokeTraceSearchResponse,
 } from "../../../shared/pokeTraceSearch";
 import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
-import Button from "../button/Button";
 import { usePokeTraceSetNameOptions } from "../../hooks/usePokeTraceSetNameOptions";
 import {
   POKETRACE_DEFAULT_CARD_SORT,
@@ -754,16 +753,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
             role={searchFeedback.kind === "error" ? "alert" : "status"}
           >
             {searchFeedback.message}
-            {searchFeedback.kind === "error" && (
-              <Button
-                disabled={!canSearch || isSearching}
-                fill="ghost"
-                fitContent
-                onClick={submitSearch}
-              >
-                Retry
-              </Button>
-            )}
           </div>
         )}
         {(() => {

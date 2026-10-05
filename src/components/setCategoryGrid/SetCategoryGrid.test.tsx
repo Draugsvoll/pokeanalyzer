@@ -280,8 +280,12 @@ test("defaults to unique card numbers and can show every set card", async () => 
     name: "Cards included in set value",
   });
   expect(scope).toHaveClass("segmented-radio-group--small");
-  expect(within(scope).getByRole("radio", { name: "Unique" })).toBeChecked();
-  expect(within(scope).getByRole("radio", { name: "All" })).not.toBeChecked();
+  expect(
+    within(scope).getByRole("radio", { name: "One of each" }),
+  ).toBeChecked();
+  expect(
+    within(scope).getByRole("radio", { name: "All variants" }),
+  ).not.toBeChecked();
   expect(within(overview).getByText("2 cards")).toBeVisible();
   expect(within(overview).getByText("$15.00")).toBeVisible();
   const mostValuable = within(overview)
@@ -294,9 +298,11 @@ test("defaults to unique card numbers and can show every set card", async () => 
     screen.getAllByTestId("set-card").map(({ textContent }) => textContent),
   ).toEqual(["Cheapest print", "Other card"]);
 
-  fireEvent.click(within(scope).getByRole("radio", { name: "All" }));
+  fireEvent.click(within(scope).getByRole("radio", { name: "All variants" }));
 
-  expect(within(scope).getByRole("radio", { name: "All" })).toBeChecked();
+  expect(
+    within(scope).getByRole("radio", { name: "All variants" }),
+  ).toBeChecked();
   await waitFor(() =>
     expect(within(overview).getByText("3 cards")).toBeVisible(),
   );
@@ -553,7 +559,7 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
     overview.querySelector(
       ".set-explorer-overview__valuable .app-card-identity",
     ),
-  ).toHaveTextContent("10/102·Card 10");
+  ).toHaveTextContent("10/102Card 10");
   const topCardChange = within(mostValuableMetric!).getByLabelText(
     "7-day price change 11.1%",
   );

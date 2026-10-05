@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   MARKET_SUMMARY_GROK_OPTIONS,
+  isMarketSummaryFresh,
   parseMarketSummaryResponse,
 } from "./marketSummaryGeneration.js";
 
@@ -11,6 +12,14 @@ test("defines Grok settings specifically for market summaries", () => {
     reasoningEffort: "high",
     useCodeInterpreter: false,
   });
+});
+
+test("treats only market summaries younger than 14 days as fresh", () => {
+  const now = Date.parse("2026-10-15T12:00:00.000Z");
+
+  assert.equal(isMarketSummaryFresh("2026-10-01T12:00:00.001Z", now), true);
+  assert.equal(isMarketSummaryFresh("2026-10-01T12:00:00.000Z", now), false);
+  assert.equal(isMarketSummaryFresh("invalid", now), false);
 });
 
 test("normalizes a partial market summary and supplies the server timestamp", () => {

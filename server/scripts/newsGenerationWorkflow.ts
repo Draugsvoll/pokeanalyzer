@@ -5,6 +5,7 @@ export type NewsGenerationTask<Payload> = {
   name: string;
   generate: () => Promise<NewsGenerationResult<Payload>>;
   save: (payload: Payload) => Promise<Error | null>;
+  skip?: boolean;
 };
 
 export type NewsGenerationFailure = {
@@ -15,6 +16,8 @@ export type NewsGenerationFailure = {
 async function runNewsGenerationTask<Payload>(
   task: NewsGenerationTask<Payload>,
 ): Promise<NewsGenerationFailure | null> {
+  if (task.skip) return null;
+
   const result = await task.generate();
   if (!result.ok) return { name: task.name, error: result.error };
 

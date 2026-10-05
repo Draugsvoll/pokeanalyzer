@@ -3,6 +3,8 @@ import Button from "../button/Button";
 import { getCustomColors } from "../../utils/customStylings";
 import "./ConfirmPopover.scss";
 
+export type ConfirmPopoverCancelReason = "keyboard" | "outside" | "pointer";
+
 export type ConfirmPopoverProps = {
   /** Optional prompt, e.g. "Update?" / "Delete?" */
   label?: ReactNode;
@@ -12,7 +14,7 @@ export type ConfirmPopoverProps = {
   cancelLabel?: ReactNode;
   cancelAriaLabel?: string;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel: (reason: ConfirmPopoverCancelReason) => void;
   confirming?: boolean;
   confirmDisabled?: boolean;
   className?: string;
@@ -74,7 +76,7 @@ export function ConfirmPopover({
         target instanceof Node && popoverRef.current?.contains(target);
 
       if (!clickedPopover) {
-        onCancel();
+        onCancel("outside");
       }
     };
 
@@ -103,7 +105,9 @@ export function ConfirmPopover({
           disabled={confirming}
           style={getCustomColors("blue")}
           aria-label={cancelAriaLabel}
-          onClick={onCancel}
+          onClick={(event) =>
+            onCancel(event.detail === 0 ? "keyboard" : "pointer")
+          }
         >
           {cancelLabel}
         </Button>

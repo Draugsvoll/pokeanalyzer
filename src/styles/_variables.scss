@@ -29,6 +29,7 @@
   --bg-elevated: var(--bg2);
   --bg-panel: var(--surface);
   --bg-card: #10141c;
+  --bg-pokemon-card: rgb(12, 15, 20);
   --bg-card-hover: #151a24;
   --bg-input: rgba(255, 255, 255, 0.03);
   --bg-input-strong: rgba(255, 255, 255, 0.05);
@@ -153,8 +154,8 @@
   --page-pad-x-xl: 40px;
   --page-pad-y: 32px;
   --section-gap: 140px;
-  --card-gap: 15px;
-  --card-pad: 10px;
+  --card-gap: 14px;
+  --card-pad: 9px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;

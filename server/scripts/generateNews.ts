@@ -15,7 +15,10 @@ import {
   NEWS_FEEDS,
   saveNewsFeed,
 } from "../db/newsStore.js";
-import { saveMarketSummary } from "../db/marketSummaryStore.js";
+import {
+  getMarketSummary,
+  saveMarketSummary,
+} from "../db/marketSummaryStore.js";
 import {
   chat,
   chatWithRawResponse,
@@ -23,6 +26,7 @@ import {
 } from "../services/xaiService.js";
 import { parseGeneralNewsResponse } from "./newsGeneration.js";
 import {
+  isMarketSummaryFresh,
   MARKET_SUMMARY_GROK_OPTIONS,
   parseMarketSummaryResponse,
 } from "./marketSummaryGeneration.js";
@@ -177,6 +181,21 @@ async function saveGeneration<T>(
   }
 }
 
+async function shouldSkipMarketSummary(): Promise<boolean> {
+  try {
+    const { marketSummary } = await getMarketSummary();
+    return Boolean(
+      marketSummary && isMarketSummaryFresh(marketSummary.generatedAt),
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `NEWS WARNING [market_summary freshness]: ${message}; generating a replacement`,
+    );
+    return false;
+  }
+}
+
 async function main(): Promise<void> {
   const dryRun = validateArguments(process.argv.slice(2));
   assertExplicitDatabaseTarget();
@@ -200,6 +219,13 @@ async function main(): Promise<void> {
 
   try {
     await renewNewsLock(lock);
+    const skipMarketSummary = await shouldSkipMarketSummary();
+    if (skipMarketSummary) {
+      console.log(
+        "Market summary skipped; stored summary is under 14 days old",
+      );
+    }
+
     const failures = await runNewsGenerationWorkflow(
       {
         name: "latest news",
@@ -227,6 +253,7 @@ async function main(): Promise<void> {
       },
       {
         name: "market summary",
+        skip: skipMarketSummary,
         generate: async () => {
           const result = await runGeneration(
             "market_summary",
@@ -280,8 +307,8 @@ async function main(): Promise<void> {
 
     console.log(
       dryRun
-        ? "Dry run complete; both news feeds passed and no database rows changed"
-        : "News generation finished successfully; both news feeds were updated",
+        ? `Dry run complete; latest news passed${skipMarketSummary ? " and market summary was skipped" : " and market summary passed"}; no database rows changed`
+        : `News generation finished successfully; latest news was updated and market summary was ${skipMarketSummary ? "kept" : "updated"}`,
     );
   } finally {
     const released = await releaseScriptLock(lock);

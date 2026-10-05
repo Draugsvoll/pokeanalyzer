@@ -42,7 +42,7 @@
 
     &:focus {
       border-color: var(--search-border-focus);
-      box-shadow: var(--search-ring);
+      box-shadow: var(--search-ring-focus);
     }
 
     &::-webkit-search-cancel-button {

@@ -411,8 +411,8 @@
     box-shadow var(--delay-short) ease;
 
   &:focus-within {
-    border-color: var(--custom-color-blue);
-    box-shadow: var(--dropdown-focus-ring);
+    border-color: var(--search-border-focus);
+    box-shadow: var(--search-ring-focus);
   }
 
   &.is-invalid,
@@ -491,8 +491,8 @@
     }
 
     &:focus {
-      border-color: var(--custom-color-blue);
-      box-shadow: var(--dropdown-focus-ring);
+      border-color: var(--search-border-focus);
+      box-shadow: var(--search-ring-focus);
     }
   }
 }
@@ -526,12 +526,8 @@
 }
 
 .database-search-feedback {
-  align-items: center;
   color: var(--font-color-muted);
-  display: flex;
   font-size: var(--font-size-caption);
-  gap: var(--space-3);
-  justify-content: center;
   margin: var(--space-6) auto 0;
   text-align: center;
 
@@ -607,7 +603,7 @@
 
   &:hover,
   &:focus-visible {
-    color: var(--custom-color-blue);
+    color: var(--font-color-primary);
     text-decoration: underline;
     text-underline-offset: 2px;
   }

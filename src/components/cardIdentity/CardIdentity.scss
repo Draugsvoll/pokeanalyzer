@@ -1,7 +1,7 @@
 .app-card-identity {
-  align-items: baseline;
+  align-items: flex-start;
   display: inline-flex;
-  gap: 0.35rem;
+  flex-direction: column;
   max-width: 100%;
   min-width: 0;
 }
@@ -15,11 +15,6 @@
   letter-spacing: var(--font-tracking-normal);
   line-height: inherit;
   white-space: nowrap;
-}
-
-.app-card-identity__separator {
-  color: var(--font-color-faint);
-  flex: 0 0 auto;
 }
 
 .app-card-identity__name {

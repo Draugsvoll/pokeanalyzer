@@ -6,6 +6,8 @@ type JsonRecord = Record<string, unknown>;
 
 export type { MarketSummaryPayload };
 
+export const MARKET_SUMMARY_REFRESH_INTERVAL_MS = 14 * 24 * 60 * 60 * 1_000;
+
 export const MARKET_SUMMARY_GROK_OPTIONS = {
   model: "grok-4.5",
   reasoningEffort: "high",
@@ -14,6 +16,17 @@ export const MARKET_SUMMARY_GROK_OPTIONS = {
   GrokChatOptions,
   "model" | "reasoningEffort" | "useCodeInterpreter"
 >;
+
+export function isMarketSummaryFresh(
+  generatedAt: string,
+  now = Date.now(),
+): boolean {
+  const generatedAtMs = Date.parse(generatedAt);
+  return (
+    Number.isFinite(generatedAtMs) &&
+    now - generatedAtMs < MARKET_SUMMARY_REFRESH_INTERVAL_MS
+  );
+}
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
