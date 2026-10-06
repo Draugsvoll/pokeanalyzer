@@ -5,7 +5,26 @@ const payload = {
   generatedAt: "2026-09-26T08:00:00.000Z",
   rarities: ["Holo Rare", "Common"],
   setNames: ["Base Set 2", "Base Set"],
-  setSummaries: [],
+  setSummaries: [
+    {
+      asOf: "2026-09-26T08:00:00.000Z",
+      comparableCards: 1,
+      currency: "USD",
+      pricedCards: 1,
+      setName: "Base Set 2",
+      sevenDayChangePercent: 2,
+      uniqueCards: 1,
+    },
+    {
+      asOf: "2026-09-26T08:00:00.000Z",
+      comparableCards: 1,
+      currency: "USD",
+      pricedCards: 1,
+      setName: "Base Set",
+      sevenDayChangePercent: -1,
+      uniqueCards: 1,
+    },
+  ],
 };
 
 beforeEach(() => {
@@ -32,12 +51,39 @@ test("reuses validated filter options from local storage for one day", async () 
     ...payload,
     rarities: ["Common", "Holo Rare"],
     setNames: ["Base Set", "Base Set 2"],
+    setSummaries: [...payload.setSummaries].reverse(),
   });
 
   vi.resetModules();
   fetchMock.mockRejectedValue(new Error("network should not be used"));
   const secondLoad = await import("./pokeTraceFilterOptions");
   expect(await secondLoad.loadPokeTraceFilterOptions()).not.toBeNull();
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://localhost:3001/api/cards/filter-options?v=2",
+    { cache: "no-store" },
+  );
+});
+
+test("refreshes a current cache when its set summaries cannot be displayed", async () => {
+  const now = Date.parse("2026-09-26T09:00:00.000Z");
+  localStorage.setItem(
+    "pokelyzer:poketrace-filter-options:v2",
+    JSON.stringify({
+      cachedAt: now - 60_000,
+      options: { ...payload, setSummaries: [] },
+    }),
+  );
+  vi.spyOn(Date, "now").mockReturnValue(now);
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
+    json: async () => payload,
+    ok: true,
+  } as Response);
+  vi.stubGlobal("fetch", fetchMock);
+
+  const service = await import("./pokeTraceFilterOptions");
+  await service.loadPokeTraceFilterOptions();
+
   expect(fetchMock).toHaveBeenCalledOnce();
 });
 
@@ -62,6 +108,7 @@ test("refreshes an expired cache and retains stale options on failure", async ()
     ...payload,
     rarities: ["Common", "Holo Rare"],
     setNames: ["Base Set", "Base Set 2"],
+    setSummaries: [...payload.setSummaries].reverse(),
   });
   expect(fetchMock).toHaveBeenCalledOnce();
 });

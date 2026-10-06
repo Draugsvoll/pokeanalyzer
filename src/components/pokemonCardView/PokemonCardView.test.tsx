@@ -52,6 +52,25 @@ function renderCard(
 }
 
 describe("PokemonCardView default price change", () => {
+  test("shows rarity and variant badges in the same details row", () => {
+    const rareCard = card();
+    rareCard.rarity = "Holo Rare";
+    rareCard.pokeTrace.variant = "reverse_holofoil";
+
+    const { container } = render(
+      <MemoryRouter>
+        <PokemonCardView card={rareCard} />
+      </MemoryRouter>,
+    );
+
+    const badgeRow = container.querySelector(".product-card__badges");
+    expect(badgeRow).toContainElement(screen.getByText("reverse holofoil"));
+    expect(badgeRow).toContainElement(screen.getByText("Holo Rare"));
+    expect(screen.getByText("Holo Rare").closest(".app-badge")).toHaveClass(
+      "app-badge--accent-blue",
+    );
+  });
+
   test("shows the seven-day change for the default TCGPlayer Near Mint price", () => {
     renderCard();
 

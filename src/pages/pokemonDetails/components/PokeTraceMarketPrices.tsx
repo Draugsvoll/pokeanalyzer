@@ -377,7 +377,7 @@ function PriceHistory({
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
-          <span>Near Mint</span>
+          <span>Near Mint · 90 days</span>
         </div>
       </header>
       <MarketDataUnavailable

@@ -6,12 +6,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
-  ChevronRight,
   CircleDollarSign,
-  Coins,
   Gem,
   LineChart,
   Repeat2,
@@ -19,13 +17,11 @@ import {
   Search,
   Star,
   type LucideIcon,
-  Wallet,
 } from "lucide-react";
-import "./PokemonDetails.scss";
-import "../../components/welcomeView/WelcomeView.scss";
 import type { PokemonCard } from "../../types/pokemon";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
+import { DetailsPage } from "../../components/detailsPage/DetailsPage";
 import { Badge } from "../../components/ui/Badge";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
@@ -64,6 +60,8 @@ import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
 import { PricingBar } from "../../components/pricingBar/PricingBar";
 import { MEMBERSHIP_PLANS } from "../../../shared/subscriptions/plans";
+import "../../components/welcomeView/WelcomeView.scss";
+import "./PokemonDetails.scss";
 
 type ActiveView =
   | "empty_view"
@@ -258,8 +256,7 @@ function PokemonDetailsForCard() {
   }
   const { loadingSubscription, subscription, updateSubscription } =
     useMembershipSubscription();
-  const { creditMessage, creditsRemaining, updatingCredits } =
-    useCredits(subscription);
+  const { creditsRemaining, updatingCredits } = useCredits(subscription);
 
   async function handleGoogleAuth() {
     if (googleAuthLoading) return;
@@ -529,7 +526,7 @@ function PokemonDetailsForCard() {
         <div className="card-view__panel-wrap">
           <div className="card-view__shell">
             <div className="card-view__details">
-              <div className="card-view__body default-container">
+              <div className="card-view__body">
                 <div className="card-view__image-side">
                   <div
                     aria-hidden="true"
@@ -641,196 +638,175 @@ function PokemonDetailsForCard() {
 
   // RENDERING
   return (
-    <div className="card-view card-view--poketrace ui-render-fade">
-      <div className="card-view__panel-wrap">
-        <nav aria-label="Breadcrumb" className="card-view__breadcrumb">
-          <Link className="card-view__breadcrumb-link" to="/search">
-            Cards
-          </Link>
-          <ChevronRight aria-hidden="true" />
-          <Link
-            className="card-view__breadcrumb-link card-view__breadcrumb-link--set"
-            to={`/set?set=${encodeURIComponent(card.set.name)}`}
-          >
-            {card.set.name}
-          </Link>
-          <ChevronRight aria-hidden="true" />
-          <span aria-current="page" className="card-view__breadcrumb-current">
-            {breadcrumbCardLabel}
-          </span>
-        </nav>
-        {isDemo && (
+    <DetailsPage
+      breadcrumbs={[
+        { label: "Cards", to: "/search" },
+        {
+          label: card.set.name,
+          to: `/set?set=${encodeURIComponent(card.set.name)}`,
+        },
+        { label: breadcrumbCardLabel },
+      ]}
+      busy={refreshingCard}
+      className="card-view card-view--poketrace ui-render-fade"
+      content={
+        <div className="card-view__market-content">
+          {cardLoadFailed && (
+            <div className="card-view__data-error" role="alert">
+              <span>Some card details couldn’t be refreshed.</span>
+              <Button
+                fill="ghost"
+                fitContent
+                size="small"
+                onClick={retryCardRequest}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+          <PokeTraceMarketPrices
+            cardId={card.id}
+            data={card.pokeTrace}
+            dataPending={refreshingCard}
+            dataRequestFailed={cardLoadFailed}
+            variantLoading={Boolean(loadingVariantId)}
+          />
+        </div>
+      }
+      contentClassName="card-view__info-side"
+      headerAside={
+        pokeTraceVariants.length > 0 ? (
+          <SegmentedRadioGroup
+            ariaLabel="Card variant"
+            className="card-view__variant-selector"
+            disabled={Boolean(loadingVariantId)}
+            name={`card-variant-${card.id}`}
+            onChange={(variantId) => {
+              void handleVariantChange(variantId);
+            }}
+            options={pokeTraceVariants.map((variant) => ({
+              label: formatVariantName(variant.name),
+              value: variant.id,
+            }))}
+            value={card.id}
+          />
+        ) : undefined
+      }
+      media={
+        <>
+          <div className="card-view__image-frame default-container">
+            {card.image && failedCardImageSrc !== card.image ? (
+              <img
+                key={card.id}
+                className="card-view__image ui-render-fade"
+                src={card.image}
+                alt={card.name}
+                onError={() => setFailedCardImageSrc(card.image ?? null)}
+              />
+            ) : (
+              <div className="card-view__image-placeholder" role="img">
+                <Search aria-hidden="true" />
+                <span>Card image unavailable</span>
+              </div>
+            )}
+          </div>
+          <div className="card-view__image-controls">
+            {authUser && !isDemo && (
+              <Button
+                fullWidth
+                size="large"
+                variant="portfolio"
+                disabled={portfolioBusy || portfolioUnavailable}
+                onClick={handlePortfolioToggle}
+                aria-label={
+                  portfolioUnavailable
+                    ? "Portfolio is unavailable"
+                    : updatingPortfolio
+                      ? "Updating portfolio"
+                      : loadingPortfolioReferences
+                        ? "Checking portfolio"
+                        : cardIsSaved
+                          ? "Remove from portfolio"
+                          : "Add to portfolio"
+                }
+                aria-pressed={cardIsSaved}
+                aria-busy={portfolioBusy}
+              >
+                {portfolioBusy ? (
+                  <span className="app-btn__spinner" aria-hidden="true" />
+                ) : (
+                  <>
+                    <Star aria-hidden="true" />
+                    <span>Portfolio</span>
+                  </>
+                )}
+              </Button>
+            )}
+            <div className="card-view__change-card">
+              <Button
+                ref={cardSearchTriggerRef}
+                fill="ghost"
+                fullWidth
+                size="large"
+                onClick={handleEmbeddedSearchToggle}
+                aria-expanded={showCardSearch}
+              >
+                {showCardSearch ? (
+                  <>
+                    <ArrowUp size={16} strokeWidth={2.25} aria-hidden="true" />
+                    <span>Close</span>
+                  </>
+                ) : (
+                  <>
+                    <Repeat2 size={16} strokeWidth={2.25} aria-hidden="true" />
+                    <span>Next Card</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </>
+      }
+      mediaClassName="card-view__image-side"
+      notice={
+        isDemo ? (
           <aside className="card-view__demo-disclaimer" role="note">
             Demo - prices and analyses are not live data.
           </aside>
-        )}
-        <div aria-busy={refreshingCard} className="card-view__shell">
-          <div className="card-view__details">
-            <div className="card-view__identity-top">
-              <div className="card-view__title-row">
-                <div className="card-view__title-copy">
-                  <div className="card-view__name-meta-row">
-                    <h2 className="card-view__title">{card.name}</h2>
-                    {formattedDisplayedCardNumber && (
-                      <span
-                        className="card-view__title-number card-number-badge"
-                        aria-label={`Card number ${formattedDisplayedCardNumber}`}
-                      >
-                        {formattedDisplayedCardNumber}
-                      </span>
-                    )}
-                    <span className="card-view__rarity-badge">
-                      <Badge
-                        accent={getRarityBadgeAccent(displayRarity)}
-                        size="md"
-                        weight="strong"
-                      >
-                        {displayRarity}
-                      </Badge>
-                    </span>
-                  </div>
-                  {pokeTraceVariants.length > 0 && (
-                    <div className="card-view__product-meta">
-                      <SegmentedRadioGroup
-                        ariaLabel="Card variant"
-                        className="card-view__variant-selector"
-                        disabled={Boolean(loadingVariantId)}
-                        name={`card-variant-${card.id}`}
-                        onChange={(variantId) => {
-                          void handleVariantChange(variantId);
-                        }}
-                        options={pokeTraceVariants.map((variant) => ({
-                          label: formatVariantName(variant.name),
-                          value: variant.id,
-                        }))}
-                        value={card.id}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="card-view__body default-container">
-              <div className="card-view__image-side">
-                <div className="card-view__image-frame">
-                  {card.image && failedCardImageSrc !== card.image ? (
-                    <img
-                      key={card.id}
-                      className="card-view__image ui-render-fade"
-                      src={card.image}
-                      alt={card.name}
-                      onError={() => setFailedCardImageSrc(card.image ?? null)}
-                    />
-                  ) : (
-                    <div className="card-view__image-placeholder" role="img">
-                      <Search aria-hidden="true" />
-                      <span>Card image unavailable</span>
-                    </div>
-                  )}
-                </div>
-                <div className="card-view__image-controls">
-                  {authUser && !isDemo && (
-                    <Button
-                      fullWidth
-                      size="large"
-                      variant="portfolio"
-                      disabled={portfolioBusy || portfolioUnavailable}
-                      onClick={handlePortfolioToggle}
-                      aria-label={
-                        portfolioUnavailable
-                          ? "Portfolio is unavailable"
-                          : updatingPortfolio
-                            ? "Updating portfolio"
-                            : loadingPortfolioReferences
-                              ? "Checking portfolio"
-                              : cardIsSaved
-                                ? "Remove from portfolio"
-                                : "Add to portfolio"
-                      }
-                      aria-pressed={cardIsSaved}
-                      aria-busy={portfolioBusy}
-                    >
-                      {portfolioBusy ? (
-                        <span className="app-btn__spinner" aria-hidden="true" />
-                      ) : (
-                        <>
-                          <Star aria-hidden="true" />
-                          <span>Portfolio</span>
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  <div className="card-view__change-card">
-                    <Button
-                      ref={cardSearchTriggerRef}
-                      fill="ghost"
-                      fullWidth
-                      size="large"
-                      onClick={handleEmbeddedSearchToggle}
-                      aria-expanded={showCardSearch}
-                    >
-                      {showCardSearch ? (
-                        <>
-                          <ArrowUp
-                            size={16}
-                            strokeWidth={2.25}
-                            aria-hidden="true"
-                          />
-                          <span>Close</span>
-                        </>
-                      ) : (
-                        <>
-                          <Repeat2
-                            size={16}
-                            strokeWidth={2.25}
-                            aria-hidden="true"
-                          />
-                          <span>Next Card</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card-view__info-side">
-                <div className="card-view__market-content">
-                  {cardLoadFailed && (
-                    <div className="card-view__data-error" role="alert">
-                      <span>Some card details couldn’t be refreshed.</span>
-                      <Button
-                        fill="ghost"
-                        fitContent
-                        size="small"
-                        onClick={retryCardRequest}
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  )}
-                  <PokeTraceMarketPrices
-                    cardId={card.id}
-                    data={card.pokeTrace}
-                    dataPending={refreshingCard}
-                    dataRequestFailed={cardLoadFailed}
-                    variantLoading={Boolean(loadingVariantId)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {refreshingCard && !loadingVariantId && (
+        ) : undefined
+      }
+      overlay={
+        refreshingCard && !loadingVariantId ? (
+          <span
+            aria-label="Loading complete card details"
+            className="card-view__data-loading"
+            role="status"
+          />
+        ) : undefined
+      }
+      title={card.name}
+      titleMeta={
+        <>
+          {formattedDisplayedCardNumber && (
             <span
-              aria-label="Loading complete card details"
-              className="card-view__data-loading"
-              role="status"
-            />
+              className="card-view__title-number card-number-badge"
+              aria-label={`Card number ${formattedDisplayedCardNumber}`}
+            >
+              {formattedDisplayedCardNumber}
+            </span>
           )}
-        </div>
-      </div>
-
+          <span className="card-view__rarity-badge">
+            <Badge
+              accent={getRarityBadgeAccent(displayRarity)}
+              size="md"
+              weight="strong"
+            >
+              {displayRarity}
+            </Badge>
+          </span>
+        </>
+      }
+    >
       <EmbeddedCardSearchDialog
         ariaLabel="Switch card"
         isOpen={showCardSearch}
@@ -843,61 +819,8 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      {!isDemo && (
-        <div className="card-view__credit-bar">
-          <div
-            className={`card-view__credit-note${
-              !subscription && !loadingSubscription
-                ? " card-view__credit-note--auth"
-                : ""
-            }`}
-          >
-            <span className="card-view__credit-cost">
-              <Coins aria-hidden="true" />
-              <strong>Credit</strong>
-              <span className="card-view__credit-meta">pay per feature</span>
-            </span>
-            <span className="card-view__credit-divider" aria-hidden="true" />
-            <span className="card-view__credit-copy">
-              {loadingSubscription ? (
-                <span
-                  className="card-view__credit-spinner"
-                  role="status"
-                  aria-label="Loading credits"
-                />
-              ) : subscription ? (
-                <span className="card-view__credit-balance">
-                  <Wallet aria-hidden="true" />
-                  {creditsRemaining} credits
-                </span>
-              ) : (
-                <>
-                  <Button
-                    variant="micro"
-                    onClick={() => setShowLoginModal(true)}
-                  >
-                    Log in
-                  </Button>
-                  <span className="card-view__credit-auth-muted">or</span>
-                  <Link className="card-view__credit-link" to="/signup">
-                    Sign up
-                  </Link>
-                  <span className="card-view__credit-auth-muted">
-                    to get free credits
-                  </span>
-                </>
-              )}
-            </span>
-            {creditMessage && (
-              <small className="card-view__credit-message">
-                {creditMessage}
-              </small>
-            )}
-          </div>
-        </div>
-      )}
-
-      <section className="card-view__analysis-panel">
+      <section aria-label="Card insights" className="card-view__analysis-panel">
+        <div className="card-view__analysis-divider" aria-hidden="true" />
         <div className="card-view__actions">
           {aiFeatures.map((aiFeature) => {
             const Icon = aiFeature.icon;
@@ -1075,7 +998,7 @@ function PokemonDetailsForCard() {
           />
         </section>
       )}
-    </div>
+    </DetailsPage>
   );
 }
 

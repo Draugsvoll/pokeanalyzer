@@ -14,7 +14,7 @@ in this project. Configure each cron service with the following complete
 | Railway service    | Start command                                                                  | Database     |
 | ------------------ | ------------------------------------------------------------------------------ | ------------ |
 | `categories:fetch` | `npm run db:migrate:poketrace && npm run poketrace:generate-market-categories` | PokeTrace    |
-| `card:sync`        | `npm run db:migrate:poketrace && npm run poketrace:refresh-daily`              | PokeTrace    |
+| `card:sync`        | `npm run db:migrate:poketrace && npm run poketrace:refresh-all-daily`          | PokeTrace    |
 | `news:generate`    | `npm run db:migrate:primary && npm run news:generate`                          | Primary/news |
 
 `pokelyzer-frontend` does not use a database and needs no migration command.
@@ -24,6 +24,11 @@ service only needs credentials for the database listed above. A failed backend
 migration prevents the new backend deployment from starting. A failed cron
 migration prevents the command after `&&` from running, so that scheduled job
 fails without executing against an incompatible schema.
+
+The PokeTrace migration creates the published Sealed catalog store but does not
+populate it. A complete Sealed import or daily refresh validates and atomically
+publishes the first catalog, and later completed runs replace it. Until one of
+those jobs succeeds, no Sealed search catalog is available.
 
 Railway provides `RAILWAY_ENVIRONMENT_ID` to running deployments. The
 application uses that marker to skip development-only runtime PokeTrace schema

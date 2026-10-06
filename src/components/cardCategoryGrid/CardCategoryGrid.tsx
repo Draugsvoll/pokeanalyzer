@@ -42,7 +42,7 @@ export function CardCategoryGrid({
   title,
 }: CardCategoryGridProps) {
   return (
-    <section className="card-category-grid ui-card-grid-enter ui-render-fade">
+    <section className="card-category-grid ui-render-fade">
       <GridView
         collapsible={collapsible}
         defaultCollapsed={defaultCollapsed}

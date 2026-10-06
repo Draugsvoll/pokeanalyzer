@@ -1,4 +1,4 @@
-export const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
+export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 
 export class RequestTimeoutError extends Error {
   constructor(timeoutMs: number) {

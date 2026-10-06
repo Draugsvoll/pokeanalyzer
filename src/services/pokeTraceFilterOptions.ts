@@ -39,9 +39,13 @@ function loadStored() {
 }
 
 function isFresh(cache: StoredFilterOptions, now: number) {
+  const summariesAreUsable =
+    cache.options.setSummaries.length === cache.options.setNames.length;
+
   return (
     cache.cachedAt <= now + MAX_CLOCK_SKEW_MS &&
-    now - cache.cachedAt < POKETRACE_FILTER_OPTIONS_CACHE_MS
+    now - cache.cachedAt < POKETRACE_FILTER_OPTIONS_CACHE_MS &&
+    summariesAreUsable
   );
 }
 
@@ -60,7 +64,7 @@ export async function loadPokeTraceFilterOptions() {
   if (stored && isFresh(stored, Date.now())) return stored.options;
   if (requestPromise) return requestPromise;
 
-  requestPromise = fetch(FILTER_OPTIONS_URL)
+  requestPromise = fetch(FILTER_OPTIONS_URL, { cache: "no-store" })
     .then(async (response) => {
       if (!response.ok) {
         throw new Error(`Filter options request failed (${response.status})`);

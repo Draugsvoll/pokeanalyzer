@@ -63,10 +63,15 @@ test("renders available TCGPlayer and eBay history together", () => {
   expect(
     document.querySelectorAll(".poketrace-market__history-line"),
   ).toHaveLength(2);
-  expect(document.querySelector("#market-history-glow")).toHaveAttribute(
-    "filterUnits",
-    "userSpaceOnUse",
-  );
+  expect(
+    document.querySelectorAll(".poketrace-market__history-area"),
+  ).toHaveLength(2);
+  expect(
+    document.querySelector(".poketrace-market__history-line--tcgplayer"),
+  ).toHaveAttribute("d", expect.stringContaining("C "));
+  expect(
+    document.querySelector('[id^="market-history-glow-"]'),
+  ).toHaveAttribute("filterUnits", "userSpaceOnUse");
 });
 
 test("aligns mismatched dates and keeps a one-point series visible", () => {

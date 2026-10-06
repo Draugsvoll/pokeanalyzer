@@ -279,6 +279,9 @@ test("shows links to the card directory and current set in the breadcrumb", asyn
     name: "Breadcrumb",
   });
 
+  expect(breadcrumb.closest(".details-page")).toHaveClass(
+    "card-view--poketrace",
+  );
   expect(
     within(breadcrumb).getByRole("link", { name: "Cards" }),
   ).toHaveAttribute("href", "/search");

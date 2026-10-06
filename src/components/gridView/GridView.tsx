@@ -64,7 +64,7 @@ export function GridView({
         </header>
       )}
       <div
-        className={`card-grid${sorting ? " card-grid--sorting" : ""}`}
+        className={`card-grid ui-card-grid-enter${sorting ? " card-grid--sorting" : ""}`}
         hidden={collapsible && collapsed}
         id={collapsible ? contentId : undefined}
       >

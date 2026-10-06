@@ -4,6 +4,7 @@ import { createClient, type Client } from "@libsql/client";
 import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
 import { ensurePokeTraceCatalogStore } from "../services/pokeTraceCatalogStore.js";
 import { ensurePokeTraceFilterOptionsStore } from "../services/pokeTraceFilterOptionsStore.js";
+import { ensurePokeTraceSealedCatalogStore } from "../services/pokeTraceSealedCatalogStore.js";
 
 const localFileUrl = `file:${path.resolve("server/db/poketrace.sqlite")}`;
 type PokeTraceMigrationDatabase = Pick<Client, "execute">;
@@ -21,28 +22,35 @@ export function assertExplicitPokeTraceDatabaseTarget() {
   );
 }
 
-async function hasCardColumn(
+type PokeTraceColumnTable =
+  | "poketrace_cards"
+  | "poketrace_sealed_import_progress"
+  | "poketrace_sealed_products";
+
+async function hasTableColumn(
   database: PokeTraceMigrationDatabase,
+  table: PokeTraceColumnTable,
   name: string,
 ) {
-  const columns = await database.execute("PRAGMA table_info(poketrace_cards)");
+  const columns = await database.execute(`PRAGMA table_info(${table})`);
   return columns.rows.some((column) => column.name === name);
 }
 
-async function ensureCardColumn(
+async function ensureTableColumn(
   database: PokeTraceMigrationDatabase,
+  table: PokeTraceColumnTable,
   name: string,
   definition: string,
 ) {
-  if (await hasCardColumn(database, name)) return false;
+  if (await hasTableColumn(database, table, name)) return false;
   try {
     await database.execute(
-      `ALTER TABLE poketrace_cards ADD COLUMN ${name} ${definition}`,
+      `ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`,
     );
     return true;
   } catch (error) {
     // Another deployment or maintenance job can migrate concurrently.
-    if (!(await hasCardColumn(database, name))) throw error;
+    if (!(await hasTableColumn(database, table, name))) throw error;
     return false;
   }
 }
@@ -74,25 +82,48 @@ export async function migratePokeTraceDatabase(
     )
   `);
 
-  await ensureCardColumn(
+  await ensureTableColumn(
     database,
+    "poketrace_cards",
     "saved_responses",
     "TEXT NOT NULL DEFAULT '{}'",
   );
-  await ensureCardColumn(database, "price_refreshed_at", "TEXT");
-  await ensureCardColumn(database, "price_refresh_retry_at", "TEXT");
-  await ensureCardColumn(
+  await ensureTableColumn(
     database,
+    "poketrace_cards",
+    "price_refreshed_at",
+    "TEXT",
+  );
+  await ensureTableColumn(
+    database,
+    "poketrace_cards",
+    "price_refresh_retry_at",
+    "TEXT",
+  );
+  await ensureTableColumn(
+    database,
+    "poketrace_cards",
     "price_refresh_failures",
     "INTEGER NOT NULL DEFAULT 0",
   );
-  await ensureCardColumn(
+  await ensureTableColumn(
     database,
+    "poketrace_cards",
     "tcg_market_comparisons",
     "TEXT NOT NULL DEFAULT '{}'",
   );
-  await ensureCardColumn(database, "market_price_history", "TEXT");
-  await ensureCardColumn(database, "market_price_history_fetched_at", "TEXT");
+  await ensureTableColumn(
+    database,
+    "poketrace_cards",
+    "market_price_history",
+    "TEXT",
+  );
+  await ensureTableColumn(
+    database,
+    "poketrace_cards",
+    "market_price_history_fetched_at",
+    "TEXT",
+  );
   await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_fetched_at ON poketrace_cards(fetched_at, id)",
   );
@@ -113,6 +144,96 @@ export async function migratePokeTraceDatabase(
       complete INTEGER NOT NULL DEFAULT 0
     )
   `);
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_sealed_products (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      set_name TEXT,
+      product_family TEXT NOT NULL,
+      variant TEXT,
+      image_url TEXT,
+      tcgplayer_id TEXT,
+      raw_json TEXT NOT NULL CHECK (json_valid(raw_json)),
+      fetched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_crawl_id TEXT,
+      market_price_history TEXT,
+      market_price_history_fetched_at TEXT
+    )
+  `);
+  await ensureTableColumn(
+    database,
+    "poketrace_sealed_products",
+    "last_seen_crawl_id",
+    "TEXT",
+  );
+  await ensureTableColumn(
+    database,
+    "poketrace_sealed_products",
+    "market_price_history",
+    "TEXT",
+  );
+  await ensureTableColumn(
+    database,
+    "poketrace_sealed_products",
+    "market_price_history_fetched_at",
+    "TEXT",
+  );
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_products_fetched_at ON poketrace_sealed_products(fetched_at, id)",
+  );
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_products_identity ON poketrace_sealed_products(name, set_name, product_family)",
+  );
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_products_set_name ON poketrace_sealed_products(set_name COLLATE NOCASE)",
+  );
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_sealed_tcg_market_prices (
+      product_id TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      market_price REAL NOT NULL,
+      currency TEXT,
+      source_updated_at TEXT,
+      captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (product_id, recorded_at)
+    )
+  `);
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_prices_date ON poketrace_sealed_tcg_market_prices(recorded_at, product_id)",
+  );
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_sealed_import_progress (
+      name TEXT PRIMARY KEY,
+      next_cursor TEXT,
+      imported_count INTEGER NOT NULL DEFAULT 0 CHECK (imported_count >= 0),
+      complete INTEGER NOT NULL DEFAULT 0 CHECK (complete IN (0, 1)),
+      finalized INTEGER NOT NULL DEFAULT 0 CHECK (finalized IN (0, 1)),
+      crawl_id TEXT
+    )
+  `);
+  await ensureTableColumn(
+    database,
+    "poketrace_sealed_import_progress",
+    "crawl_id",
+    "TEXT",
+  );
+  const finalizedColumnAdded = await ensureTableColumn(
+    database,
+    "poketrace_sealed_import_progress",
+    "finalized",
+    "INTEGER NOT NULL DEFAULT 0 CHECK (finalized IN (0, 1))",
+  );
+  if (finalizedColumnAdded) {
+    // Only legacy completed rows without a crawl identity are treated as
+    // finalized. Tracked crawls remain pending so interrupted finalization is
+    // retried after this migration.
+    await database.execute(`
+      UPDATE poketrace_sealed_import_progress
+      SET finalized = 1
+      WHERE complete = 1 AND crawl_id IS NULL
+    `);
+  }
   await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_job_locks (
       name TEXT PRIMARY KEY,
@@ -151,6 +272,7 @@ export async function migratePokeTraceDatabase(
   );
   await ensureMarketCategoriesStore(database);
   await ensurePokeTraceCatalogStore(database);
+  await ensurePokeTraceSealedCatalogStore(database);
   await ensurePokeTraceFilterOptionsStore(database);
 }
 

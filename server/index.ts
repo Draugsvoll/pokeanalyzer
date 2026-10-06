@@ -9,6 +9,7 @@ import newsRoutes from "./db/routes/newsRoutes.js";
 import openaiRoutes from "./db/routes/openaiRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import pokeTraceRoutes from "./db/routes/pokeTraceRoutes.js";
+import pokeTraceSealedRoutes from "./db/routes/pokeTraceSealedRoutes.js";
 import {
   buildEbayCardRequests,
   fetchEbayComps,
@@ -34,6 +35,7 @@ import {
 } from "./db/cardGrokStore.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "./db/pokeTraceDb.js";
 import { warmPokeTraceCatalogInBackground } from "./services/pokeTraceCatalog.js";
+import { warmPokeTraceSealedCatalogInBackground } from "./services/pokeTraceSealedCatalog.js";
 
 const app = express();
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -163,7 +165,9 @@ app.use("/api/market-categories", marketCategoryRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/cards/catalog", cardCatalogLimiter);
+app.use("/api/sealed/catalog", cardCatalogLimiter);
 app.use("/api/cards/:id/market-price-history", cardPriceHistoryLimiter);
+app.use("/api/sealed/:id/market-price-history", cardPriceHistoryLimiter);
 app.use(
   "/api/cards",
   (_req, res, next) => {
@@ -171,6 +175,14 @@ app.use(
     next();
   },
   pokeTraceRoutes,
+);
+app.use(
+  "/api/sealed",
+  (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  },
+  pokeTraceSealedRoutes,
 );
 
 app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
@@ -339,6 +351,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       warmPokeTraceCatalogInBackground();
+      warmPokeTraceSealedCatalogInBackground();
     });
   } catch (error) {
     logError("Failed to initialize PokeTrace database", error);

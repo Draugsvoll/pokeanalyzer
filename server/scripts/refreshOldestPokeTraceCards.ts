@@ -389,11 +389,17 @@ try {
     );
     stats.catalogCards = completion.catalogCards;
     result = completion.result;
+    if (stats.deferred > 0) {
+      console.warn(
+        `[WARNING ${timestamp()}] Refresh completed with ${stats.deferred} deferred card(s); they remain queued for a later run`,
+      );
+    }
   });
 
   if (!acquired) {
-    console.log("PokeTrace maintenance job already running; refresh skipped");
-    result = "SKIPPED (job already running)";
+    throw new Error(
+      "PokeTrace maintenance lock is already held; refresh not started",
+    );
   }
 } catch (error) {
   const details = errorDetails(error);

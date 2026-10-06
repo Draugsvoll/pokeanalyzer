@@ -29,6 +29,8 @@
   display: grid;
   gap: var(--space-6);
   min-width: 0;
+  border-bottom: var(--border);
+  padding-bottom: var(--space-4);
 }
 
 .set-category-grid__results {

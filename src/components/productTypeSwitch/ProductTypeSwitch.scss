@@ -1,0 +1,12 @@
+.product-type-switch {
+  margin: 0 auto var(--space-4);
+  width: fit-content;
+
+  .segmented-radio-group__option {
+    min-width: 4.5rem;
+  }
+
+  .segmented-radio-group__option > span {
+    font-size: var(--font-size-label);
+  }
+}

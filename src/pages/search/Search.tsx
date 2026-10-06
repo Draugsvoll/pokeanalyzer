@@ -6,12 +6,17 @@ import {
   dailyTcgNearMintLosers,
   mostSoldEbayCards,
 } from "../../services/marketCategoriesApi";
+import type { ProductType } from "../../components/productTypeSwitch/ProductTypeSwitch";
 import "./Search.scss";
 
-export default function Search() {
+export default function Search({
+  initialProductType = "singles",
+}: {
+  initialProductType?: ProductType;
+}) {
   return (
     <div className="search-page">
-      <DatabaseSearch autoFocusName />
+      <DatabaseSearch autoFocusName initialProductType={initialProductType} />
       <MostSoldGrid title="Daily Most Sold on TCGPlayer" />
       <MostSoldGrid
         loadCards={mostSoldEbayCards}

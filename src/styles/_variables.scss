@@ -8,6 +8,7 @@
   --surface: #131a25;
   --surface2: #182230;
   --surface3: #202c3c;
+  --surface4: #0d1219;
   --border-color: rgba(170, 190, 220, 0.09);
   --card-border-color: rgba(170, 190, 220, 0.12);
   --border-color-strong: rgba(170, 190, 220, 0.17);
@@ -19,12 +20,12 @@
   --ai: #a879ff;
   --app-background-glow-primary: color-mix(
     in srgb,
-    var(--blue) 2%,
+    var(--blue) 3%,
     transparent
   );
   --app-background-glow-secondary: color-mix(
     in srgb,
-    var(--ai) 0.75%,
+    var(--ai) 1%,
     transparent
   );
   --green: #4fd58b;

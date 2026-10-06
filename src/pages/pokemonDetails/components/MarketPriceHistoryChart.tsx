@@ -1,14 +1,16 @@
-import { useState, type PointerEvent } from "react";
+import { useId, useState, type PointerEvent } from "react";
 import type {
   MarketPriceHistoryResponse,
   MarketPriceHistoryPoint,
   MarketPriceHistorySource,
 } from "../../../services/cardApi";
 import { MarketDataUnavailable } from "./MarketDataUnavailable";
+import { monotoneAreaPath, monotoneLinePath } from "./marketPriceHistoryPaths";
+import "./PokeTraceMarketPrices.scss";
 
 const WIDTH = 800;
 const HEIGHT = 268;
-const PADDING = { top: 24, right: 10, bottom: 46, left: 60 };
+const PADDING = { top: 24, right: 10, bottom: 46, left: 50 };
 const SOURCES: MarketPriceHistorySource[] = ["tcgplayer", "ebay"];
 
 function sourceLabel(source: MarketPriceHistorySource) {
@@ -46,29 +48,6 @@ function chartValue(
   return source === "ebay" ? (point.median7d ?? point.avg) : point.avg;
 }
 
-function carriedLinePath(
-  points: Array<{ x: number; y: number }>,
-  endX: number,
-) {
-  if (points.length === 0) return "";
-
-  const commands = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const point = points[index];
-    commands.push(
-      `L ${point.x.toFixed(2)} ${previous.y.toFixed(2)}`,
-      `L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
-    );
-  }
-
-  const lastPoint = points.at(-1)!;
-  if (endX > lastPoint.x) {
-    commands.push(`L ${endX.toFixed(2)} ${lastPoint.y.toFixed(2)}`);
-  }
-  return commands.join(" ");
-}
-
 function priceAxis(min: number, max: number) {
   const roughStep = (max - min) / 4;
   const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, 1)));
@@ -83,7 +62,16 @@ function priceAxis(min: number, max: number) {
   return { min: lower, max: upper, ticks };
 }
 
-export function MarketPriceHistoryLoading() {
+type MarketPriceHistoryChartData = Pick<
+  MarketPriceHistoryResponse,
+  "currency" | "series" | "stale"
+>;
+
+export function MarketPriceHistoryLoading({
+  conditionLabel = "Near Mint",
+}: {
+  conditionLabel?: string;
+}) {
   return (
     <section
       aria-label="Loading marketplace price history"
@@ -94,7 +82,7 @@ export function MarketPriceHistoryLoading() {
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
-          <span>Near Mint</span>
+          <span>{conditionLabel} · 90 days</span>
         </div>
       </header>
       <div className="poketrace-market__history-loading-body">
@@ -105,14 +93,20 @@ export function MarketPriceHistoryLoading() {
 }
 
 export function MarketPriceHistoryChart({
+  conditionLabel = "Near Mint",
+  emptyDescription = "Historical prices are not available for this card yet.",
   history,
 }: {
-  history: MarketPriceHistoryResponse;
+  conditionLabel?: string;
+  emptyDescription?: string;
+  history: MarketPriceHistoryChartData;
 }) {
   const availableSources = SOURCES.filter(
     (source) => (history.series[source]?.length ?? 0) > 0,
   );
   const [hoverDateIndex, setHoverDateIndex] = useState<number | null>(null);
+  const chartId = useId().replaceAll(":", "");
+  const glowId = `market-history-glow-${chartId}`;
 
   if (availableSources.length === 0) {
     return (
@@ -120,12 +114,12 @@ export function MarketPriceHistoryChart({
         <header className="poketrace-market__history-header">
           <div className="poketrace-market__history-title">
             <h3>Price history</h3>
-            <span>Near Mint</span>
+            <span>{conditionLabel} · 90 days</span>
           </div>
         </header>
         <MarketDataUnavailable
           className="poketrace-market__history-empty"
-          description="Historical prices are not available for this card yet."
+          description={emptyDescription}
           title="No price history"
         />
       </section>
@@ -158,6 +152,7 @@ export function MarketPriceHistoryChart({
   );
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
+  const plotBottom = PADDING.top + plotHeight;
   const dateTimestamp = (date: string) =>
     new Date(`${date}T00:00:00Z`).getTime();
   const firstTimestamp = dateTimestamp(dates[0]);
@@ -183,7 +178,8 @@ export function MarketPriceHistoryChart({
     return {
       source,
       points,
-      line: carriedLinePath(positionedPoints, x(dates.at(-1)!)),
+      line: monotoneLinePath(positionedPoints, x(dates.at(-1)!)),
+      area: monotoneAreaPath(positionedPoints, x(dates.at(-1)!), plotBottom),
     };
   });
   const dateTickCount = Math.min(7, dates.length);
@@ -248,7 +244,7 @@ export function MarketPriceHistoryChart({
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
           <h3>Price history</h3>
-          <span>Near Mint</span>
+          <span>{conditionLabel} · 90 days</span>
         </div>
         <div className="poketrace-market__history-meta">
           <div
@@ -271,7 +267,7 @@ export function MarketPriceHistoryChart({
       </header>
       <div className="poketrace-market__history-chart ui-render-fade">
         <svg
-          aria-label={`${sourceNames} Near Mint price history from ${formatDate(dates[0])} to ${formatDate(dates.at(-1)!)}`}
+          aria-label={`${sourceNames} ${conditionLabel} price history from ${formatDate(dates[0])} to ${formatDate(dates.at(-1)!)}`}
           onPointerLeave={() => setHoverDateIndex(null)}
           onPointerMove={handlePointerMove}
           role="img"
@@ -280,19 +276,54 @@ export function MarketPriceHistoryChart({
           <defs>
             <filter
               filterUnits="userSpaceOnUse"
-              id="market-history-glow"
+              id={glowId}
               height={HEIGHT + 8}
               width={WIDTH + 8}
               x={-4}
               y={-4}
             >
-              <feGaussianBlur stdDeviation="1.15" result="blur" />
+              <feGaussianBlur stdDeviation="0.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            {availableSources.map((source) => (
+              <linearGradient
+                id={`market-history-area-${chartId}-${source}`}
+                key={source}
+                x1="0"
+                x2="0"
+                y1="0"
+                y2="1"
+              >
+                <stop
+                  className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
+                  offset="0%"
+                  stopOpacity="0.08"
+                />
+                <stop
+                  className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
+                  offset="72%"
+                  stopOpacity="0.025"
+                />
+                <stop
+                  className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
+                  offset="100%"
+                  stopOpacity="0"
+                />
+              </linearGradient>
+            ))}
           </defs>
+          {plottedSeries.map(({ source, area }) => (
+            <path
+              aria-hidden="true"
+              className={`poketrace-market__history-area poketrace-market__history-area--${source}`}
+              d={area}
+              fill={`url(#market-history-area-${chartId}-${source})`}
+              key={source}
+            />
+          ))}
           {dateTickIndexes.map((index) => (
             <line
               className="poketrace-market__history-grid-line poketrace-market__history-grid-line--vertical"
@@ -317,7 +348,7 @@ export function MarketPriceHistoryChart({
                 <text
                   className="poketrace-market__history-axis-label"
                   textAnchor="end"
-                  x={PADDING.left - 10}
+                  x={PADDING.left - 8}
                   y={tickY + 4}
                 >
                   {formatAxisPrice(tick, history.currency)}
@@ -336,7 +367,7 @@ export function MarketPriceHistoryChart({
             <path
               className={`poketrace-market__history-line poketrace-market__history-line--${source}`}
               d={line}
-              filter="url(#market-history-glow)"
+              filter={`url(#${glowId})`}
               key={source}
             />
           ))}
@@ -349,7 +380,7 @@ export function MarketPriceHistoryChart({
                 cx={x(onlyPoint.point.date)}
                 cy={y(onlyPoint.value)}
                 key={source}
-                r="4"
+                r="3"
               />
             ) : null;
           })}
@@ -360,13 +391,13 @@ export function MarketPriceHistoryChart({
                   className={`poketrace-market__history-point-halo poketrace-market__history-point-halo--${source}`}
                   cx={activeX}
                   cy={y(point.value)}
-                  r="8"
+                  r="6"
                 />
                 <circle
                   className={`poketrace-market__history-point poketrace-market__history-point--${source}`}
                   cx={activeX}
                   cy={y(point.value)}
-                  r="3.75"
+                  r="2.5"
                 />
               </g>
             ) : null,

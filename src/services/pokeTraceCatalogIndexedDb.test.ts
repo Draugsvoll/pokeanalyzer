@@ -199,10 +199,21 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     vi.stubEnv("VITE_TEST_ENABLE_LOCAL_POKETRACE_CATALOG", "false");
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
       json: async () => ({
-        schemaVersion: 1,
-        generatedAt: "2026-09-19T08:00:00.000Z",
+        schemaVersion: 2,
+        generatedAt: new Date(Date.now()).toISOString(),
         rarities: ["Holo Rare"],
         setNames: ["Base Set"],
+        setSummaries: [
+          {
+            asOf: new Date(Date.now()).toISOString(),
+            comparableCards: 1,
+            currency: "USD",
+            pricedCards: 1,
+            setName: "Base Set",
+            sevenDayChangePercent: 5,
+            uniqueCards: 1,
+          },
+        ],
       }),
       ok: true,
     } as Response);
@@ -217,6 +228,7 @@ describe("PokeTrace catalog IndexedDB lifecycle", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:3001/api/cards/filter-options?v=2",
+      { cache: "no-store" },
     );
   });
 

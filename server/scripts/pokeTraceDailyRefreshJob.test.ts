@@ -18,7 +18,7 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-async function seedCronTestDatabase(databaseUrl: string) {
+async function seedCronTestDatabase(databaseUrl: string, holdLock = false) {
   const seedScript = `
     import { createClient } from "@libsql/client";
 
@@ -64,6 +64,19 @@ async function seedCronTestDatabase(databaseUrl: string) {
           "2999-01-01T00:00:00.000Z",
         ],
       });
+      if (process.env.POKETRACE_CRON_TEST_HOLD_LOCK === "true") {
+        await database.execute(\`
+          CREATE TABLE poketrace_job_locks (
+            name TEXT PRIMARY KEY,
+            token TEXT NOT NULL,
+            expires_at INTEGER NOT NULL
+          )
+        \`);
+        await database.execute(\`
+          INSERT INTO poketrace_job_locks (name, token, expires_at)
+          VALUES ('poketrace-maintenance', 'held-by-test', unixepoch('now') + 3600)
+        \`);
+      }
     } finally {
       database.close();
     }
@@ -77,6 +90,7 @@ async function seedCronTestDatabase(databaseUrl: string) {
       env: {
         ...process.env,
         POKETRACE_CRON_TEST_DATABASE_URL: databaseUrl,
+        POKETRACE_CRON_TEST_HOLD_LOCK: String(holdLock),
       },
     },
   );
@@ -214,6 +228,60 @@ test("the daily refresh cron script regenerates the stored catalog", async () =>
       setNames: string[];
     };
     assert.deepEqual(storedFilterOptions.setNames, ["Cron Test Set"]);
+  } finally {
+    await rm(temporaryDirectory, {
+      force: true,
+      maxRetries: 3,
+      recursive: true,
+      retryDelay: 100,
+    });
+  }
+});
+
+test("the daily refresh cron script fails when the maintenance lock is held", async () => {
+  const temporaryDirectory = await mkdtemp(
+    path.join(tmpdir(), "poketrace-daily-refresh-lock-"),
+  );
+  const databasePath = path.join(temporaryDirectory, "poketrace.sqlite");
+  const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}`;
+
+  try {
+    await seedCronTestDatabase(databaseUrl, true);
+
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [
+          "--import",
+          "tsx",
+          path.resolve("server/scripts/refreshOldestPokeTraceCards.ts"),
+          "1",
+        ],
+        {
+          cwd: process.cwd(),
+          env: {
+            ...process.env,
+            POKETRACE_API_KEY: "test-api-key",
+            POKETRACE_DATABASE_URL: databaseUrl,
+            POKETRACE_REQUEST_GAP_MS: "0",
+          },
+        },
+      ),
+      (error: unknown) => {
+        const failure = error as {
+          code?: number;
+          stderr?: string;
+          stdout?: string;
+        };
+        assert.equal(failure.code, 1);
+        assert.match(
+          failure.stderr ?? "",
+          /PokeTrace maintenance lock is already held; refresh not started/,
+        );
+        assert.match(failure.stdout ?? "", /Result: FAILED/);
+        return true;
+      },
+    );
   } finally {
     await rm(temporaryDirectory, {
       force: true,

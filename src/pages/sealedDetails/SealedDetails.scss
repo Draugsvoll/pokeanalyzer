@@ -1,0 +1,98 @@
+.sealed-details--message {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  min-height: 12rem;
+  place-content: center;
+  width: 100%;
+}
+
+.sealed-details__notice {
+  color: var(--font-color-error);
+  font-size: var(--font-size-paragraph-sm);
+  margin: 0;
+}
+
+.sealed-details .details-page__title-row {
+  .app-badge {
+    margin-bottom: 0.12rem;
+    text-transform: capitalize;
+  }
+}
+
+.sealed-details__variant {
+  color: var(--font-color-primary);
+  flex: 0 0 auto;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  padding-bottom: 0.3rem;
+  position: relative;
+  text-transform: capitalize;
+
+  &::after {
+    background: color-mix(in srgb, currentColor 72%, transparent);
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: 0;
+    position: absolute;
+    width: 100%;
+  }
+}
+
+.sealed-details__image-frame {
+  align-items: center;
+  background: var(--bg2);
+  border: var(--default-container-border);
+  border-radius: var(--default-container-radius);
+  box-shadow: var(--default-container-shadow);
+  box-sizing: border-box;
+  color: var(--font-color-faint);
+  display: flex;
+  justify-content: center;
+  min-height: 24rem;
+  padding: var(--space-4);
+  width: 17.5rem;
+
+  img {
+    display: block;
+    height: auto;
+    max-height: 31rem;
+    max-width: 100%;
+    object-fit: contain;
+    width: 100%;
+  }
+}
+
+.sealed-details .poketrace-market {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.sealed-details__price-value {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sealed-details__condition {
+  color: var(--font-color-muted);
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+@media (max-width: 48rem) {
+  .sealed-details .details-page__media {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 32rem) {
+  .sealed-details__image-frame {
+    min-height: 18rem;
+    width: min(100%, 17.5rem);
+  }
+}

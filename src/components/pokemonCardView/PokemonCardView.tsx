@@ -6,6 +6,7 @@ import {
   type ConfirmPopoverCancelReason,
 } from "../confirmPopover/ConfirmPopover";
 import { PriceChange } from "../priceChange/PriceChange";
+import { ProductCard } from "../productCard/ProductCard";
 import { Badge } from "../ui/Badge";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
@@ -22,6 +23,7 @@ import {
 } from "../../../shared/priceChangePeriod";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
+import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import {
   resolveDisplayedPokeTracePriceChange,
   resolvePokeTraceCardPrice,
@@ -133,6 +135,7 @@ export function PokemonCardView({
   const printedCardNumber = formatCardNumber(card);
   const variantName = card.pokeTrace.variant?.trim().replaceAll("_", " ");
   const variantAccent = getVariantBadgeAccent(card.pokeTrace.variant);
+  const rarityName = card.rarity?.trim();
   const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -166,149 +169,160 @@ export function PokemonCardView({
   };
 
   return (
-    <div className="pokemon-card-view">
-      <div
-        className={[
-          "pokemon-card-view__card",
-          hidePortfolioButtonUntilHover
-            ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
-            : "",
-        ]
+    <ProductCard
+      className="pokemon-card-view"
+      surfaceClassName={[
+        "pokemon-card-view__card",
+        hidePortfolioButtonUntilHover
+          ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <button
+        aria-label={`Open ${card.name}`}
+        className="pokemon-card__open"
+        onClick={handleCardClick}
+        title={[card.name, card.set?.name, variantName]
           .filter(Boolean)
-          .join(" ")}
-      >
+          .join(" · ")}
+        type="button"
+      />
+      {authUser && (
         <button
-          aria-label={`Open ${card.name}`}
-          className="pokemon-card__open"
-          onClick={handleCardClick}
-          title={[card.name, card.set?.name, variantName]
-            .filter(Boolean)
-            .join(" · ")}
           type="button"
-        />
-        {authUser && (
-          <button
-            type="button"
-            className={`portfolio-toggle-button pokemon-card__portfolio-toggle${
-              cardIsSaved ? " is-saved" : ""
-            }`}
-            aria-label={
-              portfolioUnavailable
-                ? "Portfolio is unavailable"
-                : portfolioBusy
-                  ? "Updating portfolio"
-                  : cardIsSaved
-                    ? "Remove from portfolio"
-                    : "Add to portfolio"
-            }
-            aria-pressed={cardIsSaved}
-            aria-busy={portfolioBusy}
-            disabled={portfolioBusy || portfolioUnavailable}
-            title={
-              portfolioUnavailable
-                ? "Portfolio is unavailable"
-                : portfolioBusy
-                  ? "Updating portfolio"
-                  : cardIsSaved
-                    ? "Remove from portfolio"
-                    : "Add to portfolio"
-            }
-            onClick={() => {
-              void handlePortfolioToggle();
-            }}
-          >
-            {portfolioBusy ? (
-              <span className="app-btn__spinner" aria-hidden="true" />
-            ) : (
-              <Star aria-hidden="true" />
-            )}
-          </button>
-        )}
-
-        <div className="pokemon-card__image">
-          {imageAvailable ? (
-            <img
-              src={imageSrc}
-              alt=""
-              onError={() => setFailedImageSrc(imageSrc ?? null)}
-            />
+          className={`portfolio-toggle-button pokemon-card__portfolio-toggle${
+            cardIsSaved ? " is-saved" : ""
+          }`}
+          aria-label={
+            portfolioUnavailable
+              ? "Portfolio is unavailable"
+              : portfolioBusy
+                ? "Updating portfolio"
+                : cardIsSaved
+                  ? "Remove from portfolio"
+                  : "Add to portfolio"
+          }
+          aria-pressed={cardIsSaved}
+          aria-busy={portfolioBusy}
+          disabled={portfolioBusy || portfolioUnavailable}
+          title={
+            portfolioUnavailable
+              ? "Portfolio is unavailable"
+              : portfolioBusy
+                ? "Updating portfolio"
+                : cardIsSaved
+                  ? "Remove from portfolio"
+                  : "Add to portfolio"
+          }
+          onClick={() => {
+            void handlePortfolioToggle();
+          }}
+        >
+          {portfolioBusy ? (
+            <span className="app-btn__spinner" aria-hidden="true" />
           ) : (
-            <span
-              aria-label="Card image unavailable"
-              className="pokemon-card__image-placeholder"
-              role="img"
-            />
+            <Star aria-hidden="true" />
           )}
-        </div>
+        </button>
+      )}
 
-        <div className="pokemon-card__content">
-          <div className="pokemon-card__identity">
-            <div className="pokemon-card__name-row">
-              <h2 className="pokemon-card__name" title={card.name}>
-                {card.name}
-              </h2>
-            </div>
-            <div className="pokemon-card__metadata-row">
-              {printedCardNumber && (
-                <span
-                  className="pokemon-card__number"
-                  title={`Card number ${printedCardNumber}`}
-                >
-                  {printedCardNumber}
-                </span>
-              )}
-              <span className="pokemon-card__set" title={card.set?.name}>
-                {card.set?.name ?? "Unknown set"}
+      <div className="pokemon-card__image">
+        {imageAvailable ? (
+          <img
+            src={imageSrc}
+            alt=""
+            onError={() => setFailedImageSrc(imageSrc ?? null)}
+          />
+        ) : (
+          <span
+            aria-label="Card image unavailable"
+            className="pokemon-card__image-placeholder"
+            role="img"
+          />
+        )}
+      </div>
+
+      <div className="product-card__content">
+        <div className="pokemon-card__identity">
+          <div className="pokemon-card__name-row">
+            <h2
+              className="product-card__title product-card__title--single-line pokemon-card__name"
+              title={card.name}
+            >
+              {card.name}
+            </h2>
+          </div>
+          <div className="product-card__metadata pokemon-card__metadata-row">
+            {printedCardNumber && (
+              <span
+                className="pokemon-card__number"
+                title={`Card number ${printedCardNumber}`}
+              >
+                {printedCardNumber}
               </span>
-            </div>
-            {variantName && (
-              <div className="pokemon-card__variant-row">
+            )}
+            <span className="pokemon-card__set" title={card.set?.name}>
+              {card.set?.name ?? "Unknown set"}
+            </span>
+          </div>
+          {(variantName || rarityName) && (
+            <div className="product-card__badges pokemon-card__badge-row">
+              {variantName && (
                 <span className="pokemon-card__variant">
                   <Badge accent={variantAccent} size="sm" title={variantName}>
                     {variantName}
                   </Badge>
                 </span>
-              </div>
-            )}
-          </div>
-
-          <div className="pokemon-card__pricing">
-            <div className="pokemon-card__price">
-              <div className="pokemon-card__price-row">
-                <div className="pokemon-card__price-current">
-                  <span
-                    className="pokemon-card__price-value"
-                    title={marketDisplay?.priceLabel}
+              )}
+              {rarityName && (
+                <span className="pokemon-card__rarity">
+                  <Badge
+                    accent={getRarityBadgeAccent(rarityName)}
+                    size="sm"
+                    title={rarityName}
                   >
-                    {marketDisplay?.primaryText ??
-                      (displayedPrice != null
-                        ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
-                        : "-")}
-                  </span>
-                  {showPriceChange && (
-                    <PriceChange
-                      animate
-                      key={`${priceChangeTitle}:${displayedPriceChangePercent}`}
-                      percent={displayedPriceChangePercent}
-                      period={displayedPriceChangePeriod}
-                      title={priceChangeTitle}
-                    />
-                  )}
-                  {marketDisplay?.marketLabel && (
-                    <span
-                      className="pokemon-card__market-label"
-                      title={marketDisplay.priceLabel}
-                    >
-                      {marketDisplay.marketLabel}
+                    <span className="pokemon-card__rarity-label">
+                      {rarityName}
                     </span>
-                  )}
-                </div>
-              </div>
+                  </Badge>
+                </span>
+              )}
             </div>
-          </div>
+          )}
+        </div>
+
+        <div className="product-card__price-row">
+          <span
+            className="product-card__price-value pokemon-card__price-value"
+            title={marketDisplay?.priceLabel}
+          >
+            {marketDisplay?.primaryText ??
+              (displayedPrice != null
+                ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
+                : "-")}
+          </span>
+          {showPriceChange && (
+            <PriceChange
+              animate
+              key={`${priceChangeTitle}:${displayedPriceChangePercent}`}
+              percent={displayedPriceChangePercent}
+              period={displayedPriceChangePeriod}
+              title={priceChangeTitle}
+            />
+          )}
+          {marketDisplay?.marketLabel && (
+            <span
+              className="pokemon-card__market-label"
+              title={marketDisplay.priceLabel}
+            >
+              {marketDisplay.marketLabel}
+            </span>
+          )}
         </div>
       </div>
-    </div>
+    </ProductCard>
   );
 }
 

@@ -34,7 +34,7 @@ time.
 Start Command:
 
 ```sh
-npm run poketrace:refresh-daily
+npm run poketrace:refresh-all-daily
 ```
 
 Suggested Cron Schedule:
@@ -43,10 +43,22 @@ Suggested Cron Schedule:
 0 1 * * *
 ```
 
-This refreshes the cards with the oldest successful price update first. Each
-successful card is moved to the back of the queue and receives compact daily
-price history containing only its TCGPlayer Near Mint market price. Failed cards
-receive a bounded retry delay and do not block the rest of the queue.
+This refreshes both Singles and Sealed products. Singles with the oldest
+successful price update are refreshed first; each successful card is moved to
+the back of the queue and receives compact daily price history containing only
+its TCGPlayer Near Mint market price. Failed cards receive a bounded retry delay
+and do not block the rest of the queue. Sealed products receive equivalent
+daily unopened-price snapshots after the Singles refresh finishes.
+Sealed product and snapshot pages are committed as they succeed, but the
+published Sealed search catalog is validated and atomically replaced only after
+the complete sweep finishes. A failed sweep therefore preserves the previous
+published catalog and exits unsuccessfully while retaining its completed raw
+database updates.
+Each crawl assigns one ID to every product it sees. Only after the final page
+is committed does the job remove products and snapshots that were not seen in
+that crawl; interrupted crawls never run this reconciliation. Logs include the
+last committed product/snapshot counts and next cursor, and the final summary
+reports how many obsolete products were removed.
 The same refresh stores ready-to-read 1-day, 7-day, and 30-day comparisons on
 the card row, using an exact snapshot or the nearest allowed date within one
 day. It also writes a supplemental `poketrace_market_snapshots` row containing
@@ -70,17 +82,29 @@ missing catalog first, with:
 npm run poketrace:generate-set-list
 ```
 
-Force the running backend to reload the saved catalog regardless of its current
-cache age with:
+Force the running backend to reload both search catalogs regardless of their
+current cache age with:
 
 ```sh
-npm run poketrace:warm-catalog
+npm run poketrace:warm-all-catalogs
 ```
 
-Configure `POKETRACE_CATALOG_REFRESH_URL` with the full backend refresh endpoint
-and set the same private `POKETRACE_CATALOG_REFRESH_TOKEN` on the script and
-backend services. The command keeps the existing backend cache active until the
-replacement loads successfully.
+Configure `POKETRACE_CATALOG_REFRESH_URL` and
+`POKETRACE_SEALED_CATALOG_REFRESH_URL` with the full Singles and Sealed backend
+refresh endpoints, respectively. Set the same private
+`POKETRACE_CATALOG_REFRESH_TOKEN` on the warmup and backend services. The
+command refreshes both in parallel and keeps each existing backend cache active
+until its replacement loads successfully.
+
+Typical endpoint values are:
+
+```text
+POKETRACE_CATALOG_REFRESH_URL=https://<backend>/api/cards/catalog/refresh
+POKETRACE_SEALED_CATALOG_REFRESH_URL=https://<backend>/api/sealed/catalog/refresh
+```
+
+The original `npm run poketrace:warm-catalog` command remains Singles-only;
+`npm run poketrace:warm-sealed-catalog` is the equivalent Sealed-only command.
 
 Set `POKETRACE_DAILY_CARD_LIMIT` to the maximum number of cards for one run.
 The default and maximum are 50,000, which covers the whole current catalogue.

@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
 import { DatabaseSearch } from "./DatabaseSearch";
@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   loadPokeTraceCatalogSetNames: vi.fn(),
   loadPokeTraceFilterOptions: vi.fn(),
   searchCachedPokeTraceCatalog: vi.fn(),
+  fetchSealedFilterOptions: vi.fn(),
+  searchSealedProducts: vi.fn(),
 }));
 
 vi.mock("../../services/pokeTraceFilterOptions", () => ({
@@ -27,6 +29,11 @@ vi.mock("../../services/pokeTraceCatalog", () => ({
   searchCachedPokeTraceCatalog: mocks.searchCachedPokeTraceCatalog,
 }));
 
+vi.mock("../../services/sealedApi", () => ({
+  fetchSealedFilterOptions: mocks.fetchSealedFilterOptions,
+  searchSealedProducts: mocks.searchSealedProducts,
+}));
+
 vi.mock("../pokemonCardView/PokemonCardView", () => ({
   PokemonCardView: ({
     card,
@@ -36,7 +43,8 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
     marketDisplay?: { marketLabel?: string; price?: number };
   }) => (
     <div>
-      {card.name} {marketDisplay?.marketLabel} {marketDisplay?.price}
+      <span>{card.name}</span> {marketDisplay?.marketLabel}{" "}
+      {marketDisplay?.price}
     </div>
   ),
 }));
@@ -82,6 +90,23 @@ function renderSearch() {
   );
 }
 
+function LocationPath() {
+  return <output aria-label="Current path">{useLocation().pathname}</output>;
+}
+
+function SearchHistoryControls() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <output aria-label="Current search">{location.search}</output>
+      <button onClick={() => navigate(-1)} type="button">
+        Back
+      </button>
+    </>
+  );
+}
+
 beforeEach(() => {
   mocks.loadPokeTraceCatalogRarities.mockReset();
   mocks.loadPokeTraceCatalogRarities.mockResolvedValue(null);
@@ -91,10 +116,195 @@ beforeEach(() => {
   mocks.loadPokeTraceFilterOptions.mockResolvedValue(null);
   mocks.searchCachedPokeTraceCatalog.mockReset();
   mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.fetchSealedFilterOptions.mockReset();
+  mocks.fetchSealedFilterOptions.mockResolvedValue({
+    productFamilies: [],
+    setNames: [],
+  });
+  mocks.searchSealedProducts.mockReset();
+  mocks.searchSealedProducts.mockResolvedValue({ items: [], total: 0 });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+test("switches and focuses the shared search hero mode without changing the route", () => {
+  render(
+    <MemoryRouter initialEntries={["/"]}>
+      <DatabaseSearch />
+      <LocationPath />
+    </MemoryRouter>,
+  );
+
+  const searchHero = document.querySelector(".search-hero");
+  const initialSearchMode = document.querySelector(".database-search-mode");
+  expect(searchHero).not.toBeNull();
+  expect(initialSearchMode).toHaveClass("ui-render-fade");
+  expect(screen.getByRole("textbox", { name: "Pokemon name" })).toBeVisible();
+
+  fireEvent.click(screen.getByRole("radio", { name: "Sealed" }));
+
+  expect(
+    screen.getByRole("textbox", { name: "Sealed product name" }),
+  ).toHaveFocus();
+  expect(
+    screen.queryByRole("spinbutton", { name: "Minimum price" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
+  expect(
+    screen.getByRole("spinbutton", { name: "Minimum price" }),
+  ).toBeVisible();
+  expect(document.querySelector(".search-hero")).toBe(searchHero);
+  expect(document.querySelector(".database-search-mode")).not.toBe(
+    initialSearchMode,
+  );
+  expect(screen.getByLabelText("Current path")).toHaveTextContent("/");
+
+  fireEvent.click(screen.getByRole("radio", { name: "Singles" }));
+
+  expect(screen.getByRole("textbox", { name: "Pokemon name" })).toHaveFocus();
+  expect(document.querySelector(".search-hero")).toBe(searchHero);
+  expect(screen.getByLabelText("Current path")).toHaveTextContent("/");
+});
+
+test("clears URL criteria instead of carrying fields between product modes", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={[
+        "/search?mode=singles&set=Base+Set&type=booster_box&condition=NEAR_MINT",
+      ]}
+    >
+      <DatabaseSearch />
+      <SearchHistoryControls />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue(
+    "Base Set",
+  );
+
+  fireEvent.click(screen.getByRole("radio", { name: "Sealed" }));
+
+  await waitFor(() => {
+    expect(screen.getByLabelText("Current search")).toHaveTextContent(/^$/);
+    expect(screen.getByRole("combobox", { name: "Set name" })).toHaveValue("");
+    expect(
+      screen.getByRole("button", { name: "Product type" }),
+    ).toHaveTextContent("Type");
+  });
+});
+
+test("uses inline filter labels and defaults condition to Near Mint", () => {
+  renderSearch();
+
+  fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
+
+  expect(
+    screen.getByRole("spinbutton", { name: "Minimum price" }),
+  ).toHaveAttribute("placeholder", "Min");
+  expect(
+    screen.getByRole("spinbutton", { name: "Maximum price" }),
+  ).toHaveAttribute("placeholder", "Max");
+  expect(
+    screen.getByRole("combobox", { name: "Filter by rarity" }),
+  ).toHaveAttribute("placeholder", "Rarity");
+
+  const condition = screen.getByRole("button", {
+    name: "Filter by condition",
+  });
+  expect(condition).toHaveTextContent("Near Mint");
+  fireEvent.click(condition);
+  expect(screen.queryByRole("option", { name: "Any" })).not.toBeInTheDocument();
+});
+
+test("stores Singles criteria in the URL and restores searches on Back", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockImplementation(
+    ({ pokemonName }: { pokemonName: string }) => [
+      card(`card-${pokemonName}`, `${pokemonName} result`),
+    ],
+  );
+  render(
+    <MemoryRouter>
+      <DatabaseSearch />
+      <SearchHistoryControls />
+    </MemoryRouter>,
+  );
+
+  const nameInput = screen.getByRole("textbox", { name: "Pokemon name" });
+  fireEvent.change(nameInput, { target: { value: "first" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+  expect(await screen.findByText("first result")).toBeInTheDocument();
+  expect(screen.getByLabelText("Current search")).toHaveTextContent(
+    "?mode=singles&name=first&condition=NEAR_MINT",
+  );
+
+  await waitFor(
+    () => {
+      expect(screen.getByRole("button", { name: "Search" })).toBeEnabled();
+    },
+    { timeout: 2_000 },
+  );
+  fireEvent.change(nameInput, { target: { value: "second" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  expect(await screen.findByText("second result")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  await waitFor(() => {
+    expect(nameInput).toHaveValue("first");
+    expect(screen.getByText("first result")).toBeInTheDocument();
+  });
+});
+
+test("writes every submitted Singles filter to the URL", async () => {
+  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
+  render(
+    <MemoryRouter>
+      <DatabaseSearch />
+      <SearchHistoryControls />
+    </MemoryRouter>,
+  );
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "Pikachu" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Card number" }), {
+    target: { value: "25" },
+  });
+  fireEvent.change(screen.getByRole("combobox", { name: "Set name" }), {
+    target: { value: "Base Set" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum price" }), {
+    target: { value: "10" },
+  });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Maximum price" }), {
+    target: { value: "50" },
+  });
+  fireEvent.change(screen.getByRole("combobox", { name: "Filter by rarity" }), {
+    target: { value: "Holo Rare" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
+  fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+  await waitFor(() => {
+    const params = new URLSearchParams(
+      screen.getByLabelText("Current search").textContent ?? "",
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      condition: "LIGHTLY_PLAYED",
+      max: "50",
+      min: "10",
+      mode: "singles",
+      name: "Pikachu",
+      number: "25",
+      rarity: "Holo Rare",
+      set: "Base Set",
+    });
+  });
 });
 
 test("uses the browser catalog without calling the search API", async () => {
@@ -175,6 +385,7 @@ test("marks a suggested set name as an exact catalog match", async () => {
   expect(await screen.findByText("No cards found.")).toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
     cardNumber: "",
+    condition: "NEAR_MINT",
     maxPrice: undefined,
     minPrice: undefined,
     pokemonName: "",
@@ -183,7 +394,7 @@ test("marks a suggested set name as an exact catalog match", async () => {
     setNameExact: true,
   });
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true",
+    "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
 });
@@ -211,6 +422,7 @@ test("keeps a typed set name as a partial match", async () => {
   expect(await screen.findByText("No cards found.")).toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
     cardNumber: "",
+    condition: "NEAR_MINT",
     maxPrice: undefined,
     minPrice: undefined,
     pokemonName: "",
@@ -235,7 +447,7 @@ test("falls back to the search API when the browser catalog is unavailable", asy
 
   expect(await screen.findByText("API Charizard")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?pokemonName=charizard",
+    "http://localhost:3001/api/cards/search?pokemonName=charizard&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
 });
@@ -341,6 +553,7 @@ test("loads every match and reveals results 50 at a time", async () => {
   expect(screen.queryByText("Card 51")).not.toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
     cardNumber: "",
+    condition: "NEAR_MINT",
     maxPrice: undefined,
     minPrice: undefined,
     pokemonName: "card",
@@ -411,7 +624,7 @@ test("sorts a local search without making another request", async () => {
   ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: high-low" }));
 
   expect(document.querySelector(".grid-view")).toHaveAttribute(
     "aria-busy",
@@ -457,7 +670,7 @@ test("sorts local results by card number", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
 
   await waitFor(() =>
     expect(
@@ -496,7 +709,7 @@ test("sorts server results by 7-day percentage change without refetching", async
   ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "% Change: high–low" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: high-low" }));
 
   await waitFor(() =>
     expect(
@@ -508,7 +721,7 @@ test("sorts server results by 7-day percentage change without refetching", async
   );
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?pokemonName=card",
+    "http://localhost:3001/api/cards/search?pokemonName=card&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
 });
@@ -527,7 +740,7 @@ test("keeps results closed after sorting locally", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
   fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
 
   expect(screen.queryByText("Card 10")).not.toBeInTheDocument();
@@ -549,7 +762,7 @@ test("keeps the original result set while changing sort", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
 
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
@@ -576,7 +789,7 @@ test("does not request the server again when server results are sorted", async (
   expect(await screen.findByText("Server Card 1")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: low-high" }));
   await waitFor(() =>
     expect(
       screen
@@ -612,6 +825,7 @@ test("supports filter-only searches and forwards the filters", async () => {
   expect(await screen.findByText("Filtered Charizard")).toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
     cardNumber: "",
+    condition: "NEAR_MINT",
     maxPrice: 100,
     minPrice: 25,
     pokemonName: "",
@@ -619,7 +833,7 @@ test("supports filter-only searches and forwards the filters", async () => {
     setName: "",
   });
   expect(fetchMock).toHaveBeenCalledWith(
-    "http://localhost:3001/api/cards/search?minPrice=25&maxPrice=100&rarity=Holo+Rare",
+    "http://localhost:3001/api/cards/search?minPrice=25&maxPrice=100&rarity=Holo+Rare&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
 });
@@ -639,9 +853,10 @@ test("uses the local catalog and selected TCGPlayer price for condition searches
   fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(
-    await screen.findByText("Played Charizard Lightly Played 30"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("Played Charizard")).toBeInTheDocument();
+  expect(screen.getByText("Played Charizard").parentElement).toHaveTextContent(
+    "Lightly Played 30",
+  );
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
     cardNumber: "",
     condition: "LIGHTLY_PLAYED",
@@ -671,9 +886,10 @@ test("uses the server fallback when local condition search is unavailable", asyn
   fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(
-    await screen.findByText("Server Charizard Lightly Played 30"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("Server Charizard")).toBeInTheDocument();
+  expect(screen.getByText("Server Charizard").parentElement).toHaveTextContent(
+    "Lightly Played 30",
+  );
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/search?condition=LIGHTLY_PLAYED",
     { signal: expect.any(AbortSignal) },
@@ -747,4 +963,17 @@ test("closes an embedded search from the results toolbar", async () => {
   );
 
   expect(onClose).toHaveBeenCalledOnce();
+});
+
+test("keeps embedded card search independent from page URL search state", () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-1?mode=sealed&name=box"]}>
+      <DatabaseSearch embedded />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("textbox", { name: "Pokemon name" })).toHaveValue("");
+  expect(
+    screen.queryByRole("textbox", { name: "Sealed product name" }),
+  ).not.toBeInTheDocument();
 });

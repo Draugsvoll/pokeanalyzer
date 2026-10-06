@@ -871,7 +871,7 @@ input[type="radio"] {
   flex: 0 0 auto;
   font-family: var(--font-family-base);
   font-weight: var(--font-weight-medium);
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-badge);
   gap: 0.18rem;
   justify-content: center;
   letter-spacing: 0.02rem;
@@ -943,7 +943,6 @@ input[type="radio"] {
 }
 
 .app-badge--sm {
-  font-size: 0.68rem;
   padding: 0.3rem 0.5rem;
 }
 
@@ -1044,7 +1043,7 @@ input[type="radio"] {
   color: var(--font-color-muted);
   display: inline-flex;
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-paragraph-sm);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-medium);
   line-height: 1;

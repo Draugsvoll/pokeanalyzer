@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, LogIn, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
@@ -60,8 +53,8 @@ const SORT_OPTIONS: { value: PortfolioSort; label: string }[] = [
   { value: "price-high", label: "Price: high–low" },
   { value: "price-low", label: "Price: low–high" },
   { value: "holding-high", label: "Holding value" },
-  { value: "change-high", label: "% Change: high–low" },
-  { value: "change-low", label: "% Change: low–high" },
+  { value: "change-high", label: "% change: high–low" },
+  { value: "change-low", label: "% change: low–high" },
 ];
 
 const CHANGE_PERIOD_OPTIONS: Array<{
@@ -127,22 +120,17 @@ function FeaturedCardMetric({
   );
 }
 
-function PortfolioPageHeader({ actions }: { actions?: ReactNode }) {
-  return (
-    <header className="portfolio__page-header">
-      <div>
-        <span className="portfolio__eyebrow">Portfolio</span>
-        <h1>My collection</h1>
-      </div>
-      {actions && <div className="portfolio__page-actions">{actions}</div>}
-    </header>
-  );
-}
-
 function PortfolioLoading({ showHeader = true }: { showHeader?: boolean }) {
   return (
     <div className="portfolio portfolio--loading" aria-busy="true">
-      {showHeader && <PortfolioPageHeader />}
+      {showHeader && (
+        <header className="portfolio__page-header">
+          <div>
+            <span className="portfolio__eyebrow">Portfolio</span>
+            <h1>My collection</h1>
+          </div>
+        </header>
+      )}
       <div className="portfolio__loading-panel" role="status">
         <span className="app-btn__spinner" aria-hidden="true" />
         <span>{showHeader ? "Loading collection" : "Loading"}</span>
@@ -217,7 +205,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
     } catch (cause) {
       if (controller.signal.aborted) return;
       logClientError("Failed to load portfolio cards", cause);
-      setError("Please try again in a moment.");
+      setError("We couldn’t load your collection. Please try again.");
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;
@@ -258,10 +246,13 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
   if (error) {
     return (
-      <div className="portfolio">
-        <PortfolioPageHeader />
-        <section className="portfolio__empty default-container" role="alert">
-          <h2>We couldn&apos;t load your collection</h2>
+      <div className="portfolio portfolio--status">
+        <section className="portfolio__status-card" role="alert">
+          <span className="portfolio__status-icon" aria-hidden="true">
+            <AlertTriangle />
+          </span>
+          <span className="portfolio__eyebrow">Collection unavailable</span>
+          <h1>We couldn&apos;t load your portfolio.</h1>
           <p>{error}</p>
           <div className="portfolio__status-actions">
             <Button onClick={() => void load()}>Try again</Button>
@@ -277,8 +268,12 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
   return (
     <div className="portfolio">
       {cards.length > 0 && (
-        <PortfolioPageHeader
-          actions={
+        <header className="portfolio__page-header">
+          <div>
+            <span className="portfolio__eyebrow">Portfolio</span>
+            <h1>My collection</h1>
+          </div>
+          <div className="portfolio__page-actions">
             <Button
               aria-expanded={cardSearchOpen}
               onClick={() => setCardSearchOpen(true)}
@@ -286,8 +281,8 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             >
               <Plus aria-hidden="true" /> Add cards
             </Button>
-          }
-        />
+          </div>
+        </header>
       )}
 
       {cards.length > 0 && (

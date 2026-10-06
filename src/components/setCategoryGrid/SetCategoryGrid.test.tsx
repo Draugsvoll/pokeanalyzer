@@ -444,7 +444,7 @@ test("sorts sets by percentage change within each era", () => {
   renderSetExplorer();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
-  fireEvent.click(screen.getByRole("option", { name: "% Change: high–low" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: high-low" }));
 
   const headings = screen
     .getAllByRole("heading", { level: 3 })
@@ -461,7 +461,7 @@ test("sorts sets by percentage change within each era", () => {
   ).toEqual(["Open Base Set", "Open Base Set 2"]);
 
   fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
-  fireEvent.click(screen.getByRole("option", { name: "% Change: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "% change: low-high" }));
 
   expect(
     [
@@ -622,7 +622,7 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   ).toEqual(["Card 10", "Card 2"]);
 
   fireEvent.click(screen.getByRole("button", { name: "Sort set cards" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
 
   const gridView = document.querySelector(".grid-view");
   expect(gridView).toHaveAttribute("aria-busy", "true");
@@ -657,7 +657,7 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
 
   fireEvent.click(screen.getByRole("button", { name: "Sort set cards" }));
   expect(
-    screen.getByRole("option", { name: "% Change: high–low" }),
+    screen.getByRole("option", { name: "% change: high-low" }),
   ).toBeVisible();
   fireEvent.click(screen.getByRole("option", { name: "Unsorted" }));
   await waitFor(() =>

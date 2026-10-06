@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   privacy: "Privacy",
   profile: "Account",
   search: "Explore cards",
+  sealed: "Explore sealed products",
   set: "Set explorer",
   signup: "Create account",
   terms: "Terms",

@@ -1,5 +1,4 @@
 import { Router, type RequestHandler } from "express";
-import { createHash, timingSafeEqual } from "node:crypto";
 import { ensurePokeTraceReady, pokeTraceDb } from "../pokeTraceDb.js";
 import { logError } from "../../security/logging.js";
 import { POKETRACE_CARD_ID_PATTERN } from "../../services/pokeTraceApi.js";
@@ -33,6 +32,7 @@ import { loadPokeTraceSetSalesLeaders } from "../../services/pokeTraceSetInsight
 import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditions.js";
 import type { PokeTraceFilterOptions } from "../../../shared/pokeTraceFilterOptions.js";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions.js";
+import { createCatalogRefreshHandler } from "./catalogRefreshHandler.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
@@ -119,43 +119,16 @@ type PokeTraceCatalogRefreshHandlerDependencies = {
   reportError: (context: string, error: unknown) => void;
 };
 
-function tokensMatch(provided: string, expected: string) {
-  const providedHash = createHash("sha256").update(provided).digest();
-  const expectedHash = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(providedHash, expectedHash);
-}
-
 export function createPokeTraceCatalogRefreshHandler(
   dependencies: Partial<PokeTraceCatalogRefreshHandlerDependencies> = {},
 ): RequestHandler {
-  const refreshCatalog = dependencies.refreshCatalog ?? refreshPokeTraceCatalog;
-  const refreshToken = (
-    dependencies.refreshToken ?? process.env.POKETRACE_CATALOG_REFRESH_TOKEN
-  )?.trim();
-  const reportError = dependencies.reportError ?? logError;
-
-  return async (req, res) => {
-    if (!refreshToken) {
-      res.status(503).json({ error: "Catalog refresh is not configured" });
-      return;
-    }
-
-    const authorization = req.header("authorization") ?? "";
-    const providedToken =
-      authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() ?? "";
-    if (!providedToken || !tokensMatch(providedToken, refreshToken)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    try {
-      await refreshCatalog();
-      res.status(204).end();
-    } catch (error) {
-      reportError("Failed to force-refresh PokeTrace catalog", error);
-      res.status(500).json({ error: "Failed to refresh card catalog" });
-    }
-  };
+  return createCatalogRefreshHandler({
+    errorContext: "Failed to force-refresh PokeTrace catalog",
+    failureMessage: "Failed to refresh card catalog",
+    refreshCatalog: dependencies.refreshCatalog ?? refreshPokeTraceCatalog,
+    refreshToken: dependencies.refreshToken,
+    reportError: dependencies.reportError,
+  });
 }
 
 export function createPokeTraceFilterOptionsHandler(

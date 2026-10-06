@@ -2,18 +2,46 @@ export type PokeTraceCard = Record<string, unknown> & {
   id: string;
   name: string;
   cardNumber?: string | null;
-  set?: { name?: string | null } | null;
+  set?: { name?: string | null; slug?: string | null } | null;
   rarity?: string | null;
   variant?: string | null;
   image?: string | null;
-  refs?: { tcgplayerId?: string | number | null } | null;
+  refs?: {
+    cardmarketId?: string | number | null;
+    tcgplayerId?: string | number | null;
+  } | null;
+  marketplaceUrls?: Record<string, unknown> | null;
   game: "pokemon";
   market: "US";
   productType: "single";
 };
 
+export type PokeTraceSealedProduct = Record<string, unknown> & {
+  id: string;
+  name: string;
+  cardNumber?: null;
+  set?: { name?: string | null; slug?: string | null } | null;
+  rarity?: null;
+  variant?: string | null;
+  image?: string | null;
+  refs?: {
+    cardmarketId?: string | number | null;
+    tcgplayerId?: string | number | null;
+  } | null;
+  marketplaceUrls?: Record<string, unknown> | null;
+  game: "pokemon";
+  market: "US";
+  productType: "sealed";
+  productFamily: string;
+};
+
 export type PokeTracePage = {
   data: PokeTraceCard[];
+  pagination: { hasMore: boolean; nextCursor: string | null };
+};
+
+export type PokeTraceSealedPage = {
+  data: PokeTraceSealedProduct[];
   pagination: { hasMore: boolean; nextCursor: string | null };
 };
 
@@ -205,44 +233,69 @@ export function isEnglishSingle(value: unknown): value is PokeTraceCard {
   );
 }
 
-export async function fetchPokeTracePage(
+export function isEnglishUsSealedProduct(
+  value: unknown,
+): value is PokeTraceSealedProduct {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const product = value as Record<string, unknown>;
+  return (
+    typeof product.id === "string" &&
+    POKETRACE_CARD_ID_PATTERN.test(product.id) &&
+    typeof product.name === "string" &&
+    product.name.length > 0 &&
+    product.game === "pokemon" &&
+    product.market === "US" &&
+    product.productType === "sealed" &&
+    typeof product.productFamily === "string" &&
+    product.productFamily.length > 0
+  );
+}
+
+async function fetchPokeTraceProductPage<T>(
   apiKey: string,
   filters: Record<string, string>,
+  productType: "single" | "sealed",
+  isProduct: (value: unknown) => value is T,
+  resource: string,
   options?: PokeTraceRequestOptions,
-): Promise<PokeTracePage> {
+): Promise<{
+  data: T[];
+  pagination: { hasMore: boolean; nextCursor: string | null };
+}> {
   const params = new URLSearchParams({
+    ...filters,
     game: "pokemon",
     market: "US",
-    product_type: "single",
+    product_type: productType,
     limit: "20",
-    ...filters,
   });
   const response = await pokeTraceFetch(
     `https://api.poketrace.com/v1/cards?${params}`,
     apiKey,
-    "card list",
+    resource,
     options,
   );
   const value: unknown = await response.json();
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("PokeTrace returned an invalid card page");
+    throw new Error(`PokeTrace returned an invalid ${resource}`);
   }
   const page = value as Record<string, unknown>;
   const pagination = page.pagination as Record<string, unknown> | undefined;
   if (
     !Array.isArray(page.data) ||
     page.data.length > 20 ||
-    !page.data.every(isEnglishSingle) ||
+    !page.data.every(isProduct) ||
     !pagination ||
     typeof pagination.hasMore !== "boolean" ||
     (pagination.hasMore &&
       (typeof pagination.nextCursor !== "string" ||
-        pagination.nextCursor.length === 0))
+        pagination.nextCursor.length === 0 ||
+        page.data.length === 0))
   ) {
-    throw new Error("PokeTrace returned an invalid card page");
+    throw new Error(`PokeTrace returned an invalid ${resource}`);
   }
   return {
-    data: page.data,
+    data: page.data as T[],
     pagination: {
       hasMore: pagination.hasMore,
       nextCursor:
@@ -251,6 +304,36 @@ export async function fetchPokeTracePage(
           : null,
     },
   };
+}
+
+export function fetchPokeTracePage(
+  apiKey: string,
+  filters: Record<string, string>,
+  options?: PokeTraceRequestOptions,
+): Promise<PokeTracePage> {
+  return fetchPokeTraceProductPage(
+    apiKey,
+    filters,
+    "single",
+    isEnglishSingle,
+    "card page",
+    options,
+  );
+}
+
+export function fetchPokeTraceSealedPage(
+  apiKey: string,
+  filters: Record<string, string>,
+  options?: PokeTraceRequestOptions,
+): Promise<PokeTraceSealedPage> {
+  return fetchPokeTraceProductPage(
+    apiKey,
+    filters,
+    "sealed",
+    isEnglishUsSealedProduct,
+    "sealed-product page",
+    options,
+  );
 }
 
 export async function fetchPokeTraceCard(
@@ -275,6 +358,28 @@ export async function fetchPokeTraceCard(
   return card;
 }
 
+export async function fetchPokeTraceSealedProduct(
+  apiKey: string,
+  id: string,
+  options?: PokeTraceRequestOptions,
+) {
+  const response = await pokeTraceFetch(
+    `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}`,
+    apiKey,
+    `sealed product ${id}`,
+    options,
+  );
+  const value: unknown = await response.json();
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`PokeTrace sealed product ${id} returned invalid data`);
+  }
+  const product = (value as { data?: unknown }).data;
+  if (!isEnglishUsSealedProduct(product) || product.id !== id) {
+    throw new Error(`PokeTrace sealed product ${id} returned invalid data`);
+  }
+  return product;
+}
+
 function nullableFiniteNumber(value: unknown, field: string) {
   if (value === null || value === undefined) return null;
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -283,14 +388,15 @@ function nullableFiniteNumber(value: unknown, field: string) {
   return value;
 }
 
-export async function fetchPokeTracePriceHistory(
+async function fetchPokeTracePriceHistoryForCondition(
   apiKey: string,
   id: string,
+  condition: "NEAR_MINT" | "UNOPENED",
   options?: PokeTraceRequestOptions,
 ): Promise<PokeTracePriceHistoryResponse> {
   const params = new URLSearchParams({ period: "90d", limit: "365" });
   const response = await pokeTraceFetch(
-    `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}/prices/NEAR_MINT/history?${params}`,
+    `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}/prices/${condition}/history?${params}`,
     apiKey,
     `price history for card ${id}`,
     options,
@@ -356,4 +462,30 @@ export async function fetchPokeTracePriceHistory(
           : null,
     },
   };
+}
+
+export function fetchPokeTracePriceHistory(
+  apiKey: string,
+  id: string,
+  options?: PokeTraceRequestOptions,
+) {
+  return fetchPokeTracePriceHistoryForCondition(
+    apiKey,
+    id,
+    "NEAR_MINT",
+    options,
+  );
+}
+
+export function fetchPokeTraceSealedPriceHistory(
+  apiKey: string,
+  id: string,
+  options?: PokeTraceRequestOptions,
+) {
+  return fetchPokeTracePriceHistoryForCondition(
+    apiKey,
+    id,
+    "UNOPENED",
+    options,
+  );
 }

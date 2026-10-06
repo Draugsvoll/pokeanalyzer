@@ -1,10 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ChevronDown, Search } from "lucide-react";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./DatabaseSearch.scss";
@@ -19,6 +15,7 @@ import {
 import { SearchResultsToolbar } from "./SearchResultsToolbar";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import {
+  isPokeTraceRawCondition,
   POKETRACE_RAW_CONDITIONS,
   POKETRACE_RAW_CONDITION_LABELS,
   type PokeTraceRawCondition,
@@ -36,6 +33,17 @@ import {
 } from "../../utils/sortPokeTraceCards";
 import { runWithRequestTimeout } from "../../utils/requestTimeout";
 import { waitForUiPaint } from "../../utils/waitForUiPaint";
+import type { ProductType } from "../productTypeSwitch/ProductTypeSwitch";
+import {
+  SealedDatabaseSearchBar,
+  SealedDatabaseSearchResults,
+} from "./SealedDatabaseSearch";
+import { useSealedDatabaseSearch } from "./useSealedDatabaseSearch";
+import {
+  DatabaseSearchBarShell,
+  DatabaseSearchPriceFields,
+  type PriceFilterValidation,
+} from "./DatabaseSearchBarShell";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -43,12 +51,13 @@ type DatabaseSearchProps = {
   autoFocusName?: boolean;
   /** Compact results/wrapper layout for inside another view. Search bar stays shared. */
   embedded?: boolean;
+  initialProductType?: ProductType;
   onClose?: () => void;
   onPortfolioChanged?: (saved: boolean) => void;
 };
 
 type DatabaseSearchFilters = {
-  condition: PokeTraceRawCondition | "";
+  condition: PokeTraceRawCondition;
   maxPrice: string;
   minPrice: string;
   rarity: string;
@@ -59,20 +68,61 @@ type SearchFeedback = {
   message: string;
 };
 
-type PriceFilterValidation = {
-  field: "max" | "min";
-  message: string;
+type SinglesUrlSearch = {
+  cardNumber: string;
+  filters: DatabaseSearchFilters;
+  pokemonName: string;
+  setName: string;
+  setNameExact: boolean;
 };
 
-const EMPTY_SEARCH_FILTERS: DatabaseSearchFilters = {
-  condition: "",
+const DEFAULT_SEARCH_FILTERS: DatabaseSearchFilters = {
+  condition: "NEAR_MINT",
   maxPrice: "",
   minPrice: "",
   rarity: "",
 };
 const GENERIC_SEARCH_ERROR_MESSAGE =
   "We couldn’t complete your search. Please try again.";
-const SEARCH_REQUEST_TIMEOUT_MS = 15_000;
+
+function readSinglesUrlSearch(searchParams: URLSearchParams) {
+  if (searchParams.get("mode") === "sealed") return null;
+
+  const condition = searchParams.get("condition") ?? "NEAR_MINT";
+  return {
+    cardNumber: searchParams.get("number")?.trim() ?? "",
+    filters: {
+      condition: isPokeTraceRawCondition(condition) ? condition : "NEAR_MINT",
+      maxPrice: searchParams.get("max")?.trim() ?? "",
+      minPrice: searchParams.get("min")?.trim() ?? "",
+      rarity: searchParams.get("rarity")?.trim() ?? "",
+    },
+    pokemonName: searchParams.get("name")?.trim() ?? "",
+    setName: searchParams.get("set")?.trim() ?? "",
+    setNameExact: searchParams.get("exact") === "true",
+  } satisfies SinglesUrlSearch;
+}
+
+function createSinglesSearchParams(search: SinglesUrlSearch) {
+  const searchParams = new URLSearchParams({ mode: "singles" });
+  if (search.pokemonName) searchParams.set("name", search.pokemonName);
+  if (search.cardNumber) searchParams.set("number", search.cardNumber);
+  if (search.setName) searchParams.set("set", search.setName);
+  if (search.setName && search.setNameExact) {
+    searchParams.set("exact", "true");
+  }
+  if (search.filters.minPrice) {
+    searchParams.set("min", search.filters.minPrice);
+  }
+  if (search.filters.maxPrice) {
+    searchParams.set("max", search.filters.maxPrice);
+  }
+  if (search.filters.rarity) {
+    searchParams.set("rarity", search.filters.rarity);
+  }
+  searchParams.set("condition", search.filters.condition);
+  return searchParams;
+}
 
 const FALLBACK_SEARCH_RARITIES = [
   "Common",
@@ -114,7 +164,6 @@ const FALLBACK_RARITY_OPTIONS = [
 ];
 
 const CONDITION_OPTIONS = [
-  { value: "" as const, label: "Any" },
   ...POKETRACE_RAW_CONDITIONS.map((condition) => ({
     value: condition,
     label: POKETRACE_RAW_CONDITION_LABELS[condition],
@@ -149,7 +198,7 @@ function validatePriceFilters(
 
 function activeFilterCount(filters: DatabaseSearchFilters) {
   return [
-    Boolean(filters.condition),
+    filters.condition !== "NEAR_MINT",
     Boolean(filters.minPrice.trim()),
     Boolean(filters.maxPrice.trim()),
     Boolean(filters.rarity),
@@ -185,7 +234,7 @@ async function fetchServerSearch(
 
       return result as PokeTraceSearchResponse<PokemonCardType>;
     },
-    { signal, timeoutMs: SEARCH_REQUEST_TIMEOUT_MS },
+    { signal },
   );
 }
 
@@ -224,9 +273,6 @@ export function DatabaseSearchBar({
   priceFilterValidation,
   setName,
 }: DatabaseSearchBarProps) {
-  const filterPanelId = useId();
-  const priceValidationId = `${filterPanelId}-price-validation`;
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [rarityOptions, setRarityOptions] = useState(FALLBACK_RARITY_OPTIONS);
   const setNameOptions = usePokeTraceSetNameOptions();
   const filterCount = activeFilterCount(filters);
@@ -235,13 +281,6 @@ export function DatabaseSearchBar({
   );
   const searchButtonDisabled =
     isSearching || !canSearch || !hasSearchCriteria || !!priceFilterValidation;
-  const pokemonNameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!autoFocusName) return;
-    pokemonNameInputRef.current?.focus({ preventScroll: true });
-  }, [autoFocusName]);
-
   useEffect(() => {
     let active = true;
     void loadPokeTraceCatalogRarities().then((rarities) => {
@@ -257,13 +296,50 @@ export function DatabaseSearchBar({
   }, []);
 
   return (
-    <div className="database-search-control">
-      <div className="database-search-bar">
-        <div
-          className="database-search-fields"
-          role="group"
-          aria-label="Search fields"
-        >
+    <DatabaseSearchBarShell
+      autoFocusName={autoFocusName}
+      filterCount={filterCount}
+      filterFields={
+        <>
+          <DatabaseSearchPriceFields
+            maxPrice={filters.maxPrice}
+            minPrice={filters.minPrice}
+            onKeyDown={onSearchKeyDown}
+            onMaxPriceChange={(maxPrice) => onFiltersChange({ maxPrice })}
+            onMinPriceChange={(minPrice) => onFiltersChange({ minPrice })}
+            validation={priceFilterValidation}
+          />
+
+          <div className="database-search-filter-field">
+            <AutosuggestCombobox
+              ariaLabel="Filter by rarity"
+              className="database-search-rarity-combobox"
+              menuLabel="Rarity suggestions"
+              onInputChange={(rarity) => onFiltersChange({ rarity })}
+              onKeyDown={onSearchKeyDown}
+              onSelect={(rarity) => onFiltersChange({ rarity })}
+              options={rarityOptions}
+              placeholder="Rarity"
+              value={filters.rarity}
+            />
+          </div>
+
+          <div className="database-search-filter-field">
+            <SelectDropdown
+              ariaLabel="Filter by condition"
+              className="database-search-condition-select"
+              onChange={(condition) => onFiltersChange({ condition })}
+              options={CONDITION_OPTIONS}
+              value={filters.condition}
+            />
+          </div>
+        </>
+      }
+      isSearching={isSearching}
+      onClearFilters={onFiltersClear}
+      onSearch={onSearch}
+      renderFields={(pokemonNameInputRef) => (
+        <>
           <label className="explore-search-field">
             <Search
               absoluteStrokeWidth
@@ -308,176 +384,10 @@ export function DatabaseSearchBar({
               value={setName}
             />
           </label>
-        </div>
-        <div className="database-search-actions">
-          <div className="database-search-filter-entry">
-            <button
-              aria-controls={filterPanelId}
-              aria-expanded={filtersOpen}
-              aria-label={
-                filterCount > 0
-                  ? `Search filters, ${filterCount} active`
-                  : "Search filters"
-              }
-              className={`database-search-filter-toggle${filtersOpen ? " is-open" : ""}`}
-              onClick={() => setFiltersOpen((current) => !current)}
-              type="button"
-            >
-              <span className="database-search-filter-toggle__icon">
-                <SlidersHorizontal aria-hidden="true" />
-                {filterCount > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="database-search-filter-toggle__count"
-                  >
-                    {filterCount}
-                  </span>
-                )}
-              </span>
-              <span>Filter</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="explore-search-shell__submit"
-            onClick={onSearch}
-            onMouseDown={(event) => event.preventDefault()}
-            disabled={searchButtonDisabled}
-            aria-busy={isSearching || undefined}
-          >
-            {isSearching ? (
-              <span
-                className="database-search-spinner"
-                aria-label="Searching"
-              />
-            ) : (
-              "Search"
-            )}
-          </button>
-        </div>
-      </div>
-
-      {filtersOpen && (
-        <div className="database-search-filter-toolbar">
-          <div
-            className="database-search-filters ui-render-fade"
-            id={filterPanelId}
-            role="group"
-            aria-label="Optional search filters"
-          >
-            <div className="database-search-filters__grid">
-              <label className="database-search-filter-field">
-                <span>Min</span>
-                <span
-                  className={`database-search-price-input${priceFilterValidation?.field === "min" ? " is-invalid" : ""}`}
-                >
-                  <span aria-hidden="true">$</span>
-                  <input
-                    aria-describedby={
-                      priceFilterValidation?.field === "min"
-                        ? priceValidationId
-                        : undefined
-                    }
-                    aria-label="Minimum price"
-                    aria-invalid={
-                      priceFilterValidation?.field === "min" || undefined
-                    }
-                    inputMode="decimal"
-                    min="0"
-                    onChange={(event) =>
-                      onFiltersChange({ minPrice: event.target.value })
-                    }
-                    onKeyDown={onSearchKeyDown}
-                    placeholder="0"
-                    step="0.01"
-                    type="number"
-                    value={filters.minPrice}
-                  />
-                </span>
-              </label>
-
-              <label className="database-search-filter-field">
-                <span>Max</span>
-                <span
-                  className={`database-search-price-input${priceFilterValidation?.field === "max" ? " is-invalid" : ""}`}
-                >
-                  <span aria-hidden="true">$</span>
-                  <input
-                    aria-describedby={
-                      priceFilterValidation?.field === "max"
-                        ? priceValidationId
-                        : undefined
-                    }
-                    aria-label="Maximum price"
-                    aria-invalid={
-                      priceFilterValidation?.field === "max" || undefined
-                    }
-                    inputMode="decimal"
-                    min="0"
-                    onChange={(event) =>
-                      onFiltersChange({ maxPrice: event.target.value })
-                    }
-                    onKeyDown={onSearchKeyDown}
-                    placeholder="0"
-                    step="0.01"
-                    type="number"
-                    value={filters.maxPrice}
-                  />
-                </span>
-              </label>
-
-              <div className="database-search-filter-field">
-                <span>Rarity</span>
-                <AutosuggestCombobox
-                  ariaLabel="Filter by rarity"
-                  className="database-search-rarity-combobox"
-                  menuLabel="Rarity suggestions"
-                  onInputChange={(rarity) => onFiltersChange({ rarity })}
-                  onKeyDown={onSearchKeyDown}
-                  onSelect={(rarity) => onFiltersChange({ rarity })}
-                  options={rarityOptions}
-                  placeholder="Any"
-                  value={filters.rarity}
-                />
-              </div>
-
-              <div className="database-search-filter-field">
-                <span>Condition</span>
-                <SelectDropdown
-                  ariaLabel="Filter by condition"
-                  className="database-search-condition-select"
-                  onChange={(condition) => onFiltersChange({ condition })}
-                  options={CONDITION_OPTIONS}
-                  value={filters.condition}
-                />
-              </div>
-              {priceFilterValidation && (
-                <span
-                  className="database-search-visually-hidden"
-                  id={priceValidationId}
-                >
-                  {priceFilterValidation.message}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="database-search-filter-actions">
-            <button
-              aria-label="Clear all"
-              className="database-search-filters__clear"
-              disabled={filterCount === 0}
-              onClick={onFiltersClear}
-              type="button"
-            >
-              <RotateCcw aria-hidden="true" />
-              <span>Clear all</span>
-            </button>
-          </div>
-        </div>
+        </>
       )}
-    </div>
+      searchDisabled={searchButtonDisabled}
+    />
   );
 }
 
@@ -501,15 +411,39 @@ function getSearchResultMarketDisplay(
 export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   autoFocusName = false,
   embedded = false,
+  initialProductType = "singles",
   onClose,
   onPortfolioChanged,
 }) => {
-  const [pokemonName, setPokemonName] = useState("");
-  const [setName, setSetName] = useState("");
-  const [setNameExact, setSetNameExact] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [filters, setFilters] =
-    useState<DatabaseSearchFilters>(EMPTY_SEARCH_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsKey = searchParams.toString();
+  const urlProductType = searchParams.get("mode");
+  const initialSinglesSearch = embedded
+    ? null
+    : readSinglesUrlSearch(searchParams);
+  const [productType, setProductType] = useState<ProductType>(() =>
+    !embedded && (urlProductType === "sealed" || urlProductType === "singles")
+      ? urlProductType
+      : initialProductType,
+  );
+  const [focusModeInput, setFocusModeInput] = useState(false);
+  const sealedSearch = useSealedDatabaseSearch(
+    productType === "sealed",
+    !embedded,
+  );
+  const [pokemonName, setPokemonName] = useState(
+    initialSinglesSearch?.pokemonName ?? "",
+  );
+  const [setName, setSetName] = useState(initialSinglesSearch?.setName ?? "");
+  const [setNameExact, setSetNameExact] = useState(
+    initialSinglesSearch?.setNameExact ?? false,
+  );
+  const [cardNumber, setCardNumber] = useState(
+    initialSinglesSearch?.cardNumber ?? "",
+  );
+  const [filters, setFilters] = useState<DatabaseSearchFilters>(
+    initialSinglesSearch?.filters ?? DEFAULT_SEARCH_FILTERS,
+  );
   const [results, setResults] = useState<PokemonCardType[]>([]);
   const [totalResultCount, setTotalResultCount] = useState(0);
   const [activeCondition, setActiveCondition] = useState<
@@ -523,6 +457,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   const searchRequestControllerRef = useRef<AbortController | null>(null);
   const sortRequestIdRef = useRef(0);
   const searchCooldownTimerRef = useRef<number | undefined>(undefined);
+  const runSinglesUrlSearchRef = useRef<
+    (search: SinglesUrlSearch, force?: boolean) => Promise<void>
+  >(async () => undefined);
   const [isSearching, setIsSearching] = useState(false);
   const [canSearch, setCanSearch] = useState(true);
   const [sortDirection, setSortDirection] = useState<PokeTraceCardSort>(
@@ -534,6 +471,15 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     null,
   );
   const priceFilterValidation = validatePriceFilters(filters);
+  useEffect(() => {
+    if (embedded) return;
+    if (urlProductType === "sealed" || urlProductType === "singles") {
+      // The browser URL is external navigation state; Back/Forward must restore the mode.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProductType(urlProductType);
+    }
+  }, [embedded, urlProductType]);
+
   useEffect(() => {
     return () => {
       searchRequestIdRef.current += 1;
@@ -555,16 +501,26 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   );
   const visibleResults = sortedResults.slice(0, visibleResultCount);
 
-  async function handleSearch() {
-    if (!canSearch || isSearching) return;
+  async function handleSearch(
+    search: SinglesUrlSearch = {
+      cardNumber,
+      filters,
+      pokemonName,
+      setName,
+      setNameExact,
+    },
+    force = false,
+  ) {
+    if (!force && (!canSearch || isSearching)) return;
 
-    const trimmedPokemonName = pokemonName.trim();
-    const trimmedSetName = setName.trim();
-    const trimmedCardNumber = cardNumber.trim();
-    const minPrice = optionalPrice(filters.minPrice);
-    const maxPrice = optionalPrice(filters.maxPrice);
-    const rarity = filters.rarity.trim();
-    const condition = filters.condition;
+    const trimmedPokemonName = search.pokemonName.trim();
+    const trimmedSetName = search.setName.trim();
+    const trimmedCardNumber = search.cardNumber.trim();
+    const minPrice = optionalPrice(search.filters.minPrice);
+    const maxPrice = optionalPrice(search.filters.maxPrice);
+    const rarity = search.filters.rarity.trim();
+    const condition = search.filters.condition;
+    const hasNonDefaultCondition = condition !== "NEAR_MINT";
     const nextSortDirection = POKETRACE_DEFAULT_CARD_SORT;
 
     if (
@@ -574,7 +530,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       minPrice === undefined &&
       maxPrice === undefined &&
       !rarity &&
-      !condition
+      !hasNonDefaultCondition
     ) {
       setResults([]);
       setTotalResultCount(0);
@@ -583,7 +539,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setSearchFeedback(null);
       return;
     }
-    if (priceFilterValidation) return;
+    if (validatePriceFilters(search.filters)) return;
 
     sortRequestIdRef.current += 1;
     setIsSorting(false);
@@ -601,7 +557,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       const params = new URLSearchParams();
       if (trimmedPokemonName) params.set("pokemonName", trimmedPokemonName);
       if (trimmedSetName) params.set("setName", trimmedSetName);
-      if (trimmedSetName && setNameExact) params.set("setNameExact", "true");
+      if (trimmedSetName && search.setNameExact) {
+        params.set("setNameExact", "true");
+      }
       if (trimmedCardNumber) params.set("cardNumber", trimmedCardNumber);
       if (minPrice !== undefined) params.set("minPrice", String(minPrice));
       if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
@@ -616,7 +574,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         minPrice,
         maxPrice,
         rarity,
-        ...(setNameExact && { setNameExact: true }),
+        ...(search.setNameExact && { setNameExact: true }),
         ...(condition && { condition }),
       };
       const localResults = await searchCachedPokeTraceCatalog(catalogSearch);
@@ -686,6 +644,36 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     }
   }
 
+  runSinglesUrlSearchRef.current = handleSearch;
+
+  useEffect(() => {
+    if (embedded || productType !== "singles") return;
+
+    const urlSearch = readSinglesUrlSearch(
+      new URLSearchParams(searchParamsKey),
+    );
+    if (!urlSearch) return;
+
+    // These controlled fields intentionally mirror browser navigation state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPokemonName(urlSearch.pokemonName);
+    setSetName(urlSearch.setName);
+    setSetNameExact(urlSearch.setNameExact);
+    setCardNumber(urlSearch.cardNumber);
+    setFilters(urlSearch.filters);
+
+    if (validatePriceFilters(urlSearch.filters)) {
+      setResults([]);
+      setTotalResultCount(0);
+      setActiveQueryLabel("");
+      setActiveCondition("");
+      setSearchFeedback(null);
+      return;
+    }
+
+    void runSinglesUrlSearchRef.current(urlSearch, true);
+  }, [embedded, productType, searchParamsKey]);
+
   const handleSearchKeyDown = (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
@@ -696,8 +684,28 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
 
   function submitSearch() {
     if (!canSearch || isSearching) return;
-
-    handleSearch();
+    const nextSearch: SinglesUrlSearch = {
+      cardNumber: cardNumber.trim(),
+      filters: {
+        ...filters,
+        maxPrice: filters.maxPrice.trim(),
+        minPrice: filters.minPrice.trim(),
+        rarity: filters.rarity.trim(),
+      },
+      pokemonName: pokemonName.trim(),
+      setName: setName.trim(),
+      setNameExact,
+    };
+    if (embedded) {
+      void handleSearch(nextSearch);
+      return;
+    }
+    const nextSearchParams = createSinglesSearchParams(nextSearch);
+    if (nextSearchParams.toString() === searchParamsKey) {
+      void handleSearch(nextSearch);
+      return;
+    }
+    setSearchParams(nextSearchParams);
   }
 
   async function handleSortChange(nextSort: PokeTraceCardSort) {
@@ -715,9 +723,20 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setVisibleResultCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE);
   }
 
+  function handleProductTypeChange(nextProductType: ProductType) {
+    if (nextProductType === productType) return;
+    setProductType(nextProductType);
+    setFocusModeInput(true);
+    if (!embedded && searchParamsKey) {
+      setSearchParams(new URLSearchParams(), { replace: true });
+    }
+  }
+
+  const shouldFocusNameInput = autoFocusName || focusModeInput;
+
   const searchBar = (
     <DatabaseSearchBar
-      autoFocusName={autoFocusName}
+      autoFocusName={shouldFocusNameInput}
       canSearch={canSearch}
       cardNumber={cardNumber}
       filters={filters}
@@ -726,7 +745,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       onFiltersChange={(updates) =>
         setFilters((current) => ({ ...current, ...updates }))
       }
-      onFiltersClear={() => setFilters(EMPTY_SEARCH_FILTERS)}
+      onFiltersClear={() => setFilters(DEFAULT_SEARCH_FILTERS)}
       onPokemonNameChange={setPokemonName}
       onSearch={submitSearch}
       onSearchKeyDown={handleSearchKeyDown}
@@ -739,6 +758,15 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setName={setName}
     />
   );
+  const activeSearchBar =
+    productType === "sealed" ? (
+      <SealedDatabaseSearchBar
+        autoFocusName={shouldFocusNameInput}
+        search={sealedSearch}
+      />
+    ) : (
+      searchBar
+    );
 
   return (
     <section
@@ -746,8 +774,22 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       id="database-search"
     >
       <div className={embedded ? undefined : "explore-page__inner"}>
-        {embedded ? searchBar : <SearchHero>{searchBar}</SearchHero>}
-        {searchFeedback && !isSearching && (
+        {embedded ? (
+          activeSearchBar
+        ) : (
+          <SearchHero
+            onProductTypeChange={handleProductTypeChange}
+            productType={productType}
+          >
+            <div
+              className="database-search-mode ui-render-fade"
+              key={productType}
+            >
+              {activeSearchBar}
+            </div>
+          </SearchHero>
+        )}
+        {productType === "singles" && searchFeedback && !isSearching && (
           <div
             className={`database-search-feedback database-search-feedback--${searchFeedback.kind}`}
             role={searchFeedback.kind === "error" ? "alert" : "status"}
@@ -755,74 +797,78 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
             {searchFeedback.message}
           </div>
         )}
-        {(() => {
-          if (results.length === 0) return null;
+        {productType === "singles" &&
+          (() => {
+            if (results.length === 0) return null;
 
-          /* Embedded (card switch) uses the same grid cards as /search */
-          const resultsNode = (
-            <div
-              className="search-results search-results--grid ui-card-grid-enter ui-render-fade"
-              key={resultRenderKey}
-            >
-              <SearchResultsToolbar
-                activeQueryLabel={activeQueryLabel}
-                includeChangeSort={
-                  !activeCondition || activeCondition === "NEAR_MINT"
-                }
-                onClose={() => {
-                  searchRequestIdRef.current += 1;
-                  sortRequestIdRef.current += 1;
-                  searchRequestControllerRef.current?.abort();
-                  searchRequestControllerRef.current = null;
-                  window.clearTimeout(searchCooldownTimerRef.current);
-                  setIsSearching(false);
-                  setIsSorting(false);
-                  setCanSearch(true);
-                  setResults([]);
-                  setTotalResultCount(0);
-                  setActiveQueryLabel("");
-                  setActiveCondition("");
-                  setSearchFeedback(null);
-                  onClose?.();
-                }}
-                onSortChange={handleSortChange}
-                resultCount={totalResultCount}
-                sortDirection={sortDirection}
-              />
-              {results.length > 0 && (
-                <GridView revealOnScroll={false} sorting={isSorting}>
-                  {visibleResults.map((card) => {
-                    return (
-                      <PokemonCardView
-                        key={card.id}
-                        card={card}
-                        marketDisplay={getSearchResultMarketDisplay(
-                          card,
-                          activeCondition,
-                        )}
-                        onPortfolioChanged={onPortfolioChanged}
-                      />
-                    );
-                  })}
-                </GridView>
-              )}
-              {visibleResultCount < results.length && (
-                <div className="search-results__more">
-                  <button
-                    className="search-results__more-button"
-                    onClick={handleShowNext}
-                    type="button"
-                  >
-                    Show next 50
-                    <ChevronDown aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-            </div>
-          );
+            /* Embedded (card switch) uses the same grid cards as /search */
+            const resultsNode = (
+              <div
+                className="search-results search-results--grid ui-render-fade"
+                key={resultRenderKey}
+              >
+                <SearchResultsToolbar
+                  activeQueryLabel={activeQueryLabel}
+                  includeChangeSort={
+                    !activeCondition || activeCondition === "NEAR_MINT"
+                  }
+                  onClose={() => {
+                    searchRequestIdRef.current += 1;
+                    sortRequestIdRef.current += 1;
+                    searchRequestControllerRef.current?.abort();
+                    searchRequestControllerRef.current = null;
+                    window.clearTimeout(searchCooldownTimerRef.current);
+                    setIsSearching(false);
+                    setIsSorting(false);
+                    setCanSearch(true);
+                    setResults([]);
+                    setTotalResultCount(0);
+                    setActiveQueryLabel("");
+                    setActiveCondition("");
+                    setSearchFeedback(null);
+                    onClose?.();
+                  }}
+                  onSortChange={handleSortChange}
+                  resultCount={totalResultCount}
+                  sortDirection={sortDirection}
+                />
+                {results.length > 0 && (
+                  <GridView revealOnScroll={false} sorting={isSorting}>
+                    {visibleResults.map((card) => {
+                      return (
+                        <PokemonCardView
+                          key={card.id}
+                          card={card}
+                          marketDisplay={getSearchResultMarketDisplay(
+                            card,
+                            activeCondition,
+                          )}
+                          onPortfolioChanged={onPortfolioChanged}
+                        />
+                      );
+                    })}
+                  </GridView>
+                )}
+                {visibleResultCount < results.length && (
+                  <div className="search-results__more">
+                    <button
+                      className="search-results__more-button"
+                      onClick={handleShowNext}
+                      type="button"
+                    >
+                      Show next 50
+                      <ChevronDown aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
 
-          return resultsNode;
-        })()}
+            return resultsNode;
+          })()}
+        {productType === "sealed" && (
+          <SealedDatabaseSearchResults search={sealedSearch} />
+        )}
       </div>
     </section>
   );

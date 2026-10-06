@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { requestPokeTraceCatalogRefresh } from "./pokeTraceCatalogRefreshClient.js";
+import {
+  requestPokeTraceCatalogRefresh,
+  requestPokeTraceSealedCatalogRefresh,
+} from "./pokeTraceCatalogRefreshClient.js";
 
 test("catalog refresh request sends one authenticated POST", async () => {
   let requests = 0;
@@ -20,6 +23,29 @@ test("catalog refresh request sends one authenticated POST", async () => {
 
   await requestPokeTraceCatalogRefresh({
     endpoint: "https://backend.test/api/cards/catalog/refresh",
+    fetchImpl,
+    token: "catalog-refresh-secret",
+  });
+  assert.equal(requests, 1);
+});
+
+test("sealed catalog refresh request sends one authenticated POST", async () => {
+  let requests = 0;
+  const fetchImpl: typeof fetch = async (input, init) => {
+    requests += 1;
+    assert.equal(
+      String(input),
+      "https://backend.test/api/sealed/catalog/refresh",
+    );
+    assert.equal(init?.method, "POST");
+    assert.deepEqual(init?.headers, {
+      Authorization: "Bearer catalog-refresh-secret",
+    });
+    return new Response(null, { status: 204 });
+  };
+
+  await requestPokeTraceSealedCatalogRefresh({
+    endpoint: "https://backend.test/api/sealed/catalog/refresh",
     fetchImpl,
     token: "catalog-refresh-secret",
   });
