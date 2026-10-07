@@ -67,6 +67,28 @@ test("renders stored sealed details with live graph data", async () => {
           approxSaleCount: false,
         },
       ],
+      ebay: [
+        {
+          date: "2026-09-28",
+          avg: 140,
+          median7d: null,
+          median30d: null,
+          low: 135,
+          high: 145,
+          saleCount: 6,
+          approxSaleCount: false,
+        },
+        {
+          date: "2026-10-05",
+          avg: 142,
+          median7d: null,
+          median30d: null,
+          low: 130,
+          high: 155,
+          saleCount: 8,
+          approxSaleCount: true,
+        },
+      ],
     },
   });
   vi.mocked(fetchSealedProduct).mockResolvedValue({
@@ -151,6 +173,16 @@ test("renders stored sealed details with live graph data", async () => {
   expect(screen.getAllByText("Unopened")).toHaveLength(2);
   expect(screen.getByText("Unopened · 90 days")).toBeInTheDocument();
   expect(screen.getByText("$150.00")).toBeInTheDocument();
+  expect(
+    screen.getByLabelText(
+      "Price increased by 7.1%. 7-day TCGPlayer unopened price change",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByLabelText(
+      "Price increased by 1.4%. 7-day eBay unopened price change",
+    ),
+  ).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "eBay" })).toBeInTheDocument();
   expect(screen.getByText("$142.00")).toBeInTheDocument();
   expect(screen.getByText("8+")).toBeInTheDocument();

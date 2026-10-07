@@ -6,12 +6,16 @@ import {
   isPokeTraceSealedDetails,
   type PokeTraceSealedCatalogProduct,
   type PokeTraceSealedMarketHistory,
+  type PokeTraceSealedMarketHistorySource,
   type PokeTraceSealedMarketplacePricing,
 } from "../../../shared/pokeTraceSealed";
+import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
+import { calculateDisplayedPriceChangePercent } from "../../../shared/pokeTracePriceChange";
 import { Badge } from "../../components/ui/Badge";
 import Button from "../../components/button/Button";
 import { DetailsPage } from "../../components/detailsPage/DetailsPage";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
+import { PriceChange } from "../../components/priceChange/PriceChange";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useSealedPortfolio } from "../../hooks/sealedPortfolio";
@@ -48,13 +52,77 @@ function navigationProduct(value: unknown, id: string | undefined) {
     : null;
 }
 
+type SealedPriceHistoryRequest = {
+  history: PokeTraceSealedMarketHistory | null;
+  id: string;
+  loading: boolean;
+};
+
+function useSealedPriceHistory(productId: string) {
+  const [request, setRequest] = useState<SealedPriceHistoryRequest>({
+    history: null,
+    id: productId,
+    loading: Boolean(productId),
+  });
+
+  useEffect(() => {
+    if (!productId) {
+      setRequest({ history: null, id: productId, loading: false });
+      return;
+    }
+
+    const controller = new AbortController();
+    void fetchSealedMarketPriceHistory(productId, controller.signal)
+      .then((history) => {
+        setRequest({ history, id: productId, loading: false });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setRequest({ history: null, id: productId, loading: false });
+      });
+    return () => controller.abort();
+  }, [productId]);
+
+  return {
+    history: request.id === productId ? request.history : null,
+    loading: request.id !== productId || request.loading,
+  };
+}
+
+function dateDaysBefore(date: string, days: number) {
+  const timestamp = Date.parse(`${date}T00:00:00Z`);
+  if (!Number.isFinite(timestamp)) return null;
+  return new Date(timestamp - days * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function resolveSealedSevenDayPriceChange(
+  history: PokeTraceSealedMarketHistory | null,
+  source: PokeTraceSealedMarketHistorySource,
+  currentPrice: number | null | undefined,
+) {
+  const points = history?.series[source] ?? [];
+  const latestDate = points.at(-1)?.date;
+  if (!latestDate) return null;
+
+  const comparison = [7, 8, 6]
+    .map((days) => dateDaysBefore(latestDate, days))
+    .filter((date): date is string => date !== null)
+    .map((date) => points.find((point) => point.date === date))
+    .find((point) => point !== undefined);
+  return calculateDisplayedPriceChangePercent(currentPrice, comparison?.avg);
+}
+
 function SealedMarketplacePrice({
+  change,
   currency,
   label,
   price,
   pricing,
   url,
 }: {
+  change?: number | null;
   currency: string;
   label: "eBay" | "TCGPlayer";
   price: number | null;
@@ -70,6 +138,7 @@ function SealedMarketplacePrice({
         >
           {label}
         </h4>
+        <span className="sealed-details__condition">Unopened</span>
       </div>
       {price === null ? (
         <MarketDataUnavailable
@@ -82,9 +151,15 @@ function SealedMarketplacePrice({
           <div className="poketrace-market__primary">
             <div className="poketrace-market__quote">
               <div className="poketrace-market__price-row">
-                <div className="sealed-details__price-value">
+                <div className="poketrace-market__price-summary">
                   <strong>{formatMoney(price, currency)}</strong>
-                  <span className="sealed-details__condition">Unopened</span>
+                  {change !== undefined && (
+                    <PriceChange
+                      percent={change}
+                      period="7d"
+                      title={`${formatPriceChangePeriodLong("7d")} ${label} unopened price change`}
+                    />
+                  )}
                 </div>
                 {url && (
                   <a
@@ -134,41 +209,21 @@ function SealedMarketplacePrice({
 
 function SealedPriceHistory({
   currency,
-  productId,
+  history,
+  loading,
 }: {
   currency: string;
-  productId: string;
+  history: PokeTraceSealedMarketHistory | null;
+  loading: boolean;
 }) {
-  const [request, setRequest] = useState<{
-    history: PokeTraceSealedMarketHistory | null;
-    id: string;
-    loading: boolean;
-  }>({ history: null, id: productId, loading: true });
-  const matchesProduct = request.id === productId;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchSealedMarketPriceHistory(productId, controller.signal)
-      .then((history) => {
-        setRequest({ history, id: productId, loading: false });
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        setRequest({ history: null, id: productId, loading: false });
-      });
-    return () => controller.abort();
-  }, [productId]);
-
-  if (!matchesProduct || request.loading) {
+  if (loading) {
     return <MarketPriceHistoryLoading conditionLabel="Unopened" />;
   }
   return (
     <MarketPriceHistoryChart
       conditionLabel="Unopened"
       emptyDescription="Historical prices are not available for this sealed product yet."
-      history={request.history ?? { currency, series: {}, stale: false }}
+      history={history ?? { currency, series: {}, stale: false }}
     />
   );
 }
@@ -213,6 +268,16 @@ export default function SealedDetails() {
   const details = product && isPokeTraceSealedDetails(product) ? product : null;
   const tcgplayerPricing = details?.pricing.tcgplayer;
   const ebayPricing = details?.pricing.ebay;
+  const sealedPriceHistory = useSealedPriceHistory(product?.id ?? "");
+  const tcgplayerPriceChange = calculateDisplayedPriceChangePercent(
+    product?.price,
+    product?.priceSnapshots["7d"],
+  );
+  const ebayPriceChange = resolveSealedSevenDayPriceChange(
+    sealedPriceHistory.history,
+    "ebay",
+    ebayPricing?.price,
+  );
   const productIsSaved = product ? isItemSaved("sealed", product.id) : false;
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
@@ -303,6 +368,7 @@ export default function SealedDetails() {
         <section aria-label="Market prices" className="poketrace-market">
           <div className="poketrace-market__grid">
             <SealedMarketplacePrice
+              change={tcgplayerPriceChange}
               currency={product.currency}
               label="TCGPlayer"
               price={product.price}
@@ -310,6 +376,7 @@ export default function SealedDetails() {
               url={details?.marketplaceUrls.tcgplayer}
             />
             <SealedMarketplacePrice
+              change={ebayPriceChange}
               currency={product.currency}
               label="eBay"
               price={ebayPricing?.price ?? null}
@@ -319,7 +386,8 @@ export default function SealedDetails() {
           </div>
           <SealedPriceHistory
             currency={product.currency}
-            productId={product.id}
+            history={sealedPriceHistory.history}
+            loading={sealedPriceHistory.loading}
           />
         </section>
       }

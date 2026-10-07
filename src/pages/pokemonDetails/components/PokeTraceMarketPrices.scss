@@ -236,11 +236,12 @@
     min-width: 0;
 
     .app-price-change {
-      font-size: var(--font-size-paragraph-sm);
+      font-size: 0.83rem;
     }
 
     .app-price-change__period {
-      margin-left: 0.08rem;
+      margin-left: 0.15rem;
+      font-size: 0.8rem;
     }
   }
 
