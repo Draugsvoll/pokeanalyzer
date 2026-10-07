@@ -33,7 +33,10 @@ import {
 } from "../../utils/sortPokeTraceCards";
 import { runWithRequestTimeout } from "../../utils/requestTimeout";
 import { waitForUiPaint } from "../../utils/waitForUiPaint";
-import type { ProductType } from "../productTypeSwitch/ProductTypeSwitch";
+import {
+  ProductTypeSwitch,
+  type ProductType,
+} from "../productTypeSwitch/ProductTypeSwitch";
 import {
   SealedDatabaseSearchBar,
   SealedDatabaseSearchResults,
@@ -767,6 +770,11 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     ) : (
       searchBar
     );
+  const activeSearchMode = (
+    <div className="database-search-mode ui-render-fade" key={productType}>
+      {activeSearchBar}
+    </div>
+  );
 
   return (
     <section
@@ -775,18 +783,19 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     >
       <div className={embedded ? undefined : "explore-page__inner"}>
         {embedded ? (
-          activeSearchBar
+          <>
+            <ProductTypeSwitch
+              onChange={handleProductTypeChange}
+              value={productType}
+            />
+            {activeSearchMode}
+          </>
         ) : (
           <SearchHero
             onProductTypeChange={handleProductTypeChange}
             productType={productType}
           >
-            <div
-              className="database-search-mode ui-render-fade"
-              key={productType}
-            >
-              {activeSearchBar}
-            </div>
+            {activeSearchMode}
           </SearchHero>
         )}
         {productType === "singles" && searchFeedback && !isSearching && (
@@ -867,7 +876,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
             return resultsNode;
           })()}
         {productType === "sealed" && (
-          <SealedDatabaseSearchResults search={sealedSearch} />
+          <SealedDatabaseSearchResults
+            onPortfolioChanged={onPortfolioChanged}
+            search={sealedSearch}
+          />
         )}
       </div>
     </section>

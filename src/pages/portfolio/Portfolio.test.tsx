@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PortfolioCard } from "../../types/portfolio";
+import type { PortfolioSingle } from "../../types/portfolio";
 import Portfolio from "./Portfolio";
 
 const mocks = vi.hoisted(() => ({
@@ -33,29 +33,41 @@ vi.mock("../../components/loginmodal/Loginmodal", () => ({
 
 vi.mock("../../components/databaseSearch/DatabaseSearch", () => ({
   DatabaseSearch: ({
+    initialProductType,
     onPortfolioChanged,
   }: {
+    initialProductType?: "singles" | "sealed";
     onPortfolioChanged?: (saved: boolean) => void;
   }) => (
-    <button onClick={() => onPortfolioChanged?.(true)} type="button">
-      Save search result
-    </button>
+    <>
+      <output aria-label="Initial product type">{initialProductType}</output>
+      <button onClick={() => onPortfolioChanged?.(true)} type="button">
+        Save search result
+      </button>
+    </>
   ),
 }));
 
 vi.mock("../../components/pokemonCardView/PokemonCardView", () => ({
-  PokemonCardPortfolioView: ({ card }: { card: PortfolioCard }) => (
+  PokemonCardPortfolioView: ({ card }: { card: PortfolioSingle }) => (
     <div>Portfolio card: {card.name}</div>
   ),
 }));
 
-function collectionCard(): PortfolioCard {
+vi.mock("../../components/sealedProductView/SealedProductView", () => ({
+  SealedProductPortfolioView: ({ product }: { product: { name: string } }) => (
+    <div>Portfolio sealed: {product.name}</div>
+  ),
+}));
+
+function collectionCard(): PortfolioSingle {
   return {
     id: "base-4",
     image: "https://example.com/charizard.webp",
     name: "Charizard",
     number: "4/102",
     quantity: 2,
+    type: "single",
     set: { id: "base", name: "Base Set" },
     pokeTrace: {
       currency: "USD",
@@ -124,9 +136,9 @@ describe("Portfolio", () => {
   test("renders collection metrics and hydrated cards for a signed-in user", async () => {
     mocks.auth.user = { uid: "user-1" };
     mocks.getHydratedPortfolio.mockResolvedValue({
-      cards: [collectionCard()],
-      entries: [{ cardId: "base-4", quantity: 2 }],
-      missingCardIds: [],
+      items: [collectionCard()],
+      entries: [{ id: "base-4", type: "single", quantity: 2 }],
+      missingItems: [],
     });
 
     renderPortfolio();
@@ -164,32 +176,96 @@ describe("Portfolio", () => {
     expect(screen.queryByText("Collection cards")).toBeNull();
     expect(screen.queryByRole("button", { name: "Export CSV" })).toBeNull();
     expect(mocks.replacePortfolioReferences).toHaveBeenCalledWith([
-      { cardId: "base-4", quantity: 2 },
+      { id: "base-4", type: "single", quantity: 2 },
     ]);
   });
 
-  test("opens the embedded card search from Add cards", async () => {
+  test("opens the embedded card search from Add singles", async () => {
     mocks.auth.user = { uid: "user-1" };
     mocks.getHydratedPortfolio.mockResolvedValue({
-      cards: [collectionCard()],
-      entries: [{ cardId: "base-4", quantity: 2 }],
-      missingCardIds: [],
+      items: [collectionCard()],
+      entries: [{ id: "base-4", type: "single", quantity: 2 }],
+      missingItems: [],
     });
 
     renderPortfolio();
 
-    const trigger = await screen.findByRole("button", { name: "Add cards" });
+    const trigger = await screen.findByRole("button", { name: "Add singles" });
     trigger.focus();
     fireEvent.click(trigger);
 
     expect(
-      await screen.findByRole("dialog", { name: "Add cards" }),
+      await screen.findByRole("dialog", { name: "Add singles" }),
     ).toBeVisible();
+    expect(screen.getByLabelText("Initial product type")).toHaveTextContent(
+      "singles",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
 
-    expect(screen.queryByRole("dialog", { name: "Add cards" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Add singles" })).toBeNull();
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  test("opens the embedded search on sealed from Add sealed", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [collectionCard()],
+      entries: [{ id: "base-4", type: "single", quantity: 2 }],
+      missingItems: [],
+    });
+
+    renderPortfolio();
+
+    const trigger = await screen.findByRole("button", { name: "Add sealed" });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Add sealed" }),
+    ).toBeVisible();
+    expect(screen.getByLabelText("Initial product type")).toHaveTextContent(
+      "sealed",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
+
+    expect(screen.queryByRole("dialog", { name: "Add sealed" })).toBeNull();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  test("shows one combined asset count with a singles and sealed breakdown", async () => {
+    mocks.auth.user = { uid: "user-1" };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [
+        collectionCard(),
+        {
+          currency: "USD",
+          id: "sealed-1",
+          name: "Base Set Booster Box",
+          price: 150,
+          priceSnapshots: { "1d": null, "7d": 125, "30d": null },
+          productFamily: "booster_box",
+          quantity: 3,
+          setName: "Base Set",
+          type: "sealed",
+        },
+      ],
+      entries: [
+        { id: "base-4", type: "single", quantity: 2 },
+        { id: "sealed-1", type: "sealed", quantity: 3 },
+      ],
+      missingItems: [],
+    });
+
+    renderPortfolio();
+
+    const assetsMetric = (await screen.findByText("Assets")).closest("article");
+    expect(assetsMetric).toHaveTextContent("5");
+    expect(assetsMetric).toHaveTextContent("2 singles · 3 sealed");
+    expect(
+      screen.getByText("Portfolio sealed: Base Set Booster Box"),
+    ).toBeVisible();
   });
 
   test("refreshes the portfolio after an embedded search changes it", async () => {
@@ -203,21 +279,23 @@ describe("Portfolio", () => {
     };
     mocks.getHydratedPortfolio
       .mockResolvedValueOnce({
-        cards: [collectionCard()],
-        entries: [{ cardId: "base-4", quantity: 2 }],
-        missingCardIds: [],
+        items: [collectionCard()],
+        entries: [{ id: "base-4", type: "single", quantity: 2 }],
+        missingItems: [],
       })
       .mockResolvedValueOnce({
-        cards: [collectionCard(), addedCard],
+        items: [collectionCard(), addedCard],
         entries: [
-          { cardId: "base-4", quantity: 2 },
-          { cardId: "base-2", quantity: 1 },
+          { id: "base-4", type: "single", quantity: 2 },
+          { id: "base-2", type: "single", quantity: 1 },
         ],
-        missingCardIds: [],
+        missingItems: [],
       });
 
     renderPortfolio();
-    fireEvent.click(await screen.findByRole("button", { name: "Add cards" }));
+    const trigger = await screen.findByRole("button", { name: "Add singles" });
+    trigger.focus();
+    fireEvent.click(trigger);
     fireEvent.click(screen.getByRole("button", { name: "Save search result" }));
 
     expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(1);
@@ -226,6 +304,7 @@ describe("Portfolio", () => {
     await waitFor(() =>
       expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(2),
     );
+    await waitFor(() => expect(trigger).toHaveFocus());
     expect(await screen.findByText("Portfolio card: Blastoise")).toBeVisible();
   });
 
@@ -240,9 +319,9 @@ describe("Portfolio", () => {
       },
     };
     mocks.getHydratedPortfolio.mockResolvedValue({
-      cards: [unchangedCard],
-      entries: [{ cardId: "base-4", quantity: 2 }],
-      missingCardIds: [],
+      items: [unchangedCard],
+      entries: [{ id: "base-4", type: "single", quantity: 2 }],
+      missingItems: [],
     });
 
     renderPortfolio();
@@ -260,7 +339,7 @@ describe("Portfolio", () => {
   test("updates summary periods and the biggest gainer from the selected comparison", async () => {
     mocks.auth.user = { uid: "user-1" };
     const charizard = collectionCard();
-    const blastoise: PortfolioCard = {
+    const blastoise: PortfolioSingle = {
       ...charizard,
       id: "base-2",
       image: "https://example.com/blastoise.webp",
@@ -285,12 +364,12 @@ describe("Portfolio", () => {
       quantity: 1,
     };
     mocks.getHydratedPortfolio.mockResolvedValue({
-      cards: [charizard, blastoise],
+      items: [charizard, blastoise],
       entries: [
-        { cardId: "base-4", quantity: 2 },
-        { cardId: "base-2", quantity: 1 },
+        { id: "base-4", type: "single", quantity: 2 },
+        { id: "base-2", type: "single", quantity: 1 },
       ],
-      missingCardIds: [],
+      missingItems: [],
     });
 
     renderPortfolio();
@@ -319,9 +398,9 @@ describe("Portfolio", () => {
   test("uses a contained empty state without the collection header", async () => {
     mocks.auth.user = { uid: "user-1" };
     mocks.getHydratedPortfolio.mockResolvedValue({
-      cards: [],
+      items: [],
       entries: [],
-      missingCardIds: [],
+      missingItems: [],
     });
 
     renderPortfolio();
@@ -331,7 +410,7 @@ describe("Portfolio", () => {
     });
     expect(emptyHeading.closest("section")).toHaveClass("default-container");
     expect(screen.queryByRole("heading", { name: "My collection" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Add cards" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add singles" })).toBeVisible();
   });
 
   test("offers recovery when collection loading fails", async () => {

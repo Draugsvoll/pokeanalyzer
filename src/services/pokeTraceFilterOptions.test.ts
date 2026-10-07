@@ -87,6 +87,36 @@ test("refreshes a current cache when its set summaries cannot be displayed", asy
   expect(fetchMock).toHaveBeenCalledOnce();
 });
 
+test("refreshes a current cache when its set summaries have expired", async () => {
+  const now = Date.parse("2026-09-28T08:00:01.000Z");
+  localStorage.setItem(
+    "pokelyzer:poketrace-filter-options:v2",
+    JSON.stringify({
+      cachedAt: now - 60_000,
+      options: payload,
+    }),
+  );
+  vi.spyOn(Date, "now").mockReturnValue(now);
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
+    json: async () => ({
+      ...payload,
+      generatedAt: new Date(now).toISOString(),
+      setSummaries: payload.setSummaries.map((summary) => ({
+        ...summary,
+        asOf: new Date(now).toISOString(),
+      })),
+    }),
+    ok: true,
+  } as Response);
+  vi.stubGlobal("fetch", fetchMock);
+
+  const service = await import("./pokeTraceFilterOptions");
+  const options = await service.loadPokeTraceFilterOptions();
+
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(options?.generatedAt).toBe(new Date(now).toISOString());
+});
+
 test("refreshes an expired cache and retains stale options on failure", async () => {
   const now = Date.parse("2026-09-26T09:00:00.000Z");
   localStorage.setItem(

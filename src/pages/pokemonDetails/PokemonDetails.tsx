@@ -657,7 +657,7 @@ function PokemonDetailsForCard() {
               <Button
                 fill="ghost"
                 fitContent
-                size="small"
+                size="medium"
                 onClick={retryCardRequest}
               >
                 Retry

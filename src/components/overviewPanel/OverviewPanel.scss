@@ -80,11 +80,20 @@
     padding-top: var(--space-2);
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    .app-card-identity {
+      display: flex;
+      width: 100%;
+    }
+
+    .app-card-identity__name {
+      max-width: 100%;
+    }
   }
 }
 
 .app-overview-metric--featured {
-  column-gap: var(--space-3);
+  column-gap: var(--space-5);
   display: grid;
   grid-template-columns: minmax(min-content, 1fr) 4.25rem;
   min-width: min-content;

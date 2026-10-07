@@ -1,10 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Star, X } from "lucide-react";
-import {
-  ConfirmPopover,
-  type ConfirmPopoverCancelReason,
-} from "../confirmPopover/ConfirmPopover";
+import { Star } from "lucide-react";
+import { PortfolioItemCard } from "../portfolioItemCard/PortfolioItemCard";
 import { PriceChange } from "../priceChange/PriceChange";
 import { ProductCard } from "../productCard/ProductCard";
 import { Badge } from "../ui/Badge";
@@ -13,8 +10,8 @@ import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import type { PokemonCard as PokemonCardType } from "../../types/pokemon";
 import type {
-  PortfolioCard,
   PortfolioPriceSnapshot,
+  PortfolioSingle,
 } from "../../types/portfolio";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import {
@@ -327,8 +324,7 @@ export function PokemonCardView({
 }
 
 type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
-  card: PortfolioCard;
-  quantity?: number;
+  card: PortfolioSingle;
   quantityDialogOpen?: boolean;
   onQuantityDialogOpenChange?: (open: boolean) => void;
   onQuantityUpdated?: (cardId: string, quantity: number) => void;
@@ -337,7 +333,6 @@ type PokemonCardPortfolioViewProps = PokemonCardViewProps & {
 
 export function PokemonCardPortfolioView({
   card,
-  quantity = card.quantity ?? 1,
   quantityDialogOpen,
   onQuantityDialogOpenChange,
   onQuantityUpdated,
@@ -345,96 +340,20 @@ export function PokemonCardPortfolioView({
   onPortfolioChanged,
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const quantityTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { updatePokemonQuantity } = usePokemonPortfolio();
-  const [pendingQuantity, setPendingQuantity] = useState<number | null>(null);
-  const [quantityControlsDismissed, setQuantityControlsDismissed] =
-    useState(false);
-  const [updatingQuantity, setUpdatingQuantity] = useState(false);
-  const quantityDialogVisible =
-    pendingQuantity != null && quantityDialogOpen !== false;
-
-  const requestQuantityChange = (
-    amount: number,
-    trigger: HTMLButtonElement,
-  ) => {
-    if (updatingQuantity) return;
-
-    const currentQuantity = quantityDialogVisible ? pendingQuantity : quantity;
-    const nextQuantity = currentQuantity + amount;
-    if (nextQuantity < 1) return;
-
-    quantityTriggerRef.current = trigger;
-    setQuantityControlsDismissed(false);
-    setPendingQuantity(nextQuantity);
-    onQuantityDialogOpenChange?.(true);
-  };
-
-  const cancelQuantityChange = (reason: ConfirmPopoverCancelReason) => {
-    const cancelledWithKeyboard = reason === "keyboard";
-    const activeElement = document.activeElement;
-    if (
-      !cancelledWithKeyboard &&
-      activeElement instanceof HTMLElement &&
-      cardRef.current?.contains(activeElement)
-    ) {
-      activeElement.blur();
-    }
-
-    setQuantityControlsDismissed(!cancelledWithKeyboard);
-    setPendingQuantity(null);
-    onQuantityDialogOpenChange?.(false);
-
-    if (cancelledWithKeyboard) {
-      requestAnimationFrame(() =>
-        quantityTriggerRef.current?.focus({ preventScroll: true }),
-      );
-    }
-  };
-
-  const confirmQuantityChange = async () => {
-    if (!quantityDialogVisible) return;
-
-    setUpdatingQuantity(true);
-    try {
-      const updated = await updatePokemonQuantity(card.id, pendingQuantity);
-      if (!updated) return;
-
-      onQuantityUpdated?.(card.id, pendingQuantity);
-      setPendingQuantity(null);
-      onQuantityDialogOpenChange?.(false);
-    } finally {
-      setUpdatingQuantity(false);
-    }
-  };
 
   return (
-    // Portfolio-only shell: do not restyle PokemonCardView internals here.
-    <div
-      ref={cardRef}
-      className={[
-        "pokemon-card-portfolio-view",
-        quantityDialogVisible && "pokemon-card-portfolio-view--confirming",
-        quantityControlsDismissed &&
-          "pokemon-card-portfolio-view--quantity-controls-dismissed",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      onPointerEnter={() => setQuantityControlsDismissed(false)}
+    <PortfolioItemCard
+      itemName={card.name}
+      onQuantityDialogOpenChange={onQuantityDialogOpenChange}
+      quantity={card.quantity}
+      quantityDialogOpen={quantityDialogOpen}
+      updateQuantity={async (nextQuantity) => {
+        const updated = await updatePokemonQuantity(card.id, nextQuantity);
+        if (updated) onQuantityUpdated?.(card.id, nextQuantity);
+        return updated;
+      }}
     >
-      {quantity > 1 && (
-        <div className="pokemon-card-portfolio-view__quantity-anchor">
-          <Badge
-            aria-label={`${quantity} copies in collection`}
-            size="sm"
-            weight="strong"
-          >
-            ×{quantity}
-          </Badge>
-        </div>
-      )}
-
       <PokemonCardView
         card={card}
         {...cardViewProps}
@@ -444,64 +363,6 @@ export function PokemonCardPortfolioView({
           if (!saved) onRemoved?.(card.id);
         }}
       />
-
-      <div
-        className="pokemon-card-portfolio-view__actions ui-fade"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="pokemon-card-portfolio-view__quantity-button"
-          aria-label={`Increase ${card.name} quantity`}
-          disabled={updatingQuantity}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => requestQuantityChange(1, event.currentTarget)}
-        >
-          <ChevronUp aria-hidden="true" />
-        </button>
-
-        <div className="pokemon-card-portfolio-view__quantity-display">
-          <output
-            className="pokemon-card-portfolio-view__quantity"
-            aria-label={`${card.name} quantity`}
-          >
-            {quantityDialogVisible ? pendingQuantity : quantity}
-          </output>
-          {quantityDialogVisible && (
-            <ConfirmPopover
-              actionSize="small"
-              className="pokemon-card-portfolio-view__quantity-confirm"
-              aria-label="Confirm quantity change"
-              cancelAriaLabel="Cancel quantity change"
-              cancelLabel={<X aria-hidden="true" />}
-              confirmAriaLabel="Apply quantity change"
-              confirmDisabled={pendingQuantity === quantity}
-              confirmLabel={<Check aria-hidden="true" />}
-              confirming={updatingQuantity}
-              label={`Quantity: ${pendingQuantity}`}
-              onConfirm={() => {
-                void confirmQuantityChange();
-              }}
-              onCancel={cancelQuantityChange}
-            />
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="pokemon-card-portfolio-view__quantity-button"
-          aria-label={`Decrease ${card.name} quantity`}
-          disabled={
-            (quantityDialogVisible ? pendingQuantity : quantity) <= 1 ||
-            updatingQuantity
-          }
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => requestQuantityChange(-1, event.currentTarget)}
-        >
-          <ChevronDown aria-hidden="true" />
-        </button>
-      </div>
-    </div>
+    </PortfolioItemCard>
   );
 }

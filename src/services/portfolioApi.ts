@@ -1,6 +1,7 @@
 import type {
-  AddPortfolioCardResponse,
+  AddPortfolioItemResponse,
   HydratedPortfolioResponse,
+  PortfolioItemType,
   PortfolioReference,
   PortfolioReferencesResponse,
 } from "../types/portfolio";
@@ -40,7 +41,7 @@ async function portfolioRequest<T>(
 }
 
 export function getPortfolioReferences(expectedUid: string) {
-  return portfolioRequest<PortfolioReferencesResponse>("/cards", expectedUid);
+  return portfolioRequest<PortfolioReferencesResponse>("/assets", expectedUid);
 }
 
 export function getHydratedPortfolio(
@@ -50,7 +51,7 @@ export function getHydratedPortfolio(
   return runWithRequestTimeout(
     (requestSignal) =>
       portfolioRequest<HydratedPortfolioResponse>(
-        "/cards/hydrated",
+        "/assets/hydrated",
         expectedUid,
         { signal: requestSignal },
       ),
@@ -58,19 +59,51 @@ export function getHydratedPortfolio(
   );
 }
 
-export function addPortfolioCard(cardId: string, expectedUid: string) {
-  return portfolioRequest<AddPortfolioCardResponse>("/cards", expectedUid, {
+export function addPortfolioItem(
+  type: PortfolioItemType,
+  id: string,
+  expectedUid: string,
+) {
+  return portfolioRequest<AddPortfolioItemResponse>("/assets", expectedUid, {
     method: "POST",
-    body: JSON.stringify({ cardId }),
+    body: JSON.stringify({ id, type }),
   });
 }
 
-export function removePortfolioCard(cardId: string, expectedUid: string) {
+export function removePortfolioItem(
+  type: PortfolioItemType,
+  id: string,
+  expectedUid: string,
+) {
   return portfolioRequest<void>(
-    `/cards/${encodeURIComponent(cardId)}`,
+    `/assets/${type}/${encodeURIComponent(id)}`,
     expectedUid,
     { method: "DELETE" },
   );
+}
+
+export function updatePortfolioItemQuantity(
+  type: PortfolioItemType,
+  id: string,
+  quantity: number,
+  expectedUid: string,
+) {
+  return portfolioRequest<PortfolioReference>(
+    `/assets/${type}/${encodeURIComponent(id)}/quantity`,
+    expectedUid,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ quantity }),
+    },
+  );
+}
+
+export function addPortfolioCard(cardId: string, expectedUid: string) {
+  return addPortfolioItem("single", cardId, expectedUid);
+}
+
+export function removePortfolioCard(cardId: string, expectedUid: string) {
+  return removePortfolioItem("single", cardId, expectedUid);
 }
 
 export function updatePortfolioCardQuantity(
@@ -78,12 +111,5 @@ export function updatePortfolioCardQuantity(
   quantity: number,
   expectedUid: string,
 ) {
-  return portfolioRequest<PortfolioReference>(
-    `/cards/${encodeURIComponent(cardId)}/quantity`,
-    expectedUid,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ quantity }),
-    },
-  );
+  return updatePortfolioItemQuantity("single", cardId, quantity, expectedUid);
 }

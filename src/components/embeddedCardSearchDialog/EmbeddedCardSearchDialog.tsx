@@ -3,10 +3,12 @@ import type { RefObject } from "react";
 import { useModalDialog } from "../../hooks/useModalDialog";
 import { CloseButton } from "../closeButton/CloseButton";
 import { DatabaseSearch } from "../databaseSearch/DatabaseSearch";
+import type { ProductType } from "../productTypeSwitch/ProductTypeSwitch";
 import "./EmbeddedCardSearchDialog.scss";
 
 type EmbeddedCardSearchDialogProps = {
   ariaLabel: string;
+  initialProductType?: ProductType;
   isOpen: boolean;
   onClose: () => void;
   onPortfolioChanged?: (saved: boolean) => void;
@@ -15,6 +17,7 @@ type EmbeddedCardSearchDialogProps = {
 
 export function EmbeddedCardSearchDialog({
   ariaLabel,
+  initialProductType = "singles",
   isOpen,
   onClose,
   onPortfolioChanged,
@@ -51,6 +54,7 @@ export function EmbeddedCardSearchDialog({
         <DatabaseSearch
           autoFocusName
           embedded
+          initialProductType={initialProductType}
           onClose={onClose}
           onPortfolioChanged={onPortfolioChanged}
         />

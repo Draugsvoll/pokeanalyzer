@@ -6,7 +6,7 @@
   }
 }
 
-.pokemon-card-portfolio-view:hover .pokemon-card-view__card {
+.portfolio-item-card:hover .pokemon-card-view__card {
   background: color-mix(in srgb, var(--bg-card) 97%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
@@ -50,7 +50,7 @@
 
 .pokemon-card-view__card:hover .pokemon-card__portfolio-toggle,
 .pokemon-card-view__card:focus-within .pokemon-card__portfolio-toggle,
-.pokemon-card-portfolio-view:hover .pokemon-card__portfolio-toggle {
+.portfolio-item-card:hover .pokemon-card__portfolio-toggle {
   opacity: 1;
   visibility: visible;
 }
@@ -65,7 +65,7 @@
   .pokemon-card__portfolio-toggle.is-saved,
 .pokemon-card-view__card--hide-portfolio-button-until-hover:focus-within
   .pokemon-card__portfolio-toggle.is-saved,
-.pokemon-card-portfolio-view:hover
+.portfolio-item-card:hover
   .pokemon-card-view__card--hide-portfolio-button-until-hover
   .pokemon-card__portfolio-toggle.is-saved {
   opacity: 1;
@@ -209,39 +209,7 @@
   width: 100%;
 }
 
-.pokemon-card-portfolio-view {
-  height: 100%;
-  position: relative;
-  width: 100%;
-}
-
-.pokemon-card-portfolio-view {
-  --quantity-control-background: color-mix(
-    in srgb,
-    var(--bg5) 92%,
-    transparent
-  );
-}
-
-.pokemon-card-portfolio-view__quantity-anchor {
-  left: 0.55rem;
-  position: absolute;
-  top: 0.55rem;
-  z-index: 4;
-
-  .app-badge {
-    backdrop-filter: blur(0.4rem);
-    background: color-mix(in srgb, var(--bg5) 92%, transparent);
-    border-color: var(--border-color-strong);
-    box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.24);
-    color: var(--font-color-primary);
-    min-width: 0;
-    padding: 0.35rem 0.45rem;
-    font-size: var(--font-size-badge);
-  }
-}
-
-.pokemon-card-portfolio-view .pokemon-card__portfolio-toggle {
+.portfolio-item-card .pokemon-card__portfolio-toggle {
   height: 2.15rem;
   right: 0.55rem;
   top: 0.55rem;
@@ -254,151 +222,8 @@
   }
 }
 
-.pokemon-card-portfolio-view:hover .pokemon-card-portfolio-view__actions,
-.pokemon-card-portfolio-view:focus-within .pokemon-card-portfolio-view__actions,
-.pokemon-card-portfolio-view.pokemon-card-portfolio-view--confirming
-  .pokemon-card-portfolio-view__actions {
-  opacity: 1;
-  transition-delay: 0s;
-  visibility: visible;
-}
-
-.pokemon-card-portfolio-view.pokemon-card-portfolio-view--confirming {
-  z-index: 10;
-}
-
-.pokemon-card-portfolio-view.pokemon-card-portfolio-view--quantity-controls-dismissed
-  .pokemon-card-portfolio-view__actions {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.pokemon-card-portfolio-view__actions {
-  align-items: center;
-  backdrop-filter: blur(0.45rem);
-  background: var(--quantity-control-background);
-  border: 1px solid var(--border-color-strong);
-  border-radius: var(--border-radius-pill);
-  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  opacity: 0;
-  padding: 0.08rem;
-  position: absolute;
-  right: 0.7rem;
-  top: 34%;
-  transform: translateY(-50%);
-  transition:
-    opacity var(--delay-short) ease,
-    visibility var(--delay-short) ease;
-  visibility: hidden;
-  z-index: 6;
-}
-
-.pokemon-card-portfolio-view__quantity-display {
-  position: relative;
-}
-
-.pokemon-card-portfolio-view__quantity-button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--border-radius-round);
-  color: var(--font-color-secondary);
-  cursor: pointer;
-  display: flex;
-  height: 1.75rem;
-  justify-content: center;
-  padding: 0;
-  transition:
-    background-color var(--delay-short) ease,
-    color var(--delay-short) ease;
-  width: 1.75rem;
-
-  svg {
-    height: 0.9rem;
-    width: 0.9rem;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.35;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
-  }
-}
-
-.pokemon-card-portfolio-view__quantity-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--font-color-primary) 8%, transparent);
-  color: var(--font-color-primary);
-}
-
-.pokemon-card-portfolio-view__quantity {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  box-sizing: border-box;
-  color: var(--font-color-primary);
-  display: flex;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-bold);
-  font-variant-numeric: tabular-nums;
-  height: 1.65rem;
-  justify-content: center;
-  padding: 0;
-  text-align: center;
-  width: 1.75rem;
-}
-
-.pokemon-card-portfolio-view__quantity-confirm.ui-popover-surface {
-  backdrop-filter: blur(0.45rem);
-  background: var(--quantity-control-background);
-  border-color: var(--border-color-strong);
-  border-radius: var(--border-radius-control);
-  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3);
-  align-items: stretch;
-  flex-direction: column;
-  gap: 0.45rem;
-  justify-content: initial;
-  left: calc(100% + 0.3rem);
-  min-width: 0;
-  padding: 0.7rem;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 0.25rem;
-
-  &.ui-confirm-popover--flip-left {
-    left: auto;
-    right: calc(100% + 0.3rem);
-  }
-
-  .ui-confirm-popover__label {
-    padding: 0;
-  }
-
-  .ui-confirm-popover__actions {
-    width: 100%;
-  }
-
-  .app-btn {
-    flex: 1 1 0;
-    min-width: 4.25rem;
-    padding-inline: 0.65rem;
-  }
-}
-
 @media (hover: none) {
-  .pokemon-card-portfolio-view__actions {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .pokemon-card-portfolio-view .pokemon-card__portfolio-toggle.is-saved {
+  .portfolio-item-card .pokemon-card__portfolio-toggle.is-saved {
     opacity: 1;
     visibility: visible;
   }

@@ -8,7 +8,6 @@ import {
 } from "react";
 import { AlertTriangle, LogIn, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatCardNumber } from "../../../shared/formatCardNumber";
 import {
   formatPriceChangePeriodLabel,
   formatPriceChangePeriodLong,
@@ -26,19 +25,24 @@ import {
 } from "../../components/overviewPanel/OverviewPanel";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
 import { PriceChange } from "../../components/priceChange/PriceChange";
+import type { ProductType } from "../../components/productTypeSwitch/ProductTypeSwitch";
+import { SealedProductPortfolioView } from "../../components/sealedProductView/SealedProductView";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getHydratedPortfolio } from "../../services/portfolioApi";
 import type {
-  PortfolioCard,
   PortfolioComparisonPeriod,
+  PortfolioItem,
+  PortfolioReference,
 } from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
   getPortfolioStats,
-  getVisiblePortfolioCards,
+  getVisiblePortfolioItems,
+  portfolioCurrency,
+  portfolioItemNumber,
   portfolioQuantity,
   type PortfolioFeaturedMetric,
   type PortfolioSort,
@@ -72,8 +76,18 @@ const CHANGE_PERIOD_OPTIONS: Array<{
   value,
 }));
 
-function formatMoney(value: number) {
-  return `$${money.format(value)}`;
+function formatMoney(value: number, currency = "USD") {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      currency,
+      currencyDisplay: "narrowSymbol",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      style: "currency",
+    }).format(value);
+  } catch {
+    return `${currency} ${money.format(value)}`;
+  }
 }
 
 function formatSignedPercent(value: number) {
@@ -81,20 +95,20 @@ function formatSignedPercent(value: number) {
   return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(1)}%`;
 }
 
-type FeaturedCardMetricProps = {
+type FeaturedAssetMetricProps = {
   item: PortfolioFeaturedMetric | null;
   label: string;
   period: PortfolioComparisonPeriod;
   unavailableLabel: string;
 };
 
-function FeaturedCardMetric({
+function FeaturedAssetMetric({
   item,
   label,
   period,
   unavailableLabel,
-}: FeaturedCardMetricProps) {
-  const cardNumber = item ? formatCardNumber(item.card) : undefined;
+}: FeaturedAssetMetricProps) {
+  const itemNumber = item ? portfolioItemNumber(item.item) : undefined;
   const periodLong = formatPriceChangePeriodLong(period);
 
   return (
@@ -102,16 +116,16 @@ function FeaturedCardMetric({
       className="portfolio__metric ui-render-fade"
       detail={
         item ? (
-          <CardIdentity name={item.card.name} number={cardNumber} />
+          <CardIdentity name={item.item.name} number={itemNumber} />
         ) : (
           unavailableLabel
         )
       }
-      imageSrc={item?.card.image}
+      imageSrc={item?.item.image}
       label={label}
       value={
         <>
-          {item ? formatMoney(item.value) : "—"}
+          {item ? formatMoney(item.value, portfolioCurrency(item.item)) : "—"}
           {item?.change != null && (
             <PriceChange
               ariaLabel={`${periodLong} price change ${formatSignedPercent(item.change)}`}
@@ -164,7 +178,7 @@ function PortfolioGuest() {
         ref={revealRef}
       >
         <h2 id="portfolio-guest-title">Log in to view your collection</h2>
-        <p>Your saved cards and portfolio details are tied to your account.</p>
+        <p>Your saved assets and portfolio details are tied to your account.</p>
         <div className="portfolio__guest-actions">
           <Button onClick={() => setLoginOpen(true)}>
             <LogIn aria-hidden="true" /> Log in
@@ -184,55 +198,69 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const { replacePortfolioReferences } = usePortfolioCache();
   const requestControllerRef = useRef<AbortController | null>(null);
-  const [cards, setCards] = useState<PortfolioCard[]>([]);
-  const [missingCardIds, setMissingCardIds] = useState<string[]>([]);
+  const [items, setItems] = useState<PortfolioItem[]>([]);
+  const [missingItems, setMissingItems] = useState<PortfolioReference[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<PortfolioSort>("unsorted");
-  const [cardSearchOpen, setCardSearchOpen] = useState(false);
-  const [quantityDialogCardId, setQuantityDialogCardId] = useState<
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [searchProductType, setSearchProductType] =
+    useState<ProductType>("singles");
+  const [quantityDialogItemKey, setQuantityDialogItemKey] = useState<
     string | null
   >(null);
-  const addCardsTriggerRef = useRef<HTMLButtonElement>(null);
-  const cardSearchChangedPortfolioRef = useRef(false);
+  const productSearchTriggerRef = useRef<HTMLButtonElement>(null);
+  const productSearchChangedPortfolioRef = useRef(false);
   const [changePeriod, setChangePeriod] =
     useState<PortfolioComparisonPeriod>("7d");
   const summaryRevealRef = useScrollReveal<HTMLElement>();
   const noticeRevealRef = useScrollReveal<HTMLDivElement>();
   const emptyRevealRef = useScrollReveal<HTMLElement>();
   const controlsRevealRef = useScrollReveal<HTMLElement>();
-  const load = useCallback(async () => {
-    requestControllerRef.current?.abort();
-    const controller = new AbortController();
-    requestControllerRef.current = controller;
-    setLoading(true);
-    setError("");
-    try {
-      const response = await getHydratedPortfolio(userId, controller.signal);
-      if (controller.signal.aborted) return;
-      setCards(response.cards);
-      setMissingCardIds(response.missingCardIds);
-      replacePortfolioReferences(response.entries);
-    } catch (cause) {
-      if (controller.signal.aborted) return;
-      logClientError("Failed to load portfolio cards", cause);
-      setError("Please try again in a moment.");
-    } finally {
-      if (requestControllerRef.current === controller) {
-        requestControllerRef.current = null;
-        setLoading(false);
+  const load = useCallback(
+    async (showLoading = true) => {
+      requestControllerRef.current?.abort();
+      const controller = new AbortController();
+      requestControllerRef.current = controller;
+      if (showLoading) setLoading(true);
+      setError("");
+      try {
+        const response = await getHydratedPortfolio(userId, controller.signal);
+        if (controller.signal.aborted) return;
+        setItems(response.items);
+        setMissingItems(response.missingItems);
+        replacePortfolioReferences(response.entries);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        logClientError("Failed to load portfolio assets", cause);
+        setError("Please try again in a moment.");
+      } finally {
+        if (requestControllerRef.current === controller) {
+          requestControllerRef.current = null;
+          setLoading(false);
+        }
       }
-    }
-  }, [replacePortfolioReferences, userId]);
+    },
+    [replacePortfolioReferences, userId],
+  );
 
-  const closeCardSearch = useCallback(() => {
-    setCardSearchOpen(false);
-    if (!cardSearchChangedPortfolioRef.current) return;
+  const closeProductSearch = useCallback(() => {
+    setProductSearchOpen(false);
+    if (!productSearchChangedPortfolioRef.current) return;
 
-    cardSearchChangedPortfolioRef.current = false;
-    void load();
+    productSearchChangedPortfolioRef.current = false;
+    void load(false);
   }, [load]);
+
+  function openProductSearch(
+    productType: ProductType,
+    trigger: HTMLButtonElement,
+  ) {
+    productSearchTriggerRef.current = trigger;
+    setSearchProductType(productType);
+    setProductSearchOpen(true);
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -244,13 +272,13 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
     };
   }, [load]);
 
-  const visibleCards = useMemo(
-    () => getVisiblePortfolioCards(cards, filter, sort, changePeriod),
-    [cards, changePeriod, filter, sort],
+  const visibleItems = useMemo(
+    () => getVisiblePortfolioItems(items, filter, sort, changePeriod),
+    [items, changePeriod, filter, sort],
   );
   const stats = useMemo(
-    () => getPortfolioStats(cards, changePeriod),
-    [cards, changePeriod],
+    () => getPortfolioStats(items, changePeriod),
+    [items, changePeriod],
   );
   const changePeriodLong = formatPriceChangePeriodLong(changePeriod);
 
@@ -276,21 +304,37 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
   return (
     <div className="portfolio">
-      {cards.length > 0 && (
+      {items.length > 0 && (
         <PortfolioPageHeader
           actions={
-            <Button
-              aria-expanded={cardSearchOpen}
-              onClick={() => setCardSearchOpen(true)}
-              ref={addCardsTriggerRef}
-            >
-              <Plus aria-hidden="true" /> Add cards
-            </Button>
+            <>
+              <Button
+                aria-expanded={
+                  productSearchOpen && searchProductType === "sealed"
+                }
+                fill="ghost"
+                onClick={(event) =>
+                  openProductSearch("sealed", event.currentTarget)
+                }
+              >
+                <Plus aria-hidden="true" /> Add sealed
+              </Button>
+              <Button
+                aria-expanded={
+                  productSearchOpen && searchProductType === "singles"
+                }
+                onClick={(event) =>
+                  openProductSearch("singles", event.currentTarget)
+                }
+              >
+                <Plus aria-hidden="true" /> Add singles
+              </Button>
+            </>
           }
         />
       )}
 
-      {cards.length > 0 && (
+      {items.length > 0 && (
         <OverviewPanel
           ariaLabel="Collection summary"
           className="portfolio__summary ui-scroll-reveal"
@@ -298,17 +342,21 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
           ref={summaryRevealRef}
         >
           <OverviewMetric
-            key={`value:${stats.totalValue}:${stats.pricedCards}:${stats.totalCards}`}
+            key={`value:${stats.totalValue}:${stats.pricedAssets}:${stats.totalAssets}`}
             className="portfolio__metric portfolio__metric--value ui-render-fade"
             detail={
-              stats.pricedCards === stats.totalCards
-                ? "TCGPlayer Near Mint prices"
-                : `${stats.pricedCards} of ${stats.totalCards} cards have reference prices`
+              stats.excludedCurrencyAssets > 0
+                ? `${stats.excludedCurrencyAssets} assets use another currency`
+                : stats.pricedAssets === stats.totalAssets
+                  ? "TCGPlayer reference prices"
+                  : `${stats.pricedAssets} of ${stats.totalAssets} assets have reference prices`
             }
             label="Collection value"
             value={
               <>
-                {stats.totalValue > 0 ? formatMoney(stats.totalValue) : "—"}
+                {stats.totalValue > 0
+                  ? formatMoney(stats.totalValue, stats.valueCurrency)
+                  : "—"}
                 {stats.changePercent != null && (
                   <PriceChange
                     ariaLabel={`${changePeriodLong} collection value change ${formatSignedPercent(stats.changePercent)}`}
@@ -322,30 +370,30 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             valueClassName="portfolio__collection-value"
           />
           <OverviewMetric
-            key={`cards:${stats.totalCards}`}
+            key={`assets:${stats.totalAssets}:${stats.singleAssets}:${stats.sealedAssets}`}
             className="portfolio__metric ui-render-fade"
-            detail="Total cards in collection"
-            label="Cards"
-            value={integer.format(stats.totalCards)}
+            detail={`${integer.format(stats.singleAssets)} ${stats.singleAssets === 1 ? "single" : "singles"} · ${integer.format(stats.sealedAssets)} sealed`}
+            label="Assets"
+            value={integer.format(stats.totalAssets)}
           />
-          <FeaturedCardMetric
-            key={`gainer:${stats.biggestGainer?.card.id ?? "none"}:${stats.biggestGainer?.value ?? "none"}:${changePeriod}:${stats.biggestGainer?.change ?? "none"}`}
+          <FeaturedAssetMetric
+            key={`gainer:${stats.biggestGainer?.item.type ?? "none"}:${stats.biggestGainer?.item.id ?? "none"}:${stats.biggestGainer?.value ?? "none"}:${changePeriod}:${stats.biggestGainer?.change ?? "none"}`}
             item={stats.biggestGainer}
             label="Biggest gainer"
             period={changePeriod}
             unavailableLabel="Price change unavailable"
           />
-          <FeaturedCardMetric
-            key={`top:${stats.topHolding?.card.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.card) : 0}:${changePeriod}:${stats.topHolding?.change ?? "none"}`}
+          <FeaturedAssetMetric
+            key={`top:${stats.topHolding?.item.type ?? "none"}:${stats.topHolding?.item.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.item) : 0}:${changePeriod}:${stats.topHolding?.change ?? "none"}`}
             item={stats.topHolding}
             label="Top holding"
             period={changePeriod}
-            unavailableLabel="No priced cards"
+            unavailableLabel="No priced assets"
           />
         </OverviewPanel>
       )}
 
-      {missingCardIds.length > 0 && (
+      {missingItems.length > 0 && (
         <div
           className="portfolio__notice ui-scroll-reveal"
           ref={noticeRevealRef}
@@ -353,35 +401,51 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
         >
           <AlertTriangle aria-hidden="true" />
           <span>
-            {missingCardIds.length} saved{" "}
-            {missingCardIds.length === 1 ? "card is" : "cards are"} currently
+            {missingItems.length} saved{" "}
+            {missingItems.length === 1 ? "asset is" : "assets are"} currently
             unavailable in the catalogue.
           </span>
         </div>
       )}
 
-      {cards.length === 0 ? (
+      {items.length === 0 ? (
         <section
           className="portfolio__empty default-container ui-scroll-reveal"
           ref={emptyRevealRef}
         >
           <h2>
-            {missingCardIds.length > 0
-              ? "No cards available"
+            {missingItems.length > 0
+              ? "No assets available"
               : "Your collection is empty"}
           </h2>
           <p>
-            {missingCardIds.length > 0
-              ? "Your saved cards could not be loaded from the catalogue."
-              : "Add cards to start tracking your collection."}
+            {missingItems.length > 0
+              ? "Your saved assets could not be loaded from the catalogue."
+              : "Add singles or sealed products to start tracking your collection."}
           </p>
-          <Button
-            aria-expanded={cardSearchOpen}
-            onClick={() => setCardSearchOpen(true)}
-            ref={addCardsTriggerRef}
-          >
-            <Plus aria-hidden="true" /> Add cards
-          </Button>
+          <div className="portfolio__status-actions">
+            <Button
+              aria-expanded={
+                productSearchOpen && searchProductType === "singles"
+              }
+              onClick={(event) =>
+                openProductSearch("singles", event.currentTarget)
+              }
+            >
+              <Plus aria-hidden="true" /> Add singles
+            </Button>
+            <Button
+              aria-expanded={
+                productSearchOpen && searchProductType === "sealed"
+              }
+              fill="ghost"
+              onClick={(event) =>
+                openProductSearch("sealed", event.currentTarget)
+              }
+            >
+              <Plus aria-hidden="true" /> Add sealed
+            </Button>
+          </div>
         </section>
       ) : (
         <>
@@ -427,7 +491,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
               </div>
               <div className="portfolio__sort-group">
                 <SelectDropdown
-                  ariaLabel="Sort portfolio cards"
+                  ariaLabel="Sort portfolio assets"
                   className="portfolio__sort"
                   options={SORT_OPTIONS}
                   value={sort}
@@ -437,63 +501,76 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             </div>
           </section>
 
-          {visibleCards.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <section
               className="portfolio__empty portfolio__empty--filtered ui-scroll-reveal"
               ref={emptyRevealRef}
             >
-              <h2>No cards match your search</h2>
-              <p>Try another card name, set, number, rarity, or variant.</p>
+              <h2>No assets match your search</h2>
+              <p>Try another product name, set, number, rarity, or variant.</p>
             </section>
           ) : (
             <GridView>
-              {visibleCards.map((card) => (
-                <PokemonCardPortfolioView
-                  key={card.id}
-                  card={card}
-                  comparisonPeriod={changePeriod}
-                  quantity={portfolioQuantity(card)}
-                  comparisonPriceSnapshot={
-                    card.priceSnapshots?.[changePeriod] ?? null
-                  }
-                  quantityDialogOpen={quantityDialogCardId === card.id}
-                  onQuantityDialogOpenChange={(open) =>
-                    setQuantityDialogCardId((current) =>
-                      open ? card.id : current === card.id ? null : current,
-                    )
-                  }
-                  onQuantityUpdated={(cardId, nextQuantity) =>
-                    setCards((current) =>
-                      current.map((item) =>
-                        item.id === cardId
-                          ? { ...item, quantity: nextQuantity }
-                          : item,
+              {visibleItems.map((item) => {
+                const itemKey = `${item.type}:${item.id}`;
+                const commonProps = {
+                  comparisonPeriod: changePeriod,
+                  quantityDialogOpen: quantityDialogItemKey === itemKey,
+                  onQuantityDialogOpenChange: (open: boolean) =>
+                    setQuantityDialogItemKey((current) =>
+                      open ? itemKey : current === itemKey ? null : current,
+                    ),
+                  onQuantityUpdated: (id: string, nextQuantity: number) =>
+                    setItems((current) =>
+                      current.map((candidate) =>
+                        candidate.type === item.type && candidate.id === id
+                          ? { ...candidate, quantity: nextQuantity }
+                          : candidate,
                       ),
-                    )
-                  }
-                  onRemoved={(cardId) => {
-                    setCards((current) =>
-                      current.filter((item) => item.id !== cardId),
+                    ),
+                  onRemoved: (id: string) => {
+                    setItems((current) =>
+                      current.filter(
+                        (candidate) =>
+                          candidate.type !== item.type || candidate.id !== id,
+                      ),
                     );
-                    setQuantityDialogCardId((current) =>
-                      current === cardId ? null : current,
+                    setQuantityDialogItemKey((current) =>
+                      current === itemKey ? null : current,
                     );
-                  }}
-                />
-              ))}
+                  },
+                };
+                return item.type === "single" ? (
+                  <PokemonCardPortfolioView
+                    {...commonProps}
+                    key={itemKey}
+                    card={item}
+                    comparisonPriceSnapshot={
+                      item.priceSnapshots?.[changePeriod] ?? null
+                    }
+                  />
+                ) : (
+                  <SealedProductPortfolioView
+                    {...commonProps}
+                    key={itemKey}
+                    product={item}
+                  />
+                );
+              })}
             </GridView>
           )}
         </>
       )}
 
       <EmbeddedCardSearchDialog
-        ariaLabel="Add cards"
-        isOpen={cardSearchOpen}
-        onClose={closeCardSearch}
+        ariaLabel={`Add ${searchProductType}`}
+        initialProductType={searchProductType}
+        isOpen={productSearchOpen}
+        onClose={closeProductSearch}
         onPortfolioChanged={() => {
-          cardSearchChangedPortfolioRef.current = true;
+          productSearchChangedPortfolioRef.current = true;
         }}
-        returnFocusRef={addCardsTriggerRef}
+        returnFocusRef={productSearchTriggerRef}
       />
     </div>
   );

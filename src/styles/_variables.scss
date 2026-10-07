@@ -3,12 +3,12 @@
    ========================================================================== */
 
 :root {
-  --bg: #0c1017;
+  --bg: #0b0e14;
   --bg2: #111721;
   --surface: #131a25;
   --surface2: #182230;
   --surface3: #202c3c;
-  --surface4: #0e141c;
+  --surface4: #10151f;
   --border-color: rgba(170, 190, 220, 0.09);
   --card-border-color: rgba(170, 190, 220, 0.12);
   --border-color-strong: rgba(170, 190, 220, 0.17);
@@ -44,6 +44,7 @@
   --bg-card-hover: #151a24;
   --bg-input: rgba(255, 255, 255, 0.03);
   --bg-input-strong: rgba(255, 255, 255, 0.05);
+  --popover-surface: #1e2227;
   /*
    * Search shell — mock left (focused): soft outer band, not a hard neon ring
    */
@@ -276,6 +277,7 @@
   --font-size-button: 13px;
   --font-size-logo: 15px;
   --font-size-price: 16px;
+  --font-size-price-sm: 20px;
   --font-size-price-md: 22px;
   --font-size-price-lg: 30px;
   --font-size-price-xl: 38px;

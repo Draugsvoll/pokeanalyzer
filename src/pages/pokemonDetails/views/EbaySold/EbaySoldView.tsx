@@ -645,15 +645,6 @@ export default function EbaySoldView({
         </div>
       </div>
       <div className="ebay-sold-view__results-region" aria-busy={filtering}>
-        {filtering && (
-          <div
-            aria-label="Filtering eBay listings"
-            className="ebay-sold-view__filter-overlay"
-            role="status"
-          >
-            <span className="loading-state__spinner" aria-hidden="true" />
-          </div>
-        )}
         <>
           {selectedResponseUnavailable ? (
             <p className="ebay-sold-view__state">

@@ -965,15 +965,33 @@ test("closes an embedded search from the results toolbar", async () => {
   expect(onClose).toHaveBeenCalledOnce();
 });
 
-test("keeps embedded card search independent from page URL search state", () => {
+test("switches product type inside embedded search without changing page URL search state", () => {
   render(
     <MemoryRouter initialEntries={["/card/card-1?mode=sealed&name=box"]}>
       <DatabaseSearch embedded />
+      <SearchHistoryControls />
     </MemoryRouter>,
   );
 
+  expect(screen.getByRole("radio", { name: "Singles" })).toBeChecked();
   expect(screen.getByRole("textbox", { name: "Pokemon name" })).toHaveValue("");
   expect(
     screen.queryByRole("textbox", { name: "Sealed product name" }),
   ).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("radio", { name: "Sealed" }));
+
+  expect(
+    screen.getByRole("textbox", { name: "Sealed product name" }),
+  ).toHaveFocus();
+  expect(screen.getByLabelText("Current search")).toHaveTextContent(
+    "?mode=sealed&name=box",
+  );
+
+  fireEvent.click(screen.getByRole("radio", { name: "Singles" }));
+
+  expect(screen.getByRole("textbox", { name: "Pokemon name" })).toHaveFocus();
+  expect(screen.getByLabelText("Current search")).toHaveTextContent(
+    "?mode=sealed&name=box",
+  );
 });

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
 import "./ProductTypeSwitch.scss";
 
@@ -10,11 +11,13 @@ export function ProductTypeSwitch({
   onChange: (value: ProductType) => void;
   value: ProductType;
 }) {
+  const name = useId();
+
   return (
     <SegmentedRadioGroup
       ariaLabel="Product type"
       className="product-type-switch"
-      name="product-type"
+      name={`product-type-${name}`}
       onChange={onChange}
       options={[
         { label: "Singles", value: "singles" },

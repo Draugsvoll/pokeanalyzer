@@ -1,7 +1,46 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, test } from "vitest";
-import { SealedProductView } from "./SealedProductView";
+import { beforeEach, expect, test, vi } from "vitest";
+import {
+  SealedProductPortfolioView,
+  SealedProductView,
+} from "./SealedProductView";
+
+const mocks = vi.hoisted(() => ({
+  auth: { loading: false, user: null as null | { uid: string } },
+  isItemSaved: vi.fn(() => false),
+  removeSealedFromPortfolio: vi.fn(),
+  saveSealedToPortfolio: vi.fn(),
+  updateSealedQuantity: vi.fn(),
+}));
+
+vi.mock("../../context/authContextValue", () => ({
+  useAuth: () => mocks.auth,
+}));
+
+vi.mock("../../context/portfolioCacheContextValue", () => ({
+  usePortfolioCache: () => ({
+    isItemSaved: mocks.isItemSaved,
+    loadingPortfolioReferences: false,
+    portfolioReferencesError: null,
+  }),
+}));
+
+vi.mock("../../hooks/sealedPortfolio", () => ({
+  useSealedPortfolio: () => ({
+    removeSealedFromPortfolio: mocks.removeSealedFromPortfolio,
+    saveSealedToPortfolio: mocks.saveSealedToPortfolio,
+    updateSealedQuantity: mocks.updateSealedQuantity,
+  }),
+}));
+
+beforeEach(() => {
+  mocks.auth.user = null;
+  mocks.isItemSaved.mockReset().mockReturnValue(false);
+  mocks.removeSealedFromPortfolio.mockReset();
+  mocks.saveSealedToPortfolio.mockReset().mockResolvedValue(true);
+  mocks.updateSealedQuantity.mockReset().mockResolvedValue(true);
+});
 
 test("renders the sealed product family and variant", () => {
   render(
@@ -49,4 +88,74 @@ test("replaces a broken product image with a clean fallback", () => {
   fireEvent.error(image!);
   expect(image).not.toBeInTheDocument();
   expect(screen.queryByText("Image unavailable")).not.toBeInTheDocument();
+});
+
+test("adds a sealed search result to the portfolio", async () => {
+  mocks.auth.user = { uid: "user-1" };
+  const product = {
+    id: "sealed-1",
+    name: "Base Set Booster Box",
+    setName: "Base Set",
+    productFamily: "booster_box",
+    currency: "USD",
+    price: 150,
+    priceSnapshots: { "1d": null, "7d": 125, "30d": null },
+  } as const;
+
+  const onPortfolioChanged = vi.fn();
+  render(
+    <MemoryRouter>
+      <SealedProductView
+        onPortfolioChanged={onPortfolioChanged}
+        product={product}
+      />
+    </MemoryRouter>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Add to portfolio" }));
+
+  await waitFor(() =>
+    expect(mocks.saveSealedToPortfolio).toHaveBeenCalledWith(product),
+  );
+  expect(onPortfolioChanged).toHaveBeenCalledWith(true);
+});
+
+test("updates a sealed product quantity through the shared portfolio controls", async () => {
+  const onQuantityUpdated = vi.fn();
+
+  render(
+    <MemoryRouter>
+      <SealedProductPortfolioView
+        comparisonPeriod="7d"
+        onQuantityUpdated={onQuantityUpdated}
+        product={{
+          currency: "USD",
+          id: "sealed-1",
+          name: "Base Set Booster Box",
+          price: 150,
+          priceSnapshots: { "1d": null, "7d": 125, "30d": null },
+          productFamily: "booster_box",
+          quantity: 2,
+          setName: "Base Set",
+          type: "sealed",
+        }}
+      />
+    </MemoryRouter>,
+  );
+
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Increase Base Set Booster Box quantity",
+    }),
+  );
+  expect(screen.getByRole("dialog")).toHaveTextContent("Quantity: 3");
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Apply quantity change" }),
+  );
+
+  await waitFor(() =>
+    expect(mocks.updateSealedQuantity).toHaveBeenCalledWith("sealed-1", 3),
+  );
+  expect(onQuantityUpdated).toHaveBeenCalledWith("sealed-1", 3);
 });

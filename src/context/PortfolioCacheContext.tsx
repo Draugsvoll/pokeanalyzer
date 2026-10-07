@@ -7,7 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./authContextValue";
-import { PortfolioContext } from "./portfolioCacheContextValue";
+import {
+  PortfolioContext,
+  portfolioReferenceKey,
+} from "./portfolioCacheContextValue";
 import { getPortfolioReferences } from "../services/portfolioApi";
 import type { PortfolioReference } from "../types/portfolio";
 import { logClientError } from "../utils/logClientError";
@@ -56,7 +59,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       setPortfolioReferencesError(null);
       setPortfolioState({
         uid: authUid,
-        references: new Map(entries.map((entry) => [entry.cardId, entry])),
+        references: new Map(
+          entries.map((entry) => [
+            portfolioReferenceKey(entry.type, entry.id),
+            entry,
+          ]),
+        ),
       });
     },
     [authUid],
@@ -123,7 +131,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         const next = new Map(
           current.uid === authUid ? current.references : undefined,
         );
-        next.set(entry.cardId, entry);
+        next.set(portfolioReferenceKey(entry.type, entry.id), entry);
         return { uid: authUid, references: next };
       });
       if (needsFullRefresh) void refreshPortfolioReferences();
@@ -132,7 +140,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   );
 
   const removePortfolioReference = useCallback(
-    (cardId: string) => {
+    (type: PortfolioReference["type"], id: string) => {
       if (!authUid || activeUidRef.current !== authUid) return;
 
       const needsFullRefresh = successfullyLoadedUidRef.current !== authUid;
@@ -141,7 +149,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         const next = new Map(
           current.uid === authUid ? current.references : undefined,
         );
-        next.delete(cardId);
+        next.delete(portfolioReferenceKey(type, id));
         return { uid: authUid, references: next };
       });
       if (needsFullRefresh) void refreshPortfolioReferences();
@@ -149,9 +157,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     [authUid, refreshPortfolioReferences],
   );
 
-  const isCardSaved = useCallback(
-    (cardId: string) => portfolioReferences.has(cardId),
+  const isItemSaved = useCallback(
+    (type: PortfolioReference["type"], id: string) =>
+      portfolioReferences.has(portfolioReferenceKey(type, id)),
     [portfolioReferences],
+  );
+  const isCardSaved = useCallback(
+    (cardId: string) => isItemSaved("single", cardId),
+    [isItemSaved],
   );
 
   useLayoutEffect(() => {
@@ -179,6 +192,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         replacePortfolioReferences,
         upsertPortfolioReference,
         removePortfolioReference,
+        isItemSaved,
         isCardSaved,
       }}
     >

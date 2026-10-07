@@ -3,6 +3,7 @@ import {
   type PokeTraceFilterOptions,
 } from "../../shared/pokeTraceFilterOptions";
 import { logClientError } from "../utils/logClientError";
+import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options?v=2`;
@@ -40,7 +41,10 @@ function loadStored() {
 
 function isFresh(cache: StoredFilterOptions, now: number) {
   const summariesAreUsable =
-    cache.options.setSummaries.length === cache.options.setNames.length;
+    cache.options.setSummaries.length === cache.options.setNames.length &&
+    cache.options.setSummaries.every(({ asOf }) =>
+      isPokeTraceSetSummaryFresh(asOf, now),
+    );
 
   return (
     cache.cachedAt <= now + MAX_CLOCK_SKEW_MS &&

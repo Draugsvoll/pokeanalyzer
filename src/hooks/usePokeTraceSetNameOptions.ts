@@ -3,10 +3,8 @@ import type { AutosuggestOption } from "../components/autosuggestCombobox/Autosu
 import { FALLBACK_POKETRACE_SET_NAMES } from "../data/pokeTraceSetNames";
 import { loadPokeTraceCatalogSetNames } from "../services/pokeTraceCatalog";
 import { loadPokeTraceFilterOptions } from "../services/pokeTraceFilterOptions";
+import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
 import type { PokeTraceSetSummary } from "../../shared/pokeTraceSetSummaries";
-
-const SET_SUMMARY_MAX_AGE_MS = 36 * 60 * 60 * 1_000;
-const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
 
 export type PokeTraceSetNameOption = AutosuggestOption & {
   setSummary?: PokeTraceSetSummary;
@@ -32,14 +30,7 @@ export function usePokeTraceSetNameOptions() {
       const now = Date.now();
       const freshSummaries = new Map(
         (filterOptions?.setSummaries ?? [])
-          .filter(({ asOf }) => {
-            const timestamp = Date.parse(asOf);
-            return (
-              Number.isFinite(timestamp) &&
-              timestamp <= now + MAX_CLOCK_SKEW_MS &&
-              now - timestamp < SET_SUMMARY_MAX_AGE_MS
-            );
-          })
+          .filter(({ asOf }) => isPokeTraceSetSummaryFresh(asOf, now))
           .map((summary) => [
             summary.setName.toLocaleLowerCase("en-US"),
             summary,

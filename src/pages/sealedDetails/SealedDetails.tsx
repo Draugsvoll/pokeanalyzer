@@ -1,5 +1,5 @@
-import { ExternalLink } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowUp, ExternalLink, Repeat2, Star } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   isPokeTraceSealedCatalogProduct,
@@ -9,7 +9,12 @@ import {
   type PokeTraceSealedMarketplacePricing,
 } from "../../../shared/pokeTraceSealed";
 import { Badge } from "../../components/ui/Badge";
+import Button from "../../components/button/Button";
 import { DetailsPage } from "../../components/detailsPage/DetailsPage";
+import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
+import { useAuth } from "../../context/authContextValue";
+import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
+import { useSealedPortfolio } from "../../hooks/sealedPortfolio";
 import {
   fetchSealedMarketPriceHistory,
   fetchSealedProduct,
@@ -171,7 +176,21 @@ function SealedPriceHistory({
 export default function SealedDetails() {
   const { id } = useParams();
   const location = useLocation();
+  const { user: authUser } = useAuth();
+  const { isItemSaved, loadingPortfolioReferences, portfolioReferencesError } =
+    usePortfolioCache();
+  const { saveSealedToPortfolio, removeSealedFromPortfolio } =
+    useSealedPortfolio();
+  const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+  const [sealedSearchProductId, setSealedSearchProductId] = useState<
+    string | null
+  >(null);
+  const sealedSearchTriggerRef = useRef<HTMLButtonElement>(null);
+  const showSealedSearch = Boolean(id && sealedSearchProductId === id);
+  const closeEmbeddedSearch = useCallback(() => {
+    setSealedSearchProductId(null);
+  }, []);
   const initialProduct = useMemo(
     () => navigationProduct(location.state, id),
     [id, location.state],
@@ -194,6 +213,36 @@ export default function SealedDetails() {
   const details = product && isPokeTraceSealedDetails(product) ? product : null;
   const tcgplayerPricing = details?.pricing.tcgplayer;
   const ebayPricing = details?.pricing.ebay;
+  const productIsSaved = product ? isItemSaved("sealed", product.id) : false;
+  const portfolioBusy =
+    updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
+  const portfolioUnavailable =
+    Boolean(authUser) && Boolean(portfolioReferencesError);
+
+  async function handlePortfolioToggle() {
+    if (
+      !product ||
+      updatingPortfolio ||
+      loadingPortfolioReferences ||
+      portfolioUnavailable
+    ) {
+      return;
+    }
+    setUpdatingPortfolio(true);
+    try {
+      if (productIsSaved) {
+        await removeSealedFromPortfolio(product.id, false);
+      } else {
+        await saveSealedToPortfolio(product);
+      }
+    } finally {
+      setUpdatingPortfolio(false);
+    }
+  }
+
+  function handleEmbeddedSearchToggle() {
+    setSealedSearchProductId(showSealedSearch ? null : (id ?? null));
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -282,28 +331,91 @@ export default function SealedDetails() {
         ) : undefined
       }
       media={
-        <div className="sealed-details__image-frame">
-          {product.image && failedImageSrc !== product.image && (
-            <img
-              alt={product.name}
-              onError={(event) => {
-                event.currentTarget.hidden = true;
-                setFailedImageSrc(product.image ?? null);
-              }}
-              src={product.image}
-            />
+        <>
+          <div className="sealed-details__image-frame">
+            {product.image && failedImageSrc !== product.image && (
+              <img
+                alt={product.name}
+                onError={(event) => {
+                  event.currentTarget.hidden = true;
+                  setFailedImageSrc(product.image ?? null);
+                }}
+                src={product.image}
+              />
+            )}
+          </div>
+          {authUser && (
+            <Button
+              aria-busy={portfolioBusy}
+              aria-label={
+                portfolioUnavailable
+                  ? "Portfolio is unavailable"
+                  : portfolioBusy
+                    ? "Updating portfolio"
+                    : productIsSaved
+                      ? "Remove from portfolio"
+                      : "Add to portfolio"
+              }
+              aria-pressed={productIsSaved}
+              disabled={portfolioBusy || portfolioUnavailable}
+              fullWidth
+              onClick={() => void handlePortfolioToggle()}
+              size="large"
+              variant="portfolio"
+            >
+              {portfolioBusy ? (
+                <span className="app-btn__spinner" aria-hidden="true" />
+              ) : (
+                <>
+                  <Star aria-hidden="true" />
+                  <span>Portfolio</span>
+                </>
+              )}
+            </Button>
           )}
-        </div>
+          <div className="sealed-details__change-product">
+            <Button
+              aria-expanded={showSealedSearch}
+              fill="ghost"
+              fullWidth
+              onClick={handleEmbeddedSearchToggle}
+              ref={sealedSearchTriggerRef}
+              size="large"
+            >
+              {showSealedSearch ? (
+                <>
+                  <ArrowUp size={16} strokeWidth={2.25} aria-hidden="true" />
+                  <span>Close</span>
+                </>
+              ) : (
+                <>
+                  <Repeat2 size={16} strokeWidth={2.25} aria-hidden="true" />
+                  <span>Next Sealed</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </>
       }
       notice={
         error ? <p className="sealed-details__notice">{error}</p> : undefined
       }
       title={product.name}
       titleMeta={
-        <Badge accent="neutral" size="sm">
-          {product.productFamily.replaceAll("_", " ")}
-        </Badge>
+        <span className="sealed-details__product-family-badge">
+          <Badge accent="neutral" size="md" weight="strong">
+            {product.productFamily.replaceAll("_", " ")}
+          </Badge>
+        </span>
       }
-    />
+    >
+      <EmbeddedCardSearchDialog
+        ariaLabel="Switch sealed product"
+        initialProductType="sealed"
+        isOpen={showSealedSearch}
+        onClose={closeEmbeddedSearch}
+        returnFocusRef={sealedSearchTriggerRef}
+      />
+    </DetailsPage>
   );
 }

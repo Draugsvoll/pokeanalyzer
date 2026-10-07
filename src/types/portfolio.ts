@@ -1,17 +1,29 @@
 import type { PokemonCard } from "./pokemon";
 import type { PriceChangePeriod } from "../../shared/priceChangePeriod";
+import type { PokeTraceSealedCatalogProduct } from "../../shared/pokeTraceSealed";
+
+export type PortfolioItemType = "single" | "sealed";
 
 export type PortfolioReference = {
-  cardId: string;
+  id: string;
+  type: PortfolioItemType;
   quantity: number;
 };
 
-export type PortfolioCard = PokemonCard & {
+export type PortfolioSingle = PokemonCard & {
   quantity: number;
   priceSnapshots?: Partial<
     Record<PortfolioComparisonPeriod, PortfolioPriceSnapshot>
   >;
+  type: "single";
 };
+
+export type PortfolioSealedProduct = PokeTraceSealedCatalogProduct & {
+  quantity: number;
+  type: "sealed";
+};
+
+export type PortfolioItem = PortfolioSingle | PortfolioSealedProduct;
 
 export type PortfolioComparisonPeriod = PriceChangePeriod;
 
@@ -26,11 +38,11 @@ export type PortfolioReferencesResponse = {
 };
 
 export type HydratedPortfolioResponse = PortfolioReferencesResponse & {
-  cards: PortfolioCard[];
-  missingCardIds: string[];
+  items: PortfolioItem[];
+  missingItems: PortfolioReference[];
 };
 
-export type AddPortfolioCardResponse = {
+export type AddPortfolioItemResponse = {
   created: boolean;
   entry: PortfolioReference;
 };

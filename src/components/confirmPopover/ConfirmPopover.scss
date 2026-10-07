@@ -1,6 +1,6 @@
 /* Shared popover surface — same chrome as the price Source radio panel */
 .ui-popover-surface {
-  background: var(--bg5);
+  background: var(--popover-surface);
   border: var(--border);
   border-radius: var(--border-radius);
   box-shadow: 0 0.65rem 1.4rem rgba(0, 0, 0, 0.38);

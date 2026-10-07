@@ -42,7 +42,7 @@ export function usePokemonPortfolio() {
 
     try {
       await removePortfolioCard(cardId, authUser.uid);
-      removePortfolioReference(cardId);
+      removePortfolioReference("single", cardId);
       return true;
     } catch (err) {
       logClientError("Failed to remove card", err);

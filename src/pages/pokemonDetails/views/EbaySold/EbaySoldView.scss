@@ -27,7 +27,8 @@
   }
 
   &__listing-toggle.segmented-radio-group {
-    --segment-group-accent: var(--ebay-accent);
+    --segment-group-accent: var(--font-color-secondary);
+
     display: flex;
     justify-self: center;
     width: fit-content;
@@ -167,26 +168,21 @@
   &__results-region {
     min-height: 8rem;
     position: relative;
-  }
 
-  &__filter-overlay {
-    align-items: flex-start;
-    backdrop-filter: blur(2px);
-    background: color-mix(in srgb, var(--bg) 86%, transparent);
-    border-radius: var(--border-radius);
-    display: flex;
-    inset: 0;
-    justify-content: center;
-    padding-top: 4rem;
-    position: absolute;
-    z-index: 5;
+    &[aria-busy="true"] {
+      .ebay-sold-view__results {
+        opacity: 0.87;
+        pointer-events: none;
+      }
 
-    .loading-state__spinner {
-      border-width: 3px;
-      height: 1.5rem;
-      position: sticky;
-      top: 4rem;
-      width: 1.5rem;
+      &::after {
+        background: color-mix(in srgb, var(--surface) 5%, transparent);
+        content: "";
+        inset: 0;
+        pointer-events: none;
+        position: absolute;
+        z-index: 2;
+      }
     }
   }
 

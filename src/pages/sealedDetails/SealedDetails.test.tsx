@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
@@ -10,6 +10,33 @@ import SealedDetails from "./SealedDetails";
 vi.mock("../../services/sealedApi", () => ({
   fetchSealedMarketPriceHistory: vi.fn(),
   fetchSealedProduct: vi.fn(),
+}));
+
+vi.mock("../../context/authContextValue", () => ({
+  useAuth: () => ({ loading: false, user: null }),
+}));
+
+vi.mock("../../context/portfolioCacheContextValue", () => ({
+  usePortfolioCache: () => ({
+    isItemSaved: () => false,
+    loadingPortfolioReferences: false,
+    portfolioReferencesError: null,
+  }),
+}));
+
+vi.mock("../../hooks/sealedPortfolio", () => ({
+  useSealedPortfolio: () => ({
+    removeSealedFromPortfolio: vi.fn(),
+    saveSealedToPortfolio: vi.fn(),
+  }),
+}));
+
+vi.mock("../../components/databaseSearch/DatabaseSearch", () => ({
+  DatabaseSearch: ({
+    initialProductType,
+  }: {
+    initialProductType?: "singles" | "sealed";
+  }) => <output aria-label="Initial product type">{initialProductType}</output>,
 }));
 
 const productId = "019bff85-5452-714a-9660-a3559a2d5d95";
@@ -99,6 +126,11 @@ test("renders stored sealed details with live graph data", async () => {
     name: "XY Booster Box",
   });
   expect(heading.closest(".details-page")).toHaveClass("sealed-details");
+  expect(screen.getByText("booster box").closest(".app-badge")).toHaveClass(
+    "app-badge--md",
+    "app-badge--accent-neutral",
+    "app-badge--weight-strong",
+  );
   expect(
     screen.getByRole("navigation", { name: "Breadcrumb" }),
   ).toBeInTheDocument();
@@ -127,4 +159,69 @@ test("renders stored sealed details with live graph data", async () => {
     "href",
     "https://www.tcgplayer.com/product/123",
   );
+});
+
+test("opens the embedded search with sealed selected", async () => {
+  vi.mocked(fetchSealedMarketPriceHistory).mockResolvedValue({
+    productId,
+    condition: "UNOPENED",
+    period: "90d",
+    currency: "USD",
+    fetchedAt: "2026-10-05T12:00:00.000Z",
+    stale: false,
+    series: {},
+  });
+  vi.mocked(fetchSealedProduct).mockResolvedValue({
+    id: productId,
+    name: "XY Booster Box",
+    setName: "XY Base Set",
+    productFamily: "booster_box",
+    currency: "USD",
+    price: 150,
+    priceSnapshots: { "1d": 145, "7d": 140, "30d": 125 },
+    marketplaceUrls: {},
+    pricing: {
+      tcgplayer: {
+        price: 150,
+        approxSaleCount: false,
+        average1d: 150,
+        average7d: 145,
+        average30d: 140,
+        high: 165,
+        lastUpdated: "2026-10-05T00:00:00.000Z",
+        low: 135,
+        median3d: null,
+        median7d: null,
+        median30d: null,
+        saleCount: 12,
+      },
+    },
+    refs: { cardmarketId: null, tcgplayerId: null },
+  });
+
+  render(
+    <MemoryRouter initialEntries={[`/sealed/${productId}`]}>
+      <Routes>
+        <Route element={<SealedDetails />} path="/sealed/:id" />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  const trigger = await screen.findByRole("button", { name: "Next Sealed" });
+  trigger.focus();
+  fireEvent.click(trigger);
+
+  expect(
+    await screen.findByRole("dialog", { name: "Switch sealed product" }),
+  ).toBeVisible();
+  expect(screen.getByLabelText("Initial product type")).toHaveTextContent(
+    "sealed",
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Close card search" }));
+
+  expect(
+    screen.queryByRole("dialog", { name: "Switch sealed product" }),
+  ).not.toBeInTheDocument();
+  await waitFor(() => expect(trigger).toHaveFocus());
 });

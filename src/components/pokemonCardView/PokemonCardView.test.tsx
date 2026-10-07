@@ -3,7 +3,7 @@ import { useState, type ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
-import type { PortfolioCard } from "../../types/portfolio";
+import type { PortfolioSingle } from "../../types/portfolio";
 import { PokemonCardPortfolioView, PokemonCardView } from "./PokemonCardView";
 
 vi.mock("../../context/authContextValue", () => ({
@@ -193,9 +193,21 @@ describe("PokemonCardView default price change", () => {
 
 describe("PokemonCardPortfolioView quantity dialog", () => {
   test("coordinates dialogs and preserves input-appropriate cancellation", async () => {
-    const cards: PortfolioCard[] = [
-      { ...card(), id: "card-1", name: "Pikachu", quantity: 1 },
-      { ...card(), id: "card-2", name: "Sylveon", quantity: 5 },
+    const cards: PortfolioSingle[] = [
+      {
+        ...card(),
+        id: "card-1",
+        name: "Pikachu",
+        quantity: 1,
+        type: "single",
+      },
+      {
+        ...card(),
+        id: "card-2",
+        name: "Sylveon",
+        quantity: 5,
+        type: "single",
+      },
     ];
 
     function QuantityGrid() {
@@ -245,7 +257,7 @@ describe("PokemonCardPortfolioView quantity dialog", () => {
     const sylveonIncrease = screen.getByRole("button", {
       name: "Increase Sylveon quantity",
     });
-    const sylveonCard = sylveonIncrease.closest(".pokemon-card-portfolio-view");
+    const sylveonCard = sylveonIncrease.closest(".portfolio-item-card");
     fireEvent.click(
       screen.getByRole("button", { name: "Cancel quantity change" }),
       { detail: 1 },
@@ -253,12 +265,12 @@ describe("PokemonCardPortfolioView quantity dialog", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(sylveonCard).toHaveClass(
-      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+      "portfolio-item-card--quantity-controls-dismissed",
     );
 
     fireEvent.pointerEnter(sylveonCard!);
     expect(sylveonCard).not.toHaveClass(
-      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+      "portfolio-item-card--quantity-controls-dismissed",
     );
 
     fireEvent.click(sylveonIncrease);
@@ -270,7 +282,7 @@ describe("PokemonCardPortfolioView quantity dialog", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(sylveonCard).not.toHaveClass(
-      "pokemon-card-portfolio-view--quantity-controls-dismissed",
+      "portfolio-item-card--quantity-controls-dismissed",
     );
     await waitFor(() => expect(sylveonIncrease).toHaveFocus());
   });
