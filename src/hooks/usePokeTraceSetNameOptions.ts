@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AutosuggestOption } from "../components/autosuggestCombobox/AutosuggestCombobox";
 import { FALLBACK_POKETRACE_SET_NAMES } from "../data/pokeTraceSetNames";
-import { loadPokeTraceCatalogSetNames } from "../services/pokeTraceCatalog";
 import { loadPokeTraceFilterOptions } from "../services/pokeTraceFilterOptions";
 import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
 import type { PokeTraceSetSummary } from "../../shared/pokeTraceSetSummaries";
@@ -21,10 +20,8 @@ export function usePokeTraceSetNameOptions() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      loadPokeTraceCatalogSetNames(),
-      loadPokeTraceFilterOptions(),
-    ]).then(([setNames, filterOptions]) => {
+    void loadPokeTraceFilterOptions().then((filterOptions) => {
+      const setNames = filterOptions?.setNames;
       if (!active || !setNames?.length) return;
 
       const now = Date.now();

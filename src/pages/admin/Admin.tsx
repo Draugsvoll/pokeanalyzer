@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import Button from "../../components/button/Button";
-import { useAuth } from "../../context/authContextValue";
-import { askGrok } from "../../utils/grok/grokClient";
-import {
-  generalNewsInput,
-  generalNewsInstructions,
-} from "../../utils/grok/grokPrompts";
-import "./Admin.scss";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/authContextValue";
+import "./Admin.scss";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -17,10 +11,6 @@ export default function Admin() {
     status: "checking" | "allowed" | "denied";
     uid: string | null;
   }>({ status: "checking", uid: null });
-  const [generatingNews, setGeneratingNews] = useState(false);
-  const [generatedNews, setGeneratedNews] = useState("");
-  const [newsMessage, setNewsMessage] = useState("");
-  const [newsError, setNewsError] = useState("");
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -28,145 +18,51 @@ export default function Admin() {
     const checkedUid = user.uid;
     const controller = new AbortController();
 
-    const checkAdminStatus = async () => {
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch(`${API_URL}/api/admin/check`, {
+    void user
+      .getIdToken()
+      .then((token) =>
+        fetch(`${API_URL}/api/admin/check`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
-        });
-
+        }),
+      )
+      .then((response) => {
         if (!controller.signal.aborted) {
           setAdminCheck({
-            status: res.ok ? "allowed" : "denied",
+            status: response.ok ? "allowed" : "denied",
             uid: checkedUid,
           });
         }
-      } catch {
+      })
+      .catch(() => {
         if (!controller.signal.aborted) {
           setAdminCheck({ status: "denied", uid: checkedUid });
         }
-      }
-    };
+      });
 
-    void checkAdminStatus();
     return () => controller.abort();
   }, [authLoading, user]);
 
-  const adminCheckMatchesUser = Boolean(user) && adminCheck.uid === user?.uid;
-  const checkingAdmin =
-    Boolean(user) &&
-    (!adminCheckMatchesUser || adminCheck.status === "checking");
-  const isAdmin = adminCheckMatchesUser && adminCheck.status === "allowed";
-
-  const generateNews = async () => {
-    if (generatingNews) return;
-
-    setGeneratingNews(true);
-    setGeneratedNews("");
-    setNewsMessage("");
-    setNewsError("");
-
-    const result = await askGrok("market_news", {
-      userInput: generalNewsInput,
-      instructions: generalNewsInstructions,
-    });
-
-    if (!result.ok) {
-      setNewsError(result.error);
-    } else {
-      setGeneratedNews(result.text);
-      setNewsMessage("Latest news generated successfully.");
-    }
-
-    setGeneratingNews(false);
-  };
-
-  const copyNews = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedNews);
-      setNewsError("");
-      setNewsMessage("JSON copied to clipboard.");
-    } catch {
-      setNewsMessage("");
-      setNewsError(
-        "Could not copy the JSON. Select the text and copy it manually.",
-      );
-    }
-  };
-
   if (authLoading) {
+    return <div className="admin-page admin-page--status">Loading…</div>;
+  }
+
+  if (!user) return <Navigate to="/" replace />;
+
+  const checking =
+    adminCheck.uid !== user.uid || adminCheck.status === "checking";
+  if (checking) {
     return (
-      <div className="admin-page admin-page--status">
-        <h1>Loading…</h1>
-      </div>
+      <div className="admin-page admin-page--status">Checking permissions…</div>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (checkingAdmin) {
-    return (
-      <div className="admin-page admin-page--status">
-        <h1>Checking permissions…</h1>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/" replace />;
-  }
+  if (adminCheck.status !== "allowed") return <Navigate to="/" replace />;
 
   return (
     <div className="admin-page">
-      <header className="admin-page__header">
-        <p className="admin-page__eyebrow">Admin</p>
-        <h1>Dashboard</h1>
-        <p className="admin-page__lead">
-          Admin tools for managing market news and site content.
-        </p>
-      </header>
-
-      <section
-        className="admin-page__tool default-container"
-        aria-labelledby="general-news-tool"
-      >
-        <div>
-          <h2 id="general-news-tool">Latest news</h2>
-          <p>Generate the latest market-news content shown on the homepage.</p>
-        </div>
-        <Button disabled={generatingNews} onClick={generateNews}>
-          {generatingNews ? "Generating..." : "Generate news"}
-        </Button>
-      </section>
-
-      {newsMessage && (
-        <p className="admin-page__message" role="status">
-          {newsMessage}
-        </p>
-      )}
-      {newsError && (
-        <p className="admin-page__error" role="alert">
-          {newsError}
-        </p>
-      )}
-
-      {generatedNews && (
-        <section
-          className="admin-page__output"
-          aria-labelledby="generated-news-heading"
-        >
-          <header className="admin-page__output-header">
-            <h2 id="generated-news-heading">Latest news JSON</h2>
-            <Button onClick={copyNews}>Copy JSON</Button>
-          </header>
-          <pre>
-            <code>{generatedNews}</code>
-          </pre>
-        </section>
-      )}
+      <p className="admin-page__eyebrow">Admin</p>
+      <h1>Dashboard</h1>
     </div>
   );
 }

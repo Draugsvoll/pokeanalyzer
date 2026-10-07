@@ -161,6 +161,9 @@ describe("Portfolio", () => {
     expect(gainerMetric).toHaveTextContent("$200.0025.0%7d");
     expect(gainerMetric).toHaveTextContent("4/102");
     expect(gainerMetric).toHaveTextContent("Charizard");
+    expect(
+      screen.getByText("Weakest performer").closest("article"),
+    ).toHaveTextContent("Charizard");
     expect(screen.getByText("Portfolio card: Charizard")).toBeVisible();
     const topHoldingMetric = screen.getByText("Top holding").closest("article");
     expect(topHoldingMetric).not.toBeNull();
@@ -327,7 +330,12 @@ describe("Portfolio", () => {
     renderPortfolio();
 
     await screen.findAllByText("$200.00");
-    for (const label of ["Collection value", "Biggest gainer", "Top holding"]) {
+    for (const label of [
+      "Collection value",
+      "Biggest gainer",
+      "Weakest performer",
+      "Top holding",
+    ]) {
       const metric = screen.getByText(label).closest("article");
       expect(metric).not.toBeNull();
       expect(
@@ -376,7 +384,11 @@ describe("Portfolio", () => {
     await screen.findByText("Biggest gainer");
 
     const biggestGainer = screen.getByText("Biggest gainer").closest("article");
+    const weakestPerformer = screen
+      .getByText("Weakest performer")
+      .closest("article");
     expect(biggestGainer).toHaveTextContent("Blastoise");
+    expect(weakestPerformer).toHaveTextContent("Charizard");
     expect(
       biggestGainer!.querySelector(".app-price-change__period"),
     ).toHaveTextContent("7d");
@@ -386,7 +398,15 @@ describe("Portfolio", () => {
     expect(
       screen.getByText("Biggest gainer").closest("article"),
     ).toHaveTextContent("Charizard");
-    for (const label of ["Collection value", "Biggest gainer", "Top holding"]) {
+    expect(
+      screen.getByText("Weakest performer").closest("article"),
+    ).toHaveTextContent("Blastoise");
+    for (const label of [
+      "Collection value",
+      "Biggest gainer",
+      "Weakest performer",
+      "Top holding",
+    ]) {
       const metric = screen.getByText(label).closest("article");
       expect(metric).not.toBeNull();
       expect(

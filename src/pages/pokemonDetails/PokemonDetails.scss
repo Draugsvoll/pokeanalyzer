@@ -42,7 +42,7 @@
     font-size: var(--font-size-caption);
     line-height: var(--font-leading-normal);
     margin-bottom: var(--space-4);
-    padding: 1.3rem;
+    padding: 1rem;
     text-align: center;
     width: 100%;
   }
@@ -473,7 +473,7 @@
     gap: var(--module-gap, var(--space-4));
     max-width: 100%;
     width: 100%;
-    margin-top: var(--space-4);
+    margin-top: var(--space-3);
 
     .default-container > :is(h2, h3) {
       text-align: center;

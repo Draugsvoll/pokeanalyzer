@@ -35,7 +35,6 @@ export type CreditUsageFeature =
   | "worth_grading"
   | "card_identification"
   | "authenticity_check"
-  | "market_news"
   | "manual_test";
 
 export type PaidFeatureResponse<T> = {

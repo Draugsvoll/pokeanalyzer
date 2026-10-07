@@ -8,10 +8,7 @@ import { logClientError } from "../../utils/logClientError";
 import { GridView } from "../gridView/GridView";
 import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
 import { SearchHero } from "../searchHero/SearchHero";
-import {
-  loadPokeTraceCatalogRarities,
-  searchCachedPokeTraceCatalog,
-} from "../../services/pokeTraceCatalog";
+import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions";
 import { SearchResultsToolbar } from "./SearchResultsToolbar";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import {
@@ -286,7 +283,8 @@ export function DatabaseSearchBar({
     isSearching || !canSearch || !hasSearchCriteria || !!priceFilterValidation;
   useEffect(() => {
     let active = true;
-    void loadPokeTraceCatalogRarities().then((rarities) => {
+    void loadPokeTraceFilterOptions().then((filterOptions) => {
+      const rarities = filterOptions?.rarities;
       if (!active || !rarities?.length) return;
       setRarityOptions([
         { value: "", label: "Any" },
@@ -570,29 +568,15 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       if (condition) params.set("condition", condition);
       const serverQuery = params.toString();
 
-      const catalogSearch = {
-        pokemonName: trimmedPokemonName,
-        setName: trimmedSetName,
-        cardNumber: trimmedCardNumber,
-        minPrice,
-        maxPrice,
-        rarity,
-        ...(search.setNameExact && { setNameExact: true }),
-        ...(condition && { condition }),
-      };
-      const localResults = await searchCachedPokeTraceCatalog(catalogSearch);
+      const serverResponse = await fetchServerSearch(
+        serverQuery,
+        requestController.signal,
+      );
       if (requestId !== searchRequestIdRef.current) return;
-      const serverResponse =
-        localResults !== null
-          ? null
-          : await fetchServerSearch(serverQuery, requestController.signal);
-      if (requestId !== searchRequestIdRef.current) return;
-      const data = localResults ?? serverResponse?.items ?? [];
+      const data = serverResponse.items;
 
       setResults(data);
-      setTotalResultCount(
-        localResults !== null ? data.length : (serverResponse?.total ?? 0),
-      );
+      setTotalResultCount(serverResponse.total);
       setActiveCondition(condition);
       setSortDirection(nextSortDirection);
       setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);

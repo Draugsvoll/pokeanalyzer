@@ -3,12 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { usePokeTraceSetNameOptions } from "./usePokeTraceSetNameOptions";
 
 const mocks = vi.hoisted(() => ({
-  loadPokeTraceCatalogSetNames: vi.fn(),
   loadPokeTraceFilterOptions: vi.fn(),
-}));
-
-vi.mock("../services/pokeTraceCatalog", () => ({
-  loadPokeTraceCatalogSetNames: mocks.loadPokeTraceCatalogSetNames,
 }));
 
 vi.mock("../services/pokeTraceFilterOptions", () => ({
@@ -28,8 +23,6 @@ const summary = {
 
 beforeEach(() => {
   vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-03T02:00:00.000Z"));
-  mocks.loadPokeTraceCatalogSetNames.mockReset();
-  mocks.loadPokeTraceCatalogSetNames.mockResolvedValue(["Test Set"]);
   mocks.loadPokeTraceFilterOptions.mockReset();
   mocks.loadPokeTraceFilterOptions.mockResolvedValue({
     schemaVersion: 2,

@@ -170,6 +170,8 @@ export function getPortfolioStats(
   let pricedAssets = 0;
   let biggestGainer: (PortfolioFeaturedMetric & { change: number }) | null =
     null;
+  let weakestPerformer: (PortfolioFeaturedMetric & { change: number }) | null =
+    null;
   let topHolding: PortfolioFeaturedMetric | null = null;
   const valueCurrency = items
     .map((item) =>
@@ -201,6 +203,12 @@ export function getPortfolioStats(
       if (change != null && (!biggestGainer || change > biggestGainer.change)) {
         biggestGainer = { item, change, value: holdingValue };
       }
+      if (
+        change != null &&
+        (!weakestPerformer || change < weakestPerformer.change)
+      ) {
+        weakestPerformer = { item, change, value: holdingValue };
+      }
       if (comparisonPrice != null && comparisonPrice > 0) {
         comparableCurrentValue += holdingValue;
         comparablePreviousValue += comparisonPrice * quantity;
@@ -216,6 +224,7 @@ export function getPortfolioStats(
 
   return {
     biggestGainer,
+    weakestPerformer,
     changePercent,
     excludedCurrencyAssets,
     pricedAssets,

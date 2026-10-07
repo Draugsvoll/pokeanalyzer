@@ -384,6 +384,13 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             unavailableLabel="Price change unavailable"
           />
           <FeaturedAssetMetric
+            key={`weakest:${stats.weakestPerformer?.item.type ?? "none"}:${stats.weakestPerformer?.item.id ?? "none"}:${stats.weakestPerformer?.value ?? "none"}:${changePeriod}:${stats.weakestPerformer?.change ?? "none"}`}
+            item={stats.weakestPerformer}
+            label="Weakest performer"
+            period={changePeriod}
+            unavailableLabel="Price change unavailable"
+          />
+          <FeaturedAssetMetric
             key={`top:${stats.topHolding?.item.type ?? "none"}:${stats.topHolding?.item.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.item) : 0}:${changePeriod}:${stats.topHolding?.change ?? "none"}`}
             item={stats.topHolding}
             label="Top holding"

@@ -37,7 +37,6 @@ const ALLOWED_IMAGE_PREFIXES = [
 const ALLOWED_GROK_FEATURES = new Set([
   "collector_analysis",
   "market_analysis",
-  "market_news",
   "manual_test",
   "worth_grading",
 ]);
@@ -152,10 +151,6 @@ router.post("/", async (req: Request, res: Response) => {
     const uid = getAuthenticatedUid(res);
     const clientUserInput =
       typeof req.body?.userInput === "string" ? req.body.userInput.trim() : "";
-    const requestedInstructions =
-      typeof req.body?.instructions === "string"
-        ? req.body.instructions.trim()
-        : undefined;
     const feature =
       typeof req.body?.feature === "string" ? req.body.feature.trim() : "";
 
@@ -163,14 +158,8 @@ router.post("/", async (req: Request, res: Response) => {
       throw new CreditHttpError("Invalid AI feature", 400);
     }
 
-    const adminUid = process.env.ADMIN_UID?.trim();
-    if (feature === "market_news" && (!adminUid || uid !== adminUid)) {
-      throw new CreditHttpError("Admin access required", 403);
-    }
-
     let resolvedUserInput = clientUserInput;
-    let instructions =
-      feature === "market_news" ? requestedInstructions : undefined;
+    let instructions: string | undefined;
     let grokOptions: CardAnalysisGrokOptions = {};
     let cardGrokTarget: { cardId: string; storageKey: string } | null = null;
     const cardGrokFeature = getCardGrokFeature(feature);
@@ -222,13 +211,6 @@ router.post("/", async (req: Request, res: Response) => {
     if (!resolvedUserInput) {
       throw new CreditHttpError("userInput is required", 400);
     }
-    if (feature === "market_news" && !instructions) {
-      throw new CreditHttpError(
-        "instructions are required for market news",
-        400,
-      );
-    }
-
     const result = await runPaidFeature(
       uid,
       feature,
@@ -241,11 +223,18 @@ router.post("/", async (req: Request, res: Response) => {
           });
         }
 
+        const cardInstructions = instructions;
+        if (!cardInstructions) {
+          throw new CreditHttpError(
+            "Card analysis instructions are missing",
+            500,
+          );
+        }
         const storedResponse = await requestAndSaveCardAnalysis({
           cardId: cardGrokTarget.cardId,
           feature,
           grokOptions,
-          instructions,
+          instructions: cardInstructions,
           signal,
           storageKey: cardGrokTarget.storageKey,
           userInput: resolvedUserInput,

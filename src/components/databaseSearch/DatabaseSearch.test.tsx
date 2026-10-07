@@ -1,32 +1,18 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
 import { DatabaseSearch } from "./DatabaseSearch";
 
 const mocks = vi.hoisted(() => ({
-  loadPokeTraceCatalogRarities: vi.fn(),
-  loadPokeTraceCatalogSetNames: vi.fn(),
   loadPokeTraceFilterOptions: vi.fn(),
-  searchCachedPokeTraceCatalog: vi.fn(),
+  searchResponse: vi.fn(),
   fetchSealedFilterOptions: vi.fn(),
   searchSealedProducts: vi.fn(),
 }));
 
 vi.mock("../../services/pokeTraceFilterOptions", () => ({
   loadPokeTraceFilterOptions: mocks.loadPokeTraceFilterOptions,
-}));
-
-vi.mock("../../services/pokeTraceCatalog", () => ({
-  loadPokeTraceCatalogRarities: mocks.loadPokeTraceCatalogRarities,
-  loadPokeTraceCatalogSetNames: mocks.loadPokeTraceCatalogSetNames,
-  searchCachedPokeTraceCatalog: mocks.searchCachedPokeTraceCatalog,
 }));
 
 vi.mock("../../services/sealedApi", () => ({
@@ -108,14 +94,36 @@ function SearchHistoryControls() {
 }
 
 beforeEach(() => {
-  mocks.loadPokeTraceCatalogRarities.mockReset();
-  mocks.loadPokeTraceCatalogRarities.mockResolvedValue(null);
-  mocks.loadPokeTraceCatalogSetNames.mockReset();
-  mocks.loadPokeTraceCatalogSetNames.mockResolvedValue(null);
   mocks.loadPokeTraceFilterOptions.mockReset();
   mocks.loadPokeTraceFilterOptions.mockResolvedValue(null);
-  mocks.searchCachedPokeTraceCatalog.mockReset();
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReset();
+  mocks.searchResponse.mockReturnValue(null);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (!url.pathname.endsWith("/api/cards/search")) {
+        return { json: async () => ({}), ok: true } as Response;
+      }
+      const params = url.searchParams;
+      const results = await mocks.searchResponse({
+        cardNumber: params.get("cardNumber") ?? "",
+        condition: params.get("condition") ?? "",
+        maxPrice: params.has("maxPrice")
+          ? Number(params.get("maxPrice"))
+          : undefined,
+        minPrice: params.has("minPrice")
+          ? Number(params.get("minPrice"))
+          : undefined,
+        pokemonName: params.get("pokemonName") ?? "",
+        rarity: params.get("rarity") ?? "",
+        setName: params.get("setName") ?? "",
+        ...(params.get("setNameExact") === "true" && { setNameExact: true }),
+      });
+      const items = results ?? [];
+      return { json: async () => serverResponse(items), ok: true } as Response;
+    }),
+  );
   mocks.fetchSealedFilterOptions.mockReset();
   mocks.fetchSealedFilterOptions.mockResolvedValue({
     productFamilies: [],
@@ -219,7 +227,7 @@ test("uses inline filter labels and defaults condition to Near Mint", () => {
 });
 
 test("stores Singles criteria in the URL and restores searches on Back", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockImplementation(
+  mocks.searchResponse.mockImplementation(
     ({ pokemonName }: { pokemonName: string }) => [
       card(`card-${pokemonName}`, `${pokemonName} result`),
     ],
@@ -259,7 +267,7 @@ test("stores Singles criteria in the URL and restores searches on Back", async (
 });
 
 test("writes every submitted Singles filter to the URL", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
+  mocks.searchResponse.mockReturnValue([]);
   render(
     <MemoryRouter>
       <DatabaseSearch />
@@ -307,14 +315,11 @@ test("writes every submitted Singles filter to the URL", async () => {
   });
 });
 
-test("uses the browser catalog without calling the search API", async () => {
-  let resolveCatalogRead!: (cards: PokemonCard[]) => void;
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(
-    new Promise<PokemonCard[]>((resolve) => {
-      resolveCatalogRead = resolve;
-    }),
-  );
-  const fetchMock = vi.fn();
+test("shows server search results", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () => serverResponse([card("card-api", "API Charizard")]),
+    ok: true,
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -324,19 +329,16 @@ test("uses the browser catalog without calling the search API", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(screen.getByLabelText("Searching")).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalled();
-  await act(async () => {
-    resolveCatalogRead([card("card-local", "Local Charizard")]);
-  });
-  expect(await screen.findByText("Local Charizard")).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(await screen.findByText("API Charizard")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
-test("suggests matching rarity options from the browser catalog", async () => {
-  mocks.loadPokeTraceCatalogRarities.mockResolvedValue([
-    "Future Rare",
-    "Holo Rare",
-  ]);
+test("suggests matching rarity options from filter options", async () => {
+  mocks.loadPokeTraceFilterOptions.mockResolvedValue({
+    rarities: ["Future Rare", "Holo Rare"],
+    setNames: [],
+    setSummaries: [],
+  });
   renderSearch();
 
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
@@ -358,11 +360,11 @@ test("suggests matching rarity options from the browser catalog", async () => {
 });
 
 test("marks a suggested set name as an exact catalog match", async () => {
-  mocks.loadPokeTraceCatalogSetNames.mockResolvedValue([
-    "Base Set",
-    "Base Set 2",
-  ]);
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.loadPokeTraceFilterOptions.mockResolvedValue({
+    rarities: [],
+    setNames: ["Base Set", "Base Set 2"],
+    setSummaries: [],
+  });
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () => serverResponse([]),
     ok: true,
@@ -383,16 +385,6 @@ test("marks a suggested set name as an exact catalog match", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("No cards found.")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
-    cardNumber: "",
-    condition: "NEAR_MINT",
-    maxPrice: undefined,
-    minPrice: undefined,
-    pokemonName: "",
-    rarity: "",
-    setName: "Base Set",
-    setNameExact: true,
-  });
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
@@ -411,7 +403,7 @@ test("keeps static set suggestions when filter options are unavailable", async (
 });
 
 test("keeps a typed set name as a partial match", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
+  mocks.searchResponse.mockReturnValue([]);
   renderSearch();
 
   fireEvent.change(screen.getByRole("combobox", { name: "Set name" }), {
@@ -420,7 +412,7 @@ test("keeps a typed set name as a partial match", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("No cards found.")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
+  expect(mocks.searchResponse).toHaveBeenCalledWith({
     cardNumber: "",
     condition: "NEAR_MINT",
     maxPrice: undefined,
@@ -431,8 +423,8 @@ test("keeps a typed set name as a partial match", async () => {
   });
 });
 
-test("falls back to the search API when the browser catalog is unavailable", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+test("shows API search results", async () => {
+  mocks.searchResponse.mockReturnValue(null);
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () => serverResponse([card("card-api", "API Charizard")]),
     ok: true,
@@ -452,8 +444,8 @@ test("falls back to the search API when the browser catalog is unavailable", asy
   );
 });
 
-test("uses the server while browser catalog initialization continues", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+test("uses the server search endpoint", async () => {
+  mocks.searchResponse.mockReturnValue(null);
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () => serverResponse([card("card-api", "API Charizard")]),
     ok: true,
@@ -471,7 +463,7 @@ test("uses the server while browser catalog initialization continues", async () 
 });
 
 test("aborts an active server search when the component unmounts", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReturnValue(null);
   let requestSignal: AbortSignal | undefined;
   const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
     requestSignal = init?.signal ?? undefined;
@@ -500,7 +492,7 @@ test("aborts an active server search when the component unmounts", async () => {
 });
 
 test("distinguishes an empty search from a failed request", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
+  mocks.searchResponse.mockReturnValue([]);
   const { unmount } = renderSearch();
 
   fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
@@ -512,7 +504,7 @@ test("distinguishes an empty search from a failed request", async () => {
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
   unmount();
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReturnValue(null);
   const fetchMock = vi
     .fn()
     .mockResolvedValue({ json: async () => [], ok: false, status: 503 });
@@ -537,7 +529,7 @@ test("distinguishes an empty search from a failed request", async () => {
 });
 
 test("loads every match and reveals results 50 at a time", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(
+  mocks.searchResponse.mockReturnValue(
     Array.from({ length: 51 }, (_, index) =>
       pricedCard(`card-${index + 1}`, `Card ${index + 1}`, 51 - index),
     ),
@@ -551,7 +543,7 @@ test("loads every match and reveals results 50 at a time", async () => {
 
   expect(await screen.findByText("Card 50")).toBeInTheDocument();
   expect(screen.queryByText("Card 51")).not.toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
+  expect(mocks.searchResponse).toHaveBeenCalledWith({
     cardNumber: "",
     condition: "NEAR_MINT",
     maxPrice: undefined,
@@ -570,7 +562,7 @@ test("loads every match and reveals results 50 at a time", async () => {
 });
 
 test("reveals server fallback results 50 at a time", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReturnValue(null);
   const serverResults = Array.from({ length: 51 }, (_, index) =>
     pricedCard(`server-${index + 1}`, `Server Card ${index + 1}`, 51 - index),
   );
@@ -599,12 +591,15 @@ test("reveals server fallback results 50 at a time", async () => {
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-test("sorts a local search without making another request", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
-    pricedCard("low-card", "Low Card", 10),
-    pricedCard("high-card", "High Card", 20),
-  ]);
-  const fetchMock = vi.fn();
+test("sorts server search results without making another request", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () =>
+      serverResponse([
+        pricedCard("low-card", "Low Card", 10),
+        pricedCard("high-card", "High Card", 20),
+      ]),
+    ok: true,
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -651,8 +646,7 @@ test("sorts a local search without making another request", async () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy(),
   );
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("sorts local results by card number", async () => {
@@ -660,7 +654,7 @@ test("sorts local results by card number", async () => {
   cardTen.number = "10";
   const cardTwo = card("card-2", "Card 2");
   cardTwo.number = "2";
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([cardTen, cardTwo]);
+  mocks.searchResponse.mockReturnValue([cardTen, cardTwo]);
   renderSearch();
 
   fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
@@ -680,11 +674,11 @@ test("sorts local results by card number", async () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy(),
   );
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
+  expect(mocks.searchResponse).toHaveBeenCalledTimes(1);
 });
 
 test("sorts server results by 7-day percentage change without refetching", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockResolvedValue(null);
+  mocks.searchResponse.mockResolvedValue(null);
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () =>
       serverResponse([
@@ -727,7 +721,7 @@ test("sorts server results by 7-day percentage change without refetching", async
 });
 
 test("keeps results closed after sorting locally", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+  mocks.searchResponse.mockReturnValue([
     card("card-10", "Card 10"),
     card("card-2", "Card 2"),
   ]);
@@ -747,11 +741,11 @@ test("keeps results closed after sorting locally", async () => {
   expect(screen.queryByText("Card 2")).not.toBeInTheDocument();
 });
 
-test("keeps the original result set while changing sort", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
-    card("card-10", "Card 10"),
-  ]);
-  const fetchMock = vi.fn();
+test("keeps the original server result set while changing sort", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () => serverResponse([card("card-10", "Card 10")]),
+    ok: true,
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -765,12 +759,11 @@ test("keeps the original result set while changing sort", async () => {
   fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
 
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("does not request the server again when server results are sorted", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReturnValue(null);
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () =>
       serverResponse([
@@ -802,7 +795,7 @@ test("does not request the server again when server results are sorted", async (
 });
 
 test("supports filter-only searches and forwards the filters", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue(null);
+  mocks.searchResponse.mockReturnValue(null);
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () =>
       serverResponse([card("filtered-card", "Filtered Charizard")]),
@@ -823,28 +816,21 @@ test("supports filter-only searches and forwards the filters", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("Filtered Charizard")).toBeInTheDocument();
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
-    cardNumber: "",
-    condition: "NEAR_MINT",
-    maxPrice: 100,
-    minPrice: 25,
-    pokemonName: "",
-    rarity: "Holo Rare",
-    setName: "",
-  });
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/search?minPrice=25&maxPrice=100&rarity=Holo+Rare&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
 });
 
-test("uses the local catalog and selected TCGPlayer price for condition searches", async () => {
+test("uses the selected TCGPlayer price for condition searches", async () => {
   const lightlyPlayedCard = card("condition-card", "Played Charizard");
   lightlyPlayedCard.pokeTrace.prices = {
     tcgplayer: { LIGHTLY_PLAYED: { avg: 30 } },
   };
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([lightlyPlayedCard]);
-  const fetchMock = vi.fn();
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () => serverResponse([lightlyPlayedCard]),
+    ok: true,
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -857,16 +843,7 @@ test("uses the local catalog and selected TCGPlayer price for condition searches
   expect(screen.getByText("Played Charizard").parentElement).toHaveTextContent(
     "Lightly Played 30",
   );
-  expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledWith({
-    cardNumber: "",
-    condition: "LIGHTLY_PLAYED",
-    maxPrice: undefined,
-    minPrice: undefined,
-    pokemonName: "",
-    rarity: "",
-    setName: "",
-  });
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("uses the server fallback when local condition search is unavailable", async () => {
@@ -897,9 +874,11 @@ test("uses the server fallback when local condition search is unavailable", asyn
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
-test("does not use the server when a local condition search has no matches", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
-  const fetchMock = vi.fn();
+test("shows an empty state when a condition search has no matches", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () => serverResponse([]),
+    ok: true,
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderSearch();
 
@@ -909,11 +888,11 @@ test("does not use the server when a local condition search has no matches", asy
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("No cards found.")).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("prevents a search when the minimum price exceeds the maximum", () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([]);
+  mocks.searchResponse.mockReturnValue([]);
   renderSearch();
 
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
@@ -943,7 +922,7 @@ test("prevents a search when the minimum price exceeds the maximum", () => {
 });
 
 test("closes an embedded search from the results toolbar", async () => {
-  mocks.searchCachedPokeTraceCatalog.mockReturnValue([
+  mocks.searchResponse.mockReturnValue([
     card("card-local", "Local Charizard"),
   ]);
   const onClose = vi.fn();

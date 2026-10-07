@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./Layout";
 import Homepage from "./pages/homepage/Homepage";
 import NotFound from "./pages/notfound/NotFound";
-import { initializePokeTraceCatalog } from "./services/pokeTraceCatalog";
 
 const Search = lazy(() => import("./pages/search/Search"));
 const SetExplorer = lazy(() => import("./pages/set/Set"));
@@ -39,10 +38,6 @@ function withRouteLoader(children: ReactNode) {
 }
 
 export default function App() {
-  useEffect(() => {
-    void initializePokeTraceCatalog();
-  }, []);
-
   return (
     <Routes>
       <Route path="/" element={<Layout />}>

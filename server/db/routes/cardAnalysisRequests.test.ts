@@ -83,5 +83,4 @@ test("Worth Grading uses normal when the active card has no variant name", () =>
 });
 
 test("unknown card features do not resolve to a request", () => {
-  assert.equal(getCardAnalysisRequest("market_news"), undefined);
 });

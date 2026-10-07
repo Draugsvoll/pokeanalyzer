@@ -56,6 +56,11 @@ describe("portfolio utilities", () => {
         change: 25,
         value: 200,
       },
+      weakestPerformer: {
+        item: cards[1],
+        change: 0,
+        value: 50,
+      },
       changePercent: (40 / 210) * 100,
       pricedAssets: 3,
       singleAssets: 6,
@@ -77,6 +82,10 @@ describe("portfolio utilities", () => {
       getPortfolioStats([down, smallGain, biggestGain, unavailable], "7d")
         .biggestGainer,
     ).toEqual({ item: biggestGain, change: 50, value: 150 });
+    expect(
+      getPortfolioStats([down, smallGain, biggestGain, unavailable], "7d")
+        .weakestPerformer,
+    ).toEqual({ item: down, change: -10, value: 90 });
     expect(getPortfolioStats([down, unavailable], "7d").biggestGainer).toEqual({
       item: down,
       change: -10,

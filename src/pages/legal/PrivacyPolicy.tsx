@@ -68,10 +68,10 @@ export default function PrivacyPolicy() {
       <section>
         <h2>Browser storage</h2>
         <p>
-          {SITE_NAME} uses local browser storage and IndexedDB to retain public
-          card catalogues, market categories, session information, and other
-          data that improves speed and continuity. Clearing site data in your
-          browser removes these local copies.
+          {SITE_NAME} uses local browser storage to retain market categories,
+          session information, and other data that improves speed and
+          continuity. Clearing site data in your browser removes these local
+          copies.
         </p>
       </section>
 

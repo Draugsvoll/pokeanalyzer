@@ -2,11 +2,16 @@
   margin: 0 auto var(--space-3);
   width: fit-content;
 
+  .segmented-radio-group {
+    padding: 0.24rem;
+  }
+
   .segmented-radio-group__option {
-    min-width: 4.5rem;
+    min-width: 4.75rem;
   }
 
   .segmented-radio-group__option > span {
     font-size: var(--font-size-label);
+    padding: 0.34rem 0.58rem;
   }
 }

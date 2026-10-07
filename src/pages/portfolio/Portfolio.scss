@@ -51,6 +51,14 @@
     white-space: nowrap;
   }
 
+  @media (min-width: 64.0625rem) {
+    &__summary {
+      grid-template-columns:
+        minmax(min-content, 1.2fr) minmax(min-content, 0.7fr)
+        repeat(3, fit-content(24rem));
+    }
+  }
+
   &__notice {
     align-items: center;
     background: color-mix(in srgb, var(--custom-color-orange) 7%, transparent);

@@ -25,6 +25,11 @@
     gap: 1.15rem;
   }
 
+  &__variant-selector.variant-badge-group label > span {
+    min-width: 0;
+    padding: 0.5rem 0.95rem;
+  }
+
   &__details {
     display: grid;
     gap: var(--card-view-section-gap);
