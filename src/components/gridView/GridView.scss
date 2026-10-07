@@ -22,7 +22,7 @@
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--font-color-faint);
+  color: var(--font-color-secondary);
   cursor: pointer;
   display: flex;
   inset: -0.25rem 0 0;
@@ -32,7 +32,7 @@
   z-index: 1;
 
   &:hover {
-    color: var(--font-color-secondary);
+    color: var(--font-color-primary);
   }
 
   &:focus-visible {

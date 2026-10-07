@@ -5,7 +5,7 @@
 
 .set-category-grid {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-5);
   min-width: 0;
   padding-top: var(--space-5);
   width: 100%;
@@ -265,11 +265,11 @@
 }
 
 .set-category-grid__set-name {
-  color: var(--font-color-secondary-strong);
+  color: var(--font-color-secondary);
   display: -webkit-box;
   line-height: var(--font-leading-snug);
   min-width: 0;
-  font-size: var(--font-size-paragraph-sm);
+  font-size: var(--font-size-paragraph);
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

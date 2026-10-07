@@ -3,12 +3,12 @@
    ========================================================================== */
 
 :root {
-  --bg: #0a0c12;
-  --bg2: #0f141d;
+  --bg: #0c1017;
+  --bg2: #111721;
   --surface: #131a25;
   --surface2: #182230;
   --surface3: #202c3c;
-  --surface4: #0d1219;
+  --surface4: #0e141c;
   --border-color: rgba(170, 190, 220, 0.09);
   --card-border-color: rgba(170, 190, 220, 0.12);
   --border-color-strong: rgba(170, 190, 220, 0.17);
@@ -77,7 +77,7 @@
   --border: 1px solid var(--border-color);
   --border-hover: 1px solid var(--border-color-strong);
   --border-subtle: 1px solid var(--border-color);
-  --border-divider: var(--border-color);
+  --border-divider: rgba(170, 190, 220, 0.11);
 
   /* ----- Spacing (4px grid — use only these) ----- */
   --space-1: 4px;

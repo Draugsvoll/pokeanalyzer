@@ -14,11 +14,11 @@
   }
 
   .welcome-view + &__features {
-    margin-top: var(--space-9);
+    margin-top: var(--space-7);
   }
 
   .welcome-view + .card-category-grid {
-    margin-top: var(--space-8);
+    margin-top: var(--space-6);
   }
 
   &__features + .card-category-grid {
@@ -26,7 +26,7 @@
   }
 
   .card-category-grid + .news-lane {
-    margin-top: var(--space-10);
+    margin-top: var(--space-9);
   }
 
   .explore-page {

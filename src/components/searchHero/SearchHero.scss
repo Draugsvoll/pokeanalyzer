@@ -2,7 +2,7 @@
   display: grid;
   justify-items: center;
   overflow: visible;
-  padding: 1.5rem 0 0;
+  padding-top: 1rem;
   position: relative;
   text-align: center;
   width: 100%;
@@ -38,10 +38,6 @@
     z-index: 1;
   }
 
-  @media (min-width: 90rem) {
-    padding-top: var(--space-8);
-  }
-
   @media (max-width: 64rem) {
     &__title {
       font-size: var(--font-size-h1);
@@ -49,7 +45,7 @@
   }
 
   @media (max-width: 40rem) {
-    padding-top: 2rem;
+    padding-top: 1rem;
 
     &__title {
       font-size: var(--font-size-price-lg);

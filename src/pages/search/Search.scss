@@ -1,4 +1,5 @@
 .search-page {
+  align-content: start;
   display: grid;
   gap: var(--space-8);
   min-height: calc(100vh - var(--header-height));

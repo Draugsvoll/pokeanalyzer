@@ -624,7 +624,7 @@ test("sorts a local search without making another request", async () => {
   ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: high-low" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
 
   expect(document.querySelector(".grid-view")).toHaveAttribute(
     "aria-busy",
@@ -670,7 +670,7 @@ test("sorts local results by card number", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
 
   await waitFor(() =>
     expect(
@@ -709,7 +709,7 @@ test("sorts server results by 7-day percentage change without refetching", async
   ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "% change: high-low" }));
+  fireEvent.click(screen.getByRole("option", { name: "% Change: high–low" }));
 
   await waitFor(() =>
     expect(
@@ -740,7 +740,7 @@ test("keeps results closed after sorting locally", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
   fireEvent.click(screen.getByRole("button", { name: "Close search results" }));
 
   expect(screen.queryByText("Card 10")).not.toBeInTheDocument();
@@ -762,7 +762,7 @@ test("keeps the original result set while changing sort", async () => {
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Number: low-high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Number: low–high" }));
 
   expect(await screen.findByText("Card 10")).toBeInTheDocument();
   expect(mocks.searchCachedPokeTraceCatalog).toHaveBeenCalledTimes(1);
@@ -789,7 +789,7 @@ test("does not request the server again when server results are sorted", async (
   expect(await screen.findByText("Server Card 1")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: low-high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: low–high" }));
   await waitFor(() =>
     expect(
       screen

@@ -1036,14 +1036,15 @@ input[type="radio"] {
 
 .card-number-badge {
   -webkit-user-select: none;
+  border: var(--border);
   align-items: center;
   background: color-mix(in srgb, var(--font-color-primary) 4%, transparent);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
-  color: var(--font-color-muted);
+  color: var(--font-color-secondary);
   display: inline-flex;
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-paragraph-sm);
+  font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-medium);
   line-height: 1;

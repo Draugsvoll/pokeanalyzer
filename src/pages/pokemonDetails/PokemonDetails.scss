@@ -424,8 +424,7 @@
   }
 
   &__analysis-divider {
-    background: var(--border-divider);
-    height: 1px;
+    border-top: 1px solid var(--border-divider);
     margin-bottom: var(--space-4);
     width: 100%;
   }

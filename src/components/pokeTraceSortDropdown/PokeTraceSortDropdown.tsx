@@ -4,12 +4,12 @@ import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 
 const SORT_LABELS: Record<PokeTraceCardSort, string> = {
   none: "Unsorted",
-  "price-high-low": "Price: high-low",
-  "price-low-high": "Price: low-high",
-  "card-number-low-high": "Number: low-high",
-  "card-number-high-low": "Number: high-low",
-  "change-high-low": "% change: high-low",
-  "change-low-high": "% change: low-high",
+  "price-high-low": "Price: high–low",
+  "price-low-high": "Price: low–high",
+  "card-number-low-high": "Number: low–high",
+  "card-number-high-low": "Number: high–low",
+  "change-high-low": "% Change: high–low",
+  "change-low-high": "% Change: low–high",
 };
 
 const POKETRACE_SORT_OPTIONS = [
