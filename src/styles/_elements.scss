@@ -994,23 +994,11 @@ input[type="radio"] {
   background: transparent;
   display: grid;
   gap: var(--card-gap);
-  width: 100%;
   grid-template-columns: repeat(
     auto-fill,
-    minmax(min(100%, var(--pokemon-card-grid-column-width)), 1fr)
+    minmax(min(100%, var(--pokemon-card-grid-min-width)), 1fr)
   );
-}
-
-@media (max-width: 60rem) {
-  .card-grid {
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(
-        min(100%, var(--pokemon-card-grid-column-width)),
-        var(--pokemon-card-grid-column-width)
-      )
-    );
-  }
+  width: 100%;
 }
 
 /*

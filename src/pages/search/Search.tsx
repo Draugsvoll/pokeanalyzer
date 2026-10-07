@@ -17,10 +17,10 @@ export default function Search({
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName initialProductType={initialProductType} />
-      <MostSoldGrid title="Daily Most Sold on TCGPlayer" />
+      <MostSoldGrid title="TCG Most Sold Daily" />
       <MostSoldGrid
         loadCards={mostSoldEbayCards}
-        title="Daily Most Sold on eBay"
+        title="eBay Most Sold Daily"
       />
       <MarketMoversGrid
         changeLabel="Daily change in the TCGPlayer Near Mint price"

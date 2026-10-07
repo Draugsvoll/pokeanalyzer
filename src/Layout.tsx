@@ -24,7 +24,10 @@ export default function Layout() {
   const navigationType = useNavigationType();
   const previousPathRef = useRef<string | null>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
-  const pageKey = location.pathname.split("/").filter(Boolean)[0] ?? "home";
+  const routeSegments = location.pathname.split("/").filter(Boolean);
+  const pageKey = routeSegments[0] ?? "home";
+  const usesDetailShell =
+    routeSegments.length === 2 && (pageKey === "card" || pageKey === "sealed");
 
   useLayoutEffect(() => {
     const scrollPositions = scrollPositionsRef.current;
@@ -72,7 +75,11 @@ export default function Layout() {
       </a>
       <Header />
 
-      <main className="main-content" id="main-content" tabIndex={-1}>
+      <main
+        className={`main-content${usesDetailShell ? " main-content--details" : ""}`}
+        id="main-content"
+        tabIndex={-1}
+      >
         <div className="container ui-render-fade" key={pageKey}>
           <Outlet />
         </div>

@@ -40,7 +40,7 @@
   --bg-elevated: var(--bg2);
   --bg-panel: var(--surface);
   --bg-card: #10141c;
-  --bg-pokemon-card: rgb(12, 15, 20);
+  --bg-pokemon-card: color-mix(in srgb, var(--surface) 45%, var(--bg));
   --bg-card-hover: #151a24;
   --bg-input: rgba(255, 255, 255, 0.03);
   --bg-input-strong: rgba(255, 255, 255, 0.05);
@@ -48,6 +48,7 @@
    * Search shell — mock left (focused): soft outer band, not a hard neon ring
    */
   --search-surface: #10141c;
+  --main-search-bar-surface: #161a21;
   --search-border: color-mix(in srgb, var(--blue) 32%, var(--border-color));
   --search-border-focus: color-mix(in srgb, var(--blue) 58%, transparent);
   /* Restrained outer definition; focus remains visible without a glow-heavy edge. */
@@ -126,11 +127,9 @@
   --hover-lift: -2px;
   --hover-shadow: var(--shadow);
 
-  /*
-   * Single content column — ONLY place that caps app width (main + header).
-   * All page content should be width: 100% and inherit this.
-   */
+  /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1170px;
+  --shell-wide-max-width: 1320px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 650px;
   --search-height: 49px;
@@ -165,15 +164,15 @@
   --page-pad-x-xl: 40px;
   --page-pad-y: 32px;
   --section-gap: 140px;
-  --card-gap: 14px;
-  --card-pad: 9px;
+  --card-gap: 17px;
+  --card-pad: 11px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
-  --font-size-card-title: 14px;
-  --font-size-card-meta: 12px;
+  --font-size-card-title: 16px;
+  --font-size-card-meta: 0.87rem;
 
   --hover-accent-bg: color-mix(
     in srgb,
@@ -243,6 +242,11 @@
     var(--font-color-secondary)
   );
   --font-color-muted: var(--muted);
+  --font-color-metadata: color-mix(
+    in srgb,
+    var(--font-color-muted) 88%,
+    var(--font-color-primary)
+  );
   --font-color-faint: #687385;
   --font-color-error: var(--red);
   --font-color-success: var(--green);

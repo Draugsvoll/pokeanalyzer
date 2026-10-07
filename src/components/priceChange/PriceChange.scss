@@ -4,7 +4,7 @@
   box-sizing: border-box;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: var(--font-size-overline);
+  font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-semibold);
   gap: 0.2rem;
@@ -58,10 +58,10 @@
 .app-price-change__period {
   color: var(--font-color-faint);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-badge);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   letter-spacing: normal;
-  opacity: 0.72;
+  opacity: 0.82;
   white-space: nowrap;
   margin-left: 0.1rem;
   line-height: inherit;

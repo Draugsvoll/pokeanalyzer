@@ -29,7 +29,7 @@ test("uses the shared search experience without replacing market sections", () =
   );
 
   expect(screen.getByText("Shared singles search")).toBeInTheDocument();
-  expect(screen.getByText("Daily Most Sold on TCGPlayer")).toBeInTheDocument();
+  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 

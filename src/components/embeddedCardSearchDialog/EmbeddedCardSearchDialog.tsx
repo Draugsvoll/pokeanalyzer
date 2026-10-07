@@ -1,7 +1,7 @@
-import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { RefObject } from "react";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { CloseButton } from "../closeButton/CloseButton";
 import { DatabaseSearch } from "../databaseSearch/DatabaseSearch";
 import "./EmbeddedCardSearchDialog.scss";
 
@@ -42,15 +42,11 @@ export function EmbeddedCardSearchDialog({
       role="dialog"
       tabIndex={-1}
     >
-      <button
-        aria-label="Close card search"
+      <CloseButton
+        ariaLabel="Close card search"
         className="embedded-card-search__close"
         onClick={onClose}
-        title="Close"
-        type="button"
-      >
-        <X aria-hidden="true" size={22} strokeWidth={1.5} />
-      </button>
+      />
       <div className="embedded-card-search__content">
         <DatabaseSearch
           autoFocusName

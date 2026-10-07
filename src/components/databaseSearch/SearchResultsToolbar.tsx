@@ -1,6 +1,6 @@
 import type { PokeTraceCardSort } from "../../utils/sortPokeTraceCards";
+import { CloseButton } from "../closeButton/CloseButton";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
-import { ResultGridCloseButton } from "../resultGridCloseButton/ResultGridCloseButton";
 import "./SearchResultsToolbar.scss";
 
 type SearchResultsToolbarProps = {
@@ -38,10 +38,7 @@ export function SearchResultsToolbar({
             onChange={onSortChange}
           />
         </label>
-        <ResultGridCloseButton
-          ariaLabel="Close search results"
-          onClick={onClose}
-        />
+        <CloseButton ariaLabel="Close search results" onClick={onClose} />
       </div>
     </div>
   );

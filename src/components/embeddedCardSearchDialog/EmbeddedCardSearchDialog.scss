@@ -9,35 +9,16 @@
 }
 
 .embedded-card-search__close {
-  align-items: center;
-  background: transparent;
-  border: var(--border);
-  border-radius: var(--border-radius);
-  color: var(--font-color-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  height: 3rem;
-  justify-content: center;
-  padding: 0;
+  --close-button-background: var(--surface2);
+  --close-button-border: 1px solid var(--border-color-strong);
+  --close-button-color: var(--font-color-secondary);
+  --close-button-hover-background: var(--surface3);
+
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
   position: fixed;
   right: clamp(1rem, 2vw, 1.5rem);
   top: clamp(1rem, 2vw, 1.5rem);
-  transition:
-    background-color var(--delay-short) ease,
-    border-color var(--delay-short) ease,
-    color var(--delay-short) ease;
-  width: 3rem;
   z-index: 1;
-
-  &:hover {
-    border-color: var(--border-color-strong);
-    color: var(--font-color-primary);
-  }
-
-  &:focus-visible {
-    box-shadow: var(--dropdown-focus-ring);
-    outline: none;
-  }
 }
 
 .embedded-card-search__content {

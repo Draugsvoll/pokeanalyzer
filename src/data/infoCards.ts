@@ -32,7 +32,8 @@ export const INFO_CARDS: InfoCard[] = [
     color: "purple",
   },
   {
-    description: "Get a clear overview with advanced filtering and sorting.",
+    description:
+      "Get a clear overview of sales & listings with dedicated filtering and sorting.",
     id: "ebay",
     title: "eBay sales & listings",
     icon: CircleDollarSign,

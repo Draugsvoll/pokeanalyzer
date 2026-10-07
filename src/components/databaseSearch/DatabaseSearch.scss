@@ -62,7 +62,7 @@
 
 .database-search-bar {
   align-items: center;
-  background: var(--search-surface);
+  background: var(--main-search-bar-surface);
   border: 1px solid var(--search-border);
   border-radius: var(--search-radius);
   /* Soft expanded ring (0 blur) — mock “outside the border” look */
