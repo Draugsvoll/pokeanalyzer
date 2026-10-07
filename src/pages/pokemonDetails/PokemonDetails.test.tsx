@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   creditsRemaining: 10,
   ebayRuns: vi.fn(),
   fetchCardById: vi.fn(),
+  fetchCardPriceHistory: vi.fn(),
   fetchMarketPriceHistory: vi.fn(),
   hasSubscription: true,
   loadingSubscription: false,
@@ -69,6 +70,7 @@ vi.mock("../../utils/grok/grokClient", async (importOriginal) => {
 
 vi.mock("../../services/cardApi", () => ({
   fetchCardById: mocks.fetchCardById,
+  fetchCardPriceHistory: mocks.fetchCardPriceHistory,
   fetchMarketPriceHistory: mocks.fetchMarketPriceHistory,
 }));
 
@@ -241,6 +243,7 @@ beforeEach(() => {
   mocks.askGrok.mockReset();
   mocks.ebayRuns.mockReset();
   mocks.fetchCardById.mockReset();
+  mocks.fetchCardPriceHistory.mockReset();
   mocks.fetchMarketPriceHistory.mockReset();
   mocks.hasSubscription = true;
   mocks.loadingSubscription = false;
@@ -259,6 +262,11 @@ beforeEach(() => {
     period: "90d",
     series: {},
     stale: false,
+  }));
+  mocks.fetchCardPriceHistory.mockImplementation(async (cardId: string) => ({
+    cardId,
+    days: 9,
+    snapshots: [],
   }));
   mocks.askGrok.mockImplementation(async (feature: string) => ({
     fromDatabase: false,

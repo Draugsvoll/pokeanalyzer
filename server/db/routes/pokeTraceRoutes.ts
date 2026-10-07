@@ -352,10 +352,10 @@ export async function loadPokeTracePriceHistory(
 
   const result = await database.execute({
     sql: `
-      SELECT recorded_at, currency, market_price, source_updated_at
+      SELECT recorded_at, currency, tcg, ebay, source_updated_at
       FROM (
-        SELECT recorded_at, currency, market_price, source_updated_at
-        FROM poketrace_tcg_market_prices
+        SELECT recorded_at, currency, tcg, ebay, source_updated_at
+        FROM poketrace_market_snapshots
         WHERE card_id = ?
         ORDER BY recorded_at DESC
         LIMIT ?
@@ -365,17 +365,27 @@ export async function loadPokeTracePriceHistory(
     args: [cardId, days],
   });
 
-  const snapshots = result.rows.map((row) => ({
-    recordedAt: String(row.recorded_at),
-    currency: row.currency == null ? null : String(row.currency),
-    prices: {
-      tcgplayer: {
-        NEAR_MINT: { avg: Number(row.market_price) },
-      },
-    },
-    sourceUpdatedAt:
-      row.source_updated_at == null ? null : String(row.source_updated_at),
-  }));
+  const snapshots = result.rows.map((row) => {
+    const prices: Record<string, unknown> = {};
+    for (const [source, value] of [
+      ["tcgplayer", row.tcg],
+      ["ebay", row.ebay],
+    ] as const) {
+      if (typeof value !== "string") continue;
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        prices[source] = parsed;
+      }
+    }
+
+    return {
+      recordedAt: String(row.recorded_at),
+      currency: row.currency == null ? null : String(row.currency),
+      prices,
+      sourceUpdatedAt:
+        row.source_updated_at == null ? null : String(row.source_updated_at),
+    };
+  });
 
   return {
     cardId,

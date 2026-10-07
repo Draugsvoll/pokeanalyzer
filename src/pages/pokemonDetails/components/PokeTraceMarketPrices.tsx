@@ -2,14 +2,19 @@ import { useEffect, useId, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
+  fetchCardPriceHistory,
   fetchMarketPriceHistory,
+  type CardPriceHistoryResponse,
   type MarketPriceHistoryResponse,
 } from "../../../services/cardApi";
+import { PriceChange } from "../../../components/priceChange/PriceChange";
+import { formatPriceChangePeriodLong } from "../../../../shared/priceChangePeriod";
 import {
   MarketPriceHistoryChart,
   MarketPriceHistoryLoading,
 } from "./MarketPriceHistoryChart";
 import { MarketDataUnavailable } from "./MarketDataUnavailable";
+import { resolveSevenDayMarketPriceChange } from "./marketPriceChange";
 import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
@@ -108,6 +113,7 @@ function MarketplaceColumn({
   dataPending = false,
   dataRequestFailed = false,
   prices,
+  priceHistory,
   source,
   url,
 }: {
@@ -115,6 +121,7 @@ function MarketplaceColumn({
   dataPending?: boolean;
   dataRequestFailed?: boolean;
   prices: MarketplacePrices;
+  priceHistory: CardPriceHistoryResponse | null;
   source: string;
   url?: string;
 }) {
@@ -139,6 +146,13 @@ function MarketplaceColumn({
   const showLoader = source.toLowerCase() === "ebay" && dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !showLoader;
+  const priceChange = resolveSevenDayMarketPriceChange(
+    priceHistory,
+    source,
+    condition,
+    price.avg,
+  );
+  const priceChangeTitle = `${formatPriceChangePeriodLong("7d")} ${sourceLabel(source)} ${conditionLabel(condition)} price change`;
 
   return (
     <article className="poketrace-market__marketplace default-container-inner">
@@ -198,7 +212,16 @@ function MarketplaceColumn({
           <div className="poketrace-market__primary">
             <div className="poketrace-market__quote">
               <div className="poketrace-market__price-row">
-                <strong>{formatPrice(price.avg, currency)}</strong>
+                <div className="poketrace-market__price-summary">
+                  <strong>{formatPrice(price.avg, currency)}</strong>
+                  <PriceChange
+                    key={`${source}:${condition}:${priceChange?.percent ?? "unavailable"}`}
+                    percent={priceChange?.percent ?? null}
+                    period="7d"
+                    title={priceChangeTitle}
+                    unavailableLabel={`${priceChangeTitle} unavailable`}
+                  />
+                </div>
                 {url && (
                   <a
                     aria-label={`Buy on ${sourceLabel(source)}`}
@@ -406,6 +429,24 @@ export function PokeTraceMarketPrices({
   const urls = data.marketplaceUrls as Record<string, unknown>;
   const ebayGradedEntries = gradedEntries(prices.ebay);
   const sources = ["tcgplayer", "ebay"];
+  const [priceHistory, setPriceHistory] =
+    useState<CardPriceHistoryResponse | null>(null);
+
+  useEffect(() => {
+    setPriceHistory(null);
+    if (!cardId || cardId === "demo") return;
+
+    const controller = new AbortController();
+    void fetchCardPriceHistory(cardId, 9, controller.signal)
+      .then(setPriceHistory)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setPriceHistory(null);
+      });
+
+    return () => controller.abort();
+  }, [cardId]);
 
   return (
     <section
@@ -421,6 +462,7 @@ export function PokeTraceMarketPrices({
             dataRequestFailed={dataRequestFailed}
             key={source}
             prices={prices[source] ?? {}}
+            priceHistory={priceHistory}
             source={source}
             url={typeof urls[source] === "string" ? urls[source] : undefined}
           />

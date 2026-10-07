@@ -228,6 +228,22 @@
     min-width: 0;
   }
 
+  &__price-summary {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.65rem;
+    min-width: 0;
+
+    .app-price-change {
+      font-size: var(--font-size-paragraph-sm);
+    }
+
+    .app-price-change__period {
+      margin-left: 0.08rem;
+    }
+  }
+
   &__quote strong {
     font-size: clamp(1.65rem, 2.6vw, 2.2rem);
     font-weight: var(--font-weight-semibold);
@@ -339,8 +355,12 @@
 
   &__history {
     --poketrace-history-padding: 1rem;
-    --history-ebay: var(--custom-color-teal);
-    --history-tcgplayer: var(--custom-color-orange);
+    --history-ebay: color-mix(in srgb, var(--custom-color-teal) 88%, white);
+    --history-tcgplayer: color-mix(
+      in srgb,
+      var(--custom-color-orange) 88%,
+      white
+    );
 
     margin-top: var(--poketrace-panel-gap);
     overflow: hidden;

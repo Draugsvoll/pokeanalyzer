@@ -33,36 +33,32 @@
 
 .app-price-change__arrow {
   align-self: center;
-  border-left: 0.22rem solid transparent;
-  border-right: 0.22rem solid transparent;
+  border-left: 0.25rem solid transparent;
+  border-right: 0.25rem solid transparent;
   display: block;
   height: 0;
   width: 0;
 
   &--up {
-    border-bottom: 0.34rem solid var(--price-value-positive);
-    margin-top: 0rem;
+    border-bottom: 0.38rem solid var(--price-value-positive);
   }
 
   &--down {
-    border-top: 0.34rem solid var(--price-value-negative);
-    margin-top: 0.1rem;
+    border-top: 0.38rem solid var(--price-value-negative);
   }
 
   &--flat {
-    margin-top: 0.1rem;
-    border-top: 0.34rem solid var(--font-color-muted);
+    border-top: 0.38rem solid var(--font-color-muted);
   }
 }
 
 .app-price-change__period {
   color: var(--font-color-faint);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
   letter-spacing: normal;
   opacity: 0.82;
   white-space: nowrap;
-  margin-left: 0.1rem;
   line-height: inherit;
 }

@@ -413,11 +413,12 @@ test("price-history loader returns the latest snapshots in chronological order",
     CREATE TABLE poketrace_cards (id TEXT PRIMARY KEY)
   `);
   await database.execute(`
-    CREATE TABLE poketrace_tcg_market_prices (
+    CREATE TABLE poketrace_market_snapshots (
       card_id TEXT NOT NULL,
       recorded_at TEXT NOT NULL,
-      market_price REAL NOT NULL,
       currency TEXT,
+      tcg TEXT,
+      ebay TEXT,
       source_updated_at TEXT
     )
   `);
@@ -426,18 +427,27 @@ test("price-history loader returns the latest snapshots in chronological order",
     args: [cardId],
   });
 
-  for (const [date, price] of [
-    ["2026-09-15", 400],
-    ["2026-09-16", 410],
-    ["2026-09-17", 420],
+  for (const [date, tcgPrice, ebayPrice] of [
+    ["2026-09-15", 400, 390],
+    ["2026-09-16", 410, 395],
+    ["2026-09-17", 420, 405],
   ] as const) {
     await database.execute({
       sql: `
-        INSERT INTO poketrace_tcg_market_prices
-          (card_id, recorded_at, market_price, currency, source_updated_at)
-        VALUES (?, ?, ?, 'USD', ?)
+        INSERT INTO poketrace_market_snapshots
+          (card_id, recorded_at, currency, tcg, ebay, source_updated_at)
+        VALUES (?, ?, 'USD', ?, ?, ?)
       `,
-      args: [cardId, date, price, `${date}T08:00:00.000Z`],
+      args: [
+        cardId,
+        date,
+        JSON.stringify({
+          NEAR_MINT: { avg: tcgPrice },
+          LIGHTLY_PLAYED: { avg: tcgPrice - 25 },
+        }),
+        JSON.stringify({ NEAR_MINT: { avg: ebayPrice } }),
+        `${date}T08:00:00.000Z`,
+      ],
     });
   }
 
@@ -454,8 +464,26 @@ test("price-history loader returns the latest snapshots in chronological order",
       snapshot.prices,
     ]),
     [
-      ["2026-09-16", { tcgplayer: { NEAR_MINT: { avg: 410 } } }],
-      ["2026-09-17", { tcgplayer: { NEAR_MINT: { avg: 420 } } }],
+      [
+        "2026-09-16",
+        {
+          tcgplayer: {
+            NEAR_MINT: { avg: 410 },
+            LIGHTLY_PLAYED: { avg: 385 },
+          },
+          ebay: { NEAR_MINT: { avg: 395 } },
+        },
+      ],
+      [
+        "2026-09-17",
+        {
+          tcgplayer: {
+            NEAR_MINT: { avg: 420 },
+            LIGHTLY_PLAYED: { avg: 395 },
+          },
+          ebay: { NEAR_MINT: { avg: 405 } },
+        },
+      ],
     ],
   );
   database.close();
