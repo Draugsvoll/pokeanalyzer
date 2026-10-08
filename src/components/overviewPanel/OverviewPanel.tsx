@@ -5,15 +5,17 @@ type OverviewPanelProps = {
   ariaLabel: string;
   children: ReactNode;
   className?: string;
-  layout: "three-featured" | "two-featured";
 };
 
 type OverviewMetricProps = {
+  breakBefore?: boolean;
   className?: string;
-  detail: ReactNode;
+  detail?: ReactNode;
   imageAlt?: string;
   imageSrc?: string;
   label: ReactNode;
+  primary?: boolean;
+  size?: "compact" | "default";
   value: ReactNode;
   valueClassName?: string;
 };
@@ -23,29 +25,28 @@ function joinClassNames(...classNames: Array<string | undefined>) {
 }
 
 export const OverviewPanel = forwardRef<HTMLElement, OverviewPanelProps>(
-  function OverviewPanel({ ariaLabel, children, className, layout }, ref) {
+  function OverviewPanel({ ariaLabel, children, className }, ref) {
     return (
       <section
         aria-label={ariaLabel}
-        className={joinClassNames(
-          "app-overview-panel",
-          `app-overview-panel--${layout}`,
-          className,
-        )}
+        className={joinClassNames("app-overview-panel", className)}
         ref={ref}
       >
-        {children}
+        <div className="app-overview-panel__layout">{children}</div>
       </section>
     );
   },
 );
 
 export function OverviewMetric({
+  breakBefore = false,
   className,
   detail,
   imageAlt = "",
   imageSrc,
   label,
+  primary = false,
+  size = "default",
   value,
   valueClassName,
 }: OverviewMetricProps) {
@@ -53,7 +54,10 @@ export function OverviewMetric({
     <article
       className={joinClassNames(
         "app-overview-metric",
+        breakBefore ? "app-overview-metric--break-before" : undefined,
         imageSrc ? "app-overview-metric--featured" : undefined,
+        primary ? "app-overview-metric--primary" : undefined,
+        size === "compact" ? "app-overview-metric--compact" : undefined,
         className,
       )}
     >
@@ -64,7 +68,9 @@ export function OverviewMetric({
         >
           {value}
         </strong>
-        <div className="app-overview-metric-detail">{detail}</div>
+        {detail != null && (
+          <div className="app-overview-metric-detail">{detail}</div>
+        )}
       </div>
 
       {imageSrc && (

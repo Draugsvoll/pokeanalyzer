@@ -653,7 +653,7 @@ function PokemonDetailsForCard() {
         <div className="card-view__market-content">
           {cardLoadFailed && (
             <div className="card-view__data-error" role="alert">
-              <span>Some card details couldn’t be refreshed.</span>
+              <span>Card details couldn’t be refreshed.</span>
               <Button
                 fill="ghost"
                 fitContent

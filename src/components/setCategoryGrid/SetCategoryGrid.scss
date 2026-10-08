@@ -7,7 +7,6 @@
   display: grid;
   gap: var(--space-5);
   min-width: 0;
-  padding-top: var(--space-5);
   width: 100%;
 }
 
@@ -30,7 +29,7 @@
   gap: var(--space-6);
   min-width: 0;
   border-bottom: var(--border);
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--space-5);
 }
 
 .set-category-grid__results {
@@ -56,6 +55,7 @@
     minmax(0, 1fr);
   min-width: 0;
   position: relative;
+  padding-bottom: var(--space-1);
 }
 
 .set-category-grid__filters::after {

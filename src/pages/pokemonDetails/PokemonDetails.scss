@@ -515,6 +515,13 @@
 }
 
 .card-view--poketrace {
+  --poketrace-panel-gap: 0.9rem;
+  --poketrace-media-width: calc(
+    17.5rem + var(--default-container-padding) - var(--poketrace-panel-gap)
+  );
+  --details-page-column-gap: var(--poketrace-panel-gap);
+  --details-page-media-width: var(--poketrace-media-width);
+
   gap: 2rem;
 
   .card-view__shell {
@@ -529,8 +536,8 @@
   }
 
   .card-view__body {
-    gap: var(--default-container-padding);
-    grid-template-columns: 17.5rem minmax(0, 1fr);
+    gap: var(--poketrace-panel-gap);
+    grid-template-columns: var(--poketrace-media-width) minmax(0, 1fr);
     padding: 0;
   }
 
@@ -551,7 +558,11 @@
   .card-view__image-controls,
   .card-view__image,
   .card-view__image-placeholder {
-    width: 17.5rem;
+    width: var(--poketrace-media-width);
+  }
+
+  .card-view__loading-image {
+    max-width: var(--poketrace-media-width);
   }
 
   .card-view__image {

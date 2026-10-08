@@ -27,7 +27,7 @@ export const MARKET_CATEGORY_DEFINITIONS = [
     parameters: {
       condition: "NEAR_MINT",
       direction: "gainers",
-      limit: 10,
+      limit: 12,
       minimumChange: 0,
       minimumChangePercent: 0,
       minimumPrice: 20,
@@ -45,7 +45,7 @@ export const MARKET_CATEGORY_DEFINITIONS = [
     parameters: {
       condition: "NEAR_MINT",
       direction: "losers",
-      limit: 10,
+      limit: 12,
       minimumChange: 0,
       minimumChangePercent: 0,
       minimumPrice: 20,
@@ -62,7 +62,7 @@ export const MARKET_CATEGORY_DEFINITIONS = [
     id: "most-sold",
     parameters: {
       condition: "ALL",
-      limit: 10,
+      limit: 12,
       minimumPrice: 20,
       minimumNewSales: 1,
       requireThreeDayIncrease: true,
@@ -75,7 +75,7 @@ export const MARKET_CATEGORY_DEFINITIONS = [
     id: "most-sold-ebay",
     parameters: {
       condition: "ALL",
-      limit: 10,
+      limit: 12,
       minimumPrice: 20,
       minimumNewSales: 1,
       requireThreeDayIncrease: true,

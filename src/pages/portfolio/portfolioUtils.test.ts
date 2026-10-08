@@ -43,7 +43,7 @@ function card(
 }
 
 describe("portfolio utilities", () => {
-  test("calculates collection value, quantities, top holding, and comparable change", () => {
+  test("calculates collection value, quantities, most valuable asset, and comparable change", () => {
     const cards = [
       card("4", "Charizard", 100, 2, 80),
       card("2", "Blastoise", 50, 1, 50),
@@ -51,7 +51,7 @@ describe("portfolio utilities", () => {
     ];
 
     expect(getPortfolioStats(cards, "7d")).toMatchObject({
-      biggestGainer: {
+      bestPerformer: {
         item: cards[0],
         change: 25,
         value: 200,
@@ -65,14 +65,14 @@ describe("portfolio utilities", () => {
       pricedAssets: 3,
       singleAssets: 6,
       sealedAssets: 0,
-      topHolding: { item: cards[0], change: 25, value: 100 },
+      mostValuable: { item: cards[0], change: 25, value: 100 },
       totalAssets: 6,
       totalValue: 250,
       uniqueAssets: 3,
     });
   });
 
-  test("uses the highest selected-period change as the biggest gainer", () => {
+  test("uses the highest selected-period change as the best performer", () => {
     const down = card("1", "Down", 90, 1, 100);
     const smallGain = card("2", "Small gain", 110, 2, 100);
     const biggestGain = card("3", "Biggest gain", 150, 1, 100);
@@ -80,25 +80,40 @@ describe("portfolio utilities", () => {
 
     expect(
       getPortfolioStats([down, smallGain, biggestGain, unavailable], "7d")
-        .biggestGainer,
+        .bestPerformer,
     ).toEqual({ item: biggestGain, change: 50, value: 150 });
     expect(
       getPortfolioStats([down, smallGain, biggestGain, unavailable], "7d")
         .weakestPerformer,
     ).toEqual({ item: down, change: -10, value: 90 });
-    expect(getPortfolioStats([down, unavailable], "7d").biggestGainer).toEqual({
+    expect(getPortfolioStats([down, unavailable], "7d").bestPerformer).toEqual({
       item: down,
       change: -10,
       value: 90,
     });
   });
 
-  test("selects the top holding by unit price rather than quantity", () => {
+  test("excludes assets below the gainer and loser price threshold", () => {
+    const cheapGainer = card("1", "Cheap gainer", 1.99, 1, 0.5);
+    const cheapLoser = card("2", "Cheap loser", 1, 1, 2);
+    const eligibleGainer = card("3", "Eligible gainer", 3, 1, 2);
+    const eligibleLoser = card("4", "Eligible loser", 3, 1, 4);
+
+    const stats = getPortfolioStats(
+      [cheapGainer, cheapLoser, eligibleGainer, eligibleLoser],
+      "7d",
+    );
+
+    expect(stats.bestPerformer?.item).toBe(eligibleGainer);
+    expect(stats.weakestPerformer?.item).toBe(eligibleLoser);
+  });
+
+  test("selects the most valuable asset by unit price rather than quantity", () => {
     const manyCopies = card("1", "Many copies", 25, 10);
     const highestUnitValue = card("2", "Highest unit value", 100);
 
     expect(
-      getPortfolioStats([manyCopies, highestUnitValue], "7d").topHolding,
+      getPortfolioStats([manyCopies, highestUnitValue], "7d").mostValuable,
     ).toEqual({ item: highestUnitValue, change: null, value: 100 });
   });
 

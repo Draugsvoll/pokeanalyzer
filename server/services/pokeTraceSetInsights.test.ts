@@ -20,12 +20,7 @@ test("queries current card data without sales history", async () => {
         return {
           rows: [
             {
-              least_total_leader_approximate: 0,
-              least_total_leader_id: "least-card",
-              least_total_leader_sales: 2,
-              total_leader_approximate: 1,
               total_leader_id: "total-card",
-              total_leader_sales: 602,
             },
           ],
         };
@@ -38,12 +33,11 @@ test("queries current card data without sales history", async () => {
 
   assert.equal(readyCalls, 1);
   assert.deepEqual(result, {
-    leastTotal: { approximate: false, cardId: "least-card", sales: 2 },
-    total: { approximate: true, cardId: "total-card", sales: 602 },
+    total: { cardId: "total-card" },
   });
 });
 
-test("ranks summed current sales and excludes zero from least sold", async () => {
+test("ranks summed current sales", async () => {
   const database = createClient({ url: "file::memory:" });
   try {
     await database.execute(
@@ -81,15 +75,14 @@ test("ranks summed current sales and excludes zero from least sold", async () =>
     });
 
     assert.deepEqual(result, {
-      leastTotal: { approximate: false, cardId: "least", sales: 3 },
-      total: { approximate: true, cardId: "most", sales: 15 },
+      total: { cardId: "most" },
     });
   } finally {
     database.close();
   }
 });
 
-test("returns no least-sold leader when every recorded total is zero", async () => {
+test("allows a most-sold leader with zero recorded sales", async () => {
   const database = createClient({ url: "file::memory:" });
   try {
     await database.execute(
@@ -105,11 +98,8 @@ test("returns no least-sold leader when every recorded total is zero", async () 
       ensureReady: async () => undefined,
     });
 
-    assert.equal(result.leastTotal, null);
     assert.deepEqual(result.total, {
-      approximate: false,
       cardId: "zero",
-      sales: 0,
     });
   } finally {
     database.close();

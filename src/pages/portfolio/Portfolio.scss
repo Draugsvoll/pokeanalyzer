@@ -1,7 +1,6 @@
 .portfolio {
   color: var(--font-color-body);
   margin: 0 auto;
-  padding: var(--space-4) 0 var(--space-10);
   width: 100%;
 
   h1,
@@ -49,14 +48,6 @@
   &__collection-value,
   &__holding-value {
     white-space: nowrap;
-  }
-
-  @media (min-width: 64.0625rem) {
-    &__summary {
-      grid-template-columns:
-        minmax(min-content, 1.2fr) minmax(min-content, 0.7fr)
-        repeat(3, fit-content(24rem));
-    }
   }
 
   &__notice {

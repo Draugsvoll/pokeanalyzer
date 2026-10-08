@@ -1,34 +1,38 @@
-import { calculateDisplayedPriceChangePercent } from "../../../shared/pokeTracePriceChange";
+import {
+  calculateDisplayedPriceChangePercent,
+  MINIMUM_GAINER_LOSER_PRICE,
+} from "../../../shared/pokeTracePriceChange";
 import type { PriceChangePeriod } from "../../../shared/priceChangePeriod";
 import type { PokeTraceSetSalesLeaders } from "../../../shared/pokeTraceSet";
 import type { PokemonCard } from "../../types/pokemon";
 import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
+import { selectUniqueSetCards } from "./setCardScope";
 
 export type SetExplorerOverview = {
+  bestPerformer: (SetFeaturedCard & { percentChange: number }) | null;
   changePeriod: PriceChangePeriod;
   currency: string;
+  mostValuable: SetFeaturedCard | null;
+  mostSold: SetSalesLeader | null;
   movementPercent: number | null;
   pricedCards: number;
-  salesLeaders: {
-    leastTotal: SetSalesLeader | null;
-    total: SetSalesLeader | null;
-  };
-  topCard: {
-    card: PokemonCard;
-    percentChange: number | null;
-    price: number;
-  } | null;
   totalCards: number;
   totalValue: number;
+  uniqueCards: number;
+  variantCards: number;
+};
+
+type SetFeaturedCard = {
+  card: PokemonCard;
+  percentChange: number | null;
+  price: number;
 };
 
 type SetSalesLeader = {
-  approximate: boolean;
   card: PokemonCard;
   currency: string;
   percentChange: number | null;
   price: number | null;
-  sales: number;
 };
 
 function dominantCurrency(cards: readonly PokemonCard[]) {
@@ -57,7 +61,8 @@ export function buildSetExplorerOverview(
   let currentValue = 0;
   let previousValue = 0;
   let pricedCards = 0;
-  let topCard: SetExplorerOverview["topCard"] = null;
+  let bestPerformer: SetExplorerOverview["bestPerformer"] = null;
+  let mostValuable: SetExplorerOverview["mostValuable"] = null;
   let totalValue = 0;
 
   for (const card of cards) {
@@ -66,15 +71,23 @@ export function buildSetExplorerOverview(
 
     pricedCards += 1;
     totalValue += currentPrice.price;
-    if (!topCard || currentPrice.price > topCard.price) {
-      topCard = {
+    const percentChange = calculateDisplayedPriceChangePercent(
+      currentPrice.price,
+      card.pokeTrace.marketPriceSnapshots?.[changePeriod],
+    );
+    if (!mostValuable || currentPrice.price > mostValuable.price) {
+      mostValuable = {
         card,
-        percentChange: calculateDisplayedPriceChangePercent(
-          currentPrice.price,
-          card.pokeTrace.marketPriceSnapshots?.[changePeriod],
-        ),
+        percentChange,
         price: currentPrice.price,
       };
+    }
+    if (
+      currentPrice.price >= MINIMUM_GAINER_LOSER_PRICE &&
+      percentChange !== null &&
+      (!bestPerformer || percentChange > bestPerformer.percentChange)
+    ) {
+      bestPerformer = { card, percentChange, price: currentPrice.price };
     }
 
     const previousPrice = card.pokeTrace.marketPriceSnapshots?.[changePeriod];
@@ -111,20 +124,22 @@ export function buildSetExplorerOverview(
     };
   };
 
+  const uniqueCards = selectUniqueSetCards(salesLeaderCards).length;
+
   return {
+    bestPerformer,
     changePeriod,
     currency,
+    mostValuable,
+    mostSold: resolveSalesLeader(salesLeaders?.total),
     movementPercent:
       previousValue > 0
         ? ((currentValue - previousValue) / previousValue) * 100
         : null,
     pricedCards,
-    salesLeaders: {
-      leastTotal: resolveSalesLeader(salesLeaders?.leastTotal),
-      total: resolveSalesLeader(salesLeaders?.total),
-    },
-    topCard,
     totalCards: cards.length,
     totalValue,
+    uniqueCards,
+    variantCards: Math.max(0, salesLeaderCards.length - uniqueCards),
   };
 }

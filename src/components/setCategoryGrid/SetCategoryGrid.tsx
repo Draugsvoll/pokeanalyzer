@@ -394,6 +394,18 @@ export function SetCategoryGrid() {
     () => setNameOptions.map(enrichSetDirectoryOption),
     [setNameOptions],
   );
+  const activeSetReleaseYear = useMemo(
+    () =>
+      activeSetName == null
+        ? undefined
+        : setDirectoryOptions.find(
+            ({ value }) =>
+              value.localeCompare(activeSetName, "en-US", {
+                sensitivity: "base",
+              }) === 0,
+          )?.releaseYear,
+    [activeSetName, setDirectoryOptions],
+  );
   const requestedSetName = useMemo(() => {
     if (!requestedSetParameter) return null;
     return (
@@ -522,7 +534,7 @@ export function SetCategoryGrid() {
 
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("set", setName);
-    setSearchParams(nextSearchParams, { replace: true });
+    setSearchParams(nextSearchParams);
   }
 
   function openSelectedSet() {
@@ -743,6 +755,7 @@ export function SetCategoryGrid() {
               controls={resultControls}
               onCardScopeChange={handleCardScopeChange}
               overview={overview}
+              releaseYear={activeSetReleaseYear}
               updating={isScopePending}
             />
           )}

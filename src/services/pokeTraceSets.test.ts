@@ -14,8 +14,7 @@ const card = {
 };
 
 const salesLeaders = {
-  leastTotal: { approximate: false, cardId: "card-1", sales: 2 },
-  total: { approximate: true, cardId: "card-1", sales: 602 },
+  total: { cardId: "card-1" },
 };
 
 afterEach(() => {
@@ -72,7 +71,7 @@ test("rejects malformed set sales leaders", async () => {
         items: [card],
         salesLeaders: {
           ...salesLeaders,
-          leastTotal: { approximate: false, cardId: "card-1", sales: -1 },
+          total: { cardId: "" },
         },
         total: 1,
       }),
@@ -96,6 +95,6 @@ test("keeps set browsing available during a backend rollout without insights", a
 
   await expect(loadPokeTraceSet("Base Set")).resolves.toEqual({
     cards: [card],
-    salesLeaders: { leastTotal: null, total: null },
+    salesLeaders: { total: null },
   });
 });

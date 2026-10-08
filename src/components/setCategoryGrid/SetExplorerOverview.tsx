@@ -19,11 +19,12 @@ type SetExplorerOverviewProps = {
   controls: ReactNode;
   onCardScopeChange: (scope: SetCardScope) => void;
   overview: SetExplorerOverviewData;
+  releaseYear?: number;
   updating: boolean;
 };
 
 const CARD_SCOPE_OPTIONS = [
-  { label: "One of each", value: "unique" },
+  { label: "Numbered", value: "unique" },
   { label: "All variants", value: "all" },
 ] as const;
 
@@ -44,12 +45,74 @@ function moneyFormatter(currency: string) {
   }
 }
 
+type FeaturedMetricData =
+  | NonNullable<SetExplorerOverviewData["mostValuable"]>
+  | NonNullable<SetExplorerOverviewData["mostSold"]>;
+
+type FeaturedCardMetricProps = {
+  breakBefore?: boolean;
+  changeAriaPrefix?: string;
+  changePeriod: SetExplorerOverviewData["changePeriod"];
+  changePeriodLong: string;
+  currency: string;
+  data: FeaturedMetricData | null;
+  label: string;
+  unavailableLabel: string;
+};
+
+function FeaturedCardMetric({
+  breakBefore = false,
+  changeAriaPrefix = "",
+  changePeriod,
+  changePeriodLong,
+  currency,
+  data,
+  label,
+  unavailableLabel,
+}: FeaturedCardMetricProps) {
+  const percentChange = data?.percentChange ?? null;
+
+  return (
+    <OverviewMetric
+      breakBefore={breakBefore}
+      detail={
+        data ? (
+          <CardIdentity name={data.card.name} number={data.card.number} />
+        ) : (
+          unavailableLabel
+        )
+      }
+      imageSrc={data?.card.image}
+      label={label}
+      value={
+        <>
+          <span>
+            {data?.price != null
+              ? moneyFormatter(currency).format(data.price)
+              : "—"}
+          </span>
+          {percentChange != null && (
+            <PriceChange
+              ariaLabel={`${changeAriaPrefix}${changePeriodLong} price change ${formatAbsolutePriceChangePercent(percentChange)}`}
+              percent={percentChange}
+              period={changePeriod}
+              title={`${changePeriodLong} price change`}
+            />
+          )}
+        </>
+      }
+      valueClassName="set-explorer-overview__card-value"
+    />
+  );
+}
+
 export function SetExplorerOverview({
   activeSetName,
   cardScope,
   controls,
   onCardScopeChange,
   overview,
+  releaseYear,
   updating,
 }: SetExplorerOverviewProps) {
   const revealRef = useScrollReveal<HTMLElement>();
@@ -64,10 +127,14 @@ export function SetExplorerOverview({
     overview.movementPercent == null
       ? null
       : formatAbsolutePriceChangePercent(overview.movementPercent);
-  const topCardChange = overview.topCard?.percentChange ?? null;
   const movementDirection =
     tone === "up" ? "Up" : tone === "down" ? "Down" : "Unchanged";
   const cardLabel = overview.totalCards === 1 ? "card" : "cards";
+  const unpricedCards = Math.max(0, overview.totalCards - overview.pricedCards);
+  const pricingCoverageLabel =
+    unpricedCards === 0
+      ? "All cards have price data"
+      : `${unpricedCards.toLocaleString("en-US")} ${unpricedCards === 1 ? "card has" : "cards have"} no price data`;
 
   return (
     <section
@@ -80,6 +147,7 @@ export function SetExplorerOverview({
         <div className="set-explorer-overview__identity">
           <h2 className="app-overview-value">{activeSetName}</h2>
           <p>
+            {releaseYear != null && `${releaseYear} · `}
             {overview.totalCards.toLocaleString("en-US")} {cardLabel}{" "}
           </p>
         </div>
@@ -88,7 +156,6 @@ export function SetExplorerOverview({
       <OverviewPanel
         ariaLabel={`${activeSetName} summary`}
         className="set-explorer-overview__summary ui-render-fade"
-        layout="three-featured"
       >
         <OverviewMetric
           className="set-explorer-overview__market"
@@ -104,13 +171,11 @@ export function SetExplorerOverview({
                 size="small"
                 value={cardScope}
               />
-              <span>
-                {overview.pricedCards.toLocaleString("en-US")} of{" "}
-                {overview.totalCards.toLocaleString("en-US")} {cardLabel} priced
-              </span>
+              <span>{pricingCoverageLabel}</span>
             </div>
           }
           label="Set value"
+          primary
           value={
             <>
               <span>
@@ -149,81 +214,47 @@ export function SetExplorerOverview({
         />
 
         <OverviewMetric
-          className="set-explorer-overview__featured set-explorer-overview__valuable"
           detail={
-            overview.topCard ? (
-              <CardIdentity
-                name={overview.topCard.card.name}
-                number={overview.topCard.card.number}
-              />
-            ) : (
-              "No priced cards"
-            )
-          }
-          imageSrc={overview.topCard?.card.image}
-          label="Most valuable"
-          value={
             <>
-              <span>
-                {overview.topCard ? money.format(overview.topCard.price) : "—"}
-              </span>
-              {topCardChange != null && (
-                <PriceChange
-                  ariaLabel={`${changePeriodLong} price change ${formatAbsolutePriceChangePercent(topCardChange)}`}
-                  percent={topCardChange}
-                  period={overview.changePeriod}
-                  title={`${changePeriodLong} price change`}
-                />
-              )}
+              {overview.uniqueCards.toLocaleString("en-US")} numbered
+              <br />
+              {overview.variantCards.toLocaleString("en-US")} variants &
+              treatment
             </>
           }
-          valueClassName="set-explorer-overview__card-value"
+          label="Cards"
+          size="compact"
+          value={overview.uniqueCards.toLocaleString("en-US")}
         />
 
-        {(
-          [
-            ["Most sold", overview.salesLeaders.total],
-            ["Least sold", overview.salesLeaders.leastTotal],
-          ] as const
-        ).map(([label, leader]) => {
-          const priceChange = leader?.percentChange ?? null;
-          return (
-            <OverviewMetric
-              className="set-explorer-overview__featured"
-              detail={
-                leader ? (
-                  <CardIdentity
-                    name={leader.card.name}
-                    number={leader.card.number}
-                  />
-                ) : (
-                  "Sales data unavailable"
-                )
-              }
-              imageSrc={leader?.card.image}
-              key={label}
-              label={label}
-              value={
-                <>
-                  <span>
-                    {leader?.price != null
-                      ? moneyFormatter(leader.currency).format(leader.price)
-                      : "—"}
-                  </span>
-                  {priceChange != null && (
-                    <PriceChange
-                      ariaLabel={`${label} card ${changePeriodLong} price change ${formatAbsolutePriceChangePercent(priceChange)}`}
-                      percent={priceChange}
-                      period={overview.changePeriod}
-                      title={`${changePeriodLong} price change`}
-                    />
-                  )}
-                </>
-              }
-              valueClassName="set-explorer-overview__card-value"
-            />
-          );
-        })}
+        <FeaturedCardMetric
+          changePeriod={overview.changePeriod}
+          changePeriodLong={changePeriodLong}
+          currency={overview.currency}
+          data={overview.bestPerformer}
+          label="Best performer"
+          unavailableLabel="Price change unavailable"
+        />
+
+        <FeaturedCardMetric
+          breakBefore
+          changePeriod={overview.changePeriod}
+          changePeriodLong={changePeriodLong}
+          currency={overview.currency}
+          data={overview.mostValuable}
+          label="Most valuable"
+          unavailableLabel="No priced cards"
+        />
+
+        <FeaturedCardMetric
+          changeAriaPrefix="Most sold card "
+          changePeriod={overview.changePeriod}
+          changePeriodLong={changePeriodLong}
+          currency={overview.mostSold?.currency ?? overview.currency}
+          data={overview.mostSold}
+          label="Most sold"
+          unavailableLabel="Sales data unavailable"
+        />
       </OverviewPanel>
 
       {controls}

@@ -6,7 +6,7 @@ export type SetCardScope = "unique" | "all";
 
 export function selectUniqueSetCards(cards: readonly PokemonCard[]) {
   return selectUniqueSetCardsByPrice(
-    cards,
+    cards.filter((card) => card.number?.trim()),
     (card) => resolvePokeTraceCardPrice(card, "NEAR_MINT")?.price ?? null,
   );
 }

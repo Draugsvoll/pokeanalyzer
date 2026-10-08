@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import type { PokemonCard } from "../../types/pokemon";
 import { loadPokeTraceSet } from "../../services/pokeTraceSets";
 import { SetCategoryGrid } from "./SetCategoryGrid";
@@ -96,8 +96,7 @@ beforeEach(() => {
 });
 
 const salesLeaders = {
-  leastTotal: { approximate: false, cardId: "Card 2", sales: 8 },
-  total: { approximate: true, cardId: "Card 10", sales: 602 },
+  total: { cardId: "Card 10" },
 };
 
 function CurrentLocation() {
@@ -107,11 +106,21 @@ function CurrentLocation() {
   );
 }
 
+function HistoryBackButton() {
+  const navigate = useNavigate();
+  return (
+    <button onClick={() => navigate(-1)} type="button">
+      Back in history
+    </button>
+  );
+}
+
 function renderSetExplorer(initialEntry = "/set") {
   const result = render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <SetCategoryGrid />
       <CurrentLocation />
+      <HistoryBackButton />
     </MemoryRouter>,
   );
   expect(screen.getByRole("heading", { name: "Explore sets" })).toBeVisible();
@@ -210,6 +219,27 @@ test("filters the set directory and opens a set from its card", async () => {
   );
 });
 
+test("adds an opened set to browser history", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Card 2", "2/102", 10)],
+    salesLeaders,
+  });
+  renderSetExplorer();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open Base Set" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("current-location")).toHaveTextContent(
+      "/set?set=Base+Set",
+    ),
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Back in history" }));
+
+  await waitFor(() =>
+    expect(screen.getByTestId("current-location")).toHaveTextContent(/^\/set$/),
+  );
+});
+
 test("shows a generated seven-day change on its set card", () => {
   renderSetExplorer();
 
@@ -258,15 +288,8 @@ test("defaults to unique card numbers and can show every set card", async () => 
       card("Other card", "2/102", 5),
     ],
     salesLeaders: {
-      leastTotal: {
-        approximate: false,
-        cardId: "Other card",
-        sales: 2,
-      },
       total: {
-        approximate: false,
         cardId: "Expensive print",
-        sales: 20,
       },
     },
   });
@@ -280,13 +303,11 @@ test("defaults to unique card numbers and can show every set card", async () => 
     name: "Cards included in set value",
   });
   expect(scope).toHaveClass("segmented-radio-group--small");
-  expect(
-    within(scope).getByRole("radio", { name: "One of each" }),
-  ).toBeChecked();
+  expect(within(scope).getByRole("radio", { name: "Numbered" })).toBeChecked();
   expect(
     within(scope).getByRole("radio", { name: "All variants" }),
   ).not.toBeChecked();
-  expect(within(overview).getByText("2 cards")).toBeVisible();
+  expect(within(overview).getByText("1999 · 2 cards")).toBeVisible();
   expect(within(overview).getByText("$15.00")).toBeVisible();
   const mostValuable = within(overview)
     .getByText("Most valuable")
@@ -304,7 +325,7 @@ test("defaults to unique card numbers and can show every set card", async () => 
     within(scope).getByRole("radio", { name: "All variants" }),
   ).toBeChecked();
   await waitFor(() =>
-    expect(within(overview).getByText("3 cards")).toBeVisible(),
+    expect(within(overview).getByText("1999 · 3 cards")).toBeVisible(),
   );
   expect(within(overview).getByText("$35.00")).toBeVisible();
   expect(within(mostValuable!).getByText("Expensive print")).toBeVisible();
@@ -505,11 +526,11 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(overview).toHaveClass("ui-scroll-reveal");
   expect(overview.querySelector(".set-explorer-overview__summary")).toHaveClass(
     "app-overview-panel",
-    "app-overview-panel--three-featured",
     "ui-render-fade",
   );
   expect(overview.querySelector(".set-explorer-overview__market")).toHaveClass(
     "app-overview-metric",
+    "app-overview-metric--primary",
   );
   expect(
     overview.querySelector(
@@ -533,9 +554,9 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(
     within(overview).getByRole("heading", { name: "Base Set" }),
   ).toBeVisible();
-  expect(within(overview).getByText("2 cards")).toBeVisible();
+  expect(within(overview).getByText("1999 · 2 cards")).toBeVisible();
   expect(within(overview).getByText("Set value")).toBeVisible();
-  expect(within(overview).getByText("2 of 2 cards priced")).toBeVisible();
+  expect(within(overview).getByText("All cards have price data")).toBeVisible();
   const movement = within(overview).getByLabelText(
     "Up by 11.1%. 7-day Near Mint movement",
   );
@@ -550,22 +571,30 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
     }),
   ).toBeVisible();
   expect(within(overview).queryByText("7-day TCG sales")).toBeNull();
+  const cardsMetric = within(overview).getByText("Cards").closest("article");
+  expect(cardsMetric).toHaveClass("app-overview-metric--compact");
+  expect(cardsMetric).toHaveTextContent("2 numbered");
+  expect(cardsMetric).toHaveTextContent("0 variants");
+  const bestPerformerMetric = within(overview)
+    .getByText("Best performer")
+    .closest("article");
+  expect(bestPerformerMetric).not.toBeNull();
+  expect(within(bestPerformerMetric!).getByText("$20.00")).toBeVisible();
+  expect(within(bestPerformerMetric!).getByText("Card 10")).toBeVisible();
   const mostValuableMetric = within(overview)
     .getByText("Most valuable")
     .closest("article");
   expect(mostValuableMetric).not.toBeNull();
   expect(within(mostValuableMetric!).getByText("$20.00")).toBeVisible();
   expect(
-    overview.querySelector(
-      ".set-explorer-overview__valuable .app-card-identity",
-    ),
+    mostValuableMetric!.querySelector(".app-card-identity"),
   ).toHaveTextContent("10/102Card 10");
-  const topCardChange = within(mostValuableMetric!).getByLabelText(
+  const mostValuableChange = within(mostValuableMetric!).getByLabelText(
     "7-day price change 11.1%",
   );
-  expect(topCardChange).toHaveTextContent("11.1%");
+  expect(mostValuableChange).toHaveTextContent("11.1%");
   expect(
-    topCardChange.querySelector(".app-price-change__arrow"),
+    mostValuableChange.querySelector(".app-price-change__arrow"),
   ).not.toBeNull();
   const mostSoldMetric = within(overview)
     .getByText("Most sold")
@@ -576,17 +605,6 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(
     within(mostSoldMetric!).getByLabelText(
       "Most sold card 7-day price change 11.1%",
-    ),
-  ).toHaveTextContent("11.1%");
-  const leastSoldMetric = within(overview)
-    .getByText("Least sold")
-    .closest("article");
-  expect(leastSoldMetric).not.toBeNull();
-  expect(within(leastSoldMetric!).getByText("$10.00")).toBeVisible();
-  expect(within(leastSoldMetric!).getByText("Card 2")).toBeVisible();
-  expect(
-    within(leastSoldMetric!).getByLabelText(
-      "Least sold card 7-day price change 11.1%",
     ),
   ).toHaveTextContent("11.1%");
   expect(within(overview).queryByText("7-day NM movement")).toBeNull();
@@ -603,10 +621,10 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
     screen.getAllByTestId("set-card").map((node) => node.textContent),
   ).toEqual(["Card 10", "Card 2"]);
   expect(
-    overview.querySelectorAll(".set-explorer-overview__featured"),
+    overview.querySelectorAll(".app-overview-metric--featured"),
   ).toHaveLength(3);
   expect(
-    overview.querySelectorAll("button.set-explorer-overview__featured"),
+    overview.querySelectorAll("button.app-overview-metric--featured"),
   ).toHaveLength(0);
 
   const cardFilter = screen.getByRole("searchbox", {
@@ -689,6 +707,55 @@ test("shows the actual number of set cards remaining", async () => {
   ).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Show next 1" }));
   expect(screen.queryByRole("button", { name: /Show next/ })).toBeNull();
+});
+
+test("reports cards without price data", async () => {
+  const pricedCard = card("Priced", "1/102", 10);
+  const unpricedCard = card("Unpriced", "2/102", 10);
+  unpricedCard.pokeTrace.prices = {};
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [pricedCard, unpricedCard],
+    salesLeaders: { total: null },
+  });
+  renderSetExplorer("/set?set=Base+Set");
+
+  const overview = await screen.findByRole("region", {
+    name: "Base Set market overview",
+  });
+  expect(within(overview).getByText("1 card has no price data")).toBeVisible();
+});
+
+test("shows clean fallbacks when overview metrics are unavailable", async () => {
+  const cardWithoutHistory = card("No history", "1/102", 10);
+  cardWithoutHistory.pokeTrace.marketPriceSnapshots = {};
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [cardWithoutHistory],
+    salesLeaders: { total: null },
+  });
+  renderSetExplorer("/set?set=Base+Set");
+
+  const overview = await screen.findByRole("region", {
+    name: "Base Set market overview",
+  });
+  const bestPerformerMetric = within(overview)
+    .getByText("Best performer")
+    .closest("article");
+
+  expect(bestPerformerMetric).not.toBeNull();
+  expect(within(bestPerformerMetric!).getByText("—")).toBeVisible();
+  expect(
+    within(bestPerformerMetric!).getByText("Price change unavailable"),
+  ).toBeVisible();
+
+  const mostSoldMetric = within(overview)
+    .getByText("Most sold")
+    .closest("article");
+
+  expect(mostSoldMetric).not.toBeNull();
+  expect(within(mostSoldMetric!).getByText("—")).toBeVisible();
+  expect(
+    within(mostSoldMetric!).getByText("Sales data unavailable"),
+  ).toBeVisible();
 });
 
 test("editing a selected value invalidates it until another option is selected", () => {

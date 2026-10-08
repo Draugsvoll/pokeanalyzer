@@ -111,8 +111,8 @@
 .details-page__body {
   align-items: start;
   display: grid;
-  gap: var(--default-container-padding);
-  grid-template-columns: 17.5rem minmax(0, 1fr);
+  gap: var(--details-page-column-gap, var(--default-container-padding));
+  grid-template-columns: var(--details-page-media-width, 17.5rem) minmax(0, 1fr);
   min-width: 0;
   width: 100%;
 }

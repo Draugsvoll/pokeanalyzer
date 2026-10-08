@@ -1,3 +1,5 @@
+export const MINIMUM_GAINER_LOSER_PRICE = 2;
+
 export function normalizeDisplayedPriceChangePercent(value: number | null) {
   if (value === null || !Number.isFinite(value)) return null;
   return Math.abs(value) < 0.05 ? 0 : value;

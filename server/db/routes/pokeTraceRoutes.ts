@@ -36,6 +36,7 @@ import { createCatalogRefreshHandler } from "./catalogRefreshHandler.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
+const SET_SALES_LEADERS_TIMEOUT_MS = 5_000;
 type CatalogPayload = { generatedAt: string; json: string; gzip: Buffer };
 let cachedCatalogPayload: CatalogPayload | undefined;
 let catalogBuild:
@@ -106,6 +107,7 @@ type PokeTraceSetHandlerDependencies = {
   loadSet: typeof loadPokeTraceSet;
   loadSalesLeaders: typeof loadPokeTraceSetSalesLeaders;
   reportError: (context: string, error: unknown) => void;
+  salesLeadersTimeoutMs: number;
 };
 
 type PokeTraceFilterOptionsHandlerDependencies = {
@@ -168,6 +170,20 @@ function optionalBoolean(value: unknown) {
   return null;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error(`Timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  });
+}
+
 export function createPokeTraceSetHandler(
   dependencies: Partial<PokeTraceSetHandlerDependencies> = {},
 ): RequestHandler {
@@ -175,6 +191,8 @@ export function createPokeTraceSetHandler(
   const loadSalesLeaders =
     dependencies.loadSalesLeaders ?? loadPokeTraceSetSalesLeaders;
   const reportError = dependencies.reportError ?? logError;
+  const salesLeadersTimeoutMs =
+    dependencies.salesLeadersTimeoutMs ?? SET_SALES_LEADERS_TIMEOUT_MS;
 
   return async (req, res) => {
     const rawSetName = req.query.setName;
@@ -185,9 +203,12 @@ export function createPokeTraceSetHandler(
     }
 
     try {
-      const salesLeadersRequest = loadSalesLeaders(setName).catch((error) => {
+      const salesLeadersRequest = withTimeout(
+        Promise.resolve().then(() => loadSalesLeaders(setName)),
+        salesLeadersTimeoutMs,
+      ).catch((error) => {
         reportError("Failed to load PokeTrace set sales leaders", error);
-        return { leastTotal: null, total: null };
+        return { total: null };
       });
       const [set, salesLeaders] = await Promise.all([
         loadSet(setName),

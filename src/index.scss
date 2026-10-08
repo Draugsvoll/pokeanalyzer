@@ -100,7 +100,7 @@
 
 .ui-scroll-reveal--visible {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
+  transform: none;
   will-change: auto;
 }
 
@@ -220,12 +220,15 @@ body {
   margin-left: auto;
   margin-right: auto;
   max-width: var(--shell-wide-max-width);
-  padding: var(--page-pad-y) var(--page-pad-x) var(--space-11);
+  padding: calc(var(--page-pad-y) + var(--space-2))
+    calc(var(--page-pad-x) - var(--space-2))
+    calc(var(--page-pad-y) + var(--space-7));
   width: 100%;
   background: transparent;
 
   @media (min-width: 1024px) {
-    padding: var(--space-8) var(--page-pad-x-lg) var(--space-12);
+    padding: var(--space-9) calc(var(--page-pad-x-lg) - var(--space-2))
+      calc(var(--space-10) + var(--space-2));
   }
 }
 

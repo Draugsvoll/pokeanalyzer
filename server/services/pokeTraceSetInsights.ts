@@ -31,39 +31,9 @@ const hasSalesData = POKETRACE_RAW_CONDITIONS.map(
   ) IN ('integer', 'real')`,
 ).join(" OR ");
 
-const hasApproximateSales = POKETRACE_RAW_CONDITIONS.map(
-  (condition) => `(
-    json_type(cards.raw_json, '$.prices.tcgplayer.${condition}.saleCount')
-      IN ('integer', 'real')
-    AND COALESCE(
-      json_extract(
-        cards.raw_json,
-        '$.prices.tcgplayer.${condition}.approxSaleCount'
-      ),
-      0
-    ) = 1
-  )`,
-).join(" OR ");
-
-function salesLeader(
-  row: Record<string, unknown> | undefined,
-  prefix: "least_total" | "total",
-) {
-  const cardId = row?.[`${prefix}_leader_id`];
-  const sales = Number(row?.[`${prefix}_leader_sales`]);
-  if (
-    typeof cardId !== "string" ||
-    !cardId ||
-    !Number.isFinite(sales) ||
-    sales < 0
-  ) {
-    return null;
-  }
-  return {
-    approximate: Number(row?.[`${prefix}_leader_approximate`] ?? 0) === 1,
-    cardId,
-    sales,
-  };
+function salesLeader(row: Record<string, unknown> | undefined) {
+  const cardId = row?.total_leader_id;
+  return typeof cardId === "string" && cardId ? { cardId } : null;
 }
 
 export async function loadPokeTraceSetSalesLeaders(
@@ -80,60 +50,21 @@ export async function loadPokeTraceSetSalesLeaders(
         SELECT
           cards.id,
           CASE WHEN ${hasSalesData} THEN 1 ELSE 0 END AS has_sales_data,
-          CASE WHEN ${hasApproximateSales} THEN 1 ELSE 0 END AS approximate,
           (${totalSales}) AS total_sales
         FROM poketrace_cards AS cards
         WHERE cards.set_name = ? COLLATE NOCASE
       )
       SELECT
-        (
-          SELECT id
-          FROM set_sales
-          WHERE has_sales_data = 1
-          ORDER BY total_sales DESC, id
-          LIMIT 1
-        ) AS total_leader_id,
-        (
-          SELECT total_sales
-          FROM set_sales
-          WHERE has_sales_data = 1
-          ORDER BY total_sales DESC, id
-          LIMIT 1
-        ) AS total_leader_sales,
-        (
-          SELECT approximate
-          FROM set_sales
-          WHERE has_sales_data = 1
-          ORDER BY total_sales DESC, id
-          LIMIT 1
-        ) AS total_leader_approximate,
-        (
-          SELECT id
-          FROM set_sales
-          WHERE has_sales_data = 1 AND total_sales > 0
-          ORDER BY total_sales, id
-          LIMIT 1
-        ) AS least_total_leader_id,
-        (
-          SELECT total_sales
-          FROM set_sales
-          WHERE has_sales_data = 1 AND total_sales > 0
-          ORDER BY total_sales, id
-          LIMIT 1
-        ) AS least_total_leader_sales,
-        (
-          SELECT approximate
-          FROM set_sales
-          WHERE has_sales_data = 1 AND total_sales > 0
-          ORDER BY total_sales, id
-          LIMIT 1
-        ) AS least_total_leader_approximate
+        id AS total_leader_id
+      FROM set_sales
+      WHERE has_sales_data = 1
+      ORDER BY total_sales DESC, id
+      LIMIT 1
     `,
     args: [setName.trim()],
   });
   const row = result.rows[0] as Record<string, unknown> | undefined;
   return {
-    leastTotal: salesLeader(row, "least_total"),
-    total: salesLeader(row, "total"),
+    total: salesLeader(row),
   };
 }

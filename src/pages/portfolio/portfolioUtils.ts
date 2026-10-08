@@ -1,4 +1,5 @@
 import { formatCardNumber } from "../../../shared/formatCardNumber";
+import { MINIMUM_GAINER_LOSER_PRICE } from "../../../shared/pokeTracePriceChange";
 import type {
   PortfolioComparisonPeriod,
   PortfolioItem,
@@ -168,17 +169,16 @@ export function getPortfolioStats(
   let comparableCurrentValue = 0;
   let comparablePreviousValue = 0;
   let pricedAssets = 0;
-  let biggestGainer: (PortfolioFeaturedMetric & { change: number }) | null =
+  let bestPerformer: (PortfolioFeaturedMetric & { change: number }) | null =
     null;
   let weakestPerformer: (PortfolioFeaturedMetric & { change: number }) | null =
     null;
-  let topHolding: PortfolioFeaturedMetric | null = null;
+  let mostValuable: PortfolioFeaturedMetric | null = null;
   const valueCurrency = items
     .map((item) =>
       portfolioPrice(item) == null ? null : portfolioCurrency(item),
     )
     .find((currency): currency is string => Boolean(currency));
-  let excludedCurrencyAssets = 0;
 
   for (const item of items) {
     const quantity = portfolioQuantity(item);
@@ -190,20 +190,26 @@ export function getPortfolioStats(
 
     if (currentPrice != null) {
       if (portfolioCurrency(item) !== valueCurrency) {
-        excludedCurrencyAssets += quantity;
         continue;
       }
       pricedAssets += quantity;
       const holdingValue = currentPrice * quantity;
       const change = portfolioPriceChange(item, period);
+      const isGainerLoserEligible =
+        currentPrice >= MINIMUM_GAINER_LOSER_PRICE;
       totalValue += holdingValue;
-      if (!topHolding || currentPrice > topHolding.value) {
-        topHolding = { item, change, value: currentPrice };
-      }
-      if (change != null && (!biggestGainer || change > biggestGainer.change)) {
-        biggestGainer = { item, change, value: holdingValue };
+      if (!mostValuable || currentPrice > mostValuable.value) {
+        mostValuable = { item, change, value: currentPrice };
       }
       if (
+        isGainerLoserEligible &&
+        change != null &&
+        (!bestPerformer || change > bestPerformer.change)
+      ) {
+        bestPerformer = { item, change, value: holdingValue };
+      }
+      if (
+        isGainerLoserEligible &&
         change != null &&
         (!weakestPerformer || change < weakestPerformer.change)
       ) {
@@ -223,14 +229,13 @@ export function getPortfolioStats(
       : null;
 
   return {
-    biggestGainer,
+    bestPerformer,
     weakestPerformer,
     changePercent,
-    excludedCurrencyAssets,
     pricedAssets,
     sealedAssets,
     singleAssets,
-    topHolding,
+    mostValuable,
     totalAssets,
     totalValue,
     uniqueAssets: items.length,

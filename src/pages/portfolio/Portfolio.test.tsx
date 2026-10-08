@@ -147,9 +147,11 @@ describe("Portfolio", () => {
     const valueMetric = screen.getByText("Collection value").closest("article");
     expect(valueMetric?.closest(".portfolio__summary")).toHaveClass(
       "app-overview-panel",
-      "app-overview-panel--two-featured",
     );
-    expect(valueMetric).toHaveClass("app-overview-metric");
+    expect(valueMetric).toHaveClass(
+      "app-overview-metric",
+      "app-overview-metric--primary",
+    );
     expect(
       valueMetric?.querySelector(".app-overview-metric-content"),
     ).not.toBeNull();
@@ -157,22 +159,26 @@ describe("Portfolio", () => {
     expect(
       valueMetric!.querySelector(".app-price-change__arrow--up"),
     ).not.toBeNull();
-    const gainerMetric = screen.getByText("Biggest gainer").closest("article");
-    expect(gainerMetric).toHaveTextContent("$200.0025.0%7d");
-    expect(gainerMetric).toHaveTextContent("4/102");
-    expect(gainerMetric).toHaveTextContent("Charizard");
+    const bestPerformerMetric = screen
+      .getByText("Best performer")
+      .closest("article");
+    expect(bestPerformerMetric).toHaveTextContent("$200.0025.0%7d");
+    expect(bestPerformerMetric).toHaveTextContent("4/102");
+    expect(bestPerformerMetric).toHaveTextContent("Charizard");
     expect(
-      screen.getByText("Weakest performer").closest("article"),
+      screen.getByText("Worst performer").closest("article"),
     ).toHaveTextContent("Charizard");
     expect(screen.getByText("Portfolio card: Charizard")).toBeVisible();
-    const topHoldingMetric = screen.getByText("Top holding").closest("article");
-    expect(topHoldingMetric).not.toBeNull();
-    expect(topHoldingMetric!.querySelector("img")).toHaveAttribute(
+    const mostValuableMetric = screen
+      .getByText("Most valuable")
+      .closest("article");
+    expect(mostValuableMetric).not.toBeNull();
+    expect(mostValuableMetric!.querySelector("img")).toHaveAttribute(
       "src",
       "https://example.com/charizard.webp",
     );
     expect(
-      topHoldingMetric!.querySelector(
+      mostValuableMetric!.querySelector(
         ".app-overview-metric-content .app-card-identity",
       ),
     ).toHaveTextContent("4/102Charizard");
@@ -265,7 +271,8 @@ describe("Portfolio", () => {
 
     const assetsMetric = (await screen.findByText("Assets")).closest("article");
     expect(assetsMetric).toHaveTextContent("5");
-    expect(assetsMetric).toHaveTextContent("2 singles · 3 sealed");
+    expect(assetsMetric).toHaveTextContent("2 singles");
+    expect(assetsMetric).toHaveTextContent("3 sealed");
     expect(
       screen.getByText("Portfolio sealed: Base Set Booster Box"),
     ).toBeVisible();
@@ -332,9 +339,9 @@ describe("Portfolio", () => {
     await screen.findAllByText("$200.00");
     for (const label of [
       "Collection value",
-      "Biggest gainer",
-      "Weakest performer",
-      "Top holding",
+      "Best performer",
+      "Worst performer",
+      "Most valuable",
     ]) {
       const metric = screen.getByText(label).closest("article");
       expect(metric).not.toBeNull();
@@ -344,7 +351,7 @@ describe("Portfolio", () => {
     }
   });
 
-  test("updates summary periods and the biggest gainer from the selected comparison", async () => {
+  test("updates summary periods and the best performer from the selected comparison", async () => {
     mocks.auth.user = { uid: "user-1" };
     const charizard = collectionCard();
     const blastoise: PortfolioSingle = {
@@ -381,31 +388,33 @@ describe("Portfolio", () => {
     });
 
     renderPortfolio();
-    await screen.findByText("Biggest gainer");
+    await screen.findByText("Best performer");
 
-    const biggestGainer = screen.getByText("Biggest gainer").closest("article");
-    const weakestPerformer = screen
-      .getByText("Weakest performer")
+    const bestPerformer = screen
+      .getByText("Best performer")
       .closest("article");
-    expect(biggestGainer).toHaveTextContent("Blastoise");
+    const weakestPerformer = screen
+      .getByText("Worst performer")
+      .closest("article");
+    expect(bestPerformer).toHaveTextContent("Blastoise");
     expect(weakestPerformer).toHaveTextContent("Charizard");
     expect(
-      biggestGainer!.querySelector(".app-price-change__period"),
+      bestPerformer!.querySelector(".app-price-change__period"),
     ).toHaveTextContent("7d");
 
     fireEvent.click(screen.getByRole("radio", { name: "30D" }));
 
     expect(
-      screen.getByText("Biggest gainer").closest("article"),
+      screen.getByText("Best performer").closest("article"),
     ).toHaveTextContent("Charizard");
     expect(
-      screen.getByText("Weakest performer").closest("article"),
+      screen.getByText("Worst performer").closest("article"),
     ).toHaveTextContent("Blastoise");
     for (const label of [
       "Collection value",
-      "Biggest gainer",
-      "Weakest performer",
-      "Top holding",
+      "Best performer",
+      "Worst performer",
+      "Most valuable",
     ]) {
       const metric = screen.getByText(label).closest("article");
       expect(metric).not.toBeNull();

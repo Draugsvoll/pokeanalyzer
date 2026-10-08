@@ -10,25 +10,20 @@
   border: var(--border);
   border-radius: var(--border-radius-card);
   box-shadow: var(--default-container-shadow);
-  display: grid;
+  container-name: overview-panel;
+  container-type: inline-size;
   overflow: hidden;
+  padding-block: 0.25rem;
 }
 
-.app-overview-panel--two-featured {
-  grid-template-columns:
-    minmax(min-content, 1.2fr) minmax(min-content, 0.7fr)
-    repeat(2, fit-content(24rem));
-}
-
-.app-overview-panel--three-featured {
-  grid-template-columns: minmax(min-content, 1.2fr) repeat(
-      3,
-      minmax(min-content, 0.8fr)
-    );
+.app-overview-panel__layout {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .app-overview-metric {
   box-sizing: border-box;
+  flex: 0 0 18rem;
   min-height: 8rem;
   min-width: 0;
   padding: var(--space-5);
@@ -43,6 +38,24 @@
     top: var(--space-5);
     width: var(--overview-divider-size);
   }
+}
+
+.app-overview-metric--compact {
+  flex: 0 0 max-content;
+  min-width: 7.5rem;
+
+  .app-overview-metric-detail {
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+}
+
+.app-overview-metric--primary {
+  flex: 1 1 20rem;
+}
+
+.app-overview-metric:not(.app-overview-metric--primary) .app-overview-value {
+  font-size: var(--font-size-price-md);
 }
 
 .app-overview-metric-content {
@@ -62,7 +75,7 @@
   > strong {
     align-items: baseline;
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: var(--space-2);
     margin-top: var(--space-3);
     min-width: 0;
@@ -76,10 +89,8 @@
     margin-top: auto;
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
     padding-top: var(--space-2);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 
     .app-card-identity {
       display: flex;
@@ -88,30 +99,23 @@
 
     .app-card-identity__name {
       max-width: 100%;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
     }
   }
 }
 
 .app-overview-metric--featured {
-  column-gap: var(--space-5);
+  column-gap: var(--space-4);
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) 4.25rem;
-  min-width: min-content;
-
-  .app-overview-value {
-    font-size: clamp(1.25rem, 2vw, 1.6rem);
-  }
+  grid-template-columns: minmax(max-content, 1fr) 4.25rem;
+  min-width: 0;
 
   > .app-overview-metric-content {
     grid-column: 1;
 
-    > strong {
-      white-space: nowrap;
-    }
-
     > .app-overview-metric-detail {
-      // Keep detail text in flow without letting it set the metric width.
-      contain: inline-size;
       width: 100%;
     }
   }
@@ -129,40 +133,56 @@
   width: 100%;
 }
 
-@media (max-width: 64rem) {
-  .app-overview-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@container overview-panel (max-width: 82rem) {
+  .app-overview-panel__layout {
+    background: var(--overview-divider-color);
+    display: grid;
+    gap: var(--overview-divider-size);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
   .app-overview-metric {
-    &:nth-child(n + 3) {
-      border-top: var(--overview-divider-size) solid
-        var(--overview-divider-color);
-    }
+    background: var(--bg2);
+    grid-column: span 5;
 
-    & + &::before {
+    &::before {
       display: none;
     }
+  }
 
-    &:nth-child(even)::before {
-      display: block;
-    }
+  .app-overview-metric--compact {
+    grid-column: span 2;
+  }
+
+  .app-overview-metric--break-before,
+  .app-overview-metric--break-before ~ .app-overview-metric {
+    grid-column: span 6;
   }
 }
 
-@media (max-width: 44rem) {
-  .app-overview-panel {
-    grid-template-columns: 1fr;
+@container overview-panel (max-width: 60rem) {
+  .app-overview-metric,
+  .app-overview-metric--compact,
+  .app-overview-metric--break-before,
+  .app-overview-metric--break-before ~ .app-overview-metric {
+    grid-column: span 6;
   }
 
-  .app-overview-metric {
-    &:nth-child(n + 2) {
-      border-top: var(--overview-divider-size) solid
-        var(--overview-divider-color);
-    }
+  .app-overview-metric--primary {
+    grid-column: 1 / -1;
+  }
 
-    &:nth-child(even)::before {
-      display: none;
-    }
+  .app-overview-metric--featured {
+    grid-template-columns: minmax(0, 1fr) 4.25rem;
+  }
+}
+
+@container overview-panel (max-width: 36rem) {
+  .app-overview-metric,
+  .app-overview-metric--compact,
+  .app-overview-metric--primary,
+  .app-overview-metric--break-before,
+  .app-overview-metric--break-before ~ .app-overview-metric {
+    grid-column: 1 / -1;
   }
 }

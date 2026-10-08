@@ -96,6 +96,7 @@ function formatSignedPercent(value: number) {
 }
 
 type FeaturedAssetMetricProps = {
+  breakBefore?: boolean;
   item: PortfolioFeaturedMetric | null;
   label: string;
   period: PortfolioComparisonPeriod;
@@ -103,6 +104,7 @@ type FeaturedAssetMetricProps = {
 };
 
 function FeaturedAssetMetric({
+  breakBefore = false,
   item,
   label,
   period,
@@ -113,6 +115,7 @@ function FeaturedAssetMetric({
 
   return (
     <OverviewMetric
+      breakBefore={breakBefore}
       className="portfolio__metric ui-render-fade"
       detail={
         item ? (
@@ -338,20 +341,21 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
         <OverviewPanel
           ariaLabel="Collection summary"
           className="portfolio__summary ui-scroll-reveal"
-          layout="two-featured"
           ref={summaryRevealRef}
         >
           <OverviewMetric
             key={`value:${stats.totalValue}:${stats.pricedAssets}:${stats.totalAssets}`}
             className="portfolio__metric portfolio__metric--value ui-render-fade"
             detail={
-              stats.excludedCurrencyAssets > 0
-                ? `${stats.excludedCurrencyAssets} assets use another currency`
-                : stats.pricedAssets === stats.totalAssets
-                  ? "TCGPlayer reference prices"
-                  : `${stats.pricedAssets} of ${stats.totalAssets} assets have reference prices`
+              <>
+                TCG prices
+                <br />
+                {integer.format(stats.pricedAssets)} of{" "}
+                {integer.format(stats.totalAssets)} assets have price data
+              </>
             }
             label="Collection value"
+            primary
             value={
               <>
                 {stats.totalValue > 0
@@ -372,28 +376,37 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
           <OverviewMetric
             key={`assets:${stats.totalAssets}:${stats.singleAssets}:${stats.sealedAssets}`}
             className="portfolio__metric ui-render-fade"
-            detail={`${integer.format(stats.singleAssets)} ${stats.singleAssets === 1 ? "single" : "singles"} · ${integer.format(stats.sealedAssets)} sealed`}
+            detail={
+              <>
+                {integer.format(stats.singleAssets)}{" "}
+                {stats.singleAssets === 1 ? "single" : "singles"}
+                <br />
+                {integer.format(stats.sealedAssets)} sealed
+              </>
+            }
             label="Assets"
+            size="compact"
             value={integer.format(stats.totalAssets)}
           />
           <FeaturedAssetMetric
-            key={`gainer:${stats.biggestGainer?.item.type ?? "none"}:${stats.biggestGainer?.item.id ?? "none"}:${stats.biggestGainer?.value ?? "none"}:${changePeriod}:${stats.biggestGainer?.change ?? "none"}`}
-            item={stats.biggestGainer}
-            label="Biggest gainer"
+            key={`best:${stats.bestPerformer?.item.type ?? "none"}:${stats.bestPerformer?.item.id ?? "none"}:${stats.bestPerformer?.value ?? "none"}:${changePeriod}:${stats.bestPerformer?.change ?? "none"}`}
+            item={stats.bestPerformer}
+            label="Best performer"
             period={changePeriod}
             unavailableLabel="Price change unavailable"
           />
           <FeaturedAssetMetric
+            breakBefore
             key={`weakest:${stats.weakestPerformer?.item.type ?? "none"}:${stats.weakestPerformer?.item.id ?? "none"}:${stats.weakestPerformer?.value ?? "none"}:${changePeriod}:${stats.weakestPerformer?.change ?? "none"}`}
             item={stats.weakestPerformer}
-            label="Weakest performer"
+            label="Worst performer"
             period={changePeriod}
             unavailableLabel="Price change unavailable"
           />
           <FeaturedAssetMetric
-            key={`top:${stats.topHolding?.item.type ?? "none"}:${stats.topHolding?.item.id ?? "none"}:${stats.topHolding?.value ?? "none"}:${stats.topHolding ? portfolioQuantity(stats.topHolding.item) : 0}:${changePeriod}:${stats.topHolding?.change ?? "none"}`}
-            item={stats.topHolding}
-            label="Top holding"
+            key={`valuable:${stats.mostValuable?.item.type ?? "none"}:${stats.mostValuable?.item.id ?? "none"}:${stats.mostValuable?.value ?? "none"}:${stats.mostValuable ? portfolioQuantity(stats.mostValuable.item) : 0}:${changePeriod}:${stats.mostValuable?.change ?? "none"}`}
+            item={stats.mostValuable}
+            label="Most valuable"
             period={changePeriod}
             unavailableLabel="No priced assets"
           />

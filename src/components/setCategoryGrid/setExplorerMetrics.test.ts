@@ -44,12 +44,62 @@ describe("buildSetExplorerOverview", () => {
     ]);
 
     expect(overview.pricedCards).toBe(2);
+    expect(overview.uniqueCards).toBe(3);
+    expect(overview.variantCards).toBe(0);
     expect(overview.changePeriod).toBe("7d");
     expect(overview.totalValue).toBe(140);
-    expect(overview.topCard).toMatchObject({
+    expect(overview.mostValuable).toMatchObject({
       card: { id: "001/102" },
       percentChange: 25,
       price: 100,
+    });
+    expect(overview.bestPerformer).toMatchObject({
+      card: { id: "001/102" },
+      percentChange: 25,
+      price: 100,
+    });
+  });
+
+  test("reports unique cards separately from all variants", () => {
+    const unique = card("unique", { NEAR_MINT: { avg: 100 } }, 80);
+    const variant = {
+      ...card("variant", { NEAR_MINT: { avg: 120 } }, 100),
+      number: unique.number,
+    };
+    const overview = buildSetExplorerOverview([unique], null, [
+      unique,
+      variant,
+    ]);
+
+    expect(overview.totalCards).toBe(1);
+    expect(overview.uniqueCards).toBe(1);
+    expect(overview.variantCards).toBe(1);
+  });
+
+  test("selects the card with the highest seven-day percentage change", () => {
+    const overview = buildSetExplorerOverview([
+      card("valuable", { NEAR_MINT: { avg: 200 } }, 180),
+      card("gainer", { NEAR_MINT: { avg: 60 } }, 30),
+      card("missing", { NEAR_MINT: { avg: 300 } }, null),
+    ]);
+
+    expect(overview.bestPerformer).toMatchObject({
+      card: { id: "gainer" },
+      percentChange: 100,
+      price: 60,
+    });
+  });
+
+  test("excludes cards below the gainer and loser price threshold", () => {
+    const overview = buildSetExplorerOverview([
+      card("cheap", { NEAR_MINT: { avg: 1.99 } }, 0.5),
+      card("eligible", { NEAR_MINT: { avg: 2 } }, 1.5),
+    ]);
+
+    expect(overview.bestPerformer).toMatchObject({
+      card: { id: "eligible" },
+      percentChange: (0.5 / 1.5) * 100,
+      price: 2,
     });
   });
 
@@ -65,33 +115,20 @@ describe("buildSetExplorerOverview", () => {
     expect(overview.movementPercent).toBe((10 / 130) * 100);
   });
 
-  test("resolves highest and lowest total sales leaders to their set cards", () => {
+  test("resolves the highest total sales leader to its set card", () => {
     const cards = [
       card("total", { NEAR_MINT: { avg: 100 } }, 90),
       card("weekly", { NEAR_MINT: { avg: 40 } }, 35),
     ];
     const overview = buildSetExplorerOverview(cards, {
-      leastTotal: { approximate: false, cardId: "weekly", sales: 8 },
-      total: { approximate: true, cardId: "total", sales: 602 },
+      total: { cardId: "total" },
     });
 
-    expect(overview.salesLeaders).toMatchObject({
-      leastTotal: {
-        approximate: false,
-        card: { id: "weekly" },
-        currency: "USD",
-        percentChange: (5 / 35) * 100,
-        price: 40,
-        sales: 8,
-      },
-      total: {
-        approximate: true,
-        card: { id: "total" },
-        currency: "USD",
-        percentChange: (10 / 90) * 100,
-        price: 100,
-        sales: 602,
-      },
+    expect(overview.mostSold).toMatchObject({
+      card: { id: "total" },
+      currency: "USD",
+      percentChange: (10 / 90) * 100,
+      price: 100,
     });
   });
 });

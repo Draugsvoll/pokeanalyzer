@@ -42,12 +42,15 @@ describe("selectUniqueSetCards", () => {
     expect(selectUniqueSetCards(cards).map(({ id }) => id)).toEqual(["first"]);
   });
 
-  test("does not merge cards without a card number", () => {
-    const cards = [card("first", undefined, 10), card("second", undefined, 5)];
+  test("excludes cards without a card number", () => {
+    const cards = [
+      card("missing", undefined, 10),
+      card("blank", "   ", 5),
+      card("numbered", "SVP001", 8),
+    ];
 
     expect(selectUniqueSetCards(cards).map(({ id }) => id)).toEqual([
-      "first",
-      "second",
+      "numbered",
     ]);
   });
 });

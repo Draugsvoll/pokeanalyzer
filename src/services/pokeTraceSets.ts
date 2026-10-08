@@ -35,30 +35,19 @@ function isSalesLeader(value: unknown) {
   if (value === null) return true;
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const leader = value as {
-    approximate?: unknown;
     cardId?: unknown;
-    sales?: unknown;
   };
-  return (
-    typeof leader.approximate === "boolean" &&
-    typeof leader.cardId === "string" &&
-    Boolean(leader.cardId) &&
-    typeof leader.sales === "number" &&
-    Number.isFinite(leader.sales) &&
-    leader.sales >= 0
-  );
+  return typeof leader.cardId === "string" && Boolean(leader.cardId);
 }
 
 function isSalesLeaders(value: unknown): value is PokeTraceSetSalesLeaders {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const leaders = value as Partial<PokeTraceSetSalesLeaders>;
-  return Boolean(
-    isSalesLeader(leaders.total) && isSalesLeader(leaders.leastTotal),
-  );
+  return isSalesLeader(leaders.total);
 }
 
 function unavailableSalesLeaders(): PokeTraceSetSalesLeaders {
-  return { leastTotal: null, total: null };
+  return { total: null };
 }
 
 export function isLoadedPokeTraceSet(

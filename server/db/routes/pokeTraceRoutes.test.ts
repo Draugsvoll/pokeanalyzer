@@ -244,8 +244,7 @@ test("set endpoint loads only the requested exact set", async () => {
       loadSalesLeaders: async (setName) => {
         assert.equal(setName, "Base Set");
         return {
-          leastTotal: { approximate: false, cardId: "least-card", sales: 2 },
-          total: { approximate: true, cardId: "total-card", sales: 602 },
+          total: { cardId: "total-card" },
         };
       },
       reportError: () => {
@@ -263,8 +262,7 @@ test("set endpoint loads only the requested exact set", async () => {
   assert.deepEqual(await response.json(), {
     items: [],
     salesLeaders: {
-      leastTotal: { approximate: false, cardId: "least-card", sales: 2 },
-      total: { approximate: true, cardId: "total-card", sales: 602 },
+      total: { cardId: "total-card" },
     },
     total: 0,
   });
@@ -294,12 +292,42 @@ test("set endpoint still returns cards when optional sales leaders fail", async 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     items: [],
-    salesLeaders: { leastTotal: null, total: null },
+    salesLeaders: { total: null },
     total: 0,
   });
   assert.deepEqual(reportedErrors, [
     "Failed to load PokeTrace set sales leaders",
   ]);
+});
+
+test("set endpoint returns cards when optional sales leaders time out", async () => {
+  const app = express();
+  const reportedErrors: unknown[] = [];
+  app.get(
+    "/api/cards/set",
+    createPokeTraceSetHandler({
+      loadSet: async () => ({ items: [], total: 0 }),
+      loadSalesLeaders: () => new Promise(() => undefined),
+      reportError: (_context, error) => {
+        reportedErrors.push(error);
+      },
+      salesLeadersTimeoutMs: 5,
+    }),
+  );
+
+  const response = await requestFromTestServer(
+    app,
+    "/api/cards/set?setName=Base+Set",
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    items: [],
+    salesLeaders: { total: null },
+    total: 0,
+  });
+  assert.equal(reportedErrors.length, 1);
+  assert.match(String(reportedErrors[0]), /Timed out after 5ms/);
 });
 
 test("set endpoint rejects missing, repeated, and oversized names", async () => {

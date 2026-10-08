@@ -130,7 +130,7 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1170px;
-  --shell-wide-max-width: 1320px;
+  --shell-wide-max-width: 1400px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 650px;
   --search-height: 49px;
@@ -161,19 +161,19 @@
     0 0 0 3px color-mix(in srgb, var(--blue) 10%, transparent),
     0 0 0 6px color-mix(in srgb, var(--blue) 4%, transparent);
   --page-pad-x: 24px;
+  --page-pad-y: 32px;
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
-  --page-pad-y: 32px;
   --section-gap: 140px;
-  --card-gap: 19px;
-  --card-pad: 12px;
+  --card-gap: 12px;
+  --card-pad: 9px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
   --font-size-card-title: 16px;
-  --font-size-card-meta: 0.87rem;
+  --font-size-card-meta: 13px;
 
   --hover-accent-bg: color-mix(
     in srgb,
@@ -277,7 +277,7 @@
   --font-size-button: 13px;
   --font-size-logo: 15px;
   --font-size-price: 16px;
-  --font-size-price-sm: 20px;
+  --font-size-price-sm: 17px;
   --font-size-price-md: 22px;
   --font-size-price-lg: 30px;
   --font-size-price-xl: 38px;

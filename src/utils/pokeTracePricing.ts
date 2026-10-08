@@ -2,13 +2,12 @@ import type { PokemonCard } from "../types/pokemon";
 import type { PokeTraceRawCondition } from "../../shared/pokeTraceMarketConditions";
 import {
   calculateDisplayedPriceChangePercent,
+  MINIMUM_GAINER_LOSER_PRICE,
   normalizeDisplayedPriceChangePercent,
 } from "../../shared/pokeTracePriceChange";
 import type { PriceChangePeriod } from "../../shared/priceChangePeriod";
 
 type JsonRecord = Record<string, unknown>;
-
-export const MINIMUM_PRICE_FOR_DISPLAYED_CHANGE = 2;
 
 function record(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -103,7 +102,7 @@ export function resolveDisplayedPokeTracePriceChangePercent(
   if (
     typeof currentPrice !== "number" ||
     !Number.isFinite(currentPrice) ||
-    currentPrice < MINIMUM_PRICE_FOR_DISPLAYED_CHANGE
+    currentPrice < MINIMUM_GAINER_LOSER_PRICE
   ) {
     return null;
   }
