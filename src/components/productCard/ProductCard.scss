@@ -17,6 +17,7 @@
   height: 100%;
   overflow: visible;
   padding: var(--card-pad);
+  padding-bottom: 10px;
   position: relative;
   text-align: left;
   transition: var(--delay-short) ease;
@@ -106,10 +107,6 @@
   gap: var(--space-1);
   margin-top: var(--space-1);
   margin-left: -0.2rem;
-
-  .app-badge {
-    font-size: var(--font-size-label);
-  }
 }
 
 .product-card__price-row {

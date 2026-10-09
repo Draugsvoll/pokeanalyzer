@@ -108,7 +108,7 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
             label={
               marketTone?.label ? `${marketTone.label} Sentiment` : undefined
             }
-            title={marketTone?.headline || "Weekly Market Recap"}
+            title={marketTone?.headline || "Weekly Market Report"}
             wide
           >
             {collectorOutlook?.outlook && <p>{collectorOutlook.outlook}</p>}

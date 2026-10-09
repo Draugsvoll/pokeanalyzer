@@ -130,7 +130,7 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1170px;
-  --shell-wide-max-width: 1400px;
+  --shell-wide-max-width: 1405px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 650px;
   --search-height: 49px;
@@ -173,7 +173,7 @@
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
   --font-size-card-title: 16px;
-  --font-size-card-meta: 13px;
+  --font-size-card-meta: 0.83rem;
 
   --hover-accent-bg: color-mix(
     in srgb,
@@ -277,7 +277,7 @@
   --font-size-button: 13px;
   --font-size-logo: 15px;
   --font-size-price: 16px;
-  --font-size-price-sm: 17px;
+  --font-size-price-sm: 18px;
   --font-size-price-md: 22px;
   --font-size-price-lg: 30px;
   --font-size-price-xl: 38px;

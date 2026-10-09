@@ -310,7 +310,7 @@ test("places the card number between the title and rarity without repeating the 
   );
 
   const title = await screen.findByRole("heading", { name: "Pikachu" });
-  const number = screen.getByLabelText("Card number 58/102");
+  const number = screen.getByLabelText("Card number 058/102");
   const rarity = screen.getByText("Common");
 
   expect(title.compareDocumentPosition(number)).toBe(

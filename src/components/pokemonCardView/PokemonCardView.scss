@@ -117,6 +117,8 @@
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--font-tracking-normal);
   line-height: inherit;
+  position: relative;
+  top: -0.03em;
   white-space: nowrap;
 }
 
@@ -135,6 +137,12 @@
 .pokemon-card__badge-row {
   flex-wrap: nowrap;
   min-width: 0;
+
+  .app-badge--sm {
+    line-height: 13px;
+    min-height: 24px;
+    padding-block: 4px;
+  }
 }
 
 .pokemon-card__rarity {

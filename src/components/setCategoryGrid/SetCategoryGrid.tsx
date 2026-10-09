@@ -422,7 +422,7 @@ export function SetCategoryGrid() {
     : activeSetName;
   const setEraOptions = useMemo(
     () => [
-      { label: "Any Era", value: "" },
+      { label: "All Eras", value: "" },
       ...groupSetDirectoryOptions(setDirectoryOptions, directorySort).map(
         ([era]) => ({ label: era, value: era }),
       ),

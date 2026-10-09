@@ -123,11 +123,11 @@ export function NewsLane() {
     <div className="news-lane" aria-label="News">
       {newsFeeds?.generalNews && (
         <section
-          aria-label="General news"
+          aria-label="Weekly News"
           className="news-lane__section ui-render-fade"
         >
           <header className="news-lane__header grid-header">
-            <h3 className="news-lane__title">General News</h3>
+            <h3 className="news-lane__title">Weekly News</h3>
           </header>
 
           <div className="news-lane__panel">
@@ -138,12 +138,12 @@ export function NewsLane() {
 
       {marketSummary && (
         <section
-          aria-label="Market summary"
+          aria-label="Weekly Market Report"
           className="news-lane__section ui-scroll-reveal ui-render-fade"
           ref={marketSummaryRevealRef}
         >
           <header className="news-lane__header grid-header">
-            <h3 className="news-lane__title">Weekly Market Recap</h3>
+            <h3 className="news-lane__title">Weekly Market Report</h3>
             {summaryUpdatedAt && (
               <span className="news-lane__updated">
                 Updated {summaryUpdatedAt}

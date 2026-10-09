@@ -5,5 +5,5 @@ $pokemon-card-size-token: 1 !default;
    * Pokemon card layout sizing.
    * Cards stay readable and the fluid grid drops columns as space runs out.
    */
-  --pokemon-card-grid-min-width: #{12rem * $pokemon-card-size-token};
+  --pokemon-card-grid-min-width: #{12.5rem * $pokemon-card-size-token};
 }

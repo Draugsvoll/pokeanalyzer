@@ -377,9 +377,9 @@ test("filters the directory by era and restores it when cleared", () => {
   ).toBeNull();
 
   fireEvent.click(eraSelect);
-  fireEvent.click(screen.getByRole("option", { name: "Any Era" }));
+  fireEvent.click(screen.getByRole("option", { name: "All Eras" }));
 
-  expect(eraSelect).toHaveTextContent("Any Era");
+  expect(eraSelect).toHaveTextContent("All Eras");
   expect(screen.getByRole("button", { name: "Open Arceus" })).toBeVisible();
   expect(
     screen.getByRole("button", { name: "Open Unmapped Set" }),
