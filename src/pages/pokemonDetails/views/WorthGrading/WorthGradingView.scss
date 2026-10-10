@@ -65,6 +65,7 @@
     font-size: var(--font-size-paragraph);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-section-title);
+    letter-spacing: var(--font-tracking-price);
     line-height: var(--font-leading-tight);
   }
 
@@ -142,6 +143,7 @@
     font-size: var(--font-size-h1);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-price);
     line-height: var(--font-leading-tight);
   }
 
@@ -151,6 +153,7 @@
     font-size: var(--font-size-paragraph-lg);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-price);
     line-height: var(--font-leading-tight);
   }
 }
@@ -252,6 +255,7 @@
     font-size: var(--font-size-paragraph);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-price);
     line-height: var(--font-leading-tight);
     text-align: right;
     white-space: nowrap;
@@ -327,6 +331,7 @@
     font-size: var(--font-size-price);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--font-tracking-price);
     line-height: var(--font-leading-snug);
     white-space: nowrap;
   }
@@ -381,6 +386,7 @@
   font-size: var(--font-size-paragraph-lg);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-price);
   line-height: var(--font-leading-tight);
   overflow-wrap: anywhere;
 }

@@ -40,10 +40,7 @@ export function SealedDatabaseSearchBar({
       }
       filterGridClassName="database-search-filters__grid--two-column"
       isSearching={search.loading}
-      onClearFilters={() => {
-        search.setMinPrice("");
-        search.setMaxPrice("");
-      }}
+      onClearFilters={search.clearFilters}
       onSearch={search.submitSearch}
       renderFields={(nameInputRef) => (
         <>

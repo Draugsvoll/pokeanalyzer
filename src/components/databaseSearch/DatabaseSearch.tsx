@@ -63,11 +63,6 @@ type DatabaseSearchFilters = {
   rarity: string;
 };
 
-type SearchFeedback = {
-  kind: "empty" | "error";
-  message: string;
-};
-
 type SinglesUrlSearch = {
   cardNumber: string;
   filters: DatabaseSearchFilters;
@@ -468,9 +463,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   );
   const [isSorting, setIsSorting] = useState(false);
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
-  const [searchFeedback, setSearchFeedback] = useState<SearchFeedback | null>(
-    null,
-  );
+  const [searchError, setSearchError] = useState<string | null>(null);
   const priceFilterValidation = validatePriceFilters(filters);
   useEffect(() => {
     if (embedded) return;
@@ -537,7 +530,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback(null);
+      setSearchError(null);
       return;
     }
     if (validatePriceFilters(search.filters)) return;
@@ -546,7 +539,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setIsSorting(false);
     setIsSearching(true);
     setCanSearch(false);
-    setSearchFeedback(null);
+    setSearchError(null);
     const requestId = ++searchRequestIdRef.current;
     searchRequestControllerRef.current?.abort();
     const requestController = new AbortController();
@@ -580,11 +573,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setActiveCondition(condition);
       setSortDirection(nextSortDirection);
       setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
-      setSearchFeedback(
-        data.length === 0
-          ? { kind: "empty", message: "No cards found." }
-          : null,
-      );
+      setSearchError(null);
       setActiveQueryLabel(
         [
           trimmedPokemonName,
@@ -611,10 +600,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback({
-        kind: "error",
-        message: GENERIC_SEARCH_ERROR_MESSAGE,
-      });
+      setSearchError(GENERIC_SEARCH_ERROR_MESSAGE);
       setCanSearch(true);
     } finally {
       if (requestId === searchRequestIdRef.current) {
@@ -654,7 +640,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback(null);
+      setSearchError(null);
       return;
     }
 
@@ -710,12 +696,43 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setVisibleResultCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE);
   }
 
+  function handleCloseResults() {
+    searchRequestIdRef.current += 1;
+    sortRequestIdRef.current += 1;
+    searchRequestControllerRef.current?.abort();
+    searchRequestControllerRef.current = null;
+    window.clearTimeout(searchCooldownTimerRef.current);
+    setIsSearching(false);
+    setIsSorting(false);
+    setCanSearch(true);
+    setResults([]);
+    setTotalResultCount(0);
+    setActiveQueryLabel("");
+    setActiveCondition("");
+    setSearchError(null);
+    onClose?.();
+  }
+
   function handleProductTypeChange(nextProductType: ProductType) {
     if (nextProductType === productType) return;
     setProductType(nextProductType);
     setFocusModeInput(true);
     if (!embedded && searchParamsKey) {
       setSearchParams(new URLSearchParams(), { replace: true });
+    }
+  }
+
+  function handleFiltersClear() {
+    setFilters(DEFAULT_SEARCH_FILTERS);
+    if (embedded) return;
+
+    const nextSearchParams = new URLSearchParams(searchParamsKey);
+    nextSearchParams.delete("min");
+    nextSearchParams.delete("max");
+    nextSearchParams.delete("rarity");
+    nextSearchParams.delete("condition");
+    if (nextSearchParams.toString() !== searchParamsKey) {
+      setSearchParams(nextSearchParams, { replace: true });
     }
   }
 
@@ -732,7 +749,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       onFiltersChange={(updates) =>
         setFilters((current) => ({ ...current, ...updates }))
       }
-      onFiltersClear={() => setFilters(DEFAULT_SEARCH_FILTERS)}
+      onFiltersClear={handleFiltersClear}
       onPokemonNameChange={setPokemonName}
       onSearch={submitSearch}
       onSearchKeyDown={handleSearchKeyDown}
@@ -782,17 +799,23 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
             {activeSearchMode}
           </SearchHero>
         )}
-        {productType === "singles" && searchFeedback && !isSearching && (
+        {productType === "singles" && searchError && !isSearching && (
           <div
-            className={`database-search-feedback database-search-feedback--${searchFeedback.kind}`}
-            role={searchFeedback.kind === "error" ? "alert" : "status"}
+            className="database-search-feedback database-search-feedback--error"
+            role="alert"
           >
-            {searchFeedback.message}
+            {searchError}
           </div>
         )}
         {productType === "singles" &&
           (() => {
-            if (results.length === 0) return null;
+            if (
+              !activeQueryLabel ||
+              searchError ||
+              (isSearching && results.length === 0)
+            ) {
+              return null;
+            }
 
             /* Embedded (card switch) uses the same grid cards as /search */
             const resultsNode = (
@@ -805,22 +828,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   includeChangeSort={
                     !activeCondition || activeCondition === "NEAR_MINT"
                   }
-                  onClose={() => {
-                    searchRequestIdRef.current += 1;
-                    sortRequestIdRef.current += 1;
-                    searchRequestControllerRef.current?.abort();
-                    searchRequestControllerRef.current = null;
-                    window.clearTimeout(searchCooldownTimerRef.current);
-                    setIsSearching(false);
-                    setIsSorting(false);
-                    setCanSearch(true);
-                    setResults([]);
-                    setTotalResultCount(0);
-                    setActiveQueryLabel("");
-                    setActiveCondition("");
-                    setSearchFeedback(null);
-                    onClose?.();
-                  }}
+                  onClose={handleCloseResults}
                   onSortChange={handleSortChange}
                   resultCount={totalResultCount}
                   sortDirection={sortDirection}

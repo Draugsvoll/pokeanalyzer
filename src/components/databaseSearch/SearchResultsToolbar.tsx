@@ -23,21 +23,23 @@ export function SearchResultsToolbar({
   return (
     <div className="search-results-toolbar">
       <div className="search-results-toolbar__copy">
-        <p className="search-results-toolbar__meta">
+        <p className="search-results-toolbar__meta" role="status">
           {resultCount} card{resultCount === 1 ? "" : "s"} matching
           {activeQueryLabel ? <> &ldquo;{activeQueryLabel}&rdquo;</> : null}
         </p>
       </div>
       <div className="search-results-toolbar__actions">
-        <label className="search-results-sort-control">
-          <PokeTraceSortDropdown
-            ariaLabel="Sort search results"
-            className="search-results-sort-control__dropdown"
-            includeChange={includeChangeSort}
-            value={sortDirection}
-            onChange={onSortChange}
-          />
-        </label>
+        {resultCount > 0 && (
+          <label className="search-results-sort-control">
+            <PokeTraceSortDropdown
+              ariaLabel="Sort search results"
+              className="search-results-sort-control__dropdown"
+              includeChange={includeChangeSort}
+              value={sortDirection}
+              onChange={onSortChange}
+            />
+          </label>
+        )}
         <CloseButton ariaLabel="Close search results" onClick={onClose} />
       </div>
     </div>

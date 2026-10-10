@@ -107,13 +107,17 @@
 }
 
 .app-overview-metric--featured {
-  column-gap: var(--space-4);
+  column-gap: var(--space-1);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 4.25rem;
   min-width: 0;
 
   > .app-overview-metric-content {
     grid-column: 1;
+
+    > strong {
+      gap: var(--space-2);
+    }
 
     > .app-overview-metric-detail {
       width: 100%;

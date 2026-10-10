@@ -156,3 +156,32 @@ test("writes every submitted Sealed filter to the URL", async () => {
     });
   });
 });
+
+test("removes cleared Sealed filters from the URL", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={["/sealed?mode=sealed&name=Booster&min=100&max=500"]}
+    >
+      <SealedSearchHarness />
+    </MemoryRouter>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+  await waitFor(() => {
+    const params = new URLSearchParams(
+      screen.getByLabelText("Current search").textContent ?? "",
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      mode: "sealed",
+      name: "Booster",
+    });
+  });
+  expect(screen.getByRole("spinbutton", { name: "Minimum price" })).toHaveValue(
+    null,
+  );
+  expect(screen.getByRole("spinbutton", { name: "Maximum price" })).toHaveValue(
+    null,
+  );
+});

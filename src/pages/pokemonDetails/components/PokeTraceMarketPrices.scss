@@ -214,6 +214,7 @@
       color: var(--font-color-primary);
       font-family: var(--font-family-price);
       font-variant-numeric: tabular-nums;
+      letter-spacing: var(--font-tracking-price);
       line-height: 1;
     }
   }
@@ -234,7 +235,6 @@
     min-width: 0;
 
     .app-price-change {
-      margin-left: -0.25rem;
       font-size: 0.8rem;
     }
 
@@ -245,9 +245,7 @@
   }
 
   &__quote strong {
-    font-size: clamp(1.65rem, 2.6vw, 2.2rem);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: -0.015em;
+    font-size: clamp(1.6rem, 2.4vw, 2.1rem);
   }
 
   &__range {
@@ -341,6 +339,7 @@
       font-size: var(--font-size-h3);
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--font-tracking-price);
       white-space: nowrap;
     }
 
@@ -589,6 +588,7 @@
       font-size: 13px;
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--font-tracking-price);
     }
 
     span {

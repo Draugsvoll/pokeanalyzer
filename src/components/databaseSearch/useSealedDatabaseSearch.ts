@@ -270,7 +270,21 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     submitSearch();
   }
 
+  function clearFilters() {
+    setMinPrice("");
+    setMaxPrice("");
+    if (!syncUrl) return;
+
+    const nextSearchParams = new URLSearchParams(searchParamsKey);
+    nextSearchParams.delete("min");
+    nextSearchParams.delete("max");
+    if (nextSearchParams.toString() !== searchParamsKey) {
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }
+
   return {
+    clearFilters,
     feedback,
     hasCriteria,
     loading,
