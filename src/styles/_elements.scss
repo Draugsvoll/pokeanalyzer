@@ -271,11 +271,14 @@ input[type="radio"] {
 
 .grid-header {
   align-items: flex-end;
-  border-bottom: 1px solid var(--border-divider);
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
   justify-content: space-between;
-  padding-bottom: var(--space-3);
+  padding-bottom: 0.8rem;
+}
+
+.grid-header__subtitle {
+  font-weight: var(--font-weight-medium);
 }
 
 .default-note-container {

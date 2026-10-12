@@ -788,7 +788,6 @@ export function SetCategoryGrid() {
           )}
 
           <CardCategoryGrid
-            collapsible={false}
             emptyMessage={
               activeSetName
                 ? cardFilter.trim()

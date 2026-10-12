@@ -14,14 +14,13 @@ export type CardCategoryGridItem = {
 };
 
 type CardCategoryGridProps = {
-  collapsible?: boolean;
   controls?: ReactNode;
-  defaultCollapsed?: boolean;
   emptyMessage?: ReactNode;
   error?: ReactNode;
   footer?: ReactNode;
   items: CardCategoryGridItem[];
   loading?: boolean;
+  minimized?: boolean;
   onRetry?: () => void;
   revealOnScroll?: boolean;
   sorting?: boolean;
@@ -30,14 +29,13 @@ type CardCategoryGridProps = {
 };
 
 export function CardCategoryGrid({
-  collapsible = true,
   controls,
-  defaultCollapsed = false,
   emptyMessage = "No cards are available in this category yet.",
   error,
   footer,
   items,
   loading = false,
+  minimized = false,
   onRetry,
   revealOnScroll = true,
   sorting = false,
@@ -47,19 +45,21 @@ export function CardCategoryGrid({
   return (
     <section className="card-category-grid ui-render-fade">
       <GridView
-        collapsible={collapsible}
-        defaultCollapsed={defaultCollapsed}
+        minimized={minimized}
         revealOnScroll={revealOnScroll}
         sorting={sorting}
         subtitle={subtitle}
         title={title}
       >
         {controls && (
-          <div className="card-category-grid__controls">{controls}</div>
+          <div className="card-category-grid__controls" data-grid-full-width>
+            {controls}
+          </div>
         )}
         {loading ? (
           <div
             aria-label="Loading card category"
+            data-grid-full-width
             className="card-category-grid__state"
             role="status"
           >
@@ -69,6 +69,7 @@ export function CardCategoryGrid({
           <div
             className="card-category-grid__state card-category-grid__state--error"
             role="alert"
+            data-grid-full-width
           >
             <p>{error}</p>
             {onRetry && (
@@ -83,7 +84,9 @@ export function CardCategoryGrid({
             )}
           </div>
         ) : items.length === 0 && emptyMessage ? (
-          <p className="card-category-grid__state">{emptyMessage}</p>
+          <p className="card-category-grid__state" data-grid-full-width>
+            {emptyMessage}
+          </p>
         ) : items.length > 0 ? (
           items.map(({ card, marketDisplay }) => (
             <PokemonCardView
@@ -94,7 +97,9 @@ export function CardCategoryGrid({
           ))
         ) : null}
         {footer && !loading && !error && (
-          <div className="card-category-grid__footer">{footer}</div>
+          <div className="card-category-grid__footer" data-grid-full-width>
+            {footer}
+          </div>
         )}
       </GridView>
     </section>

@@ -15,46 +15,25 @@ const card: PokemonCard = {
   set: { id: "base-set", name: "Base Set" },
 };
 
-test("collapses and expands a card category from its header", () => {
-  render(
-    <CardCategoryGrid
-      items={[{ card }]}
-      title="Daily Top Sellers on TCGPlayer"
-    />,
-  );
-
-  const heading = screen.getByRole("heading", {
-    name: "Daily Top Sellers on TCGPlayer",
-  });
-  const collapseButton = screen.getByRole("button", {
-    name: "Collapse Daily Top Sellers on TCGPlayer",
-  });
-  const content = document.getElementById(
-    collapseButton.getAttribute("aria-controls") ?? "",
-  );
-
-  expect(heading).toBeVisible();
-  expect(collapseButton).toHaveAttribute("aria-expanded", "true");
-  expect(content).not.toHaveAttribute("hidden");
-  expect(screen.getByText("Pikachu")).toBeInTheDocument();
-
-  fireEvent.click(collapseButton);
-
-  expect(
-    screen.getByRole("button", {
-      name: "Expand Daily Top Sellers on TCGPlayer",
-    }),
-  ).toHaveAttribute("aria-expanded", "false");
-  expect(content).toHaveAttribute("hidden");
-
-  fireEvent.click(
-    screen.getByRole("button", {
-      name: "Expand Daily Top Sellers on TCGPlayer",
-    }),
-  );
-
-  expect(content).not.toHaveAttribute("hidden");
-});
+test.each([undefined, false])(
+  "shows the full category without a toggle when minimized is %s",
+  (minimized) => {
+    const { container } = render(
+      <CardCategoryGrid
+        minimized={minimized}
+        items={[{ card }, { card: { ...card, id: "card-2", name: "Eevee" } }]}
+        title="Daily Top Sellers on TCGPlayer"
+      />,
+    );
+    expect(screen.getByText("Pikachu")).toBeVisible();
+    expect(screen.getByText("Eevee")).toBeVisible();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(container.querySelector(".grid-header__chevron")).toBeNull();
+    fireEvent.click(screen.getByRole("heading"));
+    expect(screen.getByText("Pikachu")).toBeVisible();
+    expect(screen.getByText("Eevee")).toBeVisible();
+  },
+);
 
 test("offers a retry action when a category request fails", () => {
   const onRetry = vi.fn();

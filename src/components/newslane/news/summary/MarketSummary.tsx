@@ -34,13 +34,13 @@ function SummaryCard({
         <header className="news-card__heading">
           {label && (
             <div className="market-summary__meta">
-              <Badge accent={accent} size="sm" weight="strong">
+              <Badge accent={accent} size={wide ? "lg" : "sm"} weight="strong">
                 {label}
               </Badge>
             </div>
           )}
           <div className="market-summary__card-title">
-            {wide ? <h2>{title}</h2> : <h4>{title}</h4>}
+            {wide ? <h2>{title}</h2> : <h3>{title}</h3>}
           </div>
         </header>
         <div className="news-card__body">{children}</div>

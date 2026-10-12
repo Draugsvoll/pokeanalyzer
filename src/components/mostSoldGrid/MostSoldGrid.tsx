@@ -15,6 +15,7 @@ import {
 type MostSoldFetcher = (signal?: AbortSignal) => Promise<MostSoldResponse>;
 
 type MostSoldGridProps = {
+  minimized?: boolean;
   loadCards?: MostSoldFetcher;
   title?: ReactNode;
 };
@@ -66,6 +67,7 @@ function toGridItem(
 }
 
 export function MostSoldGrid({
+  minimized = false,
   loadCards = mostSoldCards,
   title = "Most Sold",
 }: MostSoldGridProps = {}) {
@@ -106,6 +108,7 @@ export function MostSoldGrid({
 
   return (
     <CardCategoryGrid
+      minimized={minimized}
       emptyMessage="No recent sales data is available yet."
       error={result.error}
       items={result.items}

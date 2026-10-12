@@ -2,33 +2,37 @@
 
 .grid-view {
   display: grid;
-  gap: var(--space-4);
   min-width: 0;
   width: 100%;
 }
 
-.grid-header--collapsible {
-  padding-right: 2.15rem;
+.grid-header--minimized {
+  align-items: last baseline;
   position: relative;
-  transition: border-color var(--delay-short) ease;
+}
 
-  &:hover {
-    border-color: var(--border-color-strong);
-  }
+.grid-header > h3,
+.grid-header__subtitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .grid-header__toggle {
-  align-items: center;
+  align-items: baseline;
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
   color: var(--font-color-secondary);
   cursor: pointer;
   display: flex;
-  inset: -0.25rem 0 0;
+  flex-shrink: 0;
+  font-family: inherit;
+  gap: var(--space-2);
+  margin-left: auto;
   justify-content: flex-end;
-  padding: 0 0.2rem var(--space-3) 0;
-  position: absolute;
+  padding: 0 0.2rem 0 0;
+  position: static;
+  width: auto;
   z-index: 1;
 
   &:hover {
@@ -40,19 +44,33 @@
     outline-offset: 3px;
   }
 
-  &[aria-expanded="false"] .grid-header__chevron {
-    transform: rotate(-90deg);
+  // Keep the header clickable without taking the label out of baseline layout.
+  &::after {
+    content: "";
+    inset: 0;
+    position: absolute;
+  }
+
+  &[aria-expanded="true"] .grid-header__chevron {
+    transform: rotate(180deg);
   }
 }
 
 .grid-header__chevron {
+  align-self: center;
   transition:
     color var(--delay-short) ease,
     transform var(--delay-short) ease;
 }
 
-.card-grid[hidden] {
-  display: none;
+.card-grid > [data-grid-overflow] {
+  display: none !important;
+}
+
+.grid-header__toggle-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
 }
 
 @keyframes ui-card-grid-enter {

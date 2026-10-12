@@ -50,7 +50,7 @@ test("groups each summary section while keeping the lead card full-width", () =>
     screen.getByRole("heading", { name: "The market remained balanced" })
       .tagName,
   ).toBe("H2");
-  expect(themesHeading.tagName).toBe("H4");
+  expect(themesHeading.tagName).toBe("H3");
   expect(leadCard).toContainElement(
     screen.getByText("Older cards offset softness in recent releases."),
   );

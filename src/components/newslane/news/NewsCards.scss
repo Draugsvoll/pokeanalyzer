@@ -9,7 +9,7 @@
 .news-card-grid {
   align-items: start;
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
 }

@@ -1,12 +1,11 @@
-import React, { useId, useState } from "react";
+import React, { useId, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import "./GridView.scss";
 
 type GridViewProps = {
   children: React.ReactNode;
-  collapsible?: boolean;
-  defaultCollapsed?: boolean;
+  minimized?: boolean;
   revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: React.ReactNode;
@@ -15,8 +14,7 @@ type GridViewProps = {
 
 export function GridView({
   children,
-  collapsible = false,
-  defaultCollapsed = false,
+  minimized = false,
   revealOnScroll = true,
   sorting = false,
   subtitle,
@@ -24,8 +22,46 @@ export function GridView({
 }: GridViewProps) {
   const revealRef = useScrollReveal<HTMLDivElement>();
   const contentId = useId();
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [showAll, setShowAll] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [hasMoreRows, setHasMoreRows] = useState(false);
+  const canMinimize = minimized && Boolean(title || subtitle);
   const categoryName = typeof title === "string" ? title : "card category";
+  const toggleable = canMinimize && hasMoreRows;
+  const toggleLabel = `${showAll ? "Show less of" : "Show more of"} ${categoryName}`;
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!canMinimize || !grid) return;
+    const update = () => {
+      if (!grid.clientWidth) return;
+      // Read the browser's resolved tracks, keeping the existing responsive CSS
+      // as the single source of truth for the number of cards in a row.
+      const columns = window.getComputedStyle(grid).gridTemplateColumns;
+      const count =
+        columns && columns !== "none" ? columns.trim().split(/\s+/).length : 1;
+      let itemCount = 0;
+      Array.from(grid.children).forEach((child) => {
+        // Controls, loading/error messages and footers span the entire grid.
+        const fullWidth = child.hasAttribute("data-grid-full-width");
+        if (!fullWidth) itemCount += 1;
+        child.toggleAttribute(
+          "data-grid-overflow",
+          !fullWidth && !showAll && itemCount > count,
+        );
+      });
+      setHasMoreRows(itemCount > count);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(grid);
+    return () => {
+      observer.disconnect();
+      Array.from(grid.children).forEach((child) =>
+        child.removeAttribute("data-grid-overflow"),
+      );
+    };
+  }, [children, canMinimize, showAll]);
 
   return (
     <div
@@ -35,24 +71,25 @@ export function GridView({
     >
       {(title || subtitle) && (
         <header
-          className={`grid-header${collapsible ? " grid-header--collapsible" : ""}`}
+          className={`grid-header${toggleable ? " grid-header--minimized" : ""}`}
         >
           {title && <h3>{title}</h3>}
           {subtitle && (
-            <small>
-              <b>{subtitle}</b>
-            </small>
+            <small className="grid-header__subtitle">{subtitle}</small>
           )}
-          {collapsible && (
+          {toggleable && (
             <button
               aria-controls={contentId}
-              aria-expanded={!collapsed}
-              aria-label={`${collapsed ? "Expand" : "Collapse"} ${categoryName}`}
+              aria-expanded={showAll}
+              aria-label={toggleLabel}
               className="grid-header__toggle"
-              onClick={() => setCollapsed((current) => !current)}
-              title={`${collapsed ? "Expand" : "Collapse"} ${categoryName}`}
+              onClick={() => setShowAll((current) => !current)}
+              title={toggleLabel}
               type="button"
             >
+              <span className="grid-header__toggle-label">
+                {showAll ? "Show less" : "Show more"}
+              </span>
               <ChevronDown
                 aria-hidden="true"
                 className="grid-header__chevron"
@@ -65,8 +102,8 @@ export function GridView({
       )}
       <div
         className={`card-grid ui-card-grid-enter${sorting ? " card-grid--sorting" : ""}`}
-        hidden={collapsible && collapsed}
-        id={collapsible ? contentId : undefined}
+        id={canMinimize ? contentId : undefined}
+        ref={gridRef}
       >
         {children}
       </div>

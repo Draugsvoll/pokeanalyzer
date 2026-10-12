@@ -74,6 +74,12 @@ vi.mock("../../services/cardApi", () => ({
   fetchMarketPriceHistory: mocks.fetchMarketPriceHistory,
 }));
 
+vi.mock("../../services/pokeTraceSets", () => ({
+  loadPokeTraceSet: vi
+    .fn()
+    .mockResolvedValue({ cards: [], salesLeaders: { total: null } }),
+}));
+
 vi.mock("../../context/authContextValue", () => ({
   useAuth: () => ({
     loading: mocks.authLoading,

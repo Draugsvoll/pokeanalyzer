@@ -126,7 +126,7 @@ export function NewsLane() {
           aria-label="Weekly News"
           className="news-lane__section ui-render-fade"
         >
-          <header className="news-lane__header grid-header">
+          <header className="news-lane__header">
             <h3 className="news-lane__title">Weekly News</h3>
           </header>
 
@@ -142,7 +142,7 @@ export function NewsLane() {
           className="news-lane__section ui-scroll-reveal ui-render-fade"
           ref={marketSummaryRevealRef}
         >
-          <header className="news-lane__header grid-header">
+          <header className="news-lane__header">
             <h3 className="news-lane__title">Weekly Market Report</h3>
             {summaryUpdatedAt && (
               <span className="news-lane__updated">

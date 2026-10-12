@@ -1,5 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import type {
+  PokeTraceSealedDetails,
+  PokeTraceSealedMarketHistory,
+} from "../../../shared/pokeTraceSealed";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
   fetchSealedMarketPriceHistory,
@@ -10,6 +20,7 @@ import SealedDetails from "./SealedDetails";
 vi.mock("../../services/sealedApi", () => ({
   fetchSealedMarketPriceHistory: vi.fn(),
   fetchSealedProduct: vi.fn(),
+  searchSealedProducts: vi.fn().mockResolvedValue({ items: [], total: 0 }),
 }));
 
 vi.mock("../../context/authContextValue", () => ({
@@ -40,6 +51,89 @@ vi.mock("../../components/databaseSearch/DatabaseSearch", () => ({
 }));
 
 const productId = "019bff85-5452-714a-9660-a3559a2d5d95";
+
+test("late product and price-history responses cannot replace the next product", async () => {
+  const first: PokeTraceSealedDetails = {
+    id: "first",
+    name: "First box",
+    setName: "Base Set",
+    productFamily: "booster_box",
+    currency: "USD",
+    price: 100,
+    priceSnapshots: { "1d": null, "7d": null, "30d": null },
+    marketplaceUrls: {},
+    pricing: {
+      tcgplayer: {
+        price: 100,
+        approxSaleCount: null,
+        average1d: null,
+        average7d: null,
+        average30d: null,
+        high: null,
+        lastUpdated: null,
+        low: null,
+        median3d: null,
+        median7d: null,
+        median30d: null,
+        saleCount: null,
+      },
+    },
+    refs: { cardmarketId: null, tcgplayerId: null },
+  };
+  const second = { ...first, id: "second", name: "Second box" };
+  const history: PokeTraceSealedMarketHistory = {
+    productId: second.id,
+    condition: "UNOPENED",
+    period: "90d",
+    currency: "USD",
+    fetchedAt: "2026-10-05T12:00:00.000Z",
+    stale: false,
+    series: {},
+  };
+  let resolveProduct!: (value: PokeTraceSealedDetails) => void;
+  let resolveHistory!: (value: PokeTraceSealedMarketHistory) => void;
+  vi.mocked(fetchSealedProduct)
+    .mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveProduct = resolve;
+      }),
+    )
+    .mockResolvedValueOnce(second);
+  vi.mocked(fetchSealedMarketPriceHistory)
+    .mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveHistory = resolve;
+      }),
+    )
+    .mockResolvedValueOnce(history);
+  render(
+    <MemoryRouter
+      initialEntries={[
+        { pathname: "/sealed/first", state: { product: first } },
+      ]}
+    >
+      <Link to="/sealed/second">Next product</Link>
+      <Routes>
+        <Route element={<SealedDetails />} path="/sealed/:id" />
+      </Routes>
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("heading", { name: "First box" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Next product" }));
+  await screen.findByRole("heading", { name: "Second box" });
+  const emptyHistoryText =
+    "Historical prices are not available for this sealed product yet.";
+  await screen.findByText(emptyHistoryText);
+  await act(async () => resolveHistory({ ...history, productId: first.id }));
+  expect(screen.getByText(emptyHistoryText)).toBeInTheDocument();
+  await act(async () => resolveProduct(first));
+  expect(
+    screen.getByRole("heading", { name: "Second box" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(emptyHistoryText)).toBeInTheDocument();
+});
 
 beforeEach(() => {
   vi.mocked(fetchSealedMarketPriceHistory).mockReset();

@@ -29,6 +29,7 @@ export default function Homepage() {
         </div>
       )}
       <MarketMoversGrid
+        minimized
         changeLabel="Daily change in the TCGPlayer Near Mint price"
         loadMovers={dailyTcgNearMintGainers}
         showMarketLabel={false}

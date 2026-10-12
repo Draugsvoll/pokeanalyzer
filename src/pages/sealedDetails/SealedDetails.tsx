@@ -28,6 +28,7 @@ import {
   MarketPriceHistoryLoading,
 } from "../pokemonDetails/components/MarketPriceHistoryChart";
 import { MarketDataUnavailable } from "../pokemonDetails/components/MarketDataUnavailable";
+import { SetTopSealedGrid } from "./SetTopSealedGrid";
 import "./SealedDetails.scss";
 
 function formatMoney(value: number, currency: string) {
@@ -66,26 +67,25 @@ function useSealedPriceHistory(productId: string) {
   });
 
   useEffect(() => {
-    if (!productId) {
-      setRequest({ history: null, id: productId, loading: false });
-      return;
-    }
+    if (!productId) return;
 
     const controller = new AbortController();
     void fetchSealedMarketPriceHistory(productId, controller.signal)
       .then((history) => {
+        if (controller.signal.aborted) return;
         setRequest({ history, id: productId, loading: false });
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+      .catch(() => {
+        if (controller.signal.aborted) return;
         setRequest({ history: null, id: productId, loading: false });
       });
     return () => controller.abort();
   }, [productId]);
 
   return {
-    history: request.id === productId ? request.history : null,
-    loading: request.id !== productId || request.loading,
+    history: productId && request.id === productId ? request.history : null,
+    loading:
+      Boolean(productId) && (request.id !== productId || request.loading),
   };
 }
 
@@ -178,7 +178,7 @@ function SealedMarketplacePrice({
           <dl className="poketrace-market__range">
             <div>
               <dt>Low</dt>
-              <dd>
+              <dd className="poketrace-market__range-price">
                 {typeof pricing?.low === "number"
                   ? formatMoney(pricing.low, currency)
                   : "—"}
@@ -186,7 +186,7 @@ function SealedMarketplacePrice({
             </div>
             <div>
               <dt>High</dt>
-              <dd>
+              <dd className="poketrace-market__range-price">
                 {typeof pricing?.high === "number"
                   ? formatMoney(pricing.high, currency)
                   : "—"}
@@ -314,6 +314,7 @@ export default function SealedDetails() {
     const controller = new AbortController();
     void fetchSealedProduct(id, controller.signal)
       .then((nextProduct) => {
+        if (controller.signal.aborted) return;
         setRequest({
           error: null,
           id,
@@ -484,6 +485,7 @@ export default function SealedDetails() {
         onClose={closeEmbeddedSearch}
         returnFocusRef={sealedSearchTriggerRef}
       />
+      <SetTopSealedGrid setName={product.setName} />
     </DetailsPage>
   );
 }

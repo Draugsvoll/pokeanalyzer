@@ -241,11 +241,15 @@ function MarketplaceColumn({
           <dl className="poketrace-market__range">
             <div>
               <dt>Low</dt>
-              <dd>{formatPrice(price.low, currency)}</dd>
+              <dd className="poketrace-market__range-price">
+                {formatPrice(price.low, currency)}
+              </dd>
             </div>
             <div>
               <dt>High</dt>
-              <dd>{formatPrice(price.high, currency)}</dd>
+              <dd className="poketrace-market__range-price">
+                {formatPrice(price.high, currency)}
+              </dd>
             </div>
             <div>
               <dt>Sales</dt>

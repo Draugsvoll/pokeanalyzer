@@ -20,6 +20,7 @@ type MarketMoversFetcher = (
 ) => Promise<MarketMoversResponse>;
 
 type MarketMoversGridProps = {
+  minimized?: boolean;
   changeLabel?: string;
   emptyMessage?: ReactNode;
   loadMovers: MarketMoversFetcher;
@@ -120,6 +121,7 @@ function resolveChangePeriod(periodDays?: number): PriceChangePeriod | null {
 }
 
 export function MarketMoversGrid({
+  minimized = false,
   changeLabel,
   emptyMessage,
   loadMovers,
@@ -169,6 +171,7 @@ export function MarketMoversGrid({
 
   return (
     <CardCategoryGrid
+      minimized={minimized}
       emptyMessage={emptyMessage}
       error={result.error}
       items={result.items}

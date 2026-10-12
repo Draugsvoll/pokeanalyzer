@@ -12,6 +12,12 @@
 }
 
 .news-lane__header {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border-divider);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
   text-align: left;
 }
 
@@ -23,6 +29,7 @@
 .news-lane__updated {
   color: var(--font-color-faint);
   font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
 }
 
 .news-lane__panel {

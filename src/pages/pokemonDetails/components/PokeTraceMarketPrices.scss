@@ -276,6 +276,12 @@
       font-weight: var(--font-weight-semibold);
       margin: 0;
     }
+
+    dd.poketrace-market__range-price {
+      font-family: var(--font-family-price);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--font-tracking-price);
+    }
   }
 
   &__graded {

@@ -57,6 +57,7 @@ import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
+import { SetTopCardsGrid } from "./components/SetTopCardsGrid";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
 import { PricingBar } from "../../components/pricingBar/PricingBar";
 import { MEMBERSHIP_PLANS } from "../../../shared/subscriptions/plans";
@@ -967,6 +968,8 @@ function PokemonDetailsForCard() {
           )}
         </div>
       </section>
+
+      <SetTopCardsGrid setName={card.set?.name} />
 
       {isDemo && (
         <section
