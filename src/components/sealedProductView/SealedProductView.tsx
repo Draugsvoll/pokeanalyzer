@@ -6,6 +6,7 @@ import {
   formatPriceChangePeriodLong,
   type PriceChangePeriod,
 } from "../../../shared/priceChangePeriod";
+import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useSealedPortfolio } from "../../hooks/sealedPortfolio";
@@ -15,20 +16,6 @@ import { PortfolioItemCard } from "../portfolioItemCard/PortfolioItemCard";
 import { ProductCard } from "../productCard/ProductCard";
 import { Badge } from "../ui/Badge";
 import "./SealedProductView.scss";
-
-function formatMoney(value: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      currency,
-      currencyDisplay: "narrowSymbol",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      style: "currency",
-    }).format(value);
-  } catch {
-    return `${currency} ${value.toFixed(2)}`;
-  }
-}
 
 function formatLabel(value: string) {
   return value
@@ -172,7 +159,7 @@ export function SealedProductView({
           <strong className="product-card__price-value">
             {product.price === null
               ? "Price unavailable"
-              : formatMoney(product.price, product.currency)}
+              : formatPokeTraceMoney(product.price)}
           </strong>
           <PriceChange
             percent={change}

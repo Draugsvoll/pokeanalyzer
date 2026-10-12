@@ -1,12 +1,15 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { MarketMoversGrid } from "./MarketMoversGrid";
 
 vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   CardCategoryGrid: ({
+    error,
     items,
     loading,
+    onRetry,
   }: {
+    error?: string | null;
     items: Array<{
       card: {
         name: string;
@@ -21,8 +24,11 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
       };
     }>;
     loading: boolean;
+    onRetry?: () => void;
   }) => (
     <div aria-label="Mover grid" data-loading={loading}>
+      {error && <span>{error}</span>}
+      {onRetry && <button onClick={onRetry}>Try again</button>}
       {items.map((item) => (
         <span
           data-preview-price={
@@ -135,5 +141,27 @@ test("omits the period when the response does not identify its snapshot", async 
   );
   expect(screen.getByText(/Charizard/)).not.toHaveAttribute(
     "data-price-change-period",
+  );
+});
+
+test("retries a failed market request", async () => {
+  const loadMovers = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce({
+      fetchedAt: "2026-09-20T12:00:00.000Z",
+      items: [],
+      periodDays: 1,
+      query: {},
+      stale: false,
+    });
+
+  render(<MarketMoversGrid loadMovers={loadMovers} title="Category" />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+
+  await waitFor(() => expect(loadMovers).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
   );
 });

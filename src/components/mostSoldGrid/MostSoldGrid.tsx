@@ -58,7 +58,6 @@ function toGridItem(
     card,
     marketDisplay: {
       condition: displayedPriceCondition,
-      currency: item.currency,
       price: item.currentPrice,
       priceLabel: `${salesLabel} on ${market} across ${condition} during the last ${response.periodDays} ${response.periodDays === 1 ? "day" : "days"}`,
       source: response.source,
@@ -75,6 +74,7 @@ export function MostSoldGrid({
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
+  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -97,7 +97,12 @@ export function MostSoldGrid({
         });
       });
     return () => controller.abort();
-  }, [loadCards]);
+  }, [loadCards, requestVersion]);
+
+  function retry() {
+    setResult({ error: null, items: [], loading: true });
+    setRequestVersion((current) => current + 1);
+  }
 
   return (
     <CardCategoryGrid
@@ -105,6 +110,7 @@ export function MostSoldGrid({
       error={result.error}
       items={result.items}
       loading={result.loading}
+      onRetry={result.error ? retry : undefined}
       subtitle=""
       title={title}
     />

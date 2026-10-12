@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { MostSoldGrid } from "./MostSoldGrid";
 
@@ -31,9 +31,12 @@ vi.mock("../../services/marketCategoriesApi", () => ({
 
 vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   CardCategoryGrid: ({
+    error,
     items,
     loading,
+    onRetry,
   }: {
+    error?: string | null;
     items: Array<{
       card: {
         name: string;
@@ -50,8 +53,11 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
       };
     }>;
     loading: boolean;
+    onRetry?: () => void;
   }) => (
     <div aria-label="Most sold grid" data-loading={loading}>
+      {error && <span>{error}</span>}
+      {onRetry && <button onClick={onRetry}>Try again</button>}
       {items.map((item) => (
         <span key={item.card.name}>
           {item.card.name} {item.card.set.name} {item.marketDisplay?.price}{" "}
@@ -77,4 +83,28 @@ test("renders the current price without a visible sales label", async () => {
     screen.getByText(/Charizard Unknown set 120\s+NEAR_MINT tcgplayer 100/),
   ).toBeVisible();
   expect(screen.queryByText("20 new sales")).toBeNull();
+});
+
+test("retries a failed most-sold request", async () => {
+  const loadCards = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce({
+      comparisonSnapshotDate: "2026-09-21",
+      condition: "ALL",
+      currentSnapshotDate: "2026-09-22",
+      fetchedAt: "2026-09-22T12:00:00.000Z",
+      items: [],
+      periodDays: 1,
+      source: "tcgplayer",
+    });
+
+  render(<MostSoldGrid loadCards={loadCards} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+
+  await waitFor(() => expect(loadCards).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
+  );
 });

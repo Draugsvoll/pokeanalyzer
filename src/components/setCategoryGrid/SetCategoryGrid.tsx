@@ -11,6 +11,11 @@ import {
 import { ChevronDown } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { POKETRACE_SEARCH_PAGE_SIZE } from "../../../shared/pokeTraceSearch";
+import {
+  formatPriceChangePeriodLong,
+  type PriceChangePeriod,
+} from "../../../shared/priceChangePeriod";
+import { calculateDisplayedPriceChangePercent } from "../../../shared/pokeTracePriceChange";
 import type { PokeTraceSetSalesLeaders } from "../../../shared/pokeTraceSet";
 import {
   POKETRACE_RAW_CONDITION_LABELS,
@@ -41,6 +46,7 @@ import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox"
 import { CardCategoryGrid } from "../cardCategoryGrid/CardCategoryGrid";
 import { FilterInput } from "../filterInput/FilterInput";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
+import { PriceChangePeriodSelector } from "../priceChangePeriodSelector/PriceChangePeriodSelector";
 import { PriceChange } from "../priceChange/PriceChange";
 import { formatPriceChangeAccessibleLabel } from "../priceChange/priceChangeUtils";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
@@ -343,6 +349,7 @@ export function SetCategoryGrid() {
   const [activeSetName, setActiveSetName] = useState<string | null>(null);
   const [cards, setCards] = useState<PokemonCard[]>([]);
   const [cardScope, setCardScope] = useState<SetCardScope>(DEFAULT_CARD_SCOPE);
+  const [changePeriod, setChangePeriod] = useState<PriceChangePeriod>("7d");
   const [appliedCardScope, setAppliedCardScope] =
     useState<SetCardScope>(DEFAULT_CARD_SCOPE);
   const [isScopePending, startScopeTransition] = useTransition();
@@ -381,12 +388,24 @@ export function SetCategoryGrid() {
     () =>
       sortPokeTraceCards(filteredCards, sort, {
         condition: DEFAULT_CONDITION,
+        getPriceChangeDisplayContext: (card) => {
+          const comparisonPrice =
+            card.pokeTrace.marketPriceSnapshots?.[changePeriod];
+          return {
+            comparisonPeriod: changePeriod,
+            comparisonPriceSnapshot:
+              typeof comparisonPrice === "number"
+                ? { marketPrice: comparisonPrice }
+                : null,
+          };
+        },
       }),
-    [filteredCards, sort],
+    [changePeriod, filteredCards, sort],
   );
   const overview = useMemo(
-    () => buildSetExplorerOverview(scopedCards, salesLeaders, cards),
-    [cards, salesLeaders, scopedCards],
+    () =>
+      buildSetExplorerOverview(scopedCards, salesLeaders, cards, changePeriod),
+    [cards, changePeriod, salesLeaders, scopedCards],
   );
   const visibleCards = sortedCards.slice(0, visibleCount);
   const normalizedSetFilter = inputValue.trim().toLocaleLowerCase("en-US");
@@ -422,7 +441,7 @@ export function SetCategoryGrid() {
     : activeSetName;
   const setEraOptions = useMemo(
     () => [
-      { label: "Any Era", value: "" },
+      { label: "All Eras", value: "" },
       ...groupSetDirectoryOptions(setDirectoryOptions, directorySort).map(
         ([era]) => ({ label: era, value: era }),
       ),
@@ -672,17 +691,25 @@ export function SetCategoryGrid() {
           setCardFilter(value);
           setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
         }}
-        placeholder="Filter"
+        placeholder="Search the collection"
         value={cardFilter}
       />
-      <div className="set-category-grid__sort-control">
-        <PokeTraceSortDropdown
-          ariaLabel="Sort set cards"
-          className="set-category-grid__sort"
-          includeChange
-          onChange={handleSortChange}
-          value={sort}
+      <div className="set-category-grid__result-control-group">
+        <PriceChangePeriodSelector
+          className="set-category-grid__timeframe"
+          disabled={isUpdatingResults}
+          onChange={setChangePeriod}
+          value={changePeriod}
         />
+        <div className="set-category-grid__sort-control">
+          <PokeTraceSortDropdown
+            ariaLabel="Sort set cards"
+            className="set-category-grid__sort"
+            includeChange
+            onChange={handleSortChange}
+            value={sort}
+          />
+        </div>
       </div>
     </div>
   );
@@ -773,13 +800,21 @@ export function SetCategoryGrid() {
             footer={footer}
             items={visibleCards.map((card) => {
               const price = resolvePokeTraceCardPrice(card, DEFAULT_CONDITION);
+              const comparisonPrice =
+                card.pokeTrace.marketPriceSnapshots?.[changePeriod];
+              const changePercent = calculateDisplayedPriceChangePercent(
+                price?.price ?? null,
+                comparisonPrice,
+              );
               const conditionLabel =
                 POKETRACE_RAW_CONDITION_LABELS[DEFAULT_CONDITION];
               return {
                 card,
                 marketDisplay: {
                   condition: DEFAULT_CONDITION,
-                  currency: price?.currency ?? card.pokeTrace.currency,
+                  changeLabel: `${formatPriceChangePeriodLong(changePeriod)} TCGplayer ${conditionLabel} change`,
+                  changePeriod,
+                  ...(changePercent != null && { changePercent }),
                   price: price?.price,
                   priceLabel: `TCGplayer ${conditionLabel} market price`,
                   primaryText: price ? undefined : "—",

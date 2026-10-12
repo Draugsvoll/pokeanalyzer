@@ -36,12 +36,6 @@ export function portfolioPrice(item: PortfolioItem) {
     : item.price;
 }
 
-export function portfolioCurrency(item: PortfolioItem) {
-  return item.type === "single"
-    ? (resolvePokeTraceCardPrice(item)?.currency ?? item.pokeTrace.currency)
-    : item.currency;
-}
-
 export function portfolioComparisonPrice(
   item: PortfolioItem,
   period: PortfolioComparisonPeriod,
@@ -174,12 +168,6 @@ export function getPortfolioStats(
   let weakestPerformer: (PortfolioFeaturedMetric & { change: number }) | null =
     null;
   let mostValuable: PortfolioFeaturedMetric | null = null;
-  const valueCurrency = items
-    .map((item) =>
-      portfolioPrice(item) == null ? null : portfolioCurrency(item),
-    )
-    .find((currency): currency is string => Boolean(currency));
-
   for (const item of items) {
     const quantity = portfolioQuantity(item);
     const currentPrice = portfolioPrice(item);
@@ -189,14 +177,10 @@ export function getPortfolioStats(
     else sealedAssets += quantity;
 
     if (currentPrice != null) {
-      if (portfolioCurrency(item) !== valueCurrency) {
-        continue;
-      }
       pricedAssets += quantity;
       const holdingValue = currentPrice * quantity;
       const change = portfolioPriceChange(item, period);
-      const isGainerLoserEligible =
-        currentPrice >= MINIMUM_GAINER_LOSER_PRICE;
+      const isGainerLoserEligible = currentPrice >= MINIMUM_GAINER_LOSER_PRICE;
       totalValue += holdingValue;
       if (!mostValuable || currentPrice > mostValuable.value) {
         mostValuable = { item, change, value: currentPrice };
@@ -206,14 +190,14 @@ export function getPortfolioStats(
         change != null &&
         (!bestPerformer || change > bestPerformer.change)
       ) {
-        bestPerformer = { item, change, value: holdingValue };
+        bestPerformer = { item, change, value: currentPrice };
       }
       if (
         isGainerLoserEligible &&
         change != null &&
         (!weakestPerformer || change < weakestPerformer.change)
       ) {
-        weakestPerformer = { item, change, value: holdingValue };
+        weakestPerformer = { item, change, value: currentPrice };
       }
       if (comparisonPrice != null && comparisonPrice > 0) {
         comparableCurrentValue += holdingValue;
@@ -239,6 +223,5 @@ export function getPortfolioStats(
     totalAssets,
     totalValue,
     uniqueAssets: items.length,
-    valueCurrency: valueCurrency ?? "USD",
   };
 }

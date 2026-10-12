@@ -1,0 +1,53 @@
+.price-change-period-selector {
+  align-items: center;
+  background: var(--dropdown-trigger-bg);
+  border: var(--dropdown-border);
+  border-radius: var(--dropdown-trigger-radius);
+  box-sizing: border-box;
+  display: flex;
+  gap: 0.15rem;
+  height: var(--dropdown-trigger-height);
+  padding: 0.25rem;
+}
+
+.price-change-period-selector__option {
+  align-items: center;
+  border-radius: calc(var(--dropdown-trigger-radius) - 0.15rem);
+  color: var(--font-color-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 auto;
+  font-size: var(--font-size-label);
+  height: 100%;
+  justify-content: center;
+  padding: 0 0.72rem;
+  position: relative;
+  transition:
+    background var(--delay-short) ease,
+    color var(--delay-short) ease;
+  white-space: nowrap;
+
+  input {
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 1px;
+  }
+
+  &:hover,
+  &:has(input:checked) {
+    background: var(--radio-option-state-bg);
+    color: var(--font-color-primary);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--custom-color-blue);
+    outline-offset: 1px;
+  }
+
+  &:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}

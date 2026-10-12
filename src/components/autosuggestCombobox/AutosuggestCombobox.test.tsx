@@ -10,9 +10,11 @@ const OPTIONS = [
 ];
 
 function ControlledAutosuggest({
+  clearOnClick = false,
   onKeyDown = vi.fn(),
   onSelect = vi.fn(),
 }: {
+  clearOnClick?: boolean;
   onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
   onSelect?: (value: string) => void;
 }) {
@@ -22,6 +24,7 @@ function ControlledAutosuggest({
     <AutosuggestCombobox
       ariaLabel="Set name"
       clearLabel="Clear set filter"
+      clearOnClick={clearOnClick}
       menuLabel="Set name suggestions"
       onClear={() => setValue("")}
       onInputChange={setValue}
@@ -60,6 +63,18 @@ test("clears the current value and returns focus to the input", () => {
   expect(input).toHaveValue("");
   expect(input).toHaveFocus();
   expect(screen.queryByRole("button", { name: "Clear set filter" })).toBeNull();
+});
+
+test("can clear the current input value on click without selecting an option", () => {
+  const onSelect = vi.fn();
+  render(<ControlledAutosuggest clearOnClick onSelect={onSelect} />);
+
+  const input = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.change(input, { target: { value: "jungle" } });
+  fireEvent.click(input);
+
+  expect(input).toHaveValue("");
+  expect(onSelect).not.toHaveBeenCalled();
 });
 
 test("selects the active suggestion with the keyboard", () => {

@@ -7,13 +7,14 @@ function card(
   number: string | undefined,
   currentPrice: number | null,
   sevenDayPrice: number | null,
+  currency = "USD",
 ): PokeTraceCatalogCard {
   return {
     id,
     name: id,
     ...(number && { number }),
     setName: "Base Set",
-    currency: "USD",
+    currency,
     conditionPrices: currentPrice === null ? {} : { NEAR_MINT: currentPrice },
     priceSnapshots: { "1d": null, "7d": sevenDayPrice, "30d": null },
   };
@@ -57,6 +58,20 @@ describe("createPokeTraceSetSummaries", () => {
     expect(summary.sevenDayChangePercent).toBeNull();
     expect(summary.comparableCards).toBe(0);
     expect(summary.pricedCards).toBe(1);
+  });
+
+  test("always summarizes every priced card in USD", () => {
+    const [summary] = createPokeTraceSetSummaries(
+      [card("usd", "1/2", 10, 8), card("mislabeled", "2/2", 20, 10, "EUR")],
+      "2026-10-03T01:00:00.000Z",
+    );
+
+    expect(summary).toMatchObject({
+      comparableCards: 2,
+      currency: "USD",
+      pricedCards: 2,
+      sevenDayChangePercent: (12 / 18) * 100,
+    });
   });
 
   test("does not substitute a pricier duplicate when the selected card lacks history", () => {

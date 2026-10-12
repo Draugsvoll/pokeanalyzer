@@ -57,9 +57,16 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
     marketDisplay,
   }: {
     card: PokemonCard;
-    marketDisplay?: { condition?: string; price?: number };
+    marketDisplay?: {
+      changePercent?: number;
+      changePeriod?: string;
+      condition?: string;
+      price?: number;
+    };
   }) => (
     <p
+      data-change-percent={marketDisplay?.changePercent}
+      data-change-period={marketDisplay?.changePeriod}
       data-condition={marketDisplay?.condition}
       data-price={marketDisplay?.price}
       data-testid="set-card"
@@ -69,7 +76,12 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
   ),
 }));
 
-function card(id: string, number: string, price: number): PokemonCard {
+function card(
+  id: string,
+  number: string,
+  price: number,
+  snapshots: Partial<Record<"1d" | "7d" | "30d", number | null>> = {},
+): PokemonCard {
   return {
     id,
     image: `https://example.com/${id}.webp`,
@@ -79,7 +91,12 @@ function card(id: string, number: string, price: number): PokemonCard {
     pokeTrace: {
       currency: "USD",
       marketplaceUrls: {},
-      marketPriceSnapshots: { "7d": price * 0.9 },
+      marketPriceSnapshots: {
+        "1d": price * 0.95,
+        "7d": price * 0.9,
+        "30d": price * 0.8,
+        ...snapshots,
+      },
       prices: {
         tcgplayer: {
           LIGHTLY_PLAYED: { avg: price / 2 },
@@ -309,12 +326,15 @@ test("defaults to unique card numbers and can show every set card", async () => 
   ).not.toBeChecked();
   expect(within(overview).getByText("1999 · 2 cards")).toBeVisible();
   expect(within(overview).getByText("$15.00")).toBeVisible();
-  const mostValuable = within(overview)
+  const initialMostValuable = within(overview)
     .getByText("Most valuable")
     .closest("article");
-  expect(mostValuable).not.toBeNull();
-  expect(within(mostValuable!).getByText("Cheapest print")).toBeVisible();
-  expect(within(mostValuable!).getByText("$10.00")).toBeVisible();
+  expect(initialMostValuable).not.toBeNull();
+  expect(initialMostValuable).toHaveClass("ui-render-fade");
+  expect(
+    within(initialMostValuable!).getByText("Cheapest print"),
+  ).toBeVisible();
+  expect(within(initialMostValuable!).getByText("$10.00")).toBeVisible();
   expect(
     screen.getAllByTestId("set-card").map(({ textContent }) => textContent),
   ).toEqual(["Cheapest print", "Other card"]);
@@ -328,8 +348,15 @@ test("defaults to unique card numbers and can show every set card", async () => 
     expect(within(overview).getByText("1999 · 3 cards")).toBeVisible(),
   );
   expect(within(overview).getByText("$35.00")).toBeVisible();
-  expect(within(mostValuable!).getByText("Expensive print")).toBeVisible();
-  expect(within(mostValuable!).getByText("$20.00")).toBeVisible();
+  const updatedMostValuable = within(overview)
+    .getByText("Most valuable")
+    .closest("article");
+  expect(updatedMostValuable).not.toBe(initialMostValuable);
+  expect(updatedMostValuable).toHaveClass("ui-render-fade");
+  expect(
+    within(updatedMostValuable!).getByText("Expensive print"),
+  ).toBeVisible();
+  expect(within(updatedMostValuable!).getByText("$20.00")).toBeVisible();
   expect(overview).not.toHaveAttribute("aria-busy");
   expect(document.querySelector(".card-grid")).not.toHaveClass(
     "card-grid--sorting",
@@ -377,9 +404,9 @@ test("filters the directory by era and restores it when cleared", () => {
   ).toBeNull();
 
   fireEvent.click(eraSelect);
-  fireEvent.click(screen.getByRole("option", { name: "Any Era" }));
+  fireEvent.click(screen.getByRole("option", { name: "All Eras" }));
 
-  expect(eraSelect).toHaveTextContent("Any Era");
+  expect(eraSelect).toHaveTextContent("All Eras");
   expect(screen.getByRole("button", { name: "Open Arceus" })).toBeVisible();
   expect(
     screen.getByRole("button", { name: "Open Unmapped Set" }),
@@ -556,7 +583,9 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   ).toBeVisible();
   expect(within(overview).getByText("1999 · 2 cards")).toBeVisible();
   expect(within(overview).getByText("Set value")).toBeVisible();
-  expect(within(overview).getByText("All cards have price data")).toBeVisible();
+  expect(
+    within(overview).queryByText("All cards have price data"),
+  ).not.toBeInTheDocument();
   const movement = within(overview).getByLabelText(
     "Up by 11.1%. 7-day Near Mint movement",
   );
@@ -709,6 +738,55 @@ test("shows the actual number of set cards remaining", async () => {
   expect(screen.queryByRole("button", { name: /Show next/ })).toBeNull();
 });
 
+test("changes set movement, featured cards, and card badges with the selected period", async () => {
+  const mislabeledCurrencyCard = card("Loser", "2/102", 15, { "30d": 30 });
+  mislabeledCurrencyCard.pokeTrace.currency = "EUR";
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Gainer", "1/102", 20, { "30d": 10 }), mislabeledCurrencyCard],
+    salesLeaders: { total: { cardId: "Gainer" } },
+  });
+  renderSetExplorer("/set?set=Base+Set");
+
+  const overview = await screen.findByRole("region", {
+    name: "Base Set market overview",
+  });
+  const periodControl = screen.getByRole("radiogroup", {
+    name: "Price change period",
+  });
+  const resultControls = screen.getByRole("group", {
+    name: "Set card controls",
+  });
+  expect(periodControl).toHaveClass("price-change-period-selector");
+  expect(resultControls).toContainElement(periodControl);
+  expect(overview).toContainElement(resultControls);
+
+  expect(
+    within(periodControl).getByRole("radio", { name: "7D" }),
+  ).toBeChecked();
+  const initialBestPerformer = within(overview)
+    .getByText("Best performer")
+    .closest("article");
+  fireEvent.click(within(periodControl).getByRole("radio", { name: "30D" }));
+
+  expect(
+    within(overview).getByLabelText("Down by 12.5%. 30-day Near Mint movement"),
+  ).toBeVisible();
+  const bestPerformer = within(overview)
+    .getByText("Best performer")
+    .closest("article");
+  expect(bestPerformer).not.toBe(initialBestPerformer);
+  expect(bestPerformer).toHaveClass("ui-render-fade");
+  expect(
+    within(bestPerformer!).getByLabelText("30-day price change 100.0%"),
+  ).toBeVisible();
+
+  const renderedCards = screen.getAllByTestId("set-card");
+  expect(renderedCards[0]).toHaveAttribute("data-change-period", "30d");
+  expect(renderedCards[0]).toHaveAttribute("data-change-percent", "100");
+  expect(renderedCards[1]).toHaveAttribute("data-change-period", "30d");
+  expect(renderedCards[1]).toHaveAttribute("data-change-percent", "-50");
+});
+
 test("reports cards without price data", async () => {
   const pricedCard = card("Priced", "1/102", 10);
   const unpricedCard = card("Unpriced", "2/102", 10);
@@ -740,7 +818,16 @@ test("shows clean fallbacks when overview metrics are unavailable", async () => 
   const bestPerformerMetric = within(overview)
     .getByText("Best performer")
     .closest("article");
+  const unavailableMovement = within(overview).getByLabelText(
+    "7-day Near Mint movement is not available",
+  );
 
+  expect(unavailableMovement).toHaveClass(
+    "app-price-change--unavailable",
+    "ui-render-fade",
+  );
+  expect(unavailableMovement).toHaveTextContent("—");
+  expect(within(overview).queryByText("Building history")).toBeNull();
   expect(bestPerformerMetric).not.toBeNull();
   expect(within(bestPerformerMetric!).getByText("—")).toBeVisible();
   expect(

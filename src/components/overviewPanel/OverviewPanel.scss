@@ -21,6 +21,13 @@
   justify-content: flex-end;
 }
 
+.app-overview-panel__layout:where(:has(> .app-overview-metric--primary)) {
+  display: grid;
+  grid-template-columns:
+    minmax(max-content, 1fr) max-content
+    repeat(3, minmax(17rem, 18rem));
+}
+
 .app-overview-metric {
   box-sizing: border-box;
   flex: 0 0 18rem;
@@ -42,7 +49,7 @@
 
 .app-overview-metric--compact {
   flex: 0 0 max-content;
-  min-width: 7.5rem;
+  min-width: 8rem;
 
   .app-overview-metric-detail {
     overflow-wrap: normal;
@@ -84,8 +91,8 @@
   > .app-overview-metric-detail {
     color: var(--font-color-faint);
     display: block;
-    font-size: var(--font-size-caption);
-    line-height: var(--font-leading-normal);
+    font-size: var(--font-size-paragraph-sm);
+    line-height: var(--font-leading-compact);
     margin-top: auto;
     max-width: 100%;
     min-width: 0;
@@ -96,27 +103,31 @@
       display: flex;
       width: 100%;
     }
-
-    .app-card-identity__name {
-      max-width: 100%;
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-    }
   }
 }
 
 .app-overview-metric--featured {
-  column-gap: var(--space-4);
+  column-gap: var(--space-1);
   display: grid;
-  grid-template-columns: minmax(max-content, 1fr) 4.25rem;
+  grid-template-columns: minmax(0, 1fr) 4.25rem;
   min-width: 0;
 
   > .app-overview-metric-content {
     grid-column: 1;
 
+    > strong {
+      gap: var(--space-2);
+    }
+
     > .app-overview-metric-detail {
       width: 100%;
+
+      .app-card-identity__name {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   }
 }
@@ -170,10 +181,6 @@
 
   .app-overview-metric--primary {
     grid-column: 1 / -1;
-  }
-
-  .app-overview-metric--featured {
-    grid-template-columns: minmax(0, 1fr) 4.25rem;
   }
 }
 

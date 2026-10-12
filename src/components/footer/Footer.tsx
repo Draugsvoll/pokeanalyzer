@@ -13,6 +13,7 @@ const productLinks = [
 const legalLinks = [
   { label: "Privacy", to: "/privacy" },
   { label: "Terms", to: "/terms" },
+  { label: "Data disclaimer", to: "/data-disclaimer" },
 ];
 
 export function Footer() {

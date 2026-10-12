@@ -12,6 +12,7 @@ type AutosuggestComboboxProps = {
   ariaLabel: string;
   className?: string;
   clearLabel?: string;
+  clearOnClick?: boolean;
   inputAriaDescribedBy?: string;
   inputAriaInvalid?: boolean;
   inputClassName?: string;
@@ -30,6 +31,7 @@ export function AutosuggestCombobox({
   ariaLabel,
   className = "",
   clearLabel,
+  clearOnClick = false,
   inputAriaDescribedBy,
   inputAriaInvalid,
   inputClassName,
@@ -135,7 +137,13 @@ export function AutosuggestCombobox({
         aria-label={ariaLabel}
         autoComplete="off"
         className={inputClassName}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (clearOnClick && value) {
+            onInputChange("");
+            setActiveIndex(-1);
+          }
+          setOpen(true);
+        }}
         onChange={(event) => {
           onInputChange(event.target.value);
           setOpen(true);

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import type { PriceChangePeriod } from "../../../shared/priceChangePeriod";
 import type { PokemonCard } from "../../types/pokemon";
 import { buildSetExplorerOverview } from "./setExplorerMetrics";
 
@@ -7,6 +8,7 @@ function card(
   prices: Record<string, { avg: number }>,
   sevenDayPrice: number | null,
   currency = "USD",
+  snapshots: Partial<Record<PriceChangePeriod, number | null>> = {},
 ): PokemonCard {
   return {
     id,
@@ -21,6 +23,7 @@ function card(
         "1d": null,
         "7d": sevenDayPrice,
         "30d": null,
+        ...snapshots,
       },
       prices: { tcgplayer: prices },
     },
@@ -90,6 +93,30 @@ describe("buildSetExplorerOverview", () => {
     });
   });
 
+  test("uses the selected period for movement and featured-card changes", () => {
+    const cards = [
+      card("gainer", { NEAR_MINT: { avg: 100 } }, 90, "USD", {
+        "30d": 50,
+      }),
+      card("loser", { NEAR_MINT: { avg: 40 } }, 36, "USD", {
+        "30d": 80,
+      }),
+    ];
+
+    const overview = buildSetExplorerOverview(cards, null, cards, "30d");
+
+    expect(overview.changePeriod).toBe("30d");
+    expect(overview.movementPercent).toBe((10 / 130) * 100);
+    expect(overview.bestPerformer).toMatchObject({
+      card: { id: "gainer" },
+      percentChange: 100,
+    });
+    expect(overview.mostValuable).toMatchObject({
+      card: { id: "gainer" },
+      percentChange: 100,
+    });
+  });
+
   test("excludes cards below the gainer and loser price threshold", () => {
     const overview = buildSetExplorerOverview([
       card("cheap", { NEAR_MINT: { avg: 1.99 } }, 0.5),
@@ -103,7 +130,7 @@ describe("buildSetExplorerOverview", () => {
     });
   });
 
-  test("calculates movement only from cards with comparable Near Mint data", () => {
+  test("uses USD for every priced card regardless of source currency metadata", () => {
     const overview = buildSetExplorerOverview([
       card("one", { NEAR_MINT: { avg: 100 } }, 80),
       card("two", { NEAR_MINT: { avg: 40 } }, 50),
@@ -111,8 +138,9 @@ describe("buildSetExplorerOverview", () => {
       card("eur", { NEAR_MINT: { avg: 500 } }, 400, "EUR"),
     ]);
 
-    expect(overview.currency).toBe("USD");
-    expect(overview.movementPercent).toBe((10 / 130) * 100);
+    expect(overview.pricedCards).toBe(4);
+    expect(overview.totalValue).toBe(840);
+    expect(overview.movementPercent).toBe((110 / 530) * 100);
   });
 
   test("resolves the highest total sales leader to its set card", () => {
@@ -126,7 +154,6 @@ describe("buildSetExplorerOverview", () => {
 
     expect(overview.mostSold).toMatchObject({
       card: { id: "total" },
-      currency: "USD",
       percentChange: (10 / 90) * 100,
       price: 100,
     });

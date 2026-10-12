@@ -42,11 +42,7 @@
  * Multi-input search — chrome matched to mock left (keep multi-fields)
  */
 .database-search-control {
-  --database-search-placeholder-color: color-mix(
-    in srgb,
-    var(--font-color-faint) 70%,
-    transparent
-  );
+  --database-search-placeholder-color: var(--font-color-placeholder);
   --database-search-placeholder-font-size: 12px;
   --database-search-placeholder-font-weight: var(--font-weight-medium);
 
@@ -698,19 +694,6 @@
     transform: none;
     width: 100%;
   }
-}
-
-.sealed-results {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.sealed-results__header {
-  border-bottom: 1px solid var(--border-divider);
-  color: var(--font-color-muted);
-  font-size: var(--font-size-caption);
-  padding-bottom: var(--space-3);
-  text-align: left;
 }
 
 @media (max-width: 640px) {

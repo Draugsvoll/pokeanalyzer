@@ -162,7 +162,7 @@ describe("Portfolio", () => {
     const bestPerformerMetric = screen
       .getByText("Best performer")
       .closest("article");
-    expect(bestPerformerMetric).toHaveTextContent("$200.0025.0%7d");
+    expect(bestPerformerMetric).toHaveTextContent("$100.0025.0%7d");
     expect(bestPerformerMetric).toHaveTextContent("4/102");
     expect(bestPerformerMetric).toHaveTextContent("Charizard");
     expect(
@@ -390,9 +390,7 @@ describe("Portfolio", () => {
     renderPortfolio();
     await screen.findByText("Best performer");
 
-    const bestPerformer = screen
-      .getByText("Best performer")
-      .closest("article");
+    const bestPerformer = screen.getByText("Best performer").closest("article");
     const weakestPerformer = screen
       .getByText("Worst performer")
       .closest("article");
@@ -402,6 +400,10 @@ describe("Portfolio", () => {
       bestPerformer!.querySelector(".app-price-change__period"),
     ).toHaveTextContent("7d");
 
+    const periodControl = screen.getByRole("radiogroup", {
+      name: "Price change period",
+    });
+    expect(periodControl).toHaveClass("price-change-period-selector");
     fireEvent.click(screen.getByRole("radio", { name: "30D" }));
 
     expect(

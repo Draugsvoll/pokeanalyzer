@@ -157,6 +157,10 @@ test("switches and focuses the shared search hero mode without changing the rout
     screen.getByRole("textbox", { name: "Sealed product name" }),
   ).toHaveFocus();
   expect(
+    screen.getByRole("heading", { name: "Know your next card." }),
+  ).toBeVisible();
+  expect(screen.getByText("Analyzing cards simplified.")).toBeVisible();
+  expect(
     screen.queryByRole("spinbutton", { name: "Minimum price" }),
   ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
@@ -174,6 +178,30 @@ test("switches and focuses the shared search hero mode without changing the rout
   expect(screen.getByRole("textbox", { name: "Pokemon name" })).toHaveFocus();
   expect(document.querySelector(".search-hero")).toBe(searchHero);
   expect(screen.getByLabelText("Current path")).toHaveTextContent("/");
+});
+
+test("reports product mode changes resolved from browser history", async () => {
+  const onProductTypeChange = vi.fn();
+
+  render(
+    <MemoryRouter
+      initialEntries={["/search?mode=sealed", "/search?mode=singles"]}
+      initialIndex={1}
+    >
+      <DatabaseSearch onProductTypeChange={onProductTypeChange} />
+      <SearchHistoryControls />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => {
+    expect(onProductTypeChange).toHaveBeenLastCalledWith("singles");
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  await waitFor(() => {
+    expect(onProductTypeChange).toHaveBeenLastCalledWith("sealed");
+  });
 });
 
 test("clears URL criteria instead of carrying fields between product modes", async () => {
@@ -315,6 +343,44 @@ test("writes every submitted Singles filter to the URL", async () => {
   });
 });
 
+test("removes cleared Singles filters from the URL", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={[
+        "/search?mode=singles&name=Pikachu&min=10&max=50&rarity=Holo+Rare&condition=LIGHTLY_PLAYED",
+      ]}
+    >
+      <DatabaseSearch />
+      <SearchHistoryControls />
+    </MemoryRouter>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+  await waitFor(() => {
+    const params = new URLSearchParams(
+      screen.getByLabelText("Current search").textContent ?? "",
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      mode: "singles",
+      name: "Pikachu",
+    });
+  });
+  expect(screen.getByRole("spinbutton", { name: "Minimum price" })).toHaveValue(
+    null,
+  );
+  expect(screen.getByRole("spinbutton", { name: "Maximum price" })).toHaveValue(
+    null,
+  );
+  expect(
+    screen.getByRole("combobox", { name: "Filter by rarity" }),
+  ).toHaveValue("");
+  expect(
+    screen.getByRole("button", { name: "Filter by condition" }),
+  ).toHaveTextContent("Near Mint");
+});
+
 test("shows server search results", async () => {
   const fetchMock = vi.fn().mockResolvedValue({
     json: async () => serverResponse([card("card-api", "API Charizard")]),
@@ -357,6 +423,22 @@ test("suggests matching rarity options from filter options", async () => {
 
   fireEvent.click(futureRareOption);
   expect(rarityInput).toHaveValue("Future Rare");
+  await waitFor(() => {
+    expect(mocks.searchResponse).toHaveBeenCalledWith({
+      cardNumber: "",
+      condition: "NEAR_MINT",
+      maxPrice: undefined,
+      minPrice: undefined,
+      pokemonName: "",
+      rarity: "Future Rare",
+      setName: "",
+    });
+  });
+
+  mocks.searchResponse.mockClear();
+  fireEvent.click(rarityInput);
+  expect(rarityInput).toHaveValue("");
+  expect(mocks.searchResponse).not.toHaveBeenCalled();
 });
 
 test("marks a suggested set name as an exact catalog match", async () => {
@@ -382,13 +464,18 @@ test("marks a suggested set name as an exact catalog match", async () => {
     screen.getByRole("option", { name: "Base Set 2" }),
   ).toBeInTheDocument();
   fireEvent.click(baseSetOption);
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(
+    await screen.findByText(/^0 cards matching .*Base Set.*Near Mint/),
+  ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true&condition=NEAR_MINT",
     { signal: expect.any(AbortSignal) },
   );
+
+  fireEvent.click(setNameInput);
+  expect(setNameInput).toHaveValue("");
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("keeps static set suggestions when filter options are unavailable", async () => {
@@ -411,7 +498,9 @@ test("keeps a typed set name as a partial match", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(
+    await screen.findByText(/^0 cards matching .*base.*Near Mint/),
+  ).toBeInTheDocument();
   expect(mocks.searchResponse).toHaveBeenCalledWith({
     cardNumber: "",
     condition: "NEAR_MINT",
@@ -500,8 +589,16 @@ test("distinguishes an empty search from a failed request", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    /^0 cards matching .*missing.*Near Mint/,
+  );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Sort search results" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Close search results" }),
+  ).toBeInTheDocument();
 
   unmount();
   mocks.searchResponse.mockReturnValue(null);
@@ -521,11 +618,41 @@ test("distinguishes an empty search from a failed request", async () => {
       "We couldn’t complete your search. Please try again.",
     ),
   ).toHaveAttribute("role", "alert");
-  expect(screen.queryByText("No cards found.")).not.toBeInTheDocument();
+  expect(screen.queryByText(/^0 cards matching/)).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Retry" }),
   ).not.toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("hides an empty result summary while the next search loads", async () => {
+  mocks.searchResponse.mockReturnValue([]);
+  renderSearch();
+
+  const nameInput = screen.getByRole("textbox", { name: "Pokemon name" });
+  const searchButton = screen.getByRole("button", { name: "Search" });
+  fireEvent.change(nameInput, { target: { value: "missing" } });
+  fireEvent.click(searchButton);
+
+  expect(
+    await screen.findByText(/^0 cards matching .*missing.*Near Mint/),
+  ).toBeInTheDocument();
+  await waitFor(() => expect(searchButton).toBeEnabled(), { timeout: 2_000 });
+
+  let resolveNextSearch!: (cards: PokemonCard[]) => void;
+  mocks.searchResponse.mockReturnValue(
+    new Promise<PokemonCard[]>((resolve) => {
+      resolveNextSearch = resolve;
+    }),
+  );
+  fireEvent.change(nameInput, { target: { value: "pikachu" } });
+  fireEvent.click(searchButton);
+
+  await waitFor(() => expect(mocks.searchResponse).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText(/^0 cards matching/)).not.toBeInTheDocument();
+
+  resolveNextSearch([card("card-pikachu", "Pikachu")]);
+  expect(await screen.findByText("Pikachu")).toBeInTheDocument();
 });
 
 test("loads every match and reveals results 50 at a time", async () => {
@@ -813,7 +940,6 @@ test("supports filter-only searches and forwards the filters", async () => {
   });
   fireEvent.focus(screen.getByRole("combobox", { name: "Filter by rarity" }));
   fireEvent.click(screen.getByRole("option", { name: "Holo Rare" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("Filtered Charizard")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
@@ -887,7 +1013,9 @@ test("shows an empty state when a condition search has no matches", async () => 
   fireEvent.click(screen.getByRole("option", { name: "Damaged" }));
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
-  expect(await screen.findByText("No cards found.")).toBeInTheDocument();
+  expect(
+    await screen.findByText(/^0 cards matching .*Damaged/),
+  ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledOnce();
 });
 
@@ -922,9 +1050,7 @@ test("prevents a search when the minimum price exceeds the maximum", () => {
 });
 
 test("closes an embedded search from the results toolbar", async () => {
-  mocks.searchResponse.mockReturnValue([
-    card("card-local", "Local Charizard"),
-  ]);
+  mocks.searchResponse.mockReturnValue([card("card-local", "Local Charizard")]);
   const onClose = vi.fn();
 
   render(

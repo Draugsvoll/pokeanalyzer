@@ -18,6 +18,7 @@ import {
   formatPriceChangePeriodLong,
   type PriceChangePeriod,
 } from "../../../shared/priceChangePeriod";
+import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { formatDateStamp } from "../../utils/formatDateStamp";
 import { navigateToPokemonCard } from "../../utils/pokemonCardNavigation";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
@@ -26,27 +27,6 @@ import {
   resolvePokeTraceCardPrice,
 } from "../../utils/pokeTracePricing";
 import "./PokemonCardView.scss";
-
-const money = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-function currencySymbolFor(currency: string) {
-  try {
-    return (
-      new Intl.NumberFormat("en-US", {
-        currency,
-        currencyDisplay: "narrowSymbol",
-        style: "currency",
-      })
-        .formatToParts(0)
-        .find((part) => part.type === "currency")?.value ?? `${currency} `
-    );
-  } catch {
-    return `${currency} `;
-  }
-}
 
 export type PokemonCardViewProps = {
   card: PokemonCardType;
@@ -58,7 +38,6 @@ export type PokemonCardViewProps = {
     changePeriod?: PriceChangePeriod;
     changePercent?: number;
     condition?: string;
-    currency: string;
     marketLabel?: string;
     price?: number;
     priceLabel?: string;
@@ -122,13 +101,6 @@ export function PokemonCardView({
       : comparisonPriceSnapshot
         ? `${comparisonPeriod ? `${formatPriceChangePeriodLong(comparisonPeriod)} change` : "Change"} since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
         : "Price change");
-  const displayedCurrency =
-    marketDisplay?.currency ??
-    activeOption?.currency ??
-    card.pokeTrace.currency;
-  const displayedCurrencySymbol = marketDisplay
-    ? currencySymbolFor(displayedCurrency)
-    : (activeOption?.currencySymbol ?? currencySymbolFor(displayedCurrency));
   const printedCardNumber = formatCardNumber(card);
   const variantName = card.pokeTrace.variant?.trim().replaceAll("_", " ");
   const variantAccent = getVariantBadgeAccent(card.pokeTrace.variant);
@@ -297,7 +269,7 @@ export function PokemonCardView({
           >
             {marketDisplay?.primaryText ??
               (displayedPrice != null
-                ? `${displayedCurrencySymbol}${money.format(displayedPrice)}`
+                ? formatPokeTraceMoney(displayedPrice)
                 : "-")}
           </span>
           {showPriceChange && (

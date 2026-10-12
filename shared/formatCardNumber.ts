@@ -7,7 +7,7 @@ type CardNumberSource = {
 
 /**
  * Collector-style number: zero-padded over set size, e.g. 4 + 53 -> "004/053".
- * Leaves non-numeric or already-fraction numbers unchanged.
+ * Leaves non-numeric card-number formats unchanged.
  */
 function formatCollectorNumber(
   card: CardNumberSource,
@@ -16,6 +16,15 @@ function formatCollectorNumber(
 ): string | undefined {
   const number = cardNumber ?? card.number;
   if (!number) return undefined;
+
+  const fraction = number.match(/^(\d+)\/(\d+)$/);
+  if (fraction) {
+    if (!padNumber) return number;
+
+    const [, numerator, denominator] = fraction;
+    return `${numerator.padStart(denominator.length, "0")}/${denominator}`;
+  }
+
   if (
     number.includes("/") ||
     !/^\d+$/.test(number) ||

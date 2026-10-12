@@ -55,7 +55,7 @@ span {
   color: inherit;
   font-family: inherit;
   letter-spacing: inherit;
-  font-weight: 500;
+  font-weight: inherit;
 }
 
 small {
@@ -85,7 +85,7 @@ b {
   font-size: clamp(1.4rem, 2.5vw, 1.8rem);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-medium);
-  letter-spacing: var(--font-tracking-tight);
+  letter-spacing: var(--font-tracking-price);
   line-height: 1.05;
 }
 
@@ -135,8 +135,9 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: color-mix(in srgb, var(--font-color-faint) 70%, transparent);
+  color: var(--font-color-placeholder);
   font-weight: 500;
+  opacity: 1;
 }
 
 /*
@@ -887,7 +888,7 @@ input[type="radio"] {
   white-space: nowrap;
   width: fit-content;
 
-  /* Defeat global `span { font-size: label }` on nested content */
+  /* Keep nested content aligned with the badge's explicit typography. */
   > * {
     color: inherit;
     font-family: inherit;

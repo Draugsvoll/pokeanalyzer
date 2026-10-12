@@ -33,7 +33,7 @@ test("uses the shared search experience without replacing market sections", () =
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 
-test("can initialize that same search experience in sealed mode", () => {
+test("keeps market sections visible when initialized in sealed mode", () => {
   render(
     <MemoryRouter>
       <Search initialProductType="sealed" />
@@ -41,4 +41,7 @@ test("can initialize that same search experience in sealed mode", () => {
   );
 
   expect(screen.getByText("Shared sealed search")).toBeInTheDocument();
+  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
+  expect(screen.getByText("TCG Daily Losers")).toBeInTheDocument();
+  expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });

@@ -1,4 +1,5 @@
 import type { PokeTraceCatalogCard } from "./pokeTraceCatalog.js";
+import { POKETRACE_CURRENCY } from "./pokeTraceCurrency.js";
 import { calculateDisplayedPriceChangePercent } from "./pokeTracePriceChange.js";
 import { selectUniqueSetCardsByPrice } from "./selectUniqueSetCards.js";
 
@@ -19,28 +20,13 @@ function nearMintPrice(card: PokeTraceCatalogCard) {
     : null;
 }
 
-function dominantCurrency(cards: readonly PokeTraceCatalogCard[]) {
-  const counts = new Map<string, number>();
-  for (const card of cards) {
-    if (nearMintPrice(card) === null) continue;
-    counts.set(card.currency, (counts.get(card.currency) ?? 0) + 1);
-  }
-
-  return (
-    [...counts].sort(
-      ([leftCurrency, leftCount], [rightCurrency, rightCount]) =>
-        rightCount - leftCount || leftCurrency.localeCompare(rightCurrency),
-    )[0]?.[0] ?? "USD"
-  );
-}
-
 function summarizeSet(
   setName: string,
   cards: readonly PokeTraceCatalogCard[],
   asOf: string,
 ): PokeTraceSetSummary {
   const uniqueCards = selectUniqueSetCardsByPrice(cards, nearMintPrice);
-  const currency = dominantCurrency(uniqueCards);
+  const currency = POKETRACE_CURRENCY;
   let comparableCards = 0;
   let currentComparableValue = 0;
   let previousComparableValue = 0;
@@ -48,7 +34,7 @@ function summarizeSet(
 
   for (const card of uniqueCards) {
     const currentPrice = nearMintPrice(card);
-    if (currentPrice === null || card.currency !== currency) continue;
+    if (currentPrice === null) continue;
     pricedCards += 1;
 
     const previousPrice = card.priceSnapshots["7d"];

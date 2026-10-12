@@ -8,11 +8,8 @@ import {
 } from "react";
 import { AlertTriangle, LogIn, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  formatPriceChangePeriodLabel,
-  formatPriceChangePeriodLong,
-  PRICE_CHANGE_PERIODS,
-} from "../../../shared/priceChangePeriod";
+import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
+import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import Button from "../../components/button/Button";
 import { CardIdentity } from "../../components/cardIdentity/CardIdentity";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
@@ -25,6 +22,7 @@ import {
 } from "../../components/overviewPanel/OverviewPanel";
 import { PokemonCardPortfolioView } from "../../components/pokemonCardView/PokemonCardView";
 import { PriceChange } from "../../components/priceChange/PriceChange";
+import { PriceChangePeriodSelector } from "../../components/priceChangePeriodSelector/PriceChangePeriodSelector";
 import type { ProductType } from "../../components/productTypeSwitch/ProductTypeSwitch";
 import { SealedProductPortfolioView } from "../../components/sealedProductView/SealedProductView";
 import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
@@ -41,18 +39,12 @@ import { logClientError } from "../../utils/logClientError";
 import {
   getPortfolioStats,
   getVisiblePortfolioItems,
-  portfolioCurrency,
   portfolioItemNumber,
   portfolioQuantity,
   type PortfolioFeaturedMetric,
   type PortfolioSort,
 } from "./portfolioUtils";
 import "./Portfolio.scss";
-
-const money = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 const integer = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -67,28 +59,6 @@ const SORT_OPTIONS: { value: PortfolioSort; label: string }[] = [
   { value: "change-high", label: "% Change: high–low" },
   { value: "change-low", label: "% Change: low–high" },
 ];
-
-const CHANGE_PERIOD_OPTIONS: Array<{
-  value: PortfolioComparisonPeriod;
-  label: string;
-}> = PRICE_CHANGE_PERIODS.map((value) => ({
-  label: formatPriceChangePeriodLabel(value).toUpperCase(),
-  value,
-}));
-
-function formatMoney(value: number, currency = "USD") {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      currency,
-      currencyDisplay: "narrowSymbol",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      style: "currency",
-    }).format(value);
-  } catch {
-    return `${currency} ${money.format(value)}`;
-  }
-}
 
 function formatSignedPercent(value: number) {
   if (value === 0) return "0.0%";
@@ -116,7 +86,7 @@ function FeaturedAssetMetric({
   return (
     <OverviewMetric
       breakBefore={breakBefore}
-      className="portfolio__metric ui-render-fade"
+      className="portfolio__metric"
       detail={
         item ? (
           <CardIdentity name={item.item.name} number={itemNumber} />
@@ -128,7 +98,7 @@ function FeaturedAssetMetric({
       label={label}
       value={
         <>
-          {item ? formatMoney(item.value, portfolioCurrency(item.item)) : "—"}
+          {item ? formatPokeTraceMoney(item.value) : "—"}
           {item?.change != null && (
             <PriceChange
               ariaLabel={`${periodLong} price change ${formatSignedPercent(item.change)}`}
@@ -345,7 +315,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
         >
           <OverviewMetric
             key={`value:${stats.totalValue}:${stats.pricedAssets}:${stats.totalAssets}`}
-            className="portfolio__metric portfolio__metric--value ui-render-fade"
+            className="portfolio__metric portfolio__metric--value"
             detail={
               <>
                 TCG prices
@@ -359,7 +329,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
             value={
               <>
                 {stats.totalValue > 0
-                  ? formatMoney(stats.totalValue, stats.valueCurrency)
+                  ? formatPokeTraceMoney(stats.totalValue)
                   : "—"}
                 {stats.changePercent != null && (
                   <PriceChange
@@ -375,7 +345,7 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
           />
           <OverviewMetric
             key={`assets:${stats.totalAssets}:${stats.singleAssets}:${stats.sealedAssets}`}
-            className="portfolio__metric ui-render-fade"
+            className="portfolio__metric"
             detail={
               <>
                 {integer.format(stats.singleAssets)}{" "}
@@ -486,28 +456,10 @@ function PortfolioForCurrentUser({ userId }: { userId: string }) {
 
             <div className="portfolio__control-group">
               <div className="portfolio__timeframe">
-                <div
-                  aria-label="Price change period"
-                  className="portfolio__timeframe-options"
-                  role="radiogroup"
-                >
-                  {CHANGE_PERIOD_OPTIONS.map((option) => (
-                    <label
-                      className="portfolio__timeframe-option"
-                      key={option.value}
-                    >
-                      <input
-                        className="app-radio"
-                        type="radio"
-                        name="portfolio-change-period"
-                        value={option.value}
-                        checked={changePeriod === option.value}
-                        onChange={() => setChangePeriod(option.value)}
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <PriceChangePeriodSelector
+                  onChange={setChangePeriod}
+                  value={changePeriod}
+                />
               </div>
               <div className="portfolio__sort-group">
                 <SelectDropdown

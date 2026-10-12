@@ -125,7 +125,7 @@ test("loads a market summary independently from market news", async () => {
   render(<NewsLane />);
 
   expect(
-    await screen.findByRole("heading", { name: "Weekly Market Recap" }),
+    await screen.findByRole("heading", { name: "Weekly Market Report" }),
   ).toBeVisible();
   expect(screen.getByText("The market was mixed")).toBeVisible();
   expect(summaryMocks.cacheMarketSummary).toHaveBeenCalledWith(marketSummary);
@@ -157,7 +157,9 @@ test("skips market summary when its request fails", async () => {
   await waitFor(() =>
     expect(summaryMocks.fetchMarketSummary).toHaveBeenCalledTimes(2),
   );
-  expect(screen.queryByRole("region", { name: "Market summary" })).toBeNull();
+  expect(
+    screen.queryByRole("region", { name: "Weekly Market Report" }),
+  ).toBeNull();
 });
 
 test("skips market summary when the API has no stored summary", async () => {
@@ -170,5 +172,7 @@ test("skips market summary when the API has no stored summary", async () => {
   await waitFor(() =>
     expect(summaryMocks.fetchMarketSummary).toHaveBeenCalledTimes(2),
   );
-  expect(screen.queryByRole("region", { name: "Market summary" })).toBeNull();
+  expect(
+    screen.queryByRole("region", { name: "Weekly Market Report" }),
+  ).toBeNull();
 });

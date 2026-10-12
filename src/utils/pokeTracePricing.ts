@@ -15,22 +15,6 @@ function record(value: unknown): JsonRecord | null {
     : null;
 }
 
-function currencySymbol(currency: string) {
-  try {
-    return (
-      new Intl.NumberFormat("en-US", {
-        currency,
-        currencyDisplay: "narrowSymbol",
-        style: "currency",
-      })
-        .formatToParts(0)
-        .find((part) => part.type === "currency")?.value ?? `${currency} `
-    );
-  } catch {
-    return `${currency} `;
-  }
-}
-
 export function resolvePokeTraceCardPrice(
   card: PokemonCard,
   condition: PokeTraceRawCondition = "NEAR_MINT",
@@ -43,12 +27,7 @@ export function resolvePokeTraceCardPrice(
     return undefined;
   }
 
-  const currency = card.pokeTrace.currency || "USD";
-  return {
-    currency,
-    currencySymbol: currencySymbol(currency),
-    price,
-  };
+  return { price };
 }
 
 export function resolvePokeTraceSevenDayComparison(card: PokemonCard) {
@@ -141,6 +120,7 @@ export function resolveDisplayedPokeTracePriceChange(
     displayedPrice != null &&
     comparisonPriceSnapshot === undefined &&
     marketDisplay?.changePercent == null &&
+    marketDisplay?.changePeriod == null &&
     displaysTcgPlayerNearMint(marketDisplay)
       ? resolvePokeTraceSevenDayComparison(card)
       : undefined;

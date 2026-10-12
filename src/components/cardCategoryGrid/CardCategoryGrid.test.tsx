@@ -55,3 +55,22 @@ test("collapses and expands a card category from its header", () => {
 
   expect(content).not.toHaveAttribute("hidden");
 });
+
+test("offers a retry action when a category request fails", () => {
+  const onRetry = vi.fn();
+
+  render(
+    <CardCategoryGrid
+      error="Market data is temporarily unavailable."
+      items={[]}
+      onRetry={onRetry}
+      title="Daily movers"
+    />,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Market data is temporarily unavailable.",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});

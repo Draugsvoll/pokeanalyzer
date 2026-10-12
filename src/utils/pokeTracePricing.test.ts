@@ -28,10 +28,17 @@ describe("resolvePokeTraceCardPrice", () => {
     });
 
     expect(resolvePokeTraceCardPrice(card)).toEqual({
-      currency: "USD",
-      currencySymbol: "$",
       price: 42.5,
     });
+  });
+
+  test("ignores malformed currency metadata when resolving a price", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 42.5 } },
+    });
+    card.pokeTrace.currency = "EUR";
+
+    expect(resolvePokeTraceCardPrice(card)).toEqual({ price: 42.5 });
   });
 
   test("does not fall back to another condition", () => {
@@ -146,6 +153,29 @@ describe("resolveDisplayedPokeTracePriceChange", () => {
       percent: null,
       period: "7d",
       show: true,
+    });
+  });
+
+  test("does not fall back to seven-day history when another period is selected", () => {
+    const card = cardWithPrices({
+      tcgplayer: { NEAR_MINT: { avg: 120 } },
+    });
+    card.pokeTrace.marketPriceSnapshots = { "7d": 100 };
+
+    expect(
+      resolveDisplayedPokeTracePriceChange(card, {
+        marketDisplay: {
+          changePeriod: "30d",
+          condition: "NEAR_MINT",
+          price: 120,
+          source: "tcgplayer",
+        },
+      }),
+    ).toEqual({
+      defaultSevenDayComparison: undefined,
+      percent: null,
+      period: "30d",
+      show: false,
     });
   });
 });

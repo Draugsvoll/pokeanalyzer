@@ -27,7 +27,9 @@ test("marks the explicit responsive row boundary", () => {
   const panel = screen.getByRole("region", { name: "Test summary" });
   const metrics = within(panel).getAllByRole("article");
 
+  expect(panel).toHaveClass("app-overview-panel", "ui-render-fade");
   expect(panel.firstElementChild).toHaveClass("app-overview-panel__layout");
+  metrics.forEach((metric) => expect(metric).toHaveClass("ui-render-fade"));
   expect(metrics[0]).toHaveClass("app-overview-metric--primary");
   expect(metrics[1]).toHaveClass("app-overview-metric--compact");
   expect(metrics[3]).toHaveClass(

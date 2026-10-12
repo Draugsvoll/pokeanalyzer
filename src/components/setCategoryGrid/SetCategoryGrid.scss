@@ -113,18 +113,24 @@
 }
 
 .set-category-grid__result-controls {
-  align-items: center;
-  display: flex;
-  flex: 0 1 34rem;
+  align-items: end;
+  display: grid;
   gap: var(--space-3);
+  grid-template-columns: minmax(16rem, 1fr) auto;
   min-width: 0;
   position: relative;
+  width: 100%;
   z-index: var(--dropdown-z-index);
 }
 
 .set-category-grid__card-filter {
-  flex: 0 1 13.5rem;
-  min-width: 13.5rem;
+  width: 100%;
+}
+
+.set-category-grid__result-control-group {
+  align-items: end;
+  display: flex;
+  gap: var(--space-3);
 }
 
 .set-category-grid__sort-control {
@@ -235,6 +241,7 @@
   span {
     color: var(--font-color-faint);
     font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
   }
 }
 
@@ -278,7 +285,7 @@
 
 .set-category-grid__set-metadata {
   color: var(--font-color-faint);
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-snug);
   margin-top: var(--space-1);
@@ -412,31 +419,39 @@
   .set-category-grid__set-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .set-category-grid__result-controls {
-    justify-content: space-between;
-  }
 }
 
-@media (max-width: 34rem) {
+@media (max-width: 48rem) {
   .set-category-grid__result-controls {
-    align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
-  .set-category-grid__card-filter {
-    flex: none;
-    min-width: 0;
+  .set-category-grid__result-control-group {
+    align-items: stretch;
+  }
+
+  .set-category-grid__timeframe,
+  .set-category-grid__sort-control {
+    flex: 1 1 0;
     width: 100%;
   }
 
-  .set-category-grid__sort-control {
-    justify-content: space-between;
+  .set-category-grid__sort,
+  .set-category-grid__sort .ui-select-dropdown__toggle {
+    width: 100%;
+  }
+}
+
+@media (max-width: 40rem) {
+  .set-category-grid__result-control-group {
+    flex-direction: column;
   }
 
-  .set-category-grid__sort-control .set-category-grid__sort {
-    flex: 1;
-    min-width: 0;
+  .set-category-grid__timeframe,
+  .set-category-grid__sort-control,
+  .set-category-grid__sort,
+  .set-category-grid__sort .ui-select-dropdown__toggle {
+    width: 100%;
   }
 }
 

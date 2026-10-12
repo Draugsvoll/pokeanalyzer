@@ -14,9 +14,12 @@
 .details-page__primary,
 .details-page__shell {
   display: grid;
-  gap: 1rem;
   min-width: 0;
   width: 100%;
+}
+
+.details-page__primary {
+  gap: var(--space-1);
 }
 
 .details-page__breadcrumb {
@@ -68,6 +71,7 @@
 }
 
 .details-page__shell {
+  gap: 1rem;
   position: relative;
 }
 

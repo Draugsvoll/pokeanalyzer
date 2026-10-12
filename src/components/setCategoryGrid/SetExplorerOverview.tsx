@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
+import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { CardIdentity } from "../cardIdentity/CardIdentity";
 import { OverviewMetric, OverviewPanel } from "../overviewPanel/OverviewPanel";
 import { PriceChange } from "../priceChange/PriceChange";
@@ -28,23 +29,6 @@ const CARD_SCOPE_OPTIONS = [
   { label: "All variants", value: "all" },
 ] as const;
 
-function moneyFormatter(currency: string) {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      currency,
-      currencyDisplay: "narrowSymbol",
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
-      style: "currency",
-    });
-  } catch {
-    return new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
-    });
-  }
-}
-
 type FeaturedMetricData =
   | NonNullable<SetExplorerOverviewData["mostValuable"]>
   | NonNullable<SetExplorerOverviewData["mostSold"]>;
@@ -54,7 +38,6 @@ type FeaturedCardMetricProps = {
   changeAriaPrefix?: string;
   changePeriod: SetExplorerOverviewData["changePeriod"];
   changePeriodLong: string;
-  currency: string;
   data: FeaturedMetricData | null;
   label: string;
   unavailableLabel: string;
@@ -65,15 +48,21 @@ function FeaturedCardMetric({
   changeAriaPrefix = "",
   changePeriod,
   changePeriodLong,
-  currency,
   data,
   label,
   unavailableLabel,
 }: FeaturedCardMetricProps) {
   const percentChange = data?.percentChange ?? null;
+  const renderKey = [
+    changePeriod,
+    data?.card.id ?? "none",
+    data?.price ?? "none",
+    percentChange ?? "none",
+  ].join(":");
 
   return (
     <OverviewMetric
+      key={renderKey}
       breakBefore={breakBefore}
       detail={
         data ? (
@@ -87,9 +76,7 @@ function FeaturedCardMetric({
       value={
         <>
           <span>
-            {data?.price != null
-              ? moneyFormatter(currency).format(data.price)
-              : "—"}
+            {data?.price != null ? formatPokeTraceMoney(data.price) : "—"}
           </span>
           {percentChange != null && (
             <PriceChange
@@ -117,7 +104,6 @@ export function SetExplorerOverview({
 }: SetExplorerOverviewProps) {
   const revealRef = useScrollReveal<HTMLElement>();
   const cardScopeName = useId();
-  const money = moneyFormatter(overview.currency);
   const changePeriodLong = formatPriceChangePeriodLong(overview.changePeriod);
   const tone =
     overview.movementPercent == null
@@ -132,9 +118,9 @@ export function SetExplorerOverview({
   const cardLabel = overview.totalCards === 1 ? "card" : "cards";
   const unpricedCards = Math.max(0, overview.totalCards - overview.pricedCards);
   const pricingCoverageLabel =
-    unpricedCards === 0
-      ? "All cards have price data"
-      : `${unpricedCards.toLocaleString("en-US")} ${unpricedCards === 1 ? "card has" : "cards have"} no price data`;
+    unpricedCards > 0
+      ? `${unpricedCards.toLocaleString("en-US")} ${unpricedCards === 1 ? "card has" : "cards have"} no price data`
+      : null;
 
   return (
     <section
@@ -155,7 +141,7 @@ export function SetExplorerOverview({
 
       <OverviewPanel
         ariaLabel={`${activeSetName} summary`}
-        className="set-explorer-overview__summary ui-render-fade"
+        className="set-explorer-overview__summary"
       >
         <OverviewMetric
           className="set-explorer-overview__market"
@@ -171,7 +157,7 @@ export function SetExplorerOverview({
                 size="small"
                 value={cardScope}
               />
-              <span>{pricingCoverageLabel}</span>
+              {pricingCoverageLabel && <span>{pricingCoverageLabel}</span>}
             </div>
           }
           label="Set value"
@@ -180,34 +166,21 @@ export function SetExplorerOverview({
             <>
               <span>
                 {overview.pricedCards > 0
-                  ? money.format(overview.totalValue)
+                  ? formatPokeTraceMoney(overview.totalValue)
                   : "—"}
               </span>
-              <span
-                aria-label={
+              <PriceChange
+                animate
+                ariaLabel={
                   overview.movementPercent == null
-                    ? `${changePeriodLong} Near Mint movement is not available`
-                    : undefined
+                    ? undefined
+                    : `${movementDirection} by ${formattedPercent}. ${changePeriodLong} Near Mint movement`
                 }
-                className="set-explorer-overview__market-movement"
-                title={
-                  overview.movementPercent == null
-                    ? `${changePeriodLong} Near Mint movement`
-                    : undefined
-                }
-              >
-                {overview.movementPercent == null ? (
-                  <em>Building history</em>
-                ) : (
-                  <PriceChange
-                    animate
-                    ariaLabel={`${movementDirection} by ${formattedPercent}. ${changePeriodLong} Near Mint movement`}
-                    percent={overview.movementPercent}
-                    period={overview.changePeriod}
-                    title={`${changePeriodLong} Near Mint movement`}
-                  />
-                )}
-              </span>
+                percent={overview.movementPercent}
+                period={overview.changePeriod}
+                title={`${changePeriodLong} Near Mint movement`}
+                unavailableLabel={`${changePeriodLong} Near Mint movement is not available`}
+              />
             </>
           }
           valueClassName="set-explorer-overview__market-line"
@@ -230,7 +203,6 @@ export function SetExplorerOverview({
         <FeaturedCardMetric
           changePeriod={overview.changePeriod}
           changePeriodLong={changePeriodLong}
-          currency={overview.currency}
           data={overview.bestPerformer}
           label="Best performer"
           unavailableLabel="Price change unavailable"
@@ -240,7 +212,6 @@ export function SetExplorerOverview({
           breakBefore
           changePeriod={overview.changePeriod}
           changePeriodLong={changePeriodLong}
-          currency={overview.currency}
           data={overview.mostValuable}
           label="Most valuable"
           unavailableLabel="No priced cards"
@@ -250,7 +221,6 @@ export function SetExplorerOverview({
           changeAriaPrefix="Most sold card "
           changePeriod={overview.changePeriod}
           changePeriodLong={changePeriodLong}
-          currency={overview.mostSold?.currency ?? overview.currency}
           data={overview.mostSold}
           label="Most sold"
           unavailableLabel="Sales data unavailable"

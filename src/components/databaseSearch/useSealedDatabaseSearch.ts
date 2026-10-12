@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { PokeTraceSealedCatalogProduct } from "../../../shared/pokeTraceSealed";
 import {
@@ -6,8 +6,11 @@ import {
   searchSealedProducts,
 } from "../../services/sealedApi";
 import { logClientError } from "../../utils/logClientError";
+import { waitForUiPaint } from "../../utils/waitForUiPaint";
 
 export const SEALED_SEARCH_PAGE_SIZE = 50;
+export type SealedProductSort =
+  "none" | "name-az" | "price-high-low" | "price-low-high";
 type SealedSearchCriteria = Parameters<typeof searchSealedProducts>[0];
 
 type SealedUrlSearch = {
@@ -24,12 +27,83 @@ function optionalPrice(value: string) {
   return Number.isFinite(number) && number >= 0 ? number : undefined;
 }
 
+function validateSealedPriceFilters(
+  search: Pick<SealedUrlSearch, "maxPrice" | "minPrice">,
+) {
+  const min = optionalPrice(search.minPrice);
+  const max = optionalPrice(search.maxPrice);
+  if (search.minPrice.trim() && min === undefined) {
+    return { field: "min" as const, message: "Invalid minimum price" };
+  }
+  if (search.maxPrice.trim() && max === undefined) {
+    return { field: "max" as const, message: "Invalid maximum price" };
+  }
+  if (min !== undefined && max !== undefined && min > max) {
+    return {
+      field: "max" as const,
+      message: "Maximum price cannot be lower than minimum price",
+    };
+  }
+  return null;
+}
+
 function formatFilterLabel(value: string) {
   return value
     .replaceAll("_", " ")
     .replaceAll("-", " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatSearchLabel(search: SealedSearchCriteria) {
+  return [
+    search.name,
+    search.setName,
+    search.productFamily && formatFilterLabel(search.productFamily),
+    search.minPrice !== undefined && search.maxPrice !== undefined
+      ? `$${search.minPrice}–$${search.maxPrice}`
+      : search.minPrice !== undefined
+        ? `$${search.minPrice}+`
+        : search.maxPrice !== undefined
+          ? `Up to $${search.maxPrice}`
+          : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function sortSealedProducts(
+  products: readonly PokeTraceSealedCatalogProduct[],
+  sort: SealedProductSort,
+) {
+  if (sort === "none") return [...products];
+
+  return [...products].sort((left, right) => {
+    if (sort === "name-az") {
+      return (
+        left.name.localeCompare(right.name, "en-US", {
+          numeric: true,
+          sensitivity: "base",
+        }) || left.id.localeCompare(right.id, "en-US")
+      );
+    }
+
+    const leftPrice = left.price;
+    const rightPrice = right.price;
+    if (leftPrice == null && rightPrice != null) return 1;
+    if (leftPrice != null && rightPrice == null) return -1;
+    if (leftPrice != null && rightPrice != null && leftPrice !== rightPrice) {
+      return sort === "price-high-low"
+        ? rightPrice - leftPrice
+        : leftPrice - rightPrice;
+    }
+    return (
+      left.name.localeCompare(right.name, "en-US", {
+        numeric: true,
+        sensitivity: "base",
+      }) || left.id.localeCompare(right.id, "en-US")
+    );
+  });
 }
 
 function readSealedUrlSearch(searchParams: URLSearchParams) {
@@ -78,6 +152,8 @@ function createSealedSearchParams(search: SealedUrlSearch) {
 
 export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchRequestControllerRef = useRef<AbortController | null>(null);
+  const sortRequestIdRef = useRef(0);
   const initialSearch = (syncUrl
     ? readSealedUrlSearch(searchParams)
     : null) ?? {
@@ -102,6 +178,9 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     Boolean(active && hasSealedSearchCriteria(initialSearch)),
   );
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [activeQueryLabel, setActiveQueryLabel] = useState("");
+  const [isSorting, setIsSorting] = useState(false);
+  const [sortDirection, setSortDirection] = useState<SealedProductSort>("none");
   const [setNames, setSetNames] = useState<string[]>([]);
   const [productFamilies, setProductFamilies] = useState<string[]>([]);
   const [submittedSearch, setSubmittedSearch] =
@@ -128,24 +207,33 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     minPrice.trim() ||
     maxPrice.trim(),
   );
-  const priceValidation = useMemo(() => {
-    const min = optionalPrice(minPrice);
-    const max = optionalPrice(maxPrice);
-    if (minPrice.trim() && min === undefined) {
-      return { field: "min" as const, message: "Invalid minimum price" };
-    }
-    if (maxPrice.trim() && max === undefined) {
-      return { field: "max" as const, message: "Invalid maximum price" };
-    }
-    if (min !== undefined && max !== undefined && min > max) {
-      return {
-        field: "max" as const,
-        message: "Maximum price cannot be lower than minimum price",
-      };
-    }
-    return null;
-  }, [maxPrice, minPrice]);
+  const priceValidation = useMemo(
+    () => validateSealedPriceFilters({ maxPrice, minPrice }),
+    [maxPrice, minPrice],
+  );
   const priceError = priceValidation?.message ?? null;
+  const sortedProducts = useMemo(
+    () => sortSealedProducts(products, sortDirection),
+    [products, sortDirection],
+  );
+
+  function cancelPendingSort() {
+    sortRequestIdRef.current += 1;
+    setIsSorting(false);
+  }
+
+  function cancelActiveSearch() {
+    const controller = searchRequestControllerRef.current;
+    searchRequestControllerRef.current = null;
+    controller?.abort();
+  }
+
+  useEffect(
+    () => () => {
+      sortRequestIdRef.current += 1;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!active || !syncUrl) return;
@@ -153,8 +241,10 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     const urlSearch = readSealedUrlSearch(new URLSearchParams(searchParamsKey));
     if (!urlSearch) return;
 
+    cancelActiveSearch();
     // These controlled fields intentionally mirror browser navigation state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    cancelPendingSort();
     setName(urlSearch.name);
     setSetNameFilter(urlSearch.setName);
     setProductFamily(urlSearch.productFamily);
@@ -167,49 +257,45 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
       setLoading(false);
       setProducts([]);
       setTotal(0);
+      setActiveQueryLabel("");
       setSubmittedSearch(null);
       return;
     }
 
-    const criteria = sealedSearchCriteria(urlSearch);
-    if (
-      (urlSearch.minPrice && criteria.minPrice === undefined) ||
-      (urlSearch.maxPrice && criteria.maxPrice === undefined) ||
-      (criteria.minPrice !== undefined &&
-        criteria.maxPrice !== undefined &&
-        criteria.minPrice > criteria.maxPrice)
-    ) {
+    if (validateSealedPriceFilters(urlSearch)) {
       setLoading(false);
       setProducts([]);
       setTotal(0);
+      setActiveQueryLabel("");
       setSubmittedSearch(null);
       return;
     }
 
     setLoading(true);
-    setSubmittedSearch(criteria);
+    setSubmittedSearch(sealedSearchCriteria(urlSearch));
   }, [active, searchParamsKey, syncUrl]);
 
   useEffect(() => {
     if (!active || !submittedSearch) return;
+    cancelActiveSearch();
     const controller = new AbortController();
+    searchRequestControllerRef.current = controller;
     let current = true;
     void searchSealedProducts(submittedSearch, controller.signal)
       .then((response) => {
-        if (!current) return;
+        if (!current || controller.signal.aborted) return;
         setProducts(response.items);
         setTotal(response.total);
         setVisibleCount(SEALED_SEARCH_PAGE_SIZE);
-        setFeedback(
-          response.items.length === 0
-            ? "No sealed products matched your search."
-            : null,
-        );
+        setSortDirection("none");
+        setActiveQueryLabel(formatSearchLabel(submittedSearch));
+        setFeedback(null);
       })
       .catch((error: unknown) => {
         if (!current || controller.signal.aborted) return;
         setProducts([]);
         setTotal(0);
+        setActiveQueryLabel("");
         setFeedback(
           error instanceof Error
             ? error.message
@@ -217,11 +303,17 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
         );
       })
       .finally(() => {
-        if (current) setLoading(false);
+        if (!current || searchRequestControllerRef.current !== controller)
+          return;
+        searchRequestControllerRef.current = null;
+        setLoading(false);
       });
     return () => {
       current = false;
       controller.abort();
+      if (searchRequestControllerRef.current === controller) {
+        searchRequestControllerRef.current = null;
+      }
     };
   }, [active, submittedSearch]);
 
@@ -241,16 +333,35 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     return () => controller.abort();
   }, [active, productFamilies.length, setNames.length]);
 
-  function submitSearch() {
-    if (!hasCriteria || priceError || loading) return;
-    const nextSearch: SealedUrlSearch = {
-      maxPrice: maxPrice.trim(),
-      minPrice: minPrice.trim(),
-      name: name.trim(),
-      productFamily: productFamily.trim(),
-      setName: setNameFilter.trim(),
+  function currentSearch(
+    overrides: Partial<SealedUrlSearch> = {},
+  ): SealedUrlSearch {
+    return {
+      maxPrice: (overrides.maxPrice ?? maxPrice).trim(),
+      minPrice: (overrides.minPrice ?? minPrice).trim(),
+      name: (overrides.name ?? name).trim(),
+      productFamily: (overrides.productFamily ?? productFamily).trim(),
+      setName: (overrides.setName ?? setNameFilter).trim(),
     };
+  }
+
+  function startSearch(nextSearch: SealedUrlSearch, force = false) {
+    if ((!force && loading) || validateSealedPriceFilters(nextSearch)) return;
+    cancelActiveSearch();
+    cancelPendingSort();
     const nextSearchParams = createSealedSearchParams(nextSearch);
+    if (!hasSealedSearchCriteria(nextSearch)) {
+      setLoading(false);
+      setFeedback(null);
+      setProducts([]);
+      setTotal(0);
+      setActiveQueryLabel("");
+      setSubmittedSearch(null);
+      if (syncUrl && nextSearchParams.toString() !== searchParamsKey) {
+        setSearchParams(nextSearchParams);
+      }
+      return;
+    }
     setLoading(true);
     setFeedback(null);
     if (!syncUrl) {
@@ -264,15 +375,72 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     setSearchParams(nextSearchParams);
   }
 
+  function submitSearch() {
+    if (!hasCriteria || priceError) return;
+    startSearch(currentSearch());
+  }
+
+  function selectSetNameFilter(value: string) {
+    setSetNameFilter(value);
+    startSearch(currentSearch({ setName: value }), true);
+  }
+
+  function selectProductFamily(value: string) {
+    setProductFamily(value);
+    startSearch(currentSearch({ productFamily: value }), true);
+  }
+
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
     event.preventDefault();
     submitSearch();
   }
 
+  function clearFilters() {
+    setMinPrice("");
+    setMaxPrice("");
+    if (!syncUrl) return;
+
+    const nextSearchParams = new URLSearchParams(searchParamsKey);
+    nextSearchParams.delete("min");
+    nextSearchParams.delete("max");
+    if (nextSearchParams.toString() !== searchParamsKey) {
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }
+
+  async function handleSortChange(nextSort: SealedProductSort) {
+    if (nextSort === sortDirection || loading || isSorting) return;
+    const requestId = ++sortRequestIdRef.current;
+    setIsSorting(true);
+    await waitForUiPaint();
+    if (requestId !== sortRequestIdRef.current) return;
+    setSortDirection(nextSort);
+    setVisibleCount(SEALED_SEARCH_PAGE_SIZE);
+    setIsSorting(false);
+  }
+
+  function closeResults() {
+    cancelActiveSearch();
+    cancelPendingSort();
+    setLoading(false);
+    setFeedback(null);
+    setProducts([]);
+    setTotal(0);
+    setVisibleCount(SEALED_SEARCH_PAGE_SIZE);
+    setSortDirection("none");
+    setActiveQueryLabel("");
+    setSubmittedSearch(null);
+  }
+
   return {
+    activeQueryLabel,
+    clearFilters,
+    closeResults,
     feedback,
+    handleSortChange,
     hasCriteria,
+    isSorting,
     loading,
     maxPrice,
     minPrice,
@@ -289,8 +457,11 @@ export function useSealedDatabaseSearch(active: boolean, syncUrl = true) {
     setNameFilter,
     setSetNameFilter,
     setOptions,
-    setProductFamily,
+    selectProductFamily,
+    selectSetNameFilter,
     setVisibleCount,
+    sortDirection,
+    sortedProducts,
     submitSearch,
     total,
     visibleCount,

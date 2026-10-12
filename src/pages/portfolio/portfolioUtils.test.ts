@@ -54,7 +54,7 @@ describe("portfolio utilities", () => {
       bestPerformer: {
         item: cards[0],
         change: 25,
-        value: 200,
+        value: 100,
       },
       weakestPerformer: {
         item: cards[1],
@@ -117,6 +117,25 @@ describe("portfolio utilities", () => {
     ).toEqual({ item: highestUnitValue, change: null, value: 100 });
   });
 
+  test("shows performer unit prices rather than quantity-adjusted holdings", () => {
+    const gainer = card("1", "Gainer", 100, 4, 50);
+    const loser = card("2", "Loser", 80, 5, 100);
+
+    const stats = getPortfolioStats([gainer, loser], "7d");
+
+    expect(stats.bestPerformer).toEqual({
+      item: gainer,
+      change: 100,
+      value: 100,
+    });
+    expect(stats.weakestPerformer).toEqual({
+      item: loser,
+      change: -20,
+      value: 80,
+    });
+    expect(stats.totalValue).toBe(800);
+  });
+
   test("sorts by the same selected-period change rendered by portfolio cards", () => {
     const down = card("1", "Down", 90, 1, 100);
     const up = card("2", "Up", 120, 1, 100);
@@ -165,6 +184,21 @@ describe("portfolio utilities", () => {
       totalAssets: 5,
       uniqueAssets: 2,
       totalValue: 650,
+    });
+  });
+
+  test("totals every price regardless of malformed currency metadata", () => {
+    const first = card("1", "First", 100, 1, 80);
+    first.pokeTrace.currency = "EUR";
+    const second = card("2", "Second", 50, 1, 40);
+
+    expect(getPortfolioStats([first, second], "7d")).toMatchObject({
+      pricedAssets: 2,
+      totalValue: 150,
+    });
+    expect(getPortfolioStats([second, first], "7d")).toMatchObject({
+      pricedAssets: 2,
+      totalValue: 150,
     });
   });
 });

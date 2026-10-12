@@ -6,11 +6,15 @@ import { resolvePokeTraceCardPrice } from "../../utils/pokeTracePricing";
 import "./DatabaseSearch.scss";
 import { logClientError } from "../../utils/logClientError";
 import { GridView } from "../gridView/GridView";
-import { PokemonCardView } from "../pokemonCardView/PokemonCardView";
+import {
+  PokemonCardView,
+  type PokemonCardViewProps,
+} from "../pokemonCardView/PokemonCardView";
 import { SearchHero } from "../searchHero/SearchHero";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions";
 import { SearchResultsToolbar } from "./SearchResultsToolbar";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
+import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
 import {
   isPokeTraceRawCondition,
   POKETRACE_RAW_CONDITIONS,
@@ -54,6 +58,7 @@ type DatabaseSearchProps = {
   initialProductType?: ProductType;
   onClose?: () => void;
   onPortfolioChanged?: (saved: boolean) => void;
+  onProductTypeChange?: (productType: ProductType) => void;
 };
 
 type DatabaseSearchFilters = {
@@ -63,17 +68,16 @@ type DatabaseSearchFilters = {
   rarity: string;
 };
 
-type SearchFeedback = {
-  kind: "empty" | "error";
-  message: string;
-};
-
 type SinglesUrlSearch = {
   cardNumber: string;
   filters: DatabaseSearchFilters;
   pokemonName: string;
   setName: string;
   setNameExact: boolean;
+};
+
+type SinglesSearchOverrides = Partial<Omit<SinglesUrlSearch, "filters">> & {
+  filters?: DatabaseSearchFilters;
 };
 
 const DEFAULT_SEARCH_FILTERS: DatabaseSearchFilters = {
@@ -249,6 +253,7 @@ type DatabaseSearchBarProps = {
   onPokemonNameChange: (value: string) => void;
   onFiltersChange: (updates: Partial<DatabaseSearchFilters>) => void;
   onFiltersClear: () => void;
+  onRaritySelect: (rarity: string) => void;
   onSearch: () => void;
   onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onSetNameChange: (value: string, exact: boolean) => void;
@@ -266,6 +271,7 @@ export function DatabaseSearchBar({
   onPokemonNameChange,
   onFiltersChange,
   onFiltersClear,
+  onRaritySelect,
   onSearch,
   onSearchKeyDown,
   onSetNameChange,
@@ -315,10 +321,11 @@ export function DatabaseSearchBar({
             <AutosuggestCombobox
               ariaLabel="Filter by rarity"
               className="database-search-rarity-combobox"
+              clearOnClick
               menuLabel="Rarity suggestions"
               onInputChange={(rarity) => onFiltersChange({ rarity })}
               onKeyDown={onSearchKeyDown}
-              onSelect={(rarity) => onFiltersChange({ rarity })}
+              onSelect={onRaritySelect}
               options={rarityOptions}
               placeholder="Rarity"
               value={filters.rarity}
@@ -375,6 +382,7 @@ export function DatabaseSearchBar({
             <AutosuggestCombobox
               ariaLabel="Set name"
               className="database-search-set-combobox"
+              clearOnClick
               inputClassName="database-search"
               menuLabel="Set name suggestions"
               onInputChange={(value) => onSetNameChange(value, false)}
@@ -395,13 +403,12 @@ export function DatabaseSearchBar({
 function getSearchResultMarketDisplay(
   card: PokemonCardType,
   condition: PokeTraceRawCondition | "",
-) {
+): PokemonCardViewProps["marketDisplay"] {
   if (!condition) return undefined;
 
   const conditionLabel = POKETRACE_RAW_CONDITION_LABELS[condition];
   return {
     condition,
-    currency: card.pokeTrace.currency,
     marketLabel: conditionLabel,
     price: resolvePokeTraceCardPrice(card, condition)?.price,
     priceLabel: `TCGPlayer · ${conditionLabel}`,
@@ -415,6 +422,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   initialProductType = "singles",
   onClose,
   onPortfolioChanged,
+  onProductTypeChange,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsKey = searchParams.toString();
@@ -468,9 +476,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   );
   const [isSorting, setIsSorting] = useState(false);
   const [activeQueryLabel, setActiveQueryLabel] = useState("");
-  const [searchFeedback, setSearchFeedback] = useState<SearchFeedback | null>(
-    null,
-  );
+  const [searchError, setSearchError] = useState<string | null>(null);
   const priceFilterValidation = validatePriceFilters(filters);
   useEffect(() => {
     if (embedded) return;
@@ -480,6 +486,10 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setProductType(urlProductType);
     }
   }, [embedded, urlProductType]);
+
+  useEffect(() => {
+    onProductTypeChange?.(productType);
+  }, [onProductTypeChange, productType]);
 
   useEffect(() => {
     return () => {
@@ -537,7 +547,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback(null);
+      setSearchError(null);
       return;
     }
     if (validatePriceFilters(search.filters)) return;
@@ -546,7 +556,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setIsSorting(false);
     setIsSearching(true);
     setCanSearch(false);
-    setSearchFeedback(null);
+    setSearchError(null);
     const requestId = ++searchRequestIdRef.current;
     searchRequestControllerRef.current?.abort();
     const requestController = new AbortController();
@@ -580,11 +590,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setActiveCondition(condition);
       setSortDirection(nextSortDirection);
       setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
-      setSearchFeedback(
-        data.length === 0
-          ? { kind: "empty", message: "No cards found." }
-          : null,
-      );
+      setSearchError(null);
       setActiveQueryLabel(
         [
           trimmedPokemonName,
@@ -611,10 +617,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback({
-        kind: "error",
-        message: GENERIC_SEARCH_ERROR_MESSAGE,
-      });
+      setSearchError(GENERIC_SEARCH_ERROR_MESSAGE);
       setCanSearch(true);
     } finally {
       if (requestId === searchRequestIdRef.current) {
@@ -654,7 +657,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       setTotalResultCount(0);
       setActiveQueryLabel("");
       setActiveCondition("");
-      setSearchFeedback(null);
+      setSearchError(null);
       return;
     }
 
@@ -669,27 +672,28 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     }
   };
 
-  function submitSearch() {
-    if (!canSearch || isSearching) return;
+  function submitSearch(overrides: SinglesSearchOverrides = {}, force = false) {
+    if (!force && (!canSearch || isSearching)) return;
+    const nextFilters = overrides.filters ?? filters;
     const nextSearch: SinglesUrlSearch = {
-      cardNumber: cardNumber.trim(),
+      cardNumber: (overrides.cardNumber ?? cardNumber).trim(),
       filters: {
-        ...filters,
-        maxPrice: filters.maxPrice.trim(),
-        minPrice: filters.minPrice.trim(),
-        rarity: filters.rarity.trim(),
+        ...nextFilters,
+        maxPrice: nextFilters.maxPrice.trim(),
+        minPrice: nextFilters.minPrice.trim(),
+        rarity: nextFilters.rarity.trim(),
       },
-      pokemonName: pokemonName.trim(),
-      setName: setName.trim(),
-      setNameExact,
+      pokemonName: (overrides.pokemonName ?? pokemonName).trim(),
+      setName: (overrides.setName ?? setName).trim(),
+      setNameExact: overrides.setNameExact ?? setNameExact,
     };
     if (embedded) {
-      void handleSearch(nextSearch);
+      void handleSearch(nextSearch, force);
       return;
     }
     const nextSearchParams = createSinglesSearchParams(nextSearch);
     if (nextSearchParams.toString() === searchParamsKey) {
-      void handleSearch(nextSearch);
+      void handleSearch(nextSearch, force);
       return;
     }
     setSearchParams(nextSearchParams);
@@ -710,12 +714,43 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
     setVisibleResultCount((current) => current + POKETRACE_SEARCH_PAGE_SIZE);
   }
 
+  function handleCloseResults() {
+    searchRequestIdRef.current += 1;
+    sortRequestIdRef.current += 1;
+    searchRequestControllerRef.current?.abort();
+    searchRequestControllerRef.current = null;
+    window.clearTimeout(searchCooldownTimerRef.current);
+    setIsSearching(false);
+    setIsSorting(false);
+    setCanSearch(true);
+    setResults([]);
+    setTotalResultCount(0);
+    setActiveQueryLabel("");
+    setActiveCondition("");
+    setSearchError(null);
+    onClose?.();
+  }
+
   function handleProductTypeChange(nextProductType: ProductType) {
     if (nextProductType === productType) return;
     setProductType(nextProductType);
     setFocusModeInput(true);
     if (!embedded && searchParamsKey) {
       setSearchParams(new URLSearchParams(), { replace: true });
+    }
+  }
+
+  function handleFiltersClear() {
+    setFilters(DEFAULT_SEARCH_FILTERS);
+    if (embedded) return;
+
+    const nextSearchParams = new URLSearchParams(searchParamsKey);
+    nextSearchParams.delete("min");
+    nextSearchParams.delete("max");
+    nextSearchParams.delete("rarity");
+    nextSearchParams.delete("condition");
+    if (nextSearchParams.toString() !== searchParamsKey) {
+      setSearchParams(nextSearchParams, { replace: true });
     }
   }
 
@@ -732,13 +767,21 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       onFiltersChange={(updates) =>
         setFilters((current) => ({ ...current, ...updates }))
       }
-      onFiltersClear={() => setFilters(DEFAULT_SEARCH_FILTERS)}
+      onFiltersClear={handleFiltersClear}
       onPokemonNameChange={setPokemonName}
-      onSearch={submitSearch}
+      onRaritySelect={(rarity) => {
+        const nextFilters = { ...filters, rarity };
+        setFilters(nextFilters);
+        submitSearch({ filters: nextFilters }, true);
+      }}
+      onSearch={() => submitSearch()}
       onSearchKeyDown={handleSearchKeyDown}
       onSetNameChange={(value, exact) => {
         setSetName(value);
         setSetNameExact(exact);
+        if (exact) {
+          submitSearch({ setName: value, setNameExact: true }, true);
+        }
       }}
       pokemonName={pokemonName}
       priceFilterValidation={priceFilterValidation}
@@ -782,17 +825,23 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
             {activeSearchMode}
           </SearchHero>
         )}
-        {productType === "singles" && searchFeedback && !isSearching && (
+        {productType === "singles" && searchError && !isSearching && (
           <div
-            className={`database-search-feedback database-search-feedback--${searchFeedback.kind}`}
-            role={searchFeedback.kind === "error" ? "alert" : "status"}
+            className="database-search-feedback database-search-feedback--error"
+            role="alert"
           >
-            {searchFeedback.message}
+            {searchError}
           </div>
         )}
         {productType === "singles" &&
           (() => {
-            if (results.length === 0) return null;
+            if (
+              !activeQueryLabel ||
+              searchError ||
+              (isSearching && results.length === 0)
+            ) {
+              return null;
+            }
 
             /* Embedded (card switch) uses the same grid cards as /search */
             const resultsNode = (
@@ -802,28 +851,20 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
               >
                 <SearchResultsToolbar
                   activeQueryLabel={activeQueryLabel}
-                  includeChangeSort={
-                    !activeCondition || activeCondition === "NEAR_MINT"
-                  }
-                  onClose={() => {
-                    searchRequestIdRef.current += 1;
-                    sortRequestIdRef.current += 1;
-                    searchRequestControllerRef.current?.abort();
-                    searchRequestControllerRef.current = null;
-                    window.clearTimeout(searchCooldownTimerRef.current);
-                    setIsSearching(false);
-                    setIsSorting(false);
-                    setCanSearch(true);
-                    setResults([]);
-                    setTotalResultCount(0);
-                    setActiveQueryLabel("");
-                    setActiveCondition("");
-                    setSearchFeedback(null);
-                    onClose?.();
-                  }}
-                  onSortChange={handleSortChange}
+                  itemLabel={{ plural: "cards", singular: "card" }}
+                  onClose={handleCloseResults}
                   resultCount={totalResultCount}
-                  sortDirection={sortDirection}
+                  sortControl={
+                    <PokeTraceSortDropdown
+                      ariaLabel="Sort search results"
+                      className="search-results-sort-control__dropdown"
+                      includeChange={
+                        !activeCondition || activeCondition === "NEAR_MINT"
+                      }
+                      onChange={handleSortChange}
+                      value={sortDirection}
+                    />
+                  }
                 />
                 {results.length > 0 && (
                   <GridView revealOnScroll={false} sorting={isSorting}>
@@ -861,6 +902,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           })()}
         {productType === "sealed" && (
           <SealedDatabaseSearchResults
+            onClose={onClose}
             onPortfolioChanged={onPortfolioChanged}
             search={sealedSearch}
           />

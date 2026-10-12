@@ -102,7 +102,6 @@ function toGridItem(
       ...(changePeriod && { changePeriod }),
       changePercent: item.changePct,
       condition: item.tier,
-      currency: item.currency,
       ...(showMarketLabel && {
         marketLabel: `${compactTierLabel(item.tier)} · ${sourceLabel(item.source)}`,
       }),
@@ -133,6 +132,7 @@ export function MarketMoversGrid({
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
+  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -160,7 +160,12 @@ export function MarketMoversGrid({
       });
 
     return () => controller.abort();
-  }, [changeLabel, loadMovers, showMarketLabel]);
+  }, [changeLabel, loadMovers, requestVersion, showMarketLabel]);
+
+  function retry() {
+    setResult({ error: null, items: [], loading: true });
+    setRequestVersion((current) => current + 1);
+  }
 
   return (
     <CardCategoryGrid
@@ -168,6 +173,7 @@ export function MarketMoversGrid({
       error={result.error}
       items={result.items}
       loading={result.loading}
+      onRetry={result.error ? retry : undefined}
       subtitle={subtitle}
       title={title}
     />

@@ -78,11 +78,12 @@
   gap: var(--space-2);
   justify-content: flex-start;
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 
   > span {
-    white-space: nowrap;
+    font-size: var(--font-size-caption);
     font-weight: 400;
+    white-space: nowrap;
   }
 }
 
@@ -95,23 +96,6 @@
 .set-explorer-overview__market-line {
   > span:first-child {
     min-width: max-content;
-  }
-}
-
-.set-explorer-overview__market-movement {
-  align-items: baseline;
-  color: var(--font-color-muted);
-  display: inline-flex;
-  gap: 0.35rem;
-  white-space: nowrap;
-
-  em {
-    color: inherit;
-    font-family: var(--font-family-base);
-    font-size: var(--font-size-caption);
-    font-style: normal;
-    font-weight: var(--font-weight-medium);
-    opacity: 0.8;
   }
 }
 

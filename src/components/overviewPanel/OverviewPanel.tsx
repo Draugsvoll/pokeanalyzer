@@ -29,7 +29,11 @@ export const OverviewPanel = forwardRef<HTMLElement, OverviewPanelProps>(
     return (
       <section
         aria-label={ariaLabel}
-        className={joinClassNames("app-overview-panel", className)}
+        className={joinClassNames(
+          "app-overview-panel",
+          "ui-render-fade",
+          className,
+        )}
         ref={ref}
       >
         <div className="app-overview-panel__layout">{children}</div>
@@ -54,6 +58,7 @@ export function OverviewMetric({
     <article
       className={joinClassNames(
         "app-overview-metric",
+        "ui-render-fade",
         breakBefore ? "app-overview-metric--break-before" : undefined,
         imageSrc ? "app-overview-metric--featured" : undefined,
         primary ? "app-overview-metric--primary" : undefined,

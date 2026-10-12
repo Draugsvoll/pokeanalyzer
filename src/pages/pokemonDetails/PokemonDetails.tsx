@@ -694,22 +694,20 @@ function PokemonDetailsForCard() {
       }
       media={
         <>
-          <div className="card-view__image-frame default-container">
-            {card.image && failedCardImageSrc !== card.image ? (
-              <img
-                key={card.id}
-                className="card-view__image ui-render-fade"
-                src={card.image}
-                alt={card.name}
-                onError={() => setFailedCardImageSrc(card.image ?? null)}
-              />
-            ) : (
-              <div className="card-view__image-placeholder" role="img">
-                <Search aria-hidden="true" />
-                <span>Card image unavailable</span>
-              </div>
-            )}
-          </div>
+          {card.image && failedCardImageSrc !== card.image ? (
+            <img
+              key={card.id}
+              className="card-view__image ui-render-fade"
+              src={card.image}
+              alt={card.name}
+              onError={() => setFailedCardImageSrc(card.image ?? null)}
+            />
+          ) : (
+            <div className="card-view__image-placeholder" role="img">
+              <Search aria-hidden="true" />
+              <span>Card image unavailable</span>
+            </div>
+          )}
           <div className="card-view__image-controls">
             {authUser && !isDemo && (
               <Button

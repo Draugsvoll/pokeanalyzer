@@ -50,6 +50,11 @@ export const Header: React.FC = () => {
     formatAccountName(savedFirstName || user?.displayName) ||
     formatAccountName(user?.email?.split("@")[0]) ||
     "Account";
+  const cardsRouteActive =
+    location.pathname === "/search" ||
+    location.pathname.startsWith("/card/") ||
+    location.pathname === "/sealed" ||
+    location.pathname.startsWith("/sealed/");
 
   useEffect(() => {
     let ignore = false;
@@ -117,14 +122,13 @@ export const Header: React.FC = () => {
           >
             Home
           </NavLink>
-          <NavLink
+          <Link
             to="/search"
-            className={({ isActive }) =>
-              `nav-links__item${isActive ? " nav-links__item--active" : ""}`
-            }
+            aria-current={cardsRouteActive ? "page" : undefined}
+            className={`nav-links__item${cardsRouteActive ? " nav-links__item--active" : ""}`}
           >
             Cards
-          </NavLink>
+          </Link>
           <NavLink
             to="/set"
             className={({ isActive }) =>
@@ -208,9 +212,14 @@ export const Header: React.FC = () => {
             <NavLink to="/" end onClick={closeMobileNav}>
               Home
             </NavLink>
-            <NavLink to="/search" onClick={closeMobileNav}>
+            <Link
+              aria-current={cardsRouteActive ? "page" : undefined}
+              className={cardsRouteActive ? "active" : undefined}
+              onClick={closeMobileNav}
+              to="/search"
+            >
               Cards
-            </NavLink>
+            </Link>
             <NavLink to="/set" onClick={closeMobileNav}>
               Explore sets
             </NavLink>

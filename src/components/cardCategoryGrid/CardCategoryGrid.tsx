@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RefreshCw } from "lucide-react";
 import type { PokemonCard } from "../../types/pokemon";
 import {
   PokemonCardView,
@@ -21,6 +22,7 @@ type CardCategoryGridProps = {
   footer?: ReactNode;
   items: CardCategoryGridItem[];
   loading?: boolean;
+  onRetry?: () => void;
   revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: ReactNode;
@@ -36,6 +38,7 @@ export function CardCategoryGrid({
   footer,
   items,
   loading = false,
+  onRetry,
   revealOnScroll = true,
   sorting = false,
   subtitle,
@@ -63,9 +66,22 @@ export function CardCategoryGrid({
             <span aria-hidden="true" className="app-loading-spinner" />
           </div>
         ) : error ? (
-          <p className="card-category-grid__state card-category-grid__state--error">
-            {error}
-          </p>
+          <div
+            className="card-category-grid__state card-category-grid__state--error"
+            role="alert"
+          >
+            <p>{error}</p>
+            {onRetry && (
+              <button
+                className="card-category-grid__retry"
+                onClick={onRetry}
+                type="button"
+              >
+                <RefreshCw aria-hidden="true" />
+                Try again
+              </button>
+            )}
+          </div>
         ) : items.length === 0 && emptyMessage ? (
           <p className="card-category-grid__state">{emptyMessage}</p>
         ) : items.length > 0 ? (

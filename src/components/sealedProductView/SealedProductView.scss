@@ -15,18 +15,10 @@
 }
 
 .sealed-product-view__portfolio-toggle {
-  height: 2.5rem;
   position: absolute;
   right: calc(var(--card-pad) + 0.2rem);
   top: calc(var(--card-pad) + 0.2rem);
-  width: 2.5rem;
   z-index: 3;
-
-  svg,
-  .app-btn__spinner {
-    height: 1.25rem;
-    width: 1.25rem;
-  }
 }
 
 .sealed-product-view__card:hover .sealed-product-view__portfolio-toggle,

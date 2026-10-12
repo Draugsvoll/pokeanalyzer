@@ -81,11 +81,24 @@ describe("PokemonCardView default price change", () => {
     expect(screen.getByText("7d")).toHaveClass("app-price-change__period");
   });
 
+  test("always displays card prices in USD", () => {
+    const malformedCurrencyCard = card();
+    malformedCurrencyCard.pokeTrace.currency = "EUR";
+
+    render(
+      <MemoryRouter>
+        <PokemonCardView card={malformedCurrencyCard} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("$110.00")).toBeInTheDocument();
+    expect(screen.queryByText("€110.00")).not.toBeInTheDocument();
+  });
+
   test("shows the default change for an explicit Near Mint display", () => {
     renderCard({
       marketDisplay: {
         condition: "NEAR_MINT",
-        currency: "USD",
         price: 110,
         source: "tcgplayer",
       },
@@ -98,7 +111,6 @@ describe("PokemonCardView default price change", () => {
     const { container } = renderCard({
       marketDisplay: {
         condition: "LIGHTLY_PLAYED",
-        currency: "USD",
         price: 90,
         source: "tcgplayer",
       },
@@ -111,7 +123,6 @@ describe("PokemonCardView default price change", () => {
     const { container } = renderCard({
       marketDisplay: {
         condition: "NEAR_MINT",
-        currency: "USD",
         price: 90,
         source: "ebay",
       },
@@ -137,7 +148,6 @@ describe("PokemonCardView default price change", () => {
       marketDisplay: {
         changePercent: 25,
         condition: "NEAR_MINT",
-        currency: "USD",
         price: 110,
         source: "tcgplayer",
       },
@@ -152,7 +162,6 @@ describe("PokemonCardView default price change", () => {
       marketDisplay: {
         changePercent: 25,
         condition: "NEAR_MINT",
-        currency: "USD",
         price: 1.99,
         source: "tcgplayer",
       },

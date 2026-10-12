@@ -146,14 +146,6 @@
     padding: 0;
   }
 
-  &__image-frame {
-    line-height: 0;
-    max-width: 100%;
-    padding: 0.7rem;
-    position: relative;
-    width: 17.5rem;
-  }
-
   &__image-controls {
     display: grid;
     gap: 0.7rem;
@@ -515,7 +507,8 @@
 }
 
 .card-view--poketrace {
-  --poketrace-panel-gap: 0.9rem;
+  --poketrace-panel-gap: 0.8rem;
+  // Give the image any space released by the gap; keep the info column fixed.
   --poketrace-media-width: calc(
     17.5rem + var(--default-container-padding) - var(--poketrace-panel-gap)
   );
@@ -554,7 +547,6 @@
     justify-content: start;
   }
 
-  .card-view__image-frame,
   .card-view__image-controls,
   .card-view__image,
   .card-view__image-placeholder {
@@ -636,7 +628,6 @@
       justify-items: start;
     }
 
-    .card-view__image-frame,
     .card-view__image-controls,
     .card-view__image,
     .card-view__image-placeholder {

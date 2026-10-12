@@ -64,6 +64,27 @@ test("renders the sealed product family and variant", () => {
   expect(screen.getByText("Pokemon Center Exclusive")).toBeInTheDocument();
 });
 
+test("always displays sealed prices in USD", () => {
+  render(
+    <MemoryRouter>
+      <SealedProductView
+        product={{
+          id: "sealed-with-malformed-currency",
+          name: "Malformed Currency Box",
+          setName: "Example Set",
+          productFamily: "booster_box",
+          currency: "EUR",
+          price: 150,
+          priceSnapshots: { "1d": null, "7d": null, "30d": null },
+        }}
+      />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByText("$150.00")).toBeInTheDocument();
+  expect(screen.queryByText("€150.00")).not.toBeInTheDocument();
+});
+
 test("replaces a broken product image with a clean fallback", () => {
   render(
     <MemoryRouter>

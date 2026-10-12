@@ -27,9 +27,9 @@ vi.mock("../loginmodal/Loginmodal", () => ({
   default: () => null,
 }));
 
-function renderHeader() {
+function renderHeader(initialEntry = "/") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Header />
     </MemoryRouter>,
   );
@@ -78,4 +78,16 @@ describe("Header", () => {
       screen.getByRole("button", { name: "Open navigation" }),
     ).toHaveAttribute("aria-expanded", "false");
   });
+
+  test.each(["/card/demo", "/sealed", "/sealed/product-1"])(
+    "keeps Cards active on %s",
+    (initialEntry) => {
+      renderHeader(initialEntry);
+
+      expect(screen.getAllByRole("link", { name: "Cards" })[0]).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    },
+  );
 });
