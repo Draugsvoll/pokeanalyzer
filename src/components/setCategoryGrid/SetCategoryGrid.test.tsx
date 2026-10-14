@@ -142,10 +142,8 @@ function renderSetExplorer(initialEntry = "/set") {
   );
   expect(screen.getByRole("heading", { name: "Explore sets" })).toBeVisible();
   if (!initialEntry.includes("?set=")) {
-    expect(
-      document.querySelector(".ui-autosuggest__search-icon"),
-    ).not.toBeNull();
-    expect(document.querySelector(".ui-autosuggest__chevron")).toBeNull();
+    expect(document.querySelector(".ui-autosuggest__search-icon")).toBeNull();
+    expect(document.querySelector(".ui-autosuggest__chevron")).not.toBeNull();
     expect(document.querySelector(".grid-view")).toBeNull();
   }
   return result;
@@ -431,7 +429,7 @@ test("shows all set suggestions while combining the directory filters", () => {
   expect(screen.getByText("No sets match the current filters.")).toBeVisible();
 });
 
-test("keeps the set filter when its input is clicked", () => {
+test("clears the set filter when its input is clicked", () => {
   renderSetExplorer();
   const setInput = screen.getByRole("combobox", { name: "Set name" });
 
@@ -439,7 +437,8 @@ test("keeps the set filter when its input is clicked", () => {
 
   fireEvent.change(setInput, { target: { value: "Base" } });
   fireEvent.click(setInput);
-  expect(setInput).toHaveValue("Base");
+  expect(setInput).toHaveValue("");
+  expect(screen.getByRole("option", { name: "Arceus" })).toBeVisible();
 });
 
 test("keeps the displayed set when either directory filter is clicked", async () => {

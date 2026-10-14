@@ -57,6 +57,7 @@ import {
 } from "./setDirectoryMetadata";
 import { selectUniqueSetCards, type SetCardScope } from "./setCardScope";
 import { buildSetExplorerOverview } from "./setExplorerMetrics";
+import { selectWeeklyMovers } from "./weeklyMovers";
 import "./SetCategoryGrid.scss";
 
 const INVALID_SET_MESSAGE =
@@ -466,6 +467,15 @@ export function SetCategoryGrid() {
     () => groupSetDirectoryOptions(filteredSetOptions, directorySort),
     [directorySort, filteredSetOptions],
   );
+  const weeklyCategories = useMemo(() => {
+    if (inputValue || eraFilter || directorySort !== "newest") return [];
+    const rankings = selectWeeklyMovers(setDirectoryOptions);
+    if (!rankings) return [];
+    return [
+      { title: "Weekly gainers", options: rankings.gainers },
+      { title: "Weekly losers", options: rankings.losers },
+    ];
+  }, [inputValue, eraFilter, directorySort, setDirectoryOptions]);
 
   const openSet = useCallback(async (setName: string) => {
     requestControllerRef.current?.abort();
@@ -625,9 +635,9 @@ export function SetCategoryGrid() {
         ariaLabel="Set name"
         className={`set-category-grid__combobox${invalid ? " is-invalid" : ""}`}
         clearLabel="Clear set filter"
+        clearOnClick
         inputAriaDescribedBy={invalid ? validationId : undefined}
         inputAriaInvalid={invalid}
-        indicator="search"
         menuLabel="Set name suggestions"
         onClear={resetSetFilter}
         onInputChange={(value) => {
@@ -754,6 +764,16 @@ export function SetCategoryGrid() {
         >
           {filteredSetOptions.length > 0 ? (
             <div className="set-category-grid__era-list">
+              {weeklyCategories.map(({ title, options }) => (
+                <SetDirectoryGroup
+                  key={title}
+                  activeSetName={highlightedSetName}
+                  disabled={loading}
+                  era={title}
+                  onOpen={openSetFromDirectory}
+                  options={options}
+                />
+              ))}
               {groupedSetOptions.map(([era, options]) => (
                 <SetDirectoryGroup
                   activeSetName={highlightedSetName}

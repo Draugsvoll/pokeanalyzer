@@ -371,7 +371,7 @@ input[type="radio"] {
     font-size: var(--font-size-h3);
     font-weight: var(--font-weight-bold);
     line-height: var(--font-leading-snug);
-    max-width: var(--max-text-width);
+    max-width: var(--summary-max-width);
   }
 
   &__content {
@@ -539,12 +539,12 @@ input[type="radio"] {
 .feature-analysis-summary-headline {
   display: block;
   margin-top: 0.25rem;
-  max-width: var(--max-text-width);
+  max-width: var(--summary-max-width);
 }
 
 .feature-analysis-summary-text {
   margin: var(--space-2) 0 0;
-  max-width: var(--max-text-width);
+  max-width: var(--summary-max-width);
 }
 
 .feature-analysis-card-header {

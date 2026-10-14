@@ -20,35 +20,54 @@ export function usePokeTraceSetNameOptions() {
 
   useEffect(() => {
     let active = true;
-    void loadPokeTraceFilterOptions().then((filterOptions) => {
-      const setNames = filterOptions?.setNames;
-      if (!active || !setNames?.length) return;
+    let refreshing = false;
+    async function refresh() {
+      if (!active || refreshing) return;
+      refreshing = true;
+      try {
+        const filterOptions = await loadPokeTraceFilterOptions();
+        const setNames = filterOptions?.setNames;
+        if (!active) return;
 
-      const now = Date.now();
-      const freshSummaries = new Map(
-        (filterOptions?.setSummaries ?? [])
-          .filter(({ asOf }) => isPokeTraceSetSummaryFresh(asOf, now))
-          .map((summary) => [
-            summary.setName.toLocaleLowerCase("en-US"),
-            summary,
-          ]),
-      );
+        const now = Date.now();
+        const freshSummaries = new Map(
+          (filterOptions?.setSummaries ?? [])
+            .filter(({ asOf }) => isPokeTraceSetSummaryFresh(asOf, now))
+            .map((summary) => [
+              summary.setName.toLocaleLowerCase("en-US"),
+              summary,
+            ]),
+        );
 
-      setOptions(
-        setNames.map((setName) => {
-          const setSummary = freshSummaries.get(
-            setName.toLocaleLowerCase("en-US"),
-          );
-          return {
-            label: setName,
-            value: setName,
-            ...(setSummary && { setSummary }),
-          };
-        }),
-      );
-    });
+        setOptions((current) =>
+          (setNames?.length ? setNames : current.map(({ value }) => value)).map(
+            (setName) => {
+              const setSummary = freshSummaries.get(
+                setName.toLocaleLowerCase("en-US"),
+              );
+              return {
+                label: setName,
+                value: setName,
+                ...(setSummary && { setSummary }),
+              };
+            },
+          ),
+        );
+      } finally {
+        refreshing = false;
+      }
+    }
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") void refresh();
+    }
+
+    void refresh();
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       active = false;
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, []);
 

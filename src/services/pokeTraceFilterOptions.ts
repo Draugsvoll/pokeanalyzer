@@ -4,12 +4,14 @@ import {
 } from "../../shared/pokeTraceFilterOptions";
 import { logClientError } from "../utils/logClientError";
 import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
+import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options?v=2`;
 const CACHE_KEY = "pokelyzer:poketrace-filter-options:v2";
 export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 24 * 60 * 60 * 1_000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 type StoredFilterOptions = {
   cachedAt: number;
@@ -68,20 +70,28 @@ export async function loadPokeTraceFilterOptions() {
   if (stored && isFresh(stored, Date.now())) return stored.options;
   if (requestPromise) return requestPromise;
 
-  requestPromise = fetch(FILTER_OPTIONS_URL, { cache: "no-store" })
-    .then(async (response) => {
+  requestPromise = runWithRequestTimeout(
+    async (signal) => {
+      const response = await fetch(FILTER_OPTIONS_URL, {
+        cache: "no-store",
+        signal,
+      });
       if (!response.ok) {
         throw new Error(`Filter options request failed (${response.status})`);
       }
-      const options = parsePokeTraceFilterOptions(
-        (await response.json()) as unknown,
-      );
+      return parsePokeTraceFilterOptions((await response.json()) as unknown);
+    },
+    { timeoutMs: REQUEST_TIMEOUT_MS },
+  )
+    .then((options) => {
+      // Only cache a request that completed before its deadline.
       saveStored(options);
       return options;
     })
     .catch((error: unknown) => {
       logClientError("Failed to load PokeTrace filter options", error);
-      return stored?.options ?? null;
+      // Keep directory filters usable, but omit rankings after a failed refresh.
+      return stored ? { ...stored.options, setSummaries: [] } : null;
     })
     .finally(() => {
       requestPromise = null;

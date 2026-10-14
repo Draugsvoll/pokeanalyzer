@@ -6,7 +6,7 @@ import {
 } from "../services/pokeTraceApi.js";
 import {
   obsoleteSealedProductDeletes,
-  sealedProductUpsert,
+  sealedProductAndDailyPriceUpserts,
 } from "../services/pokeTraceSealedStore.js";
 import { loadStoredPokeTraceSealedCatalog } from "../services/pokeTraceSealedCatalogStore.js";
 import { generateAndSavePokeTraceSealedCatalog } from "./pokeTraceSealedCatalogGenerationJob.js";
@@ -113,9 +113,12 @@ export async function importPokeTraceSealedProducts(
 
     const nextImportedCount = importedCount + page.data.length;
     const nextComplete = !page.pagination.hasMore;
+    const recordedAt = new Date().toISOString().slice(0, 10);
     await database.batch(
       [
-        ...page.data.map((product) => sealedProductUpsert(product, crawlId)),
+        ...page.data.flatMap((product) =>
+          sealedProductAndDailyPriceUpserts(product, recordedAt, crawlId),
+        ),
         {
           sql: `
             INSERT INTO poketrace_sealed_import_progress
@@ -169,7 +172,7 @@ export async function importPokeTraceSealedProducts(
         obsoleteSealedProductDeletes(crawlId),
         "write",
       );
-      removedProducts = Number(reconciliation[1]?.rowsAffected ?? 0);
+      removedProducts = Number(reconciliation.at(-1)?.rowsAffected ?? 0);
       assertHeld();
     }
 

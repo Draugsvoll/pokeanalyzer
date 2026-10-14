@@ -12,6 +12,13 @@
   margin: 0;
   min-height: 8rem;
   text-align: center;
+
+  .app-loading-spinner {
+    border-width: 2px;
+    height: 1rem;
+    opacity: 0.7;
+    width: 1rem;
+  }
 }
 
 .card-category-grid__controls,

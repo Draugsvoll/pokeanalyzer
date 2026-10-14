@@ -3,8 +3,13 @@
 }
 
 .market-summary__card {
+  align-items: flex-start;
   height: 100%;
   padding: var(--space-7);
+
+  .news-card__content {
+    align-self: flex-start;
+  }
 
   &::before {
     display: none;
@@ -17,6 +22,12 @@
 
 .market-summary__card--wide {
   grid-column: 1 / -1;
+
+  .news-card__content {
+    margin-inline: auto;
+    max-width: var(--summary-max-width);
+    width: 100%;
+  }
 
   .market-summary__meta .app-badge {
     font-size: var(--font-size-label);
@@ -44,7 +55,6 @@
   .market-summary__card-title h2,
   .news-card__body p {
     margin-inline: auto;
-    max-width: 59rem;
     width: 100%;
   }
 
@@ -93,7 +103,7 @@
 
 .market-summary__entries {
   display: grid;
-  gap: var(--space-7);
+  gap: var(--space-8);
   margin-top: var(--space-1);
 }
 

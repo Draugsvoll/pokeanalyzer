@@ -5,6 +5,7 @@ import {
   type PokeTraceSealedPage,
 } from "../services/pokeTraceApi.js";
 import {
+  expiredSealedMarketSnapshotsDelete,
   expiredSealedPricesDelete,
   obsoleteSealedProductDeletes,
   sealedProductAndDailyPriceUpserts,
@@ -126,9 +127,15 @@ export async function refreshPokeTraceSealedProducts(
     obsoleteSealedProductDeletes(crawlId),
     "write",
   );
-  const removedProducts = Number(reconciliation[1]?.rowsAffected ?? 0);
+  const removedProducts = Number(reconciliation.at(-1)?.rowsAffected ?? 0);
   assertHeld();
-  await database.execute(expiredSealedPricesDelete(recordedAt, 40));
+  await database.batch(
+    [
+      expiredSealedPricesDelete(recordedAt, 40),
+      expiredSealedMarketSnapshotsDelete(recordedAt, 40),
+    ],
+    "write",
+  );
   assertHeld();
   await generateAndSavePokeTraceSealedCatalog(database, assertHeld);
   return { pages, products, removedProducts, snapshots };

@@ -1,3 +1,4 @@
+import { normalizePokeTraceSetSummary } from "./pokeTraceSetSummaryValidation.js";
 import type { PokeTraceCatalogResponse } from "./pokeTraceCatalog.js";
 import {
   createPokeTraceSetSummaries,
@@ -30,52 +31,13 @@ function normalizedOptions(values: unknown) {
   );
 }
 
-function isNonNegativeInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && Number(value) >= 0;
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && Number(value) >= 1;
-}
-
 function normalizedSetSummaries(values: unknown) {
   if (!Array.isArray(values)) return null;
 
   const summaries = new Map<string, PokeTraceSetSummary>();
   for (const value of values) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return null;
-    }
-    const summary = value as Partial<PokeTraceSetSummary>;
-    const { comparableCards, pricedCards, uniqueCards } = summary;
-    if (
-      typeof summary.asOf !== "string" ||
-      !Number.isFinite(Date.parse(summary.asOf)) ||
-      typeof summary.currency !== "string" ||
-      !summary.currency.trim() ||
-      typeof summary.setName !== "string" ||
-      !summary.setName.trim() ||
-      !isPositiveInteger(uniqueCards) ||
-      !isNonNegativeInteger(pricedCards) ||
-      pricedCards > uniqueCards ||
-      !isNonNegativeInteger(comparableCards) ||
-      comparableCards > pricedCards ||
-      (summary.sevenDayChangePercent !== null &&
-        (typeof summary.sevenDayChangePercent !== "number" ||
-          !Number.isFinite(summary.sevenDayChangePercent)))
-    ) {
-      return null;
-    }
-
-    const normalized: PokeTraceSetSummary = {
-      asOf: summary.asOf,
-      comparableCards,
-      currency: summary.currency.trim(),
-      pricedCards,
-      setName: summary.setName.trim(),
-      sevenDayChangePercent: summary.sevenDayChangePercent,
-      uniqueCards,
-    };
+    const normalized = normalizePokeTraceSetSummary(value);
+    if (!normalized) return null;
     const key = normalized.setName.toLocaleLowerCase("en-US");
     if (summaries.has(key)) return null;
     summaries.set(key, normalized);

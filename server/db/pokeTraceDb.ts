@@ -203,6 +203,21 @@ export async function migratePokeTraceDatabase(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_prices_date ON poketrace_sealed_tcg_market_prices(recorded_at, product_id)",
   );
   await database.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_sealed_market_snapshots (
+      product_id TEXT NOT NULL,
+      recorded_at TEXT NOT NULL,
+      currency TEXT,
+      tcg TEXT CHECK (tcg IS NULL OR json_valid(tcg)),
+      ebay TEXT CHECK (ebay IS NULL OR json_valid(ebay)),
+      source_updated_at TEXT,
+      captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (product_id, recorded_at)
+    )
+  `);
+  await database.execute(
+    "CREATE INDEX IF NOT EXISTS idx_poketrace_sealed_snapshots_date ON poketrace_sealed_market_snapshots(recorded_at, product_id)",
+  );
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS poketrace_sealed_import_progress (
       name TEXT PRIMARY KEY,
       next_cursor TEXT,

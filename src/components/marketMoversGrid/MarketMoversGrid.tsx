@@ -10,6 +10,7 @@ import {
 import { isAbortError } from "../../hooks/useAbortableRequest";
 import type { PokemonCard } from "../../types/pokemon";
 import { logClientError } from "../../utils/logClientError";
+import { waitForCardImages } from "../../utils/waitForCardImages";
 import {
   CardCategoryGrid,
   type CardCategoryGridItem,
@@ -20,6 +21,7 @@ type MarketMoversFetcher = (
 ) => Promise<MarketMoversResponse>;
 
 type MarketMoversGridProps = {
+  waitForImages?: boolean;
   minimized?: boolean;
   changeLabel?: string;
   emptyMessage?: ReactNode;
@@ -121,6 +123,7 @@ function resolveChangePeriod(periodDays?: number): PriceChangePeriod | null {
 }
 
 export function MarketMoversGrid({
+  waitForImages = false,
   minimized = false,
   changeLabel,
   emptyMessage,
@@ -140,7 +143,13 @@ export function MarketMoversGrid({
     const controller = new AbortController();
 
     void loadMovers(controller.signal)
-      .then((response) => {
+      .then(async (response) => {
+        if (waitForImages) {
+          await waitForCardImages(
+            response.items.map((item) => item.image ?? ""),
+            controller.signal,
+          );
+        }
         if (controller.signal.aborted) return;
         const changePeriod = resolveChangePeriod(response.periodDays);
         setResult({
@@ -162,7 +171,7 @@ export function MarketMoversGrid({
       });
 
     return () => controller.abort();
-  }, [changeLabel, loadMovers, requestVersion, showMarketLabel]);
+  }, [changeLabel, loadMovers, requestVersion, showMarketLabel, waitForImages]);
 
   function retry() {
     setResult({ error: null, items: [], loading: true });

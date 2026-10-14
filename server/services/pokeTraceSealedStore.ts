@@ -90,6 +90,50 @@ export function sealedDailyPriceUpserts(
   ];
 }
 
+export function sealedDailyMarketSnapshotUpserts(
+  product: PokeTraceSealedProduct,
+  recordedAt: string,
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(recordedAt)) {
+    throw new Error("PokeTrace sealed snapshot date must use YYYY-MM-DD");
+  }
+  const prices = recordOrEmpty(product.prices);
+  const snapshot = (value: unknown) => {
+    const unopened = recordOrEmpty(recordOrEmpty(value).UNOPENED);
+    return Object.keys(unopened).length > 0
+      ? JSON.stringify({ UNOPENED: unopened })
+      : null;
+  };
+  const tcg = snapshot(prices.tcgplayer);
+  const ebay = snapshot(prices.ebay);
+  if (tcg === null && ebay === null) return [];
+
+  return [
+    {
+      sql: `
+      INSERT INTO poketrace_sealed_market_snapshots
+        (product_id, recorded_at, currency, tcg, ebay, source_updated_at,
+         captured_at)
+      VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
+      ON CONFLICT(product_id, recorded_at) DO UPDATE SET
+        currency = excluded.currency,
+        tcg = excluded.tcg,
+        ebay = excluded.ebay,
+        source_updated_at = excluded.source_updated_at,
+        captured_at = excluded.captured_at
+    `,
+      args: [
+        product.id,
+        recordedAt,
+        textOrNull(product.currency),
+        tcg,
+        ebay,
+        textOrNull(product.lastUpdated),
+      ],
+    },
+  ];
+}
+
 export function sealedProductAndDailyPriceUpserts(
   product: PokeTraceSealedProduct,
   recordedAt: string,
@@ -98,6 +142,7 @@ export function sealedProductAndDailyPriceUpserts(
   return [
     sealedProductUpsert(product, crawlId),
     ...sealedDailyPriceUpserts(product, recordedAt),
+    ...sealedDailyMarketSnapshotUpserts(product, recordedAt),
   ];
 }
 
@@ -115,6 +160,13 @@ export function obsoleteSealedProductDeletes(crawlId: string) {
     {
       sql: `
         DELETE FROM poketrace_sealed_tcg_market_prices
+        WHERE product_id IN (${obsoleteProducts})
+      `,
+      args: [normalizedCrawlId],
+    },
+    {
+      sql: `
+        DELETE FROM poketrace_sealed_market_snapshots
         WHERE product_id IN (${obsoleteProducts})
       `,
       args: [normalizedCrawlId],
@@ -139,6 +191,25 @@ export function expiredSealedPricesDelete(
   return {
     sql: `
       DELETE FROM poketrace_sealed_tcg_market_prices
+      WHERE recorded_at < date(?, '-' || ? || ' days')
+    `,
+    args: [recordedAt, retentionDays],
+  };
+}
+
+export function expiredSealedMarketSnapshotsDelete(
+  recordedAt: string,
+  retentionDays: number,
+) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(recordedAt)) {
+    throw new Error("PokeTrace sealed snapshot date must use YYYY-MM-DD");
+  }
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 31) {
+    throw new Error("PokeTrace history retention must be at least 31 days");
+  }
+  return {
+    sql: `
+      DELETE FROM poketrace_sealed_market_snapshots
       WHERE recorded_at < date(?, '-' || ? || ' days')
     `,
     args: [recordedAt, retentionDays],

@@ -9,6 +9,7 @@ import {
 } from "../services/pokeTraceSealedCatalogStore.js";
 import {
   sealedDailyPriceUpserts,
+  sealedDailyMarketSnapshotUpserts,
   sealedProductUpsert,
 } from "../services/pokeTraceSealedStore.js";
 import {
@@ -29,7 +30,10 @@ const product: PokeTraceSealedProduct = {
   productFamily: "booster_box",
   currency: "USD",
   lastUpdated: "2026-10-05T08:00:00.000Z",
-  prices: { tcgplayer: { UNOPENED: { avg: 150 } } },
+  prices: {
+    tcgplayer: { UNOPENED: { avg: 150, saleCount: 200 } },
+    ebay: { UNOPENED: { avg: 140, saleCount: 50, approxSaleCount: true } },
+  },
 };
 
 test("sealed daily refresh saves products and snapshots without touching singles", async () => {
@@ -56,7 +60,7 @@ test("sealed daily refresh saves products and snapshots without touching singles
       pages: 1,
       products: 1,
       removedProducts: 0,
-      snapshots: 1,
+      snapshots: 2,
     });
     const sealed = await database.execute(
       "SELECT COUNT(*) AS count FROM poketrace_sealed_products",
@@ -77,6 +81,17 @@ test("sealed daily refresh saves products and snapshots without touching singles
       },
     );
     assert.equal(Number(singles.rows[0]?.count), 0);
+    const market = await database.execute(
+      "SELECT tcg, ebay FROM poketrace_sealed_market_snapshots",
+    );
+    assert.equal(
+      JSON.parse(String(market.rows[0]?.tcg)).UNOPENED.saleCount,
+      200,
+    );
+    assert.equal(
+      JSON.parse(String(market.rows[0]?.ebay)).UNOPENED.saleCount,
+      50,
+    );
     const catalog = await loadStoredPokeTraceSealedCatalog(database);
     assert.equal(catalog?.products.length, 1);
     assert.equal(catalog?.products[0]?.id, product.id);
@@ -97,6 +112,8 @@ test("a complete sealed sweep removes products absent from the crawl", async () 
     [
       sealedProductUpsert(obsoleteProduct),
       ...sealedDailyPriceUpserts(obsoleteProduct, "2026-10-04"),
+      ...sealedDailyMarketSnapshotUpserts(obsoleteProduct, "2026-10-04"),
+      ...sealedDailyMarketSnapshotUpserts(product, "2026-08-01"),
     ],
     "write",
   );
@@ -135,6 +152,13 @@ test("a complete sealed sweep removes products absent from the crawl", async () 
       args: [obsoleteProduct.id],
     });
     assert.equal(Number(obsoleteSnapshots.rows[0]?.count), 0);
+    const marketSnapshots = await database.execute(
+      "SELECT product_id, recorded_at FROM poketrace_sealed_market_snapshots",
+    );
+    assert.deepEqual(
+      marketSnapshots.rows.map((row) => ({ ...row })),
+      [{ product_id: product.id, recorded_at: "2026-10-05" }],
+    );
   } finally {
     database.close();
   }
@@ -191,7 +215,7 @@ test("a failed sealed sweep preserves the last published catalog", async () => {
       nextCursor: "next-page",
       pages: 1,
       products: 1,
-      snapshots: 1,
+      snapshots: 2,
     });
 
     const updatedProducts = await database.execute(

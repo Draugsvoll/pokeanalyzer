@@ -5,6 +5,8 @@
   position: relative;
   text-align: center;
   width: 100%;
+  // Keep dropdowns above the following grid header's expanded click target.
+  z-index: var(--dropdown-z-index);
 
   &__eyebrow {
     margin: 0;

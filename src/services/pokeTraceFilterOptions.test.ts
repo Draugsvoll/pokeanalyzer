@@ -33,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -61,7 +62,7 @@ test("reuses validated filter options from local storage for one day", async () 
   expect(fetchMock).toHaveBeenCalledOnce();
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/filter-options?v=2",
-    { cache: "no-store" },
+    { cache: "no-store", signal: expect.any(AbortSignal) },
   );
 });
 
@@ -117,7 +118,7 @@ test("refreshes a current cache when its set summaries have expired", async () =
   expect(options?.generatedAt).toBe(new Date(now).toISOString());
 });
 
-test("refreshes an expired cache and retains stale options on failure", async () => {
+test("retains directory options but omits summaries when a refresh fails", async () => {
   const now = Date.parse("2026-09-26T09:00:00.000Z");
   localStorage.setItem(
     "pokelyzer:poketrace-filter-options:v2",
@@ -138,7 +139,59 @@ test("refreshes an expired cache and retains stale options on failure", async ()
     ...payload,
     rarities: ["Common", "Holo Rare"],
     setNames: ["Base Set", "Base Set 2"],
-    setSummaries: [...payload.setSummaries].reverse(),
+    setSummaries: [],
   });
   expect(fetchMock).toHaveBeenCalledOnce();
 });
+
+test.each(["fetch", "body"])(
+  "times out a stalled %s, allows retry, and ignores late data",
+  async (stage) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-26T09:00:00.000Z"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    let resolveLate!: () => void;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementationOnce(() => {
+      if (stage === "fetch")
+        return new Promise<Response>((resolve) => {
+          resolveLate = () =>
+            resolve({ ok: true, json: async () => payload } as Response);
+        });
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          new Promise((resolve) => {
+            resolveLate = () => resolve(payload);
+          }),
+      } as Response);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const service = await import("./pokeTraceFilterOptions");
+    const pending = service.loadPokeTraceFilterOptions();
+    const concurrent = service.loadPokeTraceFilterOptions();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toBeNull();
+    expect(await concurrent).toBeNull();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    const refreshed = { ...payload, generatedAt: "2026-09-26T09:00:10.000Z" };
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => refreshed,
+    } as Response);
+    expect((await service.loadPokeTraceFilterOptions())?.generatedAt).toBe(
+      refreshed.generatedAt,
+    );
+    resolveLate();
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await service.loadPokeTraceFilterOptions())?.generatedAt).toBe(
+      refreshed.generatedAt,
+    );
+    expect(
+      JSON.parse(localStorage.getItem("pokelyzer:poketrace-filter-options:v2")!)
+        .options.generatedAt,
+    ).toBe(refreshed.generatedAt);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);

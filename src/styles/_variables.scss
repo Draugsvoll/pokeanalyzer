@@ -130,7 +130,7 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1170px;
-  --shell-wide-max-width: 1405px;
+  --shell-wide-max-width: 1480px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;
   --search-height: 49px;
@@ -216,6 +216,7 @@
   /* Card detail panel only — centered compact shell (exception to full shell width) */
   --card-view-max-width: 76rem;
   --max-text-width: 53rem;
+  --summary-max-width: 45rem;
   --card-view-section-gap: var(--space-7);
   --card-view-header-gap: var(--space-2);
   --card-view-datestamp-gap: var(--space-1);

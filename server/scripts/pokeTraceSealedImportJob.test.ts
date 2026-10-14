@@ -29,7 +29,10 @@ function sealedProduct(id: string, name: string): PokeTraceSealedProduct {
     market: "US",
     productType: "sealed",
     productFamily: "booster_box",
-    prices: { tcgplayer: { UNOPENED: { avg: 100 } } },
+    prices: {
+      tcgplayer: { UNOPENED: { avg: 100, saleCount: 150 } },
+      ebay: { UNOPENED: { saleCount: 25 } },
+    },
   };
 }
 
@@ -137,6 +140,19 @@ test("sealed import checkpoints pages, resumes, and never writes singles", async
       "SELECT COUNT(*) AS count FROM poketrace_cards",
     );
     assert.equal(Number(singles.rows[0]?.count), 0);
+    const snapshots = await database.execute(`
+      SELECT product_id,
+        json_extract(tcg, '$.UNOPENED.saleCount') AS tcg_sales,
+        json_extract(ebay, '$.UNOPENED.saleCount') AS ebay_sales
+      FROM poketrace_sealed_market_snapshots ORDER BY product_id
+    `);
+    assert.deepEqual(
+      snapshots.rows.map((row) => ({ ...row })),
+      [
+        { product_id: firstProduct.id, tcg_sales: 150, ebay_sales: 25 },
+        { product_id: secondProduct.id, tcg_sales: 150, ebay_sales: 25 },
+      ],
+    );
     const published = await loadStoredPokeTraceSealedCatalog(database);
     assert.equal(published?.products.length, 2);
 

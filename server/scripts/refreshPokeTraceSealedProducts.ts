@@ -46,7 +46,7 @@ try {
 
   result = "SUCCESS";
   console.log(
-    `Sealed refresh saved ${summary.products} products and ${summary.snapshots} price snapshots; removed ${summary.removedProducts} obsolete products`,
+    `Sealed refresh saved ${summary.products} products and ${summary.snapshots} price/market snapshots; removed ${summary.removedProducts} obsolete products`,
   );
 } catch (error) {
   if (error instanceof PokeTraceDailyLimitError) {
