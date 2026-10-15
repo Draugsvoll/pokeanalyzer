@@ -1,6 +1,6 @@
+import { AssetSaveActions } from "../assetSaveActions/AssetSaveActions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
 import { PortfolioItemCard } from "../portfolioItemCard/PortfolioItemCard";
 import { PriceChange } from "../priceChange/PriceChange";
 import { ProductCard } from "../productCard/ProductCard";
@@ -32,7 +32,6 @@ export type PokemonCardViewProps = {
   card: PokemonCardType;
   comparisonPeriod?: PriceChangePeriod;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
-  hidePortfolioButtonUntilHover?: boolean;
   marketDisplay?: {
     changeLabel?: string;
     changePeriod?: PriceChangePeriod;
@@ -63,7 +62,6 @@ export function PokemonCardView({
   card,
   comparisonPeriod,
   comparisonPriceSnapshot,
-  hidePortfolioButtonUntilHover = false,
   marketDisplay,
   onPortfolioChanged,
   priceChangeLabel,
@@ -98,7 +96,7 @@ export function PokemonCardView({
       ? defaultSevenDayComparison.recordedAt
         ? `${formatPriceChangePeriodLong("7d")} TCGPlayer Near Mint change since ${formatDateStamp(defaultSevenDayComparison.recordedAt)}`
         : `${formatPriceChangePeriodLong("7d")} TCGPlayer Near Mint change`
-      : comparisonPriceSnapshot
+      : comparisonPriceSnapshot?.recordedAt
         ? `${comparisonPeriod ? `${formatPriceChangePeriodLong(comparisonPeriod)} change` : "Change"} since ${formatDateStamp(comparisonPriceSnapshot.recordedAt)}`
         : "Price change");
   const printedCardNumber = formatCardNumber(card);
@@ -140,14 +138,7 @@ export function PokemonCardView({
   return (
     <ProductCard
       className="pokemon-card-view"
-      surfaceClassName={[
-        "pokemon-card-view__card",
-        hidePortfolioButtonUntilHover
-          ? "pokemon-card-view__card--hide-portfolio-button-until-hover"
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      surfaceClassName="pokemon-card-view__card"
     >
       <button
         aria-label={`Open ${card.name}`}
@@ -159,42 +150,17 @@ export function PokemonCardView({
         type="button"
       />
       {authUser && (
-        <button
-          type="button"
-          className={`portfolio-toggle-button pokemon-card__portfolio-toggle${
-            cardIsSaved ? " is-saved" : ""
-          }`}
-          aria-label={
-            portfolioUnavailable
-              ? "Portfolio is unavailable"
-              : portfolioBusy
-                ? "Updating portfolio"
-                : cardIsSaved
-                  ? "Remove from portfolio"
-                  : "Add to portfolio"
-          }
-          aria-pressed={cardIsSaved}
-          aria-busy={portfolioBusy}
-          disabled={portfolioBusy || portfolioUnavailable}
-          title={
-            portfolioUnavailable
-              ? "Portfolio is unavailable"
-              : portfolioBusy
-                ? "Updating portfolio"
-                : cardIsSaved
-                  ? "Remove from portfolio"
-                  : "Add to portfolio"
-          }
-          onClick={() => {
-            void handlePortfolioToggle();
+        <AssetSaveActions
+          key={card.id}
+          item={{ ...card, type: "single" }}
+          layout="card"
+          portfolio={{
+            saved: cardIsSaved,
+            busy: portfolioBusy,
+            unavailable: portfolioUnavailable,
+            onToggle: handlePortfolioToggle,
           }}
-        >
-          {portfolioBusy ? (
-            <span className="app-btn__spinner" aria-hidden="true" />
-          ) : (
-            <Star aria-hidden="true" />
-          )}
-        </button>
+        />
       )}
 
       <div className="pokemon-card__image">
@@ -313,9 +279,11 @@ export function PokemonCardPortfolioView({
   ...cardViewProps
 }: PokemonCardPortfolioViewProps) {
   const { updatePokemonQuantity } = usePokemonPortfolio();
+  const { isItemUpdating } = usePortfolioCache();
 
   return (
     <PortfolioItemCard
+      busy={isItemUpdating("single", card.id)}
       itemName={card.name}
       onQuantityDialogOpenChange={onQuantityDialogOpenChange}
       quantity={card.quantity}
@@ -329,7 +297,6 @@ export function PokemonCardPortfolioView({
       <PokemonCardView
         card={card}
         {...cardViewProps}
-        hidePortfolioButtonUntilHover
         onPortfolioChanged={(saved) => {
           onPortfolioChanged?.(saved);
           if (!saved) onRemoved?.(card.id);

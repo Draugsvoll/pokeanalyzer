@@ -44,12 +44,12 @@ test("adds a fresh optional market summary to a set option", async () => {
   expect(result.current[0]?.setSummary).toEqual(summary);
 });
 
-test("keeps the set option but omits an expired market summary", async () => {
+test("displays valid server summaries older than 36 hours", async () => {
   vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-05T01:00:01.000Z"));
   const { result } = renderHook(() => usePokeTraceSetNameOptions());
 
   await waitFor(() => expect(result.current[0]?.value).toBe("Test Set"));
-  expect(result.current[0]?.setSummary).toBeUndefined();
+  expect(result.current[0]?.setSummary).toEqual(summary);
 });
 
 test("updates the shared options when returning to the tab or window", async () => {
@@ -79,10 +79,13 @@ test("updates the shared options when returning to the tab or window", async () 
   );
 });
 
-test("drops expired summaries on return even if the loader returns its stale fallback", async () => {
+test("removes previous summaries when a refresh returns no valid summaries", async () => {
   const { result } = renderHook(() => usePokeTraceSetNameOptions());
   await waitFor(() => expect(result.current[0]?.setSummary).toEqual(summary));
-  vi.mocked(Date.now).mockReturnValue(Date.parse("2026-10-05T01:00:01.000Z"));
+  mocks.loadPokeTraceFilterOptions.mockResolvedValue({
+    setNames: ["Test Set"],
+    setSummaries: [],
+  });
   act(() => window.dispatchEvent(new Event("focus")));
   await waitFor(() => expect(result.current[0]?.setSummary).toBeUndefined());
   expect(result.current[0]?.value).toBe("Test Set");

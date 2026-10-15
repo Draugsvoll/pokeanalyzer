@@ -342,6 +342,7 @@ export function SetCategoryGrid() {
   const requestedSetParameter = searchParams.get("set")?.trim() ?? "";
   const requestControllerRef = useRef<AbortController | null>(null);
   const sortRequestIdRef = useRef(0);
+  const cardFilterInputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(requestedSetParameter);
   const [eraFilter, setEraFilter] = useState("");
   const [directorySort, setDirectorySort] =
@@ -533,6 +534,11 @@ export function SetCategoryGrid() {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!requestedSetParameter || !requestedSetName) {
+      if (!requestedSetParameter) {
+        setInputValue("");
+        setSelectedSetName(null);
+        setInvalid(false);
+      }
       requestControllerRef.current?.abort();
       requestControllerRef.current = null;
       setActiveSetName(null);
@@ -627,6 +633,11 @@ export function SetCategoryGrid() {
     setInputValue("");
     setSelectedSetName(null);
     setInvalid(false);
+    if (searchParams.has("set")) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("set");
+      setSearchParams(nextSearchParams);
+    }
   }
 
   const setPicker = (
@@ -635,24 +646,27 @@ export function SetCategoryGrid() {
         ariaLabel="Set name"
         className={`set-category-grid__combobox${invalid ? " is-invalid" : ""}`}
         clearLabel="Clear set filter"
-        clearOnClick
+        clearOnClick={() => {
+          setInputValue("");
+          setSelectedSetName(null);
+          setInvalid(false);
+        }}
         inputAriaDescribedBy={invalid ? validationId : undefined}
         inputAriaInvalid={invalid}
         menuLabel="Set name suggestions"
         onClear={resetSetFilter}
         onInputChange={(value) => {
+          if (!value) {
+            resetSetFilter();
+            return;
+          }
           cancelPendingRequest();
           setInputValue(value);
           setSelectedSetName(null);
           setInvalid(false);
         }}
         onKeyDown={handleInputKeyDown}
-        onSelect={(value) => {
-          cancelPendingRequest();
-          setInputValue(value);
-          setSelectedSetName(value);
-          setInvalid(false);
-        }}
+        onSelect={openSetFromDirectory}
         options={setNameOptions}
         placeholder="Set"
         value={inputValue}
@@ -687,6 +701,18 @@ export function SetCategoryGrid() {
     </div>
   );
 
+  function handleCardFilterChange(value: string) {
+    setCardFilter(value);
+    setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+  }
+
+  function handleFeaturedFilter(value: string) {
+    handleCardFilterChange(value);
+    requestAnimationFrame(() => {
+      cardFilterInputRef.current?.focus();
+    });
+  }
+
   const resultControls = (
     <div
       aria-label="Set card controls"
@@ -694,13 +720,11 @@ export function SetCategoryGrid() {
       role="group"
     >
       <FilterInput
+        ref={cardFilterInputRef}
         ariaLabel="Filter set cards"
         className="set-category-grid__card-filter"
         clearLabel="Clear card filter"
-        onChange={(value) => {
-          setCardFilter(value);
-          setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
-        }}
+        onChange={handleCardFilterChange}
         placeholder="Search the collection"
         value={cardFilter}
       />
@@ -801,6 +825,7 @@ export function SetCategoryGrid() {
               cardScope={cardScope}
               controls={resultControls}
               onCardScopeChange={handleCardScopeChange}
+              onFilter={handleFeaturedFilter}
               overview={overview}
               releaseYear={activeSetReleaseYear}
               updating={isScopePending}

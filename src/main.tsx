@@ -5,6 +5,7 @@ import "@fontsource-variable/inter/wght.css";
 import "./index.scss";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext.tsx";
+import { WatchlistProvider } from "./context/WatchlistCacheContext.tsx";
 import { PortfolioProvider } from "./context/PortfolioCacheContext.tsx";
 import { NotificationProvider } from "./context/NotificationContext.tsx";
 import { MembershipSubscriptionProvider } from "./subscriptions";
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <AuthProvider>
           <MembershipSubscriptionProvider>
             <PortfolioProvider>
-              <App />
+              <WatchlistProvider>
+                <App />
+              </WatchlistProvider>
             </PortfolioProvider>
           </MembershipSubscriptionProvider>
         </AuthProvider>

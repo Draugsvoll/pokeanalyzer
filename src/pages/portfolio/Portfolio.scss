@@ -117,6 +117,11 @@
     margin-top: var(--space-4);
   }
 
+  &__summary + &__empty,
+  &__notice + &__empty {
+    margin-top: var(--space-4);
+  }
+
   &__empty {
     align-items: center;
     display: flex;
@@ -146,6 +151,29 @@
 
     > .app-btn {
       margin-top: var(--space-4);
+    }
+  }
+
+  &__empty--list {
+    align-items: stretch;
+    gap: var(--space-7);
+    justify-content: flex-start;
+    min-height: 0;
+    padding: var(--space-7) var(--space-5);
+  }
+
+  &__empty-switch .app-overview-scope {
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  &__empty-content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+
+    .portfolio__status-actions {
+      margin-top: var(--space-6);
     }
   }
 
@@ -252,5 +280,23 @@
     &__empty {
       padding: var(--space-7) var(--space-5);
     }
+
+    &__empty--list {
+      gap: var(--space-6);
+      padding: var(--space-6) var(--space-5);
+    }
   }
+}
+
+@container overview-panel (width > 82rem) {
+  .portfolio__summary .app-overview-panel__layout {
+    grid-template-columns:
+      minmax(max-content, 1fr) max-content
+      repeat(3, minmax(17rem, 19rem));
+  }
+}
+
+// Both saved lists use portrait media frames to align mixed singles/sealed rows.
+.portfolio .sealed-product-view__image-shell {
+  aspect-ratio: 245 / 342;
 }

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { AutosuggestOption } from "../components/autosuggestCombobox/AutosuggestCombobox";
 import { FALLBACK_POKETRACE_SET_NAMES } from "../data/pokeTraceSetNames";
 import { loadPokeTraceFilterOptions } from "../services/pokeTraceFilterOptions";
-import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
 import type { PokeTraceSetSummary } from "../../shared/pokeTraceSetSummaries";
 
 export type PokeTraceSetNameOption = AutosuggestOption & {
@@ -29,20 +28,17 @@ export function usePokeTraceSetNameOptions() {
         const setNames = filterOptions?.setNames;
         if (!active) return;
 
-        const now = Date.now();
-        const freshSummaries = new Map(
-          (filterOptions?.setSummaries ?? [])
-            .filter(({ asOf }) => isPokeTraceSetSummaryFresh(asOf, now))
-            .map((summary) => [
-              summary.setName.toLocaleLowerCase("en-US"),
-              summary,
-            ]),
+        const summaries = new Map(
+          (filterOptions?.setSummaries ?? []).map((summary) => [
+            summary.setName.toLocaleLowerCase("en-US"),
+            summary,
+          ]),
         );
 
         setOptions((current) =>
           (setNames?.length ? setNames : current.map(({ value }) => value)).map(
             (setName) => {
-              const setSummary = freshSummaries.get(
+              const setSummary = summaries.get(
                 setName.toLocaleLowerCase("en-US"),
               );
               return {

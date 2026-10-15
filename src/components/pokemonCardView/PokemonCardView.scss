@@ -33,37 +33,6 @@
   display: contents;
 }
 
-.pokemon-card__portfolio-toggle {
-  position: absolute;
-  right: calc(var(--card-pad) + 0.2rem);
-  top: calc(var(--card-pad) + 0.2rem);
-  z-index: 3;
-}
-
-.pokemon-card-view__card:hover .pokemon-card__portfolio-toggle,
-.pokemon-card-view__card:focus-within .pokemon-card__portfolio-toggle,
-.portfolio-item-card:hover .pokemon-card__portfolio-toggle {
-  opacity: 1;
-  visibility: visible;
-}
-
-.pokemon-card-view__card--hide-portfolio-button-until-hover
-  .pokemon-card__portfolio-toggle.is-saved {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.pokemon-card-view__card--hide-portfolio-button-until-hover:hover
-  .pokemon-card__portfolio-toggle.is-saved,
-.pokemon-card-view__card--hide-portfolio-button-until-hover:focus-within
-  .pokemon-card__portfolio-toggle.is-saved,
-.portfolio-item-card:hover
-  .pokemon-card-view__card--hide-portfolio-button-until-hover
-  .pokemon-card__portfolio-toggle.is-saved {
-  opacity: 1;
-  visibility: visible;
-}
-
 .pokemon-card-view__card .pokemon-card__name {
   max-width: 100%;
 }
@@ -205,24 +174,4 @@
   height: 100%;
   justify-content: center;
   width: 100%;
-}
-
-.portfolio-item-card .pokemon-card__portfolio-toggle {
-  height: 2.15rem;
-  right: 0.55rem;
-  top: 0.55rem;
-  width: 2.15rem;
-
-  svg,
-  .app-btn__spinner {
-    height: 1.05rem;
-    width: 1.05rem;
-  }
-}
-
-@media (hover: none) {
-  .portfolio-item-card .pokemon-card__portfolio-toggle.is-saved {
-    opacity: 1;
-    visibility: visible;
-  }
 }

@@ -1,3 +1,4 @@
+import { AssetSaveActions } from "../../components/assetSaveActions/AssetSaveActions";
 import {
   useCallback,
   useEffect,
@@ -12,10 +13,8 @@ import {
   CircleDollarSign,
   Gem,
   LineChart,
-  Repeat2,
   ScanSearch,
   Search,
-  Star,
   type LucideIcon,
 } from "lucide-react";
 import type { PokemonCard } from "../../types/pokemon";
@@ -711,35 +710,17 @@ function PokemonDetailsForCard() {
           )}
           <div className="card-view__image-controls">
             {authUser && !isDemo && (
-              <Button
-                fullWidth
-                size="large"
-                variant="portfolio"
-                disabled={portfolioBusy || portfolioUnavailable}
-                onClick={handlePortfolioToggle}
-                aria-label={
-                  portfolioUnavailable
-                    ? "Portfolio is unavailable"
-                    : updatingPortfolio
-                      ? "Updating portfolio"
-                      : loadingPortfolioReferences
-                        ? "Checking portfolio"
-                        : cardIsSaved
-                          ? "Remove from portfolio"
-                          : "Add to portfolio"
-                }
-                aria-pressed={cardIsSaved}
-                aria-busy={portfolioBusy}
-              >
-                {portfolioBusy ? (
-                  <span className="app-btn__spinner" aria-hidden="true" />
-                ) : (
-                  <>
-                    <Star aria-hidden="true" />
-                    <span>Portfolio</span>
-                  </>
-                )}
-              </Button>
+              <AssetSaveActions
+                key={card.id}
+                item={{ ...card, type: "single" }}
+                layout="detail"
+                portfolio={{
+                  saved: cardIsSaved,
+                  busy: portfolioBusy,
+                  unavailable: portfolioUnavailable,
+                  onToggle: handlePortfolioToggle,
+                }}
+              />
             )}
             <div className="card-view__change-card">
               <Button
@@ -757,7 +738,7 @@ function PokemonDetailsForCard() {
                   </>
                 ) : (
                   <>
-                    <Repeat2 size={16} strokeWidth={2.25} aria-hidden="true" />
+                    <Search size={16} strokeWidth={2.25} aria-hidden="true" />
                     <span>Next Card</span>
                   </>
                 )}

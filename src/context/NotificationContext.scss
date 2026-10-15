@@ -2,14 +2,15 @@
   --notification-accent: var(--custom-color-blue);
 
   align-items: center;
-  animation: notification-enter var(--animation-duration-fast)
+  animation: notification-enter var(--animation-duration-enter)
     var(--animation-ease-out);
   background: color-mix(in srgb, var(--bg) 92%, var(--notification-accent));
-  border: 1px solid color-mix(
-    in srgb,
-    var(--notification-accent) 42%,
-    rgba(255, 255, 255, 0.08)
-  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--notification-accent) 42%,
+      rgba(255, 255, 255, 0.08)
+    );
   border-radius: var(--border-radius);
   box-shadow:
     0 1rem 2.5rem rgba(0, 0, 0, 0.38),
@@ -73,12 +74,12 @@
 @keyframes notification-enter {
   from {
     opacity: 0;
-    transform: translateY(-0.5rem);
+    transform: translateX(calc(100% + 1rem));
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 

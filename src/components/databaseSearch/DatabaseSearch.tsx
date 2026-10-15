@@ -57,7 +57,6 @@ type DatabaseSearchProps = {
   embedded?: boolean;
   initialProductType?: ProductType;
   onClose?: () => void;
-  onPortfolioChanged?: (saved: boolean) => void;
   onProductTypeChange?: (productType: ProductType) => void;
 };
 
@@ -421,7 +420,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
   embedded = false,
   initialProductType = "singles",
   onClose,
-  onPortfolioChanged,
   onProductTypeChange,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -877,7 +875,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                             card,
                             activeCondition,
                           )}
-                          onPortfolioChanged={onPortfolioChanged}
                         />
                       );
                     })}
@@ -903,7 +900,6 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         {productType === "sealed" && (
           <SealedDatabaseSearchResults
             onClose={onClose}
-            onPortfolioChanged={onPortfolioChanged}
             search={sealedSearch}
           />
         )}

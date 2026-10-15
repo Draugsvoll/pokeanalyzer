@@ -101,8 +101,21 @@ vi.mock("../../subscriptions", () => ({
   }),
 }));
 
+vi.mock("../../context/watchlistCacheContextValue", () => ({
+  useWatchlistCache: () => ({
+    isItemUpdating: () => false,
+    isItemSaved: () => false,
+    loadingReferences: false,
+    referencesError: null,
+  }),
+}));
+vi.mock("../../hooks/useWatchlist", () => ({
+  useWatchlist: () => ({ setWatched: vi.fn() }),
+}));
+
 vi.mock("../../context/portfolioCacheContextValue", () => ({
   usePortfolioCache: () => ({
+    isItemUpdating: () => false,
     isCardSaved: () => false,
     loadingPortfolioReferences: false,
     portfolioReferencesError: null,

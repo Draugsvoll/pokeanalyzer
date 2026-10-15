@@ -1,0 +1,10 @@
+@mixin wide-shell {
+  box-sizing: border-box;
+  max-width: var(--shell-wide-max-width);
+  padding-inline: calc(var(--page-pad-x) - var(--space-2));
+  width: 100%;
+
+  @media (min-width: 1024px) {
+    padding-inline: calc(var(--page-pad-x-lg) - var(--space-2));
+  }
+}

@@ -10,6 +10,7 @@ import {
   loadPersistedPokeTraceSealedCatalog,
 } from "./pokeTraceSealedCatalog.js";
 import { savePokeTraceSealedCatalog } from "./pokeTraceSealedCatalogStore.js";
+import { loadPokeTraceSealedDetails } from "./pokeTraceSealedDetails.js";
 import {
   sealedDailyPriceUpserts,
   sealedProductUpsert,
@@ -30,6 +31,97 @@ const product: ApiSealedProduct = {
   prices: { tcgplayer: { UNOPENED: { avg: 150 } } },
 };
 
+test("sealed catalog and details anchor comparisons to each product's latest snapshot", async () => {
+  const database = createClient({ url: ":memory:" });
+  await migratePokeTraceDatabase(database);
+  const cases = [
+    {
+      latest: "2020-03-31",
+      prices: [
+        [0, 150],
+        [-2, 140],
+        [-8, 120],
+        [-30, 100],
+      ],
+      expected: { "1d": 140, "7d": 120, "30d": 100 },
+    },
+    {
+      latest: "2020-02-29",
+      prices: [
+        [0, 150],
+        [-1, 145],
+        [-2, 140],
+        [-7, 125],
+        [-8, 120],
+        [-30, 100],
+        [-31, 95],
+      ],
+      expected: { "1d": 145, "7d": 125, "30d": 100 },
+    },
+    {
+      latest: "2020-01-31",
+      prices: [
+        [0, 150],
+        [-6, 125],
+        [-29, 100],
+      ],
+      expected: { "1d": 150, "7d": 125, "30d": 100 },
+    },
+    {
+      latest: "2020-04-30",
+      prices: [
+        [0, 150],
+        [-9, 120],
+        [-32, 100],
+      ],
+      expected: { "1d": 150, "7d": null, "30d": null },
+    },
+    {
+      latest: "2020-05-31",
+      prices: [],
+      expected: { "1d": null, "7d": null, "30d": null },
+    },
+  ];
+
+  try {
+    for (const [index, scenario] of cases.entries()) {
+      const stored = { ...product, id: `${product.id.slice(0, -1)}${index}` };
+      await database.execute(sealedProductUpsert(stored));
+      for (const [offset, price] of scenario.prices) {
+        const date = new Date(`${scenario.latest}T00:00:00.000Z`);
+        date.setUTCDate(date.getUTCDate() + offset);
+        await database.batch(
+          sealedDailyPriceUpserts(
+            {
+              ...stored,
+              prices: { tcgplayer: { UNOPENED: { avg: price } } },
+            },
+            date.toISOString().slice(0, 10),
+          ),
+          "write",
+        );
+      }
+    }
+
+    // These snapshots are years old: calendar-based lookups would lose them.
+    const catalog = await generatePokeTraceSealedCatalog(database);
+    for (const [index, scenario] of cases.entries()) {
+      const id = `${product.id.slice(0, -1)}${index}`;
+      const details = await loadPokeTraceSealedDetails(id, {
+        database,
+        ensureReady: async () => {},
+      });
+      assert.deepEqual(
+        catalog.products.find((item) => item.id === id)?.priceSnapshots,
+        scenario.expected,
+      );
+      assert.deepEqual(details?.priceSnapshots, scenario.expected);
+    }
+  } finally {
+    database.close();
+  }
+});
+
 test("sealed catalog generation uses only sealed storage", async () => {
   const database = createClient({ url: ":memory:" });
   await migratePokeTraceDatabase(database);
@@ -49,6 +141,8 @@ test("sealed catalog generation uses only sealed storage", async () => {
       ),
       "write",
     );
+
+    await database.batch(sealedDailyPriceUpserts(product, asOf), "write");
 
     const catalog = await generatePokeTraceSealedCatalog(database);
     assert.equal(catalog.products.length, 1);

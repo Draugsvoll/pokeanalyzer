@@ -18,8 +18,21 @@ vi.mock("../../context/authContextValue", () => ({
   useAuth: () => mocks.auth,
 }));
 
+vi.mock("../../context/watchlistCacheContextValue", () => ({
+  useWatchlistCache: () => ({
+    isItemUpdating: () => false,
+    isItemSaved: () => false,
+    loadingReferences: false,
+    referencesError: null,
+  }),
+}));
+vi.mock("../../hooks/useWatchlist", () => ({
+  useWatchlist: () => ({ setWatched: vi.fn() }),
+}));
+
 vi.mock("../../context/portfolioCacheContextValue", () => ({
   usePortfolioCache: () => ({
+    isItemUpdating: () => false,
     isItemSaved: mocks.isItemSaved,
     loadingPortfolioReferences: false,
     portfolioReferencesError: null,

@@ -3,6 +3,8 @@ import { MINIMUM_GAINER_LOSER_PRICE } from "../../../shared/pokeTracePriceChange
 import type {
   PortfolioComparisonPeriod,
   PortfolioItem,
+  PortfolioSingle,
+  PortfolioPriceSnapshot,
 } from "../../types/portfolio";
 import {
   resolveDisplayedPokeTracePriceChange,
@@ -41,8 +43,25 @@ export function portfolioComparisonPrice(
   period: PortfolioComparisonPeriod,
 ) {
   return item.type === "single"
-    ? (item.priceSnapshots?.[period]?.marketPrice ?? null)
+    ? (portfolioComparisonSnapshot(item, period)?.marketPrice ?? null)
     : item.priceSnapshots[period];
+}
+
+export function portfolioComparisonSnapshot(
+  item: PortfolioSingle,
+  period: PortfolioComparisonPeriod,
+): PortfolioPriceSnapshot | null {
+  const snapshot =
+    item.priceSnapshots?.[period] ??
+    item.pokeTrace.marketComparisons?.comparisons[period];
+  if (snapshot) return snapshot;
+  // Newly saved search results already carry comparison prices, but no dates.
+  const marketPrice = item.pokeTrace.marketPriceSnapshots?.[period];
+  return typeof marketPrice === "number" &&
+    Number.isFinite(marketPrice) &&
+    marketPrice > 0
+    ? { marketPrice, recordedAt: null, sourceUpdatedAt: null }
+    : null;
 }
 
 export function portfolioPriceChange(
@@ -51,7 +70,7 @@ export function portfolioPriceChange(
 ) {
   if (item.type === "single") {
     return resolveDisplayedPokeTracePriceChange(item, {
-      comparisonPriceSnapshot: item.priceSnapshots?.[period] ?? null,
+      comparisonPriceSnapshot: portfolioComparisonSnapshot(item, period),
     }).percent;
   }
   const current = item.price;

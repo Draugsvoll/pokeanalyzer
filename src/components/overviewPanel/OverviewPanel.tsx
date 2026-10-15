@@ -8,6 +8,7 @@ type OverviewPanelProps = {
 };
 
 type OverviewMetricProps = {
+  action?: { label: string; onClick: () => void };
   breakBefore?: boolean;
   className?: string;
   detail?: ReactNode;
@@ -43,6 +44,7 @@ export const OverviewPanel = forwardRef<HTMLElement, OverviewPanelProps>(
 );
 
 export function OverviewMetric({
+  action,
   breakBefore = false,
   className,
   detail,
@@ -87,6 +89,14 @@ export function OverviewMetric({
             event.currentTarget.hidden = true;
           }}
           src={imageSrc}
+        />
+      )}
+      {action && (
+        <button
+          aria-label={action.label}
+          className="app-overview-metric-action"
+          onClick={action.onClick}
+          type="button"
         />
       )}
     </article>

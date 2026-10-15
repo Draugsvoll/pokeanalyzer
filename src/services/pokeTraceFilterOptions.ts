@@ -3,13 +3,12 @@ import {
   type PokeTraceFilterOptions,
 } from "../../shared/pokeTraceFilterOptions";
 import { logClientError } from "../utils/logClientError";
-import { isPokeTraceSetSummaryFresh } from "../utils/pokeTraceSetSummaryFreshness";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options?v=2`;
 const CACHE_KEY = "pokelyzer:poketrace-filter-options:v2";
-export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 24 * 60 * 60 * 1_000;
+export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 6 * 60 * 60 * 1_000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -42,16 +41,9 @@ function loadStored() {
 }
 
 function isFresh(cache: StoredFilterOptions, now: number) {
-  const summariesAreUsable =
-    cache.options.setSummaries.length === cache.options.setNames.length &&
-    cache.options.setSummaries.every(({ asOf }) =>
-      isPokeTraceSetSummaryFresh(asOf, now),
-    );
-
   return (
     cache.cachedAt <= now + MAX_CLOCK_SKEW_MS &&
-    now - cache.cachedAt < POKETRACE_FILTER_OPTIONS_CACHE_MS &&
-    summariesAreUsable
+    now - cache.cachedAt < POKETRACE_FILTER_OPTIONS_CACHE_MS
   );
 }
 

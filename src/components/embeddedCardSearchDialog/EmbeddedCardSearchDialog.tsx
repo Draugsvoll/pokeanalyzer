@@ -11,7 +11,6 @@ type EmbeddedCardSearchDialogProps = {
   initialProductType?: ProductType;
   isOpen: boolean;
   onClose: () => void;
-  onPortfolioChanged?: (saved: boolean) => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
@@ -20,7 +19,6 @@ export function EmbeddedCardSearchDialog({
   initialProductType = "singles",
   isOpen,
   onClose,
-  onPortfolioChanged,
   returnFocusRef,
 }: EmbeddedCardSearchDialogProps) {
   const dialogRef = useModalDialog<HTMLDivElement>({
@@ -56,7 +54,6 @@ export function EmbeddedCardSearchDialog({
           embedded
           initialProductType={initialProductType}
           onClose={onClose}
-          onPortfolioChanged={onPortfolioChanged}
         />
       </div>
     </div>,

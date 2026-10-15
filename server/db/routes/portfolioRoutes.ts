@@ -50,7 +50,7 @@ const writeLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-function getAssetId(value: unknown, label = "asset") {
+export function getAssetId(value: unknown, label = "asset") {
   const id = typeof value === "string" ? value.trim() : "";
   if (!ASSET_ID_PATTERN.test(id)) {
     throw new PortfolioHttpError(`Invalid ${label} ID`, 400);
@@ -62,7 +62,7 @@ function getCardId(value: unknown) {
   return getAssetId(value, "card");
 }
 
-function getAssetType(value: unknown): PortfolioAssetType {
+export function getAssetType(value: unknown): PortfolioAssetType {
   if (value === "single" || value === "sealed") return value;
   throw new PortfolioHttpError("Invalid portfolio asset type", 400);
 }
@@ -138,7 +138,7 @@ async function requireLocalCard(cardId: string) {
   if (!result.rows[0]) throw new PortfolioHttpError("Card not found", 404);
 }
 
-async function requireLocalAsset(type: PortfolioAssetType, id: string) {
+export async function requireLocalAsset(type: PortfolioAssetType, id: string) {
   if (type === "single") {
     await requireLocalCard(id);
     return;
@@ -396,7 +396,7 @@ export async function removePortfolioAsset(
   await (dependencies.deleteDocument ?? deletePortfolioAssetDocument)(document);
 }
 
-function sendError(res: Response, error: unknown, context: string) {
+export function sendError(res: Response, error: unknown, context: string) {
   if (error instanceof PortfolioHttpError) {
     res.status(error.statusCode).json({ message: error.message });
     return;

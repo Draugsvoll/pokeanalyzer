@@ -107,11 +107,9 @@ export function SealedDatabaseSearchBar({
 
 export function SealedDatabaseSearchResults({
   onClose,
-  onPortfolioChanged,
   search,
 }: {
   onClose?: () => void;
-  onPortfolioChanged?: (saved: boolean) => void;
   search: SealedDatabaseSearchController;
 }) {
   const showResults =
@@ -154,11 +152,7 @@ export function SealedDatabaseSearchResults({
               {search.sortedProducts
                 .slice(0, search.visibleCount)
                 .map((product) => (
-                  <SealedProductView
-                    key={product.id}
-                    onPortfolioChanged={onPortfolioChanged}
-                    product={product}
-                  />
+                  <SealedProductView key={product.id} product={product} />
                 ))}
             </GridView>
           )}

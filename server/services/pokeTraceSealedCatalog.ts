@@ -1,4 +1,5 @@
 import type { Client } from "@libsql/client";
+import { sealedPriceComparisons } from "./pokeTraceSealedComparisons.js";
 import {
   POKETRACE_SEALED_CATALOG_SCHEMA_VERSION,
   type PokeTraceSealedCatalogResponse,
@@ -24,31 +25,10 @@ function positiveNumber(value: unknown) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function dateOffset(date: string, days: number) {
-  const value = new Date(`${date}T00:00:00.000Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
-
-function comparisonPrice(
-  snapshots: Map<string, number>,
-  asOf: string,
-  days: number,
-) {
-  const target = dateOffset(asOf, -days);
-  return (
-    snapshots.get(target) ??
-    snapshots.get(dateOffset(target, -1)) ??
-    snapshots.get(dateOffset(target, 1)) ??
-    null
-  );
-}
-
 export async function generatePokeTraceSealedCatalog(
   database: SealedCatalogDatabase,
 ): Promise<PokeTraceSealedCatalogResponse> {
   const generatedAt = new Date().toISOString();
-  const asOf = generatedAt.slice(0, 10);
   const [productsResult, snapshotsResult] = await Promise.all([
     database.execute(`
       SELECT
@@ -67,13 +47,17 @@ export async function generatePokeTraceSealedCatalog(
     `),
     database.execute({
       sql: `
-        SELECT product_id, recorded_at, market_price
-        FROM poketrace_sealed_tcg_market_prices
-        WHERE recorded_at >= date(?, '-31 days')
-          AND recorded_at <= ?
-        ORDER BY product_id, recorded_at
+        WITH latest_dates AS (
+          SELECT product_id, MAX(recorded_at) AS latest_date
+          FROM poketrace_sealed_tcg_market_prices
+          GROUP BY product_id
+        )
+        SELECT prices.product_id, prices.recorded_at, prices.market_price
+        FROM poketrace_sealed_tcg_market_prices AS prices
+        INNER JOIN latest_dates AS latest ON latest.product_id = prices.product_id
+        WHERE prices.recorded_at >= date(latest.latest_date, '-31 days')
+        ORDER BY prices.product_id, prices.recorded_at
       `,
-      args: [asOf, asOf],
     }),
   ]);
 
@@ -104,11 +88,7 @@ export async function generatePokeTraceSealedCatalog(
         }),
         currency: optionalText(row.currency) ?? "USD",
         price: positiveNumber(row.price),
-        priceSnapshots: {
-          "1d": comparisonPrice(snapshots, asOf, 1),
-          "7d": comparisonPrice(snapshots, asOf, 7),
-          "30d": comparisonPrice(snapshots, asOf, 30),
-        },
+        priceSnapshots: sealedPriceComparisons(snapshots),
         ...(optionalText(row.last_updated) && {
           lastUpdated: optionalText(row.last_updated),
         }),

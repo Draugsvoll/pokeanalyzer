@@ -1,3 +1,5 @@
+@use "../../styles/shell";
+
 .embedded-card-search {
   backdrop-filter: blur(8px);
   background: rgba(0, 0, 0, 0.88);
@@ -22,10 +24,9 @@
 }
 
 .embedded-card-search__content {
-  box-sizing: border-box;
+  @include shell.wide-shell;
+
   margin: 30vh auto 3rem;
-  max-width: 72rem;
-  width: calc(100% - 2rem);
 
   .database-search-control,
   .database-search-bar {
@@ -47,6 +48,5 @@
 @media (max-width: 40rem) {
   .embedded-card-search__content {
     margin-top: max(1rem, calc(50dvh - 7rem));
-    width: calc(100% - 1rem);
   }
 }

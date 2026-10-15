@@ -1,6 +1,6 @@
+import { AssetSaveActions } from "../assetSaveActions/AssetSaveActions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
 import type { PokeTraceSealedCatalogProduct } from "../../../shared/pokeTraceSealed";
 import {
   formatPriceChangePeriodLong,
@@ -35,12 +35,10 @@ function priceChange(
 
 export function SealedProductView({
   comparisonPeriod = "7d",
-  hidePortfolioButtonUntilHover = false,
   onPortfolioChanged,
   product,
 }: {
   comparisonPeriod?: PriceChangePeriod;
-  hidePortfolioButtonUntilHover?: boolean;
   onPortfolioChanged?: (saved: boolean) => void;
   product: PokeTraceSealedCatalogProduct;
 }) {
@@ -83,13 +81,7 @@ export function SealedProductView({
     <ProductCard
       as="article"
       className="sealed-product-view"
-      surfaceClassName={[
-        "sealed-product-view__card",
-        hidePortfolioButtonUntilHover &&
-          "sealed-product-view__card--hide-portfolio-button-until-hover",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      surfaceClassName="sealed-product-view__card"
     >
       <button
         aria-label={`Open ${product.name}`}
@@ -102,30 +94,17 @@ export function SealedProductView({
         type="button"
       />
       {authUser && (
-        <button
-          aria-busy={portfolioBusy}
-          aria-label={
-            portfolioUnavailable
-              ? "Portfolio is unavailable"
-              : portfolioBusy
-                ? "Updating portfolio"
-                : productIsSaved
-                  ? "Remove from portfolio"
-                  : "Add to portfolio"
-          }
-          aria-pressed={productIsSaved}
-          className={`portfolio-toggle-button sealed-product-view__portfolio-toggle${productIsSaved ? " is-saved" : ""}`}
-          disabled={portfolioBusy || portfolioUnavailable}
-          onClick={() => void handlePortfolioToggle()}
-          title={productIsSaved ? "Remove from portfolio" : "Add to portfolio"}
-          type="button"
-        >
-          {portfolioBusy ? (
-            <span className="app-btn__spinner" aria-hidden="true" />
-          ) : (
-            <Star aria-hidden="true" />
-          )}
-        </button>
+        <AssetSaveActions
+          key={product.id}
+          item={{ ...product, type: "sealed" }}
+          layout="card"
+          portfolio={{
+            saved: productIsSaved,
+            busy: portfolioBusy,
+            unavailable: portfolioUnavailable,
+            onToggle: handlePortfolioToggle,
+          }}
+        />
       )}
       <div className="sealed-product-view__image-shell">
         {showImage && (
@@ -190,10 +169,12 @@ export function SealedProductPortfolioView({
   quantityDialogOpen,
 }: SealedProductPortfolioViewProps) {
   const { updateSealedQuantity } = useSealedPortfolio();
+  const { isItemUpdating } = usePortfolioCache();
   const quantity = product.quantity;
 
   return (
     <PortfolioItemCard
+      busy={isItemUpdating("sealed", product.id)}
       className="sealed-product-portfolio-view"
       itemName={product.name}
       onQuantityDialogOpenChange={onQuantityDialogOpenChange}
@@ -207,7 +188,6 @@ export function SealedProductPortfolioView({
     >
       <SealedProductView
         comparisonPeriod={comparisonPeriod}
-        hidePortfolioButtonUntilHover
         onPortfolioChanged={(saved) => {
           if (!saved) onRemoved?.(product.id);
         }}

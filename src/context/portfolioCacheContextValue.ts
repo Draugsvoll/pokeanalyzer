@@ -1,18 +1,26 @@
 import { createContext, useContext } from "react";
 import type { PortfolioItemType, PortfolioReference } from "../types/portfolio";
+import type { useAssetListCache } from "./useAssetListCache";
+
+type PortfolioCache = ReturnType<typeof useAssetListCache<PortfolioReference>>;
 
 export function portfolioReferenceKey(type: PortfolioItemType, id: string) {
   return `${type}:${id}`;
 }
 
 export type PortfolioContextType = {
+  runMutation: PortfolioCache["runMutation"];
+  isItemUpdating: PortfolioCache["isItemUpdating"];
+  items: PortfolioCache["items"];
+  missingItems: PortfolioCache["missingItems"];
+  hydrate: PortfolioCache["hydrate"];
   portfolioReferences: ReadonlyMap<string, PortfolioReference>;
   portfolioReferencesError: string | null;
   loadingPortfolioReferences: boolean;
   refreshPortfolioReferences: () => Promise<void>;
   replacePortfolioReferences: (entries: PortfolioReference[]) => void;
-  upsertPortfolioReference: (entry: PortfolioReference) => void;
-  removePortfolioReference: (type: PortfolioItemType, id: string) => void;
+  upsertPortfolioReference: PortfolioCache["upsertReference"];
+  removePortfolioReference: PortfolioCache["removeReference"];
   isItemSaved: (type: PortfolioItemType, id: string) => boolean;
   isCardSaved: (cardId: string) => boolean;
 };

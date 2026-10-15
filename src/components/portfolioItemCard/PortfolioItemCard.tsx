@@ -8,6 +8,7 @@ import { Badge } from "../ui/Badge";
 import "./PortfolioItemCard.scss";
 
 type PortfolioItemCardProps = {
+  busy?: boolean;
   children: ReactNode;
   className?: string;
   itemName: string;
@@ -18,6 +19,7 @@ type PortfolioItemCardProps = {
 };
 
 export function PortfolioItemCard({
+  busy = false,
   children,
   className,
   itemName,
@@ -32,11 +34,12 @@ export function PortfolioItemCard({
   const [quantityControlsDismissed, setQuantityControlsDismissed] =
     useState(false);
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
+  const controlsBusy = busy || updatingQuantity;
   const quantityDialogVisible =
     pendingQuantity != null && quantityDialogOpen !== false;
 
   function requestQuantityChange(amount: number, trigger: HTMLButtonElement) {
-    if (updatingQuantity) return;
+    if (controlsBusy) return;
 
     const currentQuantity = quantityDialogVisible ? pendingQuantity : quantity;
     const nextQuantity = currentQuantity + amount;
@@ -71,7 +74,7 @@ export function PortfolioItemCard({
   }
 
   async function confirmQuantityChange() {
-    if (!quantityDialogVisible) return;
+    if (!quantityDialogVisible || controlsBusy) return;
 
     setUpdatingQuantity(true);
     try {
@@ -119,7 +122,7 @@ export function PortfolioItemCard({
         <button
           aria-label={`Increase ${itemName} quantity`}
           className="portfolio-item-card__quantity-button"
-          disabled={updatingQuantity}
+          disabled={controlsBusy}
           onClick={(event) => requestQuantityChange(1, event.currentTarget)}
           onPointerDown={(event) => event.stopPropagation()}
           type="button"
@@ -142,7 +145,7 @@ export function PortfolioItemCard({
               cancelLabel={<X aria-hidden="true" />}
               className="portfolio-item-card__quantity-confirm"
               confirmAriaLabel="Apply quantity change"
-              confirmDisabled={pendingQuantity === quantity}
+              confirmDisabled={busy || pendingQuantity === quantity}
               confirming={updatingQuantity}
               confirmLabel={<Check aria-hidden="true" />}
               label={`Quantity: ${pendingQuantity}`}
@@ -157,7 +160,7 @@ export function PortfolioItemCard({
           className="portfolio-item-card__quantity-button"
           disabled={
             (quantityDialogVisible ? pendingQuantity : quantity) <= 1 ||
-            updatingQuantity
+            controlsBusy
           }
           onClick={(event) => requestQuantityChange(-1, event.currentTarget)}
           onPointerDown={(event) => event.stopPropagation()}

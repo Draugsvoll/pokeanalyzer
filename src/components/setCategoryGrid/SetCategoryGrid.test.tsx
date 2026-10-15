@@ -123,12 +123,17 @@ function CurrentLocation() {
   );
 }
 
-function HistoryBackButton() {
+function HistoryNavigation() {
   const navigate = useNavigate();
   return (
-    <button onClick={() => navigate(-1)} type="button">
-      Back in history
-    </button>
+    <>
+      <button onClick={() => navigate(-1)} type="button">
+        Back in history
+      </button>
+      <button onClick={() => navigate(1)} type="button">
+        Forward in history
+      </button>
+    </>
   );
 }
 
@@ -137,7 +142,7 @@ function renderSetExplorer(initialEntry = "/set") {
     <MemoryRouter initialEntries={[initialEntry]}>
       <SetCategoryGrid />
       <CurrentLocation />
-      <HistoryBackButton />
+      <HistoryNavigation />
     </MemoryRouter>,
   );
   expect(screen.getByRole("heading", { name: "Explore sets" })).toBeVisible();
@@ -148,6 +153,38 @@ function renderSetExplorer(initialEntry = "/set") {
   }
   return result;
 }
+
+test.each(["input click", "clear button", "delete text"])(
+  "clearing an opened set via %s preserves the URL only for input clicks",
+  async (method) => {
+    vi.mocked(loadPokeTraceSet).mockResolvedValue({
+      cards: [card("Pikachu", "1", 10)],
+      salesLeaders: { total: null },
+    });
+    renderSetExplorer("/set?set=Base+Set&other=keep");
+    await screen.findByTestId("set-card");
+    const input = screen.getByRole("combobox", { name: "Set name" });
+
+    if (method === "input click") fireEvent.click(input);
+    else if (method === "clear button")
+      fireEvent.click(screen.getByRole("button", { name: "Clear set filter" }));
+    else fireEvent.change(input, { target: { value: "" } });
+
+    expect(input).toHaveValue("");
+    expect(screen.getByTestId("current-location")).toHaveTextContent(
+      method === "input click"
+        ? /^\/set\?set=Base\+Set&other=keep$/
+        : /^\/set\?other=keep$/,
+    );
+    if (method === "input click") {
+      expect(screen.getByTestId("set-card")).toBeVisible();
+      expect(screen.getByRole("option", { name: "Arceus" })).toBeVisible();
+    } else {
+      expect(screen.queryByTestId("set-card")).not.toBeInTheDocument();
+    }
+    expect(loadPokeTraceSet).toHaveBeenCalledTimes(1);
+  },
+);
 
 test("rejects manually typed text even when it exactly matches an option", () => {
   renderSetExplorer();
@@ -252,6 +289,39 @@ test("adds an opened set to browser history", async () => {
 
   await waitFor(() =>
     expect(screen.getByTestId("current-location")).toHaveTextContent(/^\/set$/),
+  );
+});
+
+test("restores the cleared directory after navigating Back and Forward", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Pikachu", "1", 10)],
+    salesLeaders: { total: null },
+  });
+  renderSetExplorer("/set?other=keep");
+  fireEvent.click(screen.getByRole("button", { name: "Open Base Set" }));
+  await screen.findByTestId("set-card");
+  const input = screen.getByRole("combobox", { name: "Set name" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Clear set filter" }));
+  expect(input).toHaveValue("");
+  expect(screen.queryByTestId("set-card")).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Back in history" }));
+  await screen.findByTestId("set-card");
+  expect(input).toHaveValue("Base Set");
+
+  fireEvent.click(screen.getByRole("button", { name: "Forward in history" }));
+  await waitFor(() => expect(input).toHaveValue(""));
+  expect(screen.getByTestId("current-location")).toHaveTextContent(
+    /^\/set\?other=keep$/,
+  );
+  expect(screen.queryByTestId("set-card")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Open Arceus" })).toBeVisible();
+  expect(input).not.toHaveAttribute("aria-invalid", "true");
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(input).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByTestId("current-location")).toHaveTextContent(
+    /^\/set\?other=keep$/,
   );
 });
 
@@ -441,7 +511,7 @@ test("clears the set filter when its input is clicked", () => {
   expect(screen.getByRole("option", { name: "Arceus" })).toBeVisible();
 });
 
-test("keeps the displayed set when either directory filter is clicked", async () => {
+test("keeps the displayed set when the era filter is clicked", async () => {
   vi.mocked(loadPokeTraceSet).mockResolvedValue({
     cards: [card("Card 2", "2/102", 10)],
     salesLeaders,
@@ -454,12 +524,6 @@ test("keeps the displayed set when either directory filter is clicked", async ()
   ).toBeVisible();
 
   fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
-  expect(
-    screen.getByRole("region", { name: "Base Set market overview" }),
-  ).toBeVisible();
-  expect(document.querySelector(".grid-view")).not.toBeNull();
-
-  fireEvent.click(screen.getByRole("combobox", { name: "Set name" }));
   expect(
     screen.getByRole("region", { name: "Base Set market overview" }),
   ).toBeVisible();
@@ -531,7 +595,7 @@ test("clears the set filter and restores the full directory", () => {
   expect(screen.getByRole("button", { name: "Open Base Set 2" })).toBeVisible();
 });
 
-test("opens a selected exact set and sorts the fetched cards locally", async () => {
+test("opens a set immediately on suggestion click and sorts the fetched cards locally", async () => {
   vi.mocked(loadPokeTraceSet).mockResolvedValue({
     cards: [card("Card 10", "10/102", 20), card("Card 2", "2/102", 10)],
     salesLeaders,
@@ -541,7 +605,10 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
 
   fireEvent.focus(input);
   fireEvent.click(screen.getByRole("option", { name: "Base Set" }));
-  fireEvent.keyDown(input, { key: "Enter" });
+
+  expect(screen.getByTestId("current-location")).toHaveTextContent(
+    "/set?set=Base+Set",
+  );
 
   await waitFor(() =>
     expect(screen.getAllByTestId("set-card")).toHaveLength(2),
@@ -651,13 +718,30 @@ test("opens a selected exact set and sorts the fetched cards locally", async () 
   expect(
     overview.querySelectorAll(".app-overview-metric--featured"),
   ).toHaveLength(3);
-  expect(
-    overview.querySelectorAll("button.app-overview-metric--featured"),
-  ).toHaveLength(0);
-
   const cardFilter = screen.getByRole("searchbox", {
     name: "Filter set cards",
   });
+  for (const metric of [
+    bestPerformerMetric,
+    mostValuableMetric,
+    mostSoldMetric,
+  ]) {
+    fireEvent.change(cardFilter, { target: { value: "Card 2" } });
+    fireEvent.click(within(metric!).getByRole("button"));
+    expect(cardFilter).toHaveValue("Card 10 10/102");
+    await waitFor(() => {
+      expect(cardFilter).toHaveFocus();
+      expect((cardFilter as HTMLInputElement).selectionStart).toBe(
+        "Card 10 10/102".length,
+      );
+      expect((cardFilter as HTMLInputElement).selectionEnd).toBe(
+        "Card 10 10/102".length,
+      );
+    });
+    expect(
+      screen.getAllByTestId("set-card").map((node) => node.textContent),
+    ).toEqual(["Card 10"]);
+  }
   fireEvent.change(cardFilter, { target: { value: "2/102" } });
   expect(
     screen.getAllByTestId("set-card").map((node) => node.textContent),
@@ -728,7 +812,6 @@ test("shows the actual number of set cards remaining", async () => {
   const input = screen.getByRole("combobox", { name: "Set name" });
   fireEvent.focus(input);
   fireEvent.click(screen.getByRole("option", { name: "Base Set" }));
-  fireEvent.keyDown(input, { key: "Enter" });
 
   expect(
     await screen.findByRole("button", { name: "Show next 1" }),
@@ -844,12 +927,18 @@ test("shows clean fallbacks when overview metrics are unavailable", async () => 
   ).toBeVisible();
 });
 
-test("editing a selected value invalidates it until another option is selected", () => {
+test("editing a selected value invalidates it until another option is selected", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [card("Card 2", "2/102", 10)],
+    salesLeaders,
+  });
   renderSetExplorer();
   const input = screen.getByRole("combobox", { name: "Set name" });
 
   fireEvent.focus(input);
   fireEvent.click(screen.getByRole("option", { name: "Base Set" }));
+  await screen.findByTestId("set-card");
+  vi.mocked(loadPokeTraceSet).mockClear();
   fireEvent.change(input, { target: { value: "Base Set 2" } });
   fireEvent.keyDown(input, { key: "Enter" });
 

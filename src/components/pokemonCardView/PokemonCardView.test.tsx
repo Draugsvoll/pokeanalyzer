@@ -12,6 +12,7 @@ vi.mock("../../context/authContextValue", () => ({
 
 vi.mock("../../context/portfolioCacheContextValue", () => ({
   usePortfolioCache: () => ({
+    isItemUpdating: () => false,
     isCardSaved: () => false,
     loadingPortfolioReferences: false,
     portfolioReferencesError: null,

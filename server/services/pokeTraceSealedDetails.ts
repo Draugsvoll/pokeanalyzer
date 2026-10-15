@@ -1,4 +1,5 @@
 import type { Client } from "@libsql/client";
+import { sealedPriceComparisons } from "./pokeTraceSealedComparisons.js";
 import type {
   PokeTraceSealedDetails,
   PokeTraceSealedCatalogProduct,
@@ -81,26 +82,6 @@ function marketplaceUrl(value: unknown) {
   }
 }
 
-function dateOffset(date: string, days: number) {
-  const value = new Date(`${date}T00:00:00.000Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
-
-function comparisonPrice(
-  snapshots: Map<string, number>,
-  asOf: string,
-  days: number,
-) {
-  const target = dateOffset(asOf, -days);
-  return (
-    snapshots.get(target) ??
-    snapshots.get(dateOffset(target, -1)) ??
-    snapshots.get(dateOffset(target, 1)) ??
-    null
-  );
-}
-
 export function toPokeTraceSealedDetails(
   product: PokeTraceSealedProduct,
   priceSnapshots: PokeTraceSealedCatalogProduct["priceSnapshots"],
@@ -153,7 +134,6 @@ export async function loadPokeTraceSealedDetails(
   dependencies: Partial<{
     database: DetailsDatabase;
     ensureReady: () => Promise<void>;
-    now: () => Date;
   }> = {},
 ) {
   const database = dependencies.database ?? pokeTraceDb;
@@ -175,16 +155,18 @@ export async function loadPokeTraceSealedDetails(
     return null;
   }
 
-  const asOf = (dependencies.now?.() ?? new Date()).toISOString().slice(0, 10);
   const snapshotsResult = await database.execute({
     sql: `
       SELECT recorded_at, market_price
       FROM poketrace_sealed_tcg_market_prices
       WHERE product_id = ?
-        AND recorded_at >= date(?, '-31 days')
-        AND recorded_at <= ?
+        AND recorded_at >= date((
+          SELECT MAX(recorded_at)
+          FROM poketrace_sealed_tcg_market_prices
+          WHERE product_id = ?
+        ), '-31 days')
     `,
-    args: [productId, asOf, asOf],
+    args: [productId, productId],
   });
   const snapshots = new Map(
     snapshotsResult.rows.map((row) => [
@@ -192,9 +174,5 @@ export async function loadPokeTraceSealedDetails(
       Number(row.market_price),
     ]),
   );
-  return toPokeTraceSealedDetails(product, {
-    "1d": comparisonPrice(snapshots, asOf, 1),
-    "7d": comparisonPrice(snapshots, asOf, 7),
-    "30d": comparisonPrice(snapshots, asOf, 30),
-  });
+  return toPokeTraceSealedDetails(product, sealedPriceComparisons(snapshots));
 }

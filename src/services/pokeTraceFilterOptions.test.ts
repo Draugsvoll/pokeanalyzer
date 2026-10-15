@@ -38,8 +38,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("reuses validated filter options from local storage for one day", async () => {
-  const now = Date.parse("2026-09-26T09:00:00.000Z");
+test("reuses validated filter options from local storage for six hours regardless of the server generation date", async () => {
+  const now = Date.parse("2026-09-30T09:00:00.000Z");
   vi.spyOn(Date, "now").mockReturnValue(now);
   const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
     json: async () => payload,
@@ -55,6 +55,7 @@ test("reuses validated filter options from local storage for one day", async () 
     setSummaries: [...payload.setSummaries].reverse(),
   });
 
+  vi.spyOn(Date, "now").mockReturnValue(now + 6 * 60 * 60 * 1_000 - 1);
   vi.resetModules();
   fetchMock.mockRejectedValue(new Error("network should not be used"));
   const secondLoad = await import("./pokeTraceFilterOptions");
@@ -66,13 +67,19 @@ test("reuses validated filter options from local storage for one day", async () 
   );
 });
 
-test("refreshes a current cache when its set summaries cannot be displayed", async () => {
+test("refreshes a current cache when its payload is invalid", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
   const now = Date.parse("2026-09-26T09:00:00.000Z");
   localStorage.setItem(
     "pokelyzer:poketrace-filter-options:v2",
     JSON.stringify({
       cachedAt: now - 60_000,
-      options: { ...payload, setSummaries: [] },
+      options: {
+        ...payload,
+        setSummaries: [
+          { ...payload.setSummaries[0], sevenDayChangePercent: "invalid" },
+        ],
+      },
     }),
   );
   vi.spyOn(Date, "now").mockReturnValue(now);
@@ -88,34 +95,85 @@ test("refreshes a current cache when its set summaries cannot be displayed", asy
   expect(fetchMock).toHaveBeenCalledOnce();
 });
 
-test("refreshes a current cache when its set summaries have expired", async () => {
-  const now = Date.parse("2026-09-28T08:00:01.000Z");
+test("fetches again at six hours even when the server returns the same summaries", async () => {
+  const now = Date.parse("2026-09-30T08:00:00.000Z");
   localStorage.setItem(
     "pokelyzer:poketrace-filter-options:v2",
     JSON.stringify({
-      cachedAt: now - 60_000,
+      cachedAt: now - 6 * 60 * 60 * 1_000,
       options: payload,
     }),
   );
   vi.spyOn(Date, "now").mockReturnValue(now);
   const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
-    json: async () => ({
-      ...payload,
-      generatedAt: new Date(now).toISOString(),
-      setSummaries: payload.setSummaries.map((summary) => ({
-        ...summary,
-        asOf: new Date(now).toISOString(),
-      })),
-    }),
+    json: async () => payload,
     ok: true,
   } as Response);
   vi.stubGlobal("fetch", fetchMock);
-
   const service = await import("./pokeTraceFilterOptions");
   const options = await service.loadPokeTraceFilterOptions();
-
+  expect(options?.generatedAt).toBe(payload.generatedAt);
+  expect(options?.setSummaries).toHaveLength(2);
+  await service.loadPokeTraceFilterOptions();
   expect(fetchMock).toHaveBeenCalledOnce();
-  expect(options?.generatedAt).toBe(new Date(now).toISOString());
+});
+
+test("invalid newly fetched percentages hide cached summaries and allow retry", async () => {
+  const now = Date.parse("2026-09-30T08:00:00.000Z");
+  localStorage.setItem(
+    "pokelyzer:poketrace-filter-options:v2",
+    JSON.stringify({
+      cachedAt: now - 6 * 60 * 60 * 1_000,
+      options: payload,
+    }),
+  );
+  vi.spyOn(Date, "now").mockReturnValue(now);
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const fetchMock = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ...payload,
+        setSummaries: [
+          { ...payload.setSummaries[0], sevenDayChangePercent: "invalid" },
+        ],
+      }),
+    } as Response)
+    .mockResolvedValueOnce({ ok: true, json: async () => payload } as Response);
+  vi.stubGlobal("fetch", fetchMock);
+  const service = await import("./pokeTraceFilterOptions");
+  expect((await service.loadPokeTraceFilterOptions())?.setSummaries).toEqual(
+    [],
+  );
+  expect(
+    (await service.loadPokeTraceFilterOptions())?.setSummaries,
+  ).toHaveLength(2);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("missing percentages in a valid new response replace cached percentages", async () => {
+  const now = Date.parse("2026-09-30T08:00:00.000Z");
+  localStorage.setItem(
+    "pokelyzer:poketrace-filter-options:v2",
+    JSON.stringify({ cachedAt: now - 6 * 60 * 60 * 1_000, options: payload }),
+  );
+  vi.spyOn(Date, "now").mockReturnValue(now);
+  const fetchMock = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...payload, setSummaries: [] }),
+    } as Response);
+  vi.stubGlobal("fetch", fetchMock);
+  const service = await import("./pokeTraceFilterOptions");
+  expect((await service.loadPokeTraceFilterOptions())?.setSummaries).toEqual(
+    [],
+  );
+  expect((await service.loadPokeTraceFilterOptions())?.setSummaries).toEqual(
+    [],
+  );
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test("retains directory options but omits summaries when a refresh fails", async () => {

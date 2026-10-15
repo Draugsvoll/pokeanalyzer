@@ -55,11 +55,13 @@ test("returns both rankings with consistent alphabetical ties without mutating i
   expect(input.map(({ value }) => value)).toEqual(originalNames);
 });
 
-test("rejects duplicate sets and uses the supplied freshness time for both rankings", () => {
+test("rejects duplicate sets but accepts valid older summaries", () => {
   const input = options();
   expect(selectWeeklyMovers([...input, input[0]])).toBeNull();
-  const expiredAt = Date.parse(input[0].setSummary!.asOf) + 36 * 60 * 60 * 1000;
-  expect(selectWeeklyMovers(input, { now: expiredAt })).toBeNull();
+  input.forEach((option) => {
+    option.setSummary!.asOf = "2000-01-01T00:00:00Z";
+  });
+  expect(selectWeeklyMovers(input)).not.toBeNull();
 });
 
 test("ranks the best six changes regardless of sign without changing the source list", () => {
@@ -108,13 +110,13 @@ test.each(["missing", "null", "no-history"])(
   },
 );
 
-test.each(["nan", "stale", "counts", "identity"])(
+test.each(["nan", "invalid date", "counts", "identity"])(
   "omits the entire ranking when one summary is %s",
   (issue) => {
     const input = options();
     const summary = input[0].setSummary!;
     if (issue === "nan") summary.sevenDayChangePercent = NaN;
-    if (issue === "stale") summary.asOf = "2000-01-01T00:00:00Z";
+    if (issue === "invalid date") summary.asOf = "invalid";
     if (issue === "counts") summary.comparableCards = 101;
     if (issue === "identity") summary.setName = "Wrong set";
     expect(selectWeeklyMovers(input)).toBeNull();

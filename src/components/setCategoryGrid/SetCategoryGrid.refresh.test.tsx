@@ -59,8 +59,8 @@ test("a stalled focus refresh hides weekly rankings, keeps the directory, and pe
   expect(screen.getByRole("heading", { name: "Weekly gainers" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Weekly losers" })).toBeVisible();
 
-  // The browser cache has expired, while the summaries are still under 36 hours old.
-  vi.setSystemTime(new Date("2026-10-14T09:00:00Z"));
+  // The six-hour browser cache has expired.
+  vi.setSystemTime(new Date("2026-10-13T14:00:00Z"));
   await act(async () => {
     window.dispatchEvent(new Event("focus"));
   });

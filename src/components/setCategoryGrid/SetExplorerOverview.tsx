@@ -1,11 +1,11 @@
-import { useId, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { CardIdentity } from "../cardIdentity/CardIdentity";
 import { OverviewMetric, OverviewPanel } from "../overviewPanel/OverviewPanel";
 import { PriceChange } from "../priceChange/PriceChange";
-import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
+import { OverviewScopeControl } from "../overviewPanel/OverviewScopeControl";
 import {
   formatAbsolutePriceChangePercent,
   priceChangeTone,
@@ -19,6 +19,7 @@ type SetExplorerOverviewProps = {
   cardScope: SetCardScope;
   controls: ReactNode;
   onCardScopeChange: (scope: SetCardScope) => void;
+  onFilter: (value: string) => void;
   overview: SetExplorerOverviewData;
   releaseYear?: number;
   updating: boolean;
@@ -40,6 +41,7 @@ type FeaturedCardMetricProps = {
   changePeriodLong: string;
   data: FeaturedMetricData | null;
   label: string;
+  onFilter: (value: string) => void;
   unavailableLabel: string;
 };
 
@@ -50,9 +52,13 @@ function FeaturedCardMetric({
   changePeriodLong,
   data,
   label,
+  onFilter,
   unavailableLabel,
 }: FeaturedCardMetricProps) {
   const percentChange = data?.percentChange ?? null;
+  const filterValue = [data?.card.name, data?.card.number]
+    .filter(Boolean)
+    .join(" ");
   const renderKey = [
     changePeriod,
     data?.card.id ?? "none",
@@ -62,6 +68,14 @@ function FeaturedCardMetric({
 
   return (
     <OverviewMetric
+      action={
+        data
+          ? {
+              label: `${label}: filter by ${filterValue}`,
+              onClick: () => onFilter(filterValue),
+            }
+          : undefined
+      }
       key={renderKey}
       breakBefore={breakBefore}
       detail={
@@ -98,12 +112,12 @@ export function SetExplorerOverview({
   cardScope,
   controls,
   onCardScopeChange,
+  onFilter,
   overview,
   releaseYear,
   updating,
 }: SetExplorerOverviewProps) {
   const revealRef = useScrollReveal<HTMLElement>();
-  const cardScopeName = useId();
   const changePeriodLong = formatPriceChangePeriodLong(overview.changePeriod);
   const tone =
     overview.movementPercent == null
@@ -117,10 +131,6 @@ export function SetExplorerOverview({
     tone === "up" ? "Up" : tone === "down" ? "Down" : "Unchanged";
   const cardLabel = overview.totalCards === 1 ? "card" : "cards";
   const unpricedCards = Math.max(0, overview.totalCards - overview.pricedCards);
-  const pricingCoverageLabel =
-    unpricedCards > 0
-      ? `${unpricedCards.toLocaleString("en-US")} ${unpricedCards === 1 ? "card has" : "cards have"} no price data`
-      : null;
 
   return (
     <section
@@ -146,19 +156,15 @@ export function SetExplorerOverview({
         <OverviewMetric
           className="set-explorer-overview__market"
           detail={
-            <div className="set-explorer-overview__market-detail">
-              <SegmentedRadioGroup
-                ariaLabel="Cards included in set value"
-                className="set-explorer-overview__card-scope"
-                disabled={updating}
-                name={cardScopeName}
-                onChange={onCardScopeChange}
-                options={CARD_SCOPE_OPTIONS}
-                size="small"
-                value={cardScope}
-              />
-              {pricingCoverageLabel && <span>{pricingCoverageLabel}</span>}
-            </div>
+            <OverviewScopeControl
+              ariaLabel="Cards included in set value"
+              disabled={updating}
+              onChange={onCardScopeChange}
+              options={CARD_SCOPE_OPTIONS}
+              value={cardScope}
+              missingPrices={unpricedCards}
+              itemLabel="card"
+            />
           }
           label="Set value"
           primary
@@ -205,6 +211,7 @@ export function SetExplorerOverview({
           changePeriodLong={changePeriodLong}
           data={overview.bestPerformer}
           label="Best performer"
+          onFilter={onFilter}
           unavailableLabel="Price change unavailable"
         />
 
@@ -214,6 +221,7 @@ export function SetExplorerOverview({
           changePeriodLong={changePeriodLong}
           data={overview.mostValuable}
           label="Most valuable"
+          onFilter={onFilter}
           unavailableLabel="No priced cards"
         />
 
@@ -223,6 +231,7 @@ export function SetExplorerOverview({
           changePeriodLong={changePeriodLong}
           data={overview.mostSold}
           label="Most sold"
+          onFilter={onFilter}
           unavailableLabel="Sales data unavailable"
         />
       </OverviewPanel>

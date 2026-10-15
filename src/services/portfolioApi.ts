@@ -5,39 +5,15 @@ import type {
   PortfolioReference,
   PortfolioReferencesResponse,
 } from "../types/portfolio";
-import { authenticatedFetch } from "../utils/authenticatedFetch";
+import { savedListRequest } from "./savedListApi";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
-async function portfolioRequest<T>(
+function portfolioRequest<T>(
   path: string,
-  expectedUid: string,
+  uid: string,
   init: RequestInit = {},
-): Promise<T> {
-  const response = await authenticatedFetch(
-    `${API_URL}/api/portfolio${path}`,
-    {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init.headers,
-      },
-    },
-    expectedUid,
-  );
-
-  if (!response.ok) {
-    const error = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-    throw new Error(
-      error.message || `Portfolio request failed: ${response.status}`,
-    );
-  }
-
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+) {
+  return savedListRequest<T>("portfolio", path, uid, init);
 }
 
 export function getPortfolioReferences(expectedUid: string) {

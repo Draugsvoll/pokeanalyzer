@@ -64,6 +64,7 @@ test("sealed details map complete UI data from stored raw JSON and snapshots", a
   await migratePokeTraceDatabase(database);
   await database.execute(sealedProductUpsert(storedProduct));
   for (const [recordedAt, marketPrice] of [
+    ["2026-10-06", 99.97],
     ["2026-10-05", 98],
     ["2026-09-29", 95],
     ["2026-09-06", 92],
@@ -82,7 +83,6 @@ test("sealed details map complete UI data from stored raw JSON and snapshots", a
     const details = await loadPokeTraceSealedDetails(storedProduct.id, {
       database,
       ensureReady: async () => {},
-      now: () => new Date("2026-10-06T12:00:00.000Z"),
     });
 
     assert.ok(details);

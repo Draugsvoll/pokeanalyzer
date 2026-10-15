@@ -1,4 +1,5 @@
-import { ArrowUp, ExternalLink, Repeat2, Star } from "lucide-react";
+import { AssetSaveActions } from "../../components/assetSaveActions/AssetSaveActions";
+import { ArrowUp, ExternalLink, Repeat2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -414,33 +415,17 @@ export default function SealedDetails() {
             )}
           </div>
           {authUser && (
-            <Button
-              aria-busy={portfolioBusy}
-              aria-label={
-                portfolioUnavailable
-                  ? "Portfolio is unavailable"
-                  : portfolioBusy
-                    ? "Updating portfolio"
-                    : productIsSaved
-                      ? "Remove from portfolio"
-                      : "Add to portfolio"
-              }
-              aria-pressed={productIsSaved}
-              disabled={portfolioBusy || portfolioUnavailable}
-              fullWidth
-              onClick={() => void handlePortfolioToggle()}
-              size="large"
-              variant="portfolio"
-            >
-              {portfolioBusy ? (
-                <span className="app-btn__spinner" aria-hidden="true" />
-              ) : (
-                <>
-                  <Star aria-hidden="true" />
-                  <span>Portfolio</span>
-                </>
-              )}
-            </Button>
+            <AssetSaveActions
+              key={product.id}
+              item={{ ...product, type: "sealed" }}
+              layout="detail"
+              portfolio={{
+                saved: productIsSaved,
+                busy: portfolioBusy,
+                unavailable: portfolioUnavailable,
+                onToggle: handlePortfolioToggle,
+              }}
+            />
           )}
           <div className="sealed-details__change-product">
             <Button

@@ -28,7 +28,7 @@ export type PortfolioItem = PortfolioSingle | PortfolioSealedProduct;
 export type PortfolioComparisonPeriod = PriceChangePeriod;
 
 export type PortfolioPriceSnapshot = {
-  recordedAt: string;
+  recordedAt: string | null;
   marketPrice: number;
   sourceUpdatedAt: string | null;
 };

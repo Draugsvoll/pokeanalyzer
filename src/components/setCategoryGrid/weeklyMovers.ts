@@ -1,7 +1,6 @@
 import { normalizePokeTraceSetSummary } from "../../../shared/pokeTraceSetSummaryValidation";
 import { POKETRACE_CURRENCY } from "../../../shared/pokeTraceCurrency";
 import type { PokeTraceSetNameOption } from "../../hooks/usePokeTraceSetNameOptions";
-import { isPokeTraceSetSummaryFresh } from "../../utils/pokeTraceSetSummaryFreshness";
 
 const WEEKLY_SET_LIMIT = 6;
 
@@ -9,7 +8,6 @@ type WeeklySetRankings<T> = { gainers: T[]; losers: T[] };
 
 export function selectWeeklyMovers<T extends PokeTraceSetNameOption>(
   options: readonly T[],
-  { now = Date.now() }: { now?: number } = {},
 ): WeeklySetRankings<T> | null {
   try {
     const comparable: Array<{ option: T; change: number }> = [];
@@ -26,7 +24,6 @@ export function selectWeeklyMovers<T extends PokeTraceSetNameOption>(
       const summary = normalizePokeTraceSetSummary(raw);
       if (
         !summary ||
-        !isPokeTraceSetSummaryFresh(summary.asOf, now) ||
         summary.currency !== POKETRACE_CURRENCY ||
         summary.sevenDayChangePercent === null
       )

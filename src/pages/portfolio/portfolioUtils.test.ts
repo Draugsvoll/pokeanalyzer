@@ -7,6 +7,7 @@ import {
   getPortfolioStats,
   getVisiblePortfolioItems,
   portfolioPriceChange,
+  portfolioComparisonSnapshot,
 } from "./portfolioUtils";
 
 function card(
@@ -43,6 +44,19 @@ function card(
 }
 
 describe("portfolio utilities", () => {
+  test("newly saved search results retain their cached comparison prices without inventing dates", () => {
+    const saved = card("4", "Charizard", 100, 2);
+    saved.pokeTrace.marketPriceSnapshots = { "7d": 80, "30d": 50 };
+    expect(portfolioComparisonSnapshot(saved, "7d")).toEqual({
+      marketPrice: 80,
+      recordedAt: null,
+      sourceUpdatedAt: null,
+    });
+    expect(portfolioPriceChange(saved, "7d")).toBe(25);
+    expect(getPortfolioStats([saved], "30d").changePercent).toBe(100);
+    expect(portfolioComparisonSnapshot(saved, "1d")).toBeNull();
+  });
+
   test("calculates collection value, quantities, most valuable asset, and comparable change", () => {
     const cards = [
       card("4", "Charizard", 100, 2, 80),
