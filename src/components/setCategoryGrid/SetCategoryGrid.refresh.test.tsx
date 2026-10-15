@@ -56,8 +56,9 @@ test("a stalled focus refresh hides weekly rankings, keeps the directory, and pe
       </MemoryRouter>,
     );
   });
-  expect(screen.getByRole("heading", { name: "Weekly gainers" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Weekly losers" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Gainers & Losers" }),
+  ).toBeVisible();
 
   // The six-hour browser cache has expired.
   vi.setSystemTime(new Date("2026-10-13T14:00:00Z"));
@@ -70,10 +71,7 @@ test("a stalled focus refresh hides weekly rankings, keeps the directory, and pe
   });
   expect(fetchMock.mock.calls[1][1]?.signal?.aborted).toBe(true);
   expect(
-    screen.queryByRole("heading", { name: "Weekly gainers" }),
-  ).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole("heading", { name: "Weekly losers" }),
+    screen.queryByRole("heading", { name: "Gainers & Losers" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Open Test Set 1" })).toBeVisible();
 
@@ -81,6 +79,7 @@ test("a stalled focus refresh hides weekly rankings, keeps the directory, and pe
     window.dispatchEvent(new Event("focus"));
   });
   expect(fetchMock).toHaveBeenCalledTimes(3);
-  expect(screen.getByRole("heading", { name: "Weekly gainers" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Weekly losers" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Gainers & Losers" }),
+  ).toBeVisible();
 });

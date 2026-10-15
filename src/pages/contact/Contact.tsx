@@ -13,8 +13,8 @@ export default function Contact() {
         <span className="app-subheader">Support</span>
         <h1>Contact us</h1>
         <p>
-          For account and billing support, card data corrections, general
-          inquiries, or feedback, contact us by email.
+          For account and billing support, general inquiries, or feedback,
+          contact us by email.
         </p>
       </header>
 

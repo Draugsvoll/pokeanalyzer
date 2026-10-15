@@ -123,45 +123,44 @@ test.each(["nan", "invalid date", "counts", "identity"])(
   },
 );
 
-test.each(["Weekly gainers", "Weekly losers"])(
-  "hides/restores %s as every directory control changes",
-  (title) => {
-    render(
-      <MemoryRouter>
-        <SetCategoryGrid />
-      </MemoryRouter>,
-    );
-    const heading = () => screen.queryByRole("heading", { name: title });
-    const group = heading()!.closest("section")!;
-    expect(
-      group.parentElement?.children[title === "Weekly gainers" ? 0 : 1],
-    ).toBe(group);
-    expect(within(group).getAllByRole("button")).toHaveLength(6);
-    expect(within(group).getAllByRole("button")[0]).toHaveAccessibleName(
-      title === "Weekly gainers" ? "Open Gym Challenge" : "Open Base Set",
-    );
+test("hides/restores weekly gainers & losers as every directory control changes", () => {
+  const title = "Gainers & Losers";
+  render(
+    <MemoryRouter>
+      <SetCategoryGrid />
+    </MemoryRouter>,
+  );
+  const heading = () => screen.queryByRole("heading", { name: title });
+  const group = heading()!.closest("section")!;
+  expect(group.parentElement?.children[0]).toBe(group);
+  expect(within(group).getAllByRole("button")).toHaveLength(7);
+  expect(within(group).getAllByRole("button")[0]).toHaveAccessibleName(
+    "Open Gym Challenge",
+  );
+  expect(within(group).getAllByRole("button")[6]).toHaveAccessibleName(
+    "Open Base Set",
+  );
 
-    const input = screen.getByRole("combobox", { name: "Set name" });
-    fireEvent.change(input, { target: { value: "Base" } });
-    expect(heading()).toBeNull();
-    fireEvent.change(input, { target: { value: "" } });
-    expect(heading()).not.toBeNull();
+  const input = screen.getByRole("combobox", { name: "Set name" });
+  fireEvent.change(input, { target: { value: "Base" } });
+  expect(heading()).toBeNull();
+  fireEvent.change(input, { target: { value: "" } });
+  expect(heading()).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
-    fireEvent.click(screen.getByRole("option", { name: "Base" }));
-    expect(heading()).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
-    fireEvent.click(screen.getByRole("option", { name: "All Eras" }));
-    expect(heading()).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
+  fireEvent.click(screen.getByRole("option", { name: "Base" }));
+  expect(heading()).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Filter sets by era" }));
+  fireEvent.click(screen.getByRole("option", { name: "All Eras" }));
+  expect(heading()).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
-    fireEvent.click(screen.getByRole("option", { name: "Oldest" }));
-    expect(heading()).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
-    fireEvent.click(screen.getByRole("option", { name: "Newest" }));
-    expect(heading()).not.toBeNull();
-  },
-);
+  fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
+  fireEvent.click(screen.getByRole("option", { name: "Oldest" }));
+  expect(heading()).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Sort set directory" }));
+  fireEvent.click(screen.getByRole("option", { name: "Newest" }));
+  expect(heading()).not.toBeNull();
+});
 
 test.each([
   [
@@ -197,6 +196,8 @@ test("unavailable summaries leave the regular directory visible without a gainer
       <SetCategoryGrid />
     </MemoryRouter>,
   );
-  expect(screen.queryByRole("heading", { name: "Weekly gainers" })).toBeNull();
+  expect(
+    screen.queryByRole("heading", { name: "Gainers & Losers" }),
+  ).toBeNull();
   expect(screen.getByRole("button", { name: "Open Base Set" })).toBeVisible();
 });

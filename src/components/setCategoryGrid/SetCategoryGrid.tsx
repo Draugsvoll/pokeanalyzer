@@ -473,8 +473,10 @@ export function SetCategoryGrid() {
     const rankings = selectWeeklyMovers(setDirectoryOptions);
     if (!rankings) return [];
     return [
-      { title: "Weekly gainers", options: rankings.gainers },
-      { title: "Weekly losers", options: rankings.losers },
+      {
+        title: "Gainers & Losers",
+        options: [...new Set([...rankings.gainers, ...rankings.losers])],
+      },
     ];
   }, [inputValue, eraFilter, directorySort, setDirectoryOptions]);
 
