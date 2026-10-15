@@ -14,7 +14,7 @@
   }
 
   .welcome-view + &__features {
-    margin-top: var(--space-6);
+    margin-top: var(--space-7);
   }
 
   .welcome-view + .card-category-grid {
@@ -34,10 +34,6 @@
   }
 
   @media (max-width: 40rem) {
-    .welcome-view + .homepage__features {
-      margin-top: var(--space-7);
-    }
-
     .welcome-view + .card-category-grid {
       margin-top: var(--space-7);
     }

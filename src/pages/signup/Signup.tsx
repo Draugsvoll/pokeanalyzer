@@ -169,7 +169,7 @@ export default function SignUpForm() {
         <header className="auth-card__header">
           <span className="auth-card__eyebrow">New collector</span>
           <h1 id="signup-title">Create account</h1>
-          <p>Create an account and start building your collection.</p>
+          <p>Start building your collection.</p>
         </header>
 
         <div className="auth-card__google">

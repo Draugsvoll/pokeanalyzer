@@ -237,6 +237,7 @@
 }
 
 .header__credits {
+  margin-right: var(--space-2);
   align-items: center;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -278,10 +279,14 @@
 }
 
 .header__avatar-link {
+  background: transparent;
+  border: 0;
   border-radius: 50%;
+  cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
   line-height: 0;
+  padding: 0;
   text-decoration: none;
 
   &:hover .avatar-initials {
@@ -291,6 +296,78 @@
       0 0 0 3px color-mix(in srgb, var(--blue) 12%, transparent),
       0 0 0 6px color-mix(in srgb, var(--blue) 5%, transparent);
     color: color-mix(in srgb, var(--blue) 38%, white);
+  }
+}
+
+.header__account {
+  position: relative;
+}
+
+.header__account-dropdown {
+  padding-top: var(--space-3);
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 12rem;
+  z-index: 1;
+}
+
+.header__account-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--border-radius-control);
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.3);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-1);
+
+  a,
+  button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--font-color-secondary);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: var(--font-size-nav);
+    font-weight: var(--font-weight-medium);
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+      min-height: 2.25rem;
+      padding-block: var(--space-1);
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: var(--bg-nav-active);
+      color: var(--font-color-primary);
+    }
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.6;
+    }
+
+    &.header__logout {
+      color: color-mix(in srgb, var(--red) 74%, white);
+
+      &:hover,
+      &:focus-visible {
+        background: color-mix(in srgb, var(--red) 13%, transparent);
+      }
+    }
+  }
+
+  p {
+    color: var(--font-color-secondary);
+    font-size: var(--font-size-caption);
+    padding: var(--space-2) var(--space-3);
   }
 }
 

@@ -153,17 +153,16 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
           </Button>
         </form>
 
-        {error && (
-          <p className="auth-notice auth-notice--error" role="alert">
-            {error}
-          </p>
-        )}
-
         <div className="login-modal__close">
           <Button fill="ghost" size="large" fullWidth onClick={onClose}>
             Close
           </Button>
         </div>
+        {error && (
+          <p className="auth-notice auth-notice--error" role="alert">
+            {error}
+          </p>
+        )}
         <p className="login-modal__signup">
           New here?{" "}
           <Link to="/signup" onClick={onClose}>

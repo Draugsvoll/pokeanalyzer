@@ -10,6 +10,7 @@ import { db } from "../../firebase";
 import { useInitials } from "../../hooks/useInitials";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
 import { BrandMark } from "../brand/BrandMark";
+import { AccountDropdown } from "./AccountDropdown";
 
 function formatAccountName(value?: string | null) {
   const name = value?.trim();
@@ -158,16 +159,11 @@ export const Header: React.FC = () => {
                 <span className="header__credits-dot" aria-hidden="true" />
                 <span>{creditsRemaining} credits</span>
               </Link>
-              <Link
-                to="/profile"
-                className="header__avatar-link"
-                aria-label={accountLabel}
-                title={accountLabel}
-              >
-                <span className="avatar-initials header__avatar">
-                  {accountInitial}
-                </span>
-              </Link>
+              <AccountDropdown
+                key={`${user.uid}:${location.key}`}
+                initial={accountInitial}
+                label={accountLabel}
+              />
             </>
           ) : (
             <div className="header__guest-actions">
