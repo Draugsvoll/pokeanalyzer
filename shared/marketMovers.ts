@@ -48,10 +48,13 @@ export type MarketMoverItem = {
   variant: string | null;
 };
 
+export type MarketCategoryStatus = "insufficient_history" | "ready";
+
 export type MarketMoversResponse = {
   fetchedAt: string;
   items: MarketMoverItem[];
   periodDays?: number;
   query: MarketMoversQuery;
   stale: boolean;
+  status?: MarketCategoryStatus;
 };

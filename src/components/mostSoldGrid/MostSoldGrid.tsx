@@ -55,12 +55,16 @@ function toGridItem(
       : response.condition.toLowerCase().replaceAll("_", " ");
   const displayedPriceCondition =
     response.condition === "ALL" ? "NEAR_MINT" : response.condition;
+  const periodLabel =
+    response.comparisonSnapshotDate && response.currentSnapshotDate
+      ? `from ${response.comparisonSnapshotDate} to ${response.currentSnapshotDate}`
+      : `over ${response.periodDays} ${response.periodDays === 1 ? "day" : "days"}`;
   return {
     card,
     marketDisplay: {
       condition: displayedPriceCondition,
       price: item.currentPrice,
-      priceLabel: `${salesLabel} on ${market} across ${condition} during the last ${response.periodDays} ${response.periodDays === 1 ? "day" : "days"}`,
+      priceLabel: `${salesLabel} on ${market} across ${condition} ${periodLabel}`,
       source: response.source,
     },
   };
@@ -73,6 +77,7 @@ export function MostSoldGrid({
 }: MostSoldGridProps = {}) {
   const [result, setResult] = useState<{
     error: string | null;
+    status?: MostSoldResponse["status"];
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
@@ -85,6 +90,7 @@ export function MostSoldGrid({
         if (controller.signal.aborted) return;
         setResult({
           error: null,
+          status: response.status,
           items: response.items.map((item) => toGridItem(item, response)),
           loading: false,
         });
@@ -109,7 +115,11 @@ export function MostSoldGrid({
   return (
     <CardCategoryGrid
       minimized={minimized}
-      emptyMessage="No recent sales data is available yet."
+      emptyMessage={
+        result.status === "insufficient_history"
+          ? "This ranking is temporarily unavailable. Please check back later."
+          : "No cards currently meet the sales trend criteria."
+      }
       error={result.error}
       items={result.items}
       loading={result.loading}

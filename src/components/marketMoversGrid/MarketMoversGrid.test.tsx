@@ -4,11 +4,13 @@ import { MarketMoversGrid } from "./MarketMoversGrid";
 
 vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   CardCategoryGrid: ({
+    emptyMessage,
     error,
     items,
     loading,
     onRetry,
   }: {
+    emptyMessage?: string;
     error?: string | null;
     items: Array<{
       card: {
@@ -27,7 +29,8 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
     onRetry?: () => void;
   }) => (
     <div aria-label="Mover grid" data-loading={loading}>
-      {error && <span>{error}</span>}
+      {error && <span role="alert">{error}</span>}
+      {!loading && !error && items.length === 0 && <span>{emptyMessage}</span>}
       {onRetry && <button onClick={onRetry}>Try again</button>}
       {items.map((item) => (
         <span
@@ -164,4 +167,26 @@ test("retries a failed market request", async () => {
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
   );
+});
+
+test("shows missing price history without treating it as a failed request", async () => {
+  const loadMovers = vi.fn().mockResolvedValue({
+    fetchedAt: "2026-09-20T12:00:00.000Z",
+    items: [],
+    periodDays: 1,
+    query: {},
+    stale: false,
+    status: "insufficient_history",
+  });
+
+  render(<MarketMoversGrid loadMovers={loadMovers} title="Category" />);
+
+  expect(
+    await screen.findByText(
+      "This ranking is temporarily unavailable. Please check back later.",
+    ),
+  ).toBeVisible();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(loadMovers).toHaveBeenCalledTimes(1);
 });

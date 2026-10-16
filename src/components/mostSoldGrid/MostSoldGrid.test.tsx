@@ -4,7 +4,7 @@ import { MostSoldGrid } from "./MostSoldGrid";
 
 vi.mock("../../services/marketCategoriesApi", () => ({
   mostSoldCards: vi.fn().mockResolvedValue({
-    comparisonSnapshotDate: "2026-09-21",
+    comparisonSnapshotDate: "2026-09-18",
     condition: "ALL",
     currentSnapshotDate: "2026-09-22",
     fetchedAt: "2026-09-22T12:00:00.000Z",
@@ -24,18 +24,21 @@ vi.mock("../../services/marketCategoriesApi", () => ({
         variant: "Holofoil",
       },
     ],
-    periodDays: 1,
+    periodDays: 4,
     source: "tcgplayer",
+    status: "ready",
   }),
 }));
 
 vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
   CardCategoryGrid: ({
+    emptyMessage,
     error,
     items,
     loading,
     onRetry,
   }: {
+    emptyMessage?: string;
     error?: string | null;
     items: Array<{
       card: {
@@ -49,6 +52,7 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
         condition?: string;
         marketLabel?: string;
         price?: number;
+        priceLabel?: string;
         source?: string;
       };
     }>;
@@ -56,10 +60,11 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
     onRetry?: () => void;
   }) => (
     <div aria-label="Most sold grid" data-loading={loading}>
-      {error && <span>{error}</span>}
+      {error && <span role="alert">{error}</span>}
+      {!loading && !error && items.length === 0 && <span>{emptyMessage}</span>}
       {onRetry && <button onClick={onRetry}>Try again</button>}
       {items.map((item) => (
-        <span key={item.card.name}>
+        <span key={item.card.name} title={item.marketDisplay?.priceLabel}>
           {item.card.name} {item.card.set.name} {item.marketDisplay?.price}{" "}
           {item.marketDisplay?.marketLabel} {item.marketDisplay?.condition}{" "}
           {item.marketDisplay?.source}{" "}
@@ -83,6 +88,11 @@ test("renders the current price without a visible sales label", async () => {
     screen.getByText(/Charizard Unknown set 120\s+NEAR_MINT tcgplayer 100/),
   ).toBeVisible();
   expect(screen.queryByText("20 new sales")).toBeNull();
+  expect(
+    screen.getByTitle(
+      "20 new sales on TCGPlayer across all stored conditions from 2026-09-18 to 2026-09-22",
+    ),
+  ).toBeVisible();
 });
 
 test("retries a failed most-sold request", async () => {
@@ -97,6 +107,7 @@ test("retries a failed most-sold request", async () => {
       items: [],
       periodDays: 1,
       source: "tcgplayer",
+      status: "ready",
     });
 
   render(<MostSoldGrid loadCards={loadCards} />);
@@ -107,4 +118,30 @@ test("retries a failed most-sold request", async () => {
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
   );
+});
+
+test.each([
+  [
+    "insufficient_history",
+    "This ranking is temporarily unavailable. Please check back later.",
+  ],
+  ["ready", "No cards currently meet the sales trend criteria."],
+])("shows %s as an empty state without retry", async (status, message) => {
+  const loadCards = vi.fn().mockResolvedValue({
+    comparisonSnapshotDate: null,
+    condition: "ALL",
+    currentSnapshotDate: null,
+    fetchedAt: "2026-09-22T12:00:00.000Z",
+    items: [],
+    periodDays: 1,
+    source: "tcgplayer",
+    status,
+  });
+
+  render(<MostSoldGrid loadCards={loadCards} />);
+
+  expect(await screen.findByText(message)).toBeVisible();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(loadCards).toHaveBeenCalledTimes(1);
 });

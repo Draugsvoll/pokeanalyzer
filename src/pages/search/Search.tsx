@@ -17,11 +17,11 @@ export default function Search({
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName initialProductType={initialProductType} />
-      <MostSoldGrid minimized title="TCG Most Sold Daily" />
+      <MostSoldGrid minimized title="TCG Most Sold" />
       <MostSoldGrid
         minimized
         loadCards={mostSoldEbayCards}
-        title="eBay Most Sold Daily"
+        title="eBay Most Sold"
       />
       <MarketMoversGrid
         minimized

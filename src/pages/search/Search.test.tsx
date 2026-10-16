@@ -29,7 +29,7 @@ test("uses the shared search experience without replacing market sections", () =
   );
 
   expect(screen.getByText("Shared singles search")).toBeInTheDocument();
-  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
+  expect(screen.getByText("TCG Most Sold")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 
@@ -41,7 +41,7 @@ test("keeps market sections visible when initialized in sealed mode", () => {
   );
 
   expect(screen.getByText("Shared sealed search")).toBeInTheDocument();
-  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
+  expect(screen.getByText("TCG Most Sold")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Losers")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });

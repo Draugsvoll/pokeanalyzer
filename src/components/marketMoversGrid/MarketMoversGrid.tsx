@@ -134,6 +134,7 @@ export function MarketMoversGrid({
 }: MarketMoversGridProps) {
   const [result, setResult] = useState<{
     error: string | null;
+    status?: MarketMoversResponse["status"];
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
@@ -154,6 +155,7 @@ export function MarketMoversGrid({
         const changePeriod = resolveChangePeriod(response.periodDays);
         setResult({
           error: null,
+          status: response.status,
           items: response.items.map((item) =>
             toGridItem(item, changePeriod, changeLabel, showMarketLabel),
           ),
@@ -181,7 +183,11 @@ export function MarketMoversGrid({
   return (
     <CardCategoryGrid
       minimized={minimized}
-      emptyMessage={emptyMessage}
+      emptyMessage={
+        result.status === "insufficient_history"
+          ? "This ranking is temporarily unavailable. Please check back later."
+          : emptyMessage
+      }
       error={result.error}
       items={result.items}
       loading={result.loading}

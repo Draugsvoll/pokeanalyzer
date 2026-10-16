@@ -8,6 +8,21 @@ import {
   mostSoldEbayCards,
 } from "./marketCategoriesApi";
 
+test("keeps the cached 1d price label independent of the sales snapshot interval", async () => {
+  const response = structuredClone(payload);
+  Object.assign(response.categories[0], {
+    currentSnapshotDate: "2026-09-22",
+    comparisonSnapshotDate: "2026-09-20",
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: true, json: async () => response }),
+  );
+  const result = await dailyTcgNearMintGainers();
+  expect(result.periodDays).toBe(1);
+  expect(result.items[0]?.changePct).toBe(20);
+});
+
 afterEach(() => {
   clearMarketCategoriesCache();
   localStorage.clear();
@@ -21,6 +36,7 @@ const payload = {
   categories: [
     {
       id: "daily-tcg-near-mint-gainers",
+      status: "ready",
       items: [
         {
           cardId: "card-1",
@@ -44,6 +60,7 @@ const payload = {
     },
     {
       id: "daily-tcg-near-mint-losers",
+      status: "ready",
       items: [
         {
           cardId: "card-4",
@@ -69,6 +86,7 @@ const payload = {
       comparisonSnapshotDate: "2026-09-21",
       currentSnapshotDate: "2026-09-22",
       id: "most-sold",
+      status: "ready",
       items: [
         {
           cardId: "card-2",
@@ -98,6 +116,7 @@ const payload = {
       comparisonSnapshotDate: "2026-09-21",
       currentSnapshotDate: "2026-09-22",
       id: "most-sold-ebay",
+      status: "ready",
       items: [
         {
           cardId: "card-3",
@@ -125,6 +144,23 @@ const payload = {
   ],
 };
 
+function withInsufficientHistory(categoryId = "most-sold") {
+  return {
+    ...payload,
+    categories: payload.categories.map((category) =>
+      category.id === categoryId
+        ? {
+            ...category,
+            comparisonSnapshotDate: null,
+            currentSnapshotDate: null,
+            items: [],
+            status: "insufficient_history",
+          }
+        : category,
+    ),
+  };
+}
+
 test("loads and maps a generated market category", async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
   vi.stubGlobal("fetch", fetchMock);
@@ -137,6 +173,7 @@ test("loads and maps a generated market category", async () => {
   );
   expect(result.fetchedAt).toBe(payload.generatedAt);
   expect(result.periodDays).toBe(1);
+  expect(result.status).toBe("ready");
   expect(result.items[0]).toMatchObject({
     cardId: "card-1",
     changeAbs: 20,
@@ -188,29 +225,32 @@ test("loads the most-sold category with its configured source", async () => {
 });
 
 test("accepts a most-sold category before snapshots are available", async () => {
-  const withoutHistory = {
-    ...payload,
-    categories: payload.categories.map((category) =>
-      category.id === "most-sold"
-        ? {
-            ...category,
-            comparisonSnapshotDate: null,
-            currentSnapshotDate: null,
-            items: [],
-            status: "insufficient_history",
-          }
-        : category,
-    ),
-  };
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(Response.json(withoutHistory)),
+    vi.fn().mockResolvedValue(Response.json(withInsufficientHistory())),
   );
 
   const result = await mostSoldCards();
 
   expect(result.currentSnapshotDate).toBeNull();
   expect(result.comparisonSnapshotDate).toBeNull();
+  expect(result.items).toEqual([]);
+  expect(result.status).toBe("insufficient_history");
+});
+
+test("preserves insufficient-history status for price movers", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        Response.json(withInsufficientHistory("daily-tcg-near-mint-gainers")),
+      ),
+  );
+
+  const result = await dailyTcgNearMintGainers();
+
+  expect(result.status).toBe("insufficient_history");
   expect(result.items).toEqual([]);
 });
 
@@ -293,6 +333,84 @@ test("falls back to the server when the browser cache is corrupt", async () => {
 
   expect(result.items[0]?.name).toBe("Charizard");
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("rechecks insufficient history after a reload while sharing the current page response", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json(withInsufficientHistory()))
+    .mockResolvedValueOnce(Response.json(payload));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const results = await Promise.all([mostSoldCards(), mostSoldEbayCards()]);
+  expect(results[0].status).toBe("insufficient_history");
+  await dailyTcgNearMintGainers();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).toBeNull();
+
+  // Reloading resets module memory but preserves localStorage.
+  vi.resetModules();
+  const reloadedApi = await import("./marketCategoriesApi");
+  const result = await reloadedApi.mostSoldCards();
+
+  expect(result.status).toBe("ready");
+  expect(result.items[0]?.name).toBe("Pikachu");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).not.toBeNull();
+  reloadedApi.clearMarketCategoriesCache();
+});
+
+test("discards previously persisted incomplete history even within its cache TTL", async () => {
+  localStorage.setItem(
+    "pokelyzer:market-categories:v1",
+    JSON.stringify({
+      cachedAt: Date.now(),
+      payload: withInsufficientHistory(),
+    }),
+  );
+  const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const result = await mostSoldCards();
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(result.status).toBe("ready");
+});
+
+test("removes the previous persistent cache when new results lack history", async () => {
+  vi.useFakeTimers();
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json(payload))
+    .mockResolvedValueOnce(Response.json(withInsufficientHistory()));
+  vi.stubGlobal("fetch", fetchMock);
+  await mostSoldCards();
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).not.toBeNull();
+
+  vi.advanceTimersByTime(24 * 60 * 60 * 1_000);
+  await mostSoldCards();
+
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).toBeNull();
+});
+
+test("keeps the normal cache for sufficient history with no qualifying cards", async () => {
+  const emptyPayload = {
+    ...payload,
+    categories: payload.categories.map((category) => ({
+      ...category,
+      items: [],
+    })),
+  };
+  const fetchMock = vi.fn().mockResolvedValue(Response.json(emptyPayload));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const result = await mostSoldCards();
+  await mostSoldEbayCards();
+
+  expect(result.status).toBe("ready");
+  expect(result.items).toEqual([]);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(localStorage.getItem("pokelyzer:market-categories:v1")).not.toBeNull();
 });
 
 test("shares one server request across categories", async () => {

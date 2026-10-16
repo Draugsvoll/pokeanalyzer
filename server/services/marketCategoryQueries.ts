@@ -29,6 +29,7 @@ export type PriceMoversOptions = {
   periodDays: number;
   sortBy: PriceMoversSort;
   source: MarketSource;
+  useCachedOneDayComparison: boolean;
 };
 
 export type PriceMover = {
@@ -63,7 +64,7 @@ export type MostSoldOptions = {
   minimumNewSales: number;
   minimumPrice: number;
   periodDays: number;
-  requireThreeDayIncrease: boolean;
+  requireThreeSnapshotIncrease: boolean;
   source: MarketSource;
 };
 
@@ -118,6 +119,7 @@ const DEFAULT_OPTIONS: PriceMoversOptions = {
   periodDays: 1,
   sortBy: "percentage",
   source: "tcgplayer",
+  useCachedOneDayComparison: false,
 };
 
 const DEFAULT_MOST_SOLD_OPTIONS: MostSoldOptions = {
@@ -126,9 +128,12 @@ const DEFAULT_MOST_SOLD_OPTIONS: MostSoldOptions = {
   minimumNewSales: 1,
   minimumPrice: 0,
   periodDays: 1,
-  requireThreeDayIncrease: false,
+  requireThreeSnapshotIncrease: false,
   source: "tcgplayer",
 };
+
+const MOST_SOLD_MAX_SNAPSHOT_AGE_DAYS = 10;
+const PRICE_MOVER_MAX_SALES_AGE_DAYS = 6;
 
 function finiteNumber(value: unknown, label: string, minimum: number) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < minimum) {
@@ -174,6 +179,19 @@ export function normalizePriceMoversOptions(
   if (!(["absolute", "percentage"] as const).includes(merged.sortBy)) {
     throw new Error(`Unsupported movers sort: ${String(merged.sortBy)}`);
   }
+  if (typeof merged.useCachedOneDayComparison !== "boolean") {
+    throw new Error("useCachedOneDayComparison must be a boolean");
+  }
+  if (
+    merged.useCachedOneDayComparison &&
+    (merged.source !== "tcgplayer" ||
+      merged.condition !== "NEAR_MINT" ||
+      merged.periodDays !== 1)
+  ) {
+    throw new Error(
+      "Cached 1d comparisons require TCGPlayer Near Mint and periodDays=1",
+    );
+  }
   return {
     condition: merged.condition,
     direction: merged.direction,
@@ -195,6 +213,7 @@ export function normalizePriceMoversOptions(
     periodDays: integer(merged.periodDays, "periodDays", 1, 365),
     sortBy: merged.sortBy,
     source: merged.source,
+    useCachedOneDayComparison: merged.useCachedOneDayComparison,
   };
 }
 
@@ -210,8 +229,8 @@ export function normalizeMostSoldOptions(
       `Unsupported most-sold condition: ${String(merged.condition)}`,
     );
   }
-  if (typeof merged.requireThreeDayIncrease !== "boolean") {
-    throw new Error("requireThreeDayIncrease must be a boolean");
+  if (typeof merged.requireThreeSnapshotIncrease !== "boolean") {
+    throw new Error("requireThreeSnapshotIncrease must be a boolean");
   }
   return {
     condition: merged.condition,
@@ -223,10 +242,8 @@ export function normalizeMostSoldOptions(
       1_000_000,
     ),
     minimumPrice: finiteNumber(merged.minimumPrice, "minimumPrice", 0),
-    periodDays: merged.requireThreeDayIncrease
-      ? 3
-      : integer(merged.periodDays, "periodDays", 1, 365),
-    requireThreeDayIncrease: merged.requireThreeDayIncrease,
+    periodDays: integer(merged.periodDays, "periodDays", 1, 365),
+    requireThreeSnapshotIncrease: merged.requireThreeSnapshotIncrease,
     source: merged.source,
   };
 }
@@ -290,6 +307,25 @@ async function snapshotDateExists(
 
 type MarketSnapshotSourceColumn = "ebay" | "tcg";
 
+async function recentMarketSnapshotDates(
+  database: Pick<Client, "execute">,
+  sourceColumn: MarketSnapshotSourceColumn,
+  count: 2 | 3,
+  maxAgeDays: number,
+) {
+  const today = new Date().toISOString().slice(0, 10);
+  const result = await database.execute({
+    sql: `SELECT DISTINCT recorded_at
+          FROM poketrace_market_snapshots
+          WHERE recorded_at BETWEEN ? AND ?
+            AND ${sourceColumn} IS NOT NULL
+          ORDER BY recorded_at DESC
+          LIMIT ?`,
+    args: [dateDaysBefore(today, maxAgeDays), today, count],
+  });
+  return result.rows.map((row) => String(row.recorded_at));
+}
+
 async function latestMarketSnapshotDate(
   database: Pick<Client, "execute">,
   sourceColumn: MarketSnapshotSourceColumn,
@@ -341,10 +377,26 @@ function movementOrder(
 function dedicatedNearMintQuery(
   direction: PriceMoverDirection,
   sortBy: PriceMoversSort,
+  useCachedOneDayComparison = false,
 ) {
   const movement = movementFilter(direction);
   const order = movementOrder(direction, sortBy);
   return `
+    ${
+      useCachedOneDayComparison
+        ? `WITH cached_prices AS (
+      SELECT id AS card_id,
+        json_extract(raw_json, '$.currency') AS currency,
+        json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS market_price,
+        json_extract(tcg_market_comparisons, '$.comparisons."1d".marketPrice') AS comparison_price,
+        json_extract(tcg_market_comparisons, '$.asOf') AS recorded_at
+      FROM poketrace_cards
+      WHERE json_valid(raw_json) AND json_valid(tcg_market_comparisons)
+        AND json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') IN ('integer', 'real')
+        AND json_type(tcg_market_comparisons, '$.comparisons."1d".marketPrice') IN ('integer', 'real')
+    )`
+        : ""
+    }
     SELECT
       cards.id AS card_id,
       cards.name,
@@ -365,18 +417,28 @@ function dedicatedNearMintQuery(
       CAST(
         json_extract(current_snapshot.tcg, '$.NEAR_MINT.saleCount') AS REAL
       ) AS sale_count
-    FROM poketrace_tcg_market_prices AS current
-    INNER JOIN poketrace_tcg_market_prices AS previous
+    FROM ${useCachedOneDayComparison ? "cached_prices" : "poketrace_tcg_market_prices"} AS current
+    INNER JOIN ${
+      useCachedOneDayComparison
+        ? "(SELECT card_id, comparison_price AS market_price FROM cached_prices)"
+        : "poketrace_tcg_market_prices"
+    } AS previous
       ON previous.card_id = current.card_id
-      AND previous.recorded_at = ?
+      ${useCachedOneDayComparison ? "" : "AND previous.recorded_at = ?"}
     INNER JOIN poketrace_cards AS cards ON cards.id = current.card_id
     LEFT JOIN poketrace_market_snapshots AS current_snapshot
       ON current_snapshot.card_id = current.card_id
       AND current_snapshot.recorded_at = current.recorded_at
     LEFT JOIN poketrace_market_snapshots AS previous_snapshot
       ON previous_snapshot.card_id = previous.card_id
-      AND previous_snapshot.recorded_at = previous.recorded_at
+      AND previous_snapshot.recorded_at = ${useCachedOneDayComparison ? "?" : "previous.recorded_at"}
     WHERE current.recorded_at = ?
+      ${
+        useCachedOneDayComparison
+          ? `AND json_type(current_snapshot.tcg, '$.NEAR_MINT.saleCount') IN ('integer', 'real')
+      AND json_type(previous_snapshot.tcg, '$.NEAR_MINT.saleCount') IN ('integer', 'real')`
+          : ""
+      }
       AND current.market_price >= ?
       AND previous.market_price >= ?
       AND ${movement}
@@ -469,15 +531,32 @@ export async function findPriceMovers(
   const historyTable = useDedicatedHistory
     ? "poketrace_tcg_market_prices"
     : "poketrace_market_snapshots";
-  const currentSnapshotDate = await latestDate(database, historyTable);
-  const comparisonSnapshotDate = currentSnapshotDate
-    ? dateDaysBefore(currentSnapshotDate, parameters.periodDays)
-    : null;
+  let currentSnapshotDate: string | null;
+  let comparisonSnapshotDate: string | null;
+  if (parameters.useCachedOneDayComparison) {
+    [currentSnapshotDate = null, comparisonSnapshotDate = null] =
+      await recentMarketSnapshotDates(
+        database,
+        "tcg",
+        2,
+        PRICE_MOVER_MAX_SALES_AGE_DAYS,
+      );
+  } else {
+    currentSnapshotDate = await latestDate(database, historyTable);
+    comparisonSnapshotDate = currentSnapshotDate
+      ? dateDaysBefore(currentSnapshotDate, parameters.periodDays)
+      : null;
+  }
 
   if (
     !currentSnapshotDate ||
     !comparisonSnapshotDate ||
-    !(await snapshotDateExists(database, historyTable, comparisonSnapshotDate))
+    (!parameters.useCachedOneDayComparison &&
+      !(await snapshotDateExists(
+        database,
+        historyTable,
+        comparisonSnapshotDate,
+      )))
   ) {
     return {
       comparisonSnapshotDate,
@@ -501,7 +580,11 @@ export async function findPriceMovers(
   ];
   const result = useDedicatedHistory
     ? await database.execute({
-        sql: dedicatedNearMintQuery(parameters.direction, parameters.sortBy),
+        sql: dedicatedNearMintQuery(
+          parameters.direction,
+          parameters.sortBy,
+          parameters.useCachedOneDayComparison,
+        ),
         args: [comparisonSnapshotDate, currentSnapshotDate, ...commonArgs],
       })
     : await database.execute({
@@ -573,27 +656,37 @@ export async function findMostSold(
 ): Promise<MostSoldResult> {
   const parameters = normalizeMostSoldOptions(requestedOptions);
   const column = parameters.source === "tcgplayer" ? "tcg" : "ebay";
-  const currentSnapshotDate = await latestMarketSnapshotDate(database, column);
-  const comparisonOffset = parameters.requireThreeDayIncrease
-    ? 2
-    : parameters.periodDays;
-  const comparisonSnapshotDate = currentSnapshotDate
-    ? dateDaysBefore(currentSnapshotDate, comparisonOffset)
-    : null;
-  const middleSnapshotDate =
-    currentSnapshotDate && parameters.requireThreeDayIncrease
-      ? dateDaysBefore(currentSnapshotDate, 1)
+  let currentSnapshotDate: string | null;
+  let comparisonSnapshotDate: string | null;
+  let middleSnapshotDate: string | null = null;
+
+  if (parameters.requireThreeSnapshotIncrease) {
+    [
+      currentSnapshotDate = null,
+      middleSnapshotDate = null,
+      comparisonSnapshotDate = null,
+    ] = await recentMarketSnapshotDates(
+      database,
+      column,
+      3,
+      MOST_SOLD_MAX_SNAPSHOT_AGE_DAYS,
+    );
+  } else {
+    currentSnapshotDate = await latestMarketSnapshotDate(database, column);
+    comparisonSnapshotDate = currentSnapshotDate
+      ? dateDaysBefore(currentSnapshotDate, parameters.periodDays)
       : null;
+  }
+
   if (
     !currentSnapshotDate ||
     !comparisonSnapshotDate ||
-    !(await marketSnapshotDateExists(
-      database,
-      column,
-      comparisonSnapshotDate,
-    )) ||
-    (middleSnapshotDate !== null &&
-      !(await marketSnapshotDateExists(database, column, middleSnapshotDate)))
+    (!parameters.requireThreeSnapshotIncrease &&
+      !(await marketSnapshotDateExists(
+        database,
+        column,
+        comparisonSnapshotDate,
+      )))
   ) {
     return {
       comparisonSnapshotDate,
@@ -604,11 +697,17 @@ export async function findMostSold(
     };
   }
 
+  if (parameters.requireThreeSnapshotIncrease) {
+    parameters.periodDays =
+      (Date.parse(currentSnapshotDate) - Date.parse(comparisonSnapshotDate)) /
+      86_400_000;
+  }
+
   const conditions =
     parameters.condition === "ALL" ? MARKET_CONDITIONS : [parameters.condition];
   const priceCondition =
     parameters.condition === "ALL" ? "NEAR_MINT" : parameters.condition;
-  const requiredSnapshots = parameters.requireThreeDayIncrease
+  const requiredSnapshots = parameters.requireThreeSnapshotIncrease
     ? (["current", "middle", "previous"] as const)
     : (["current", "previous"] as const);
   const sales = newSalesExpression(column, conditions, requiredSnapshots);
@@ -617,7 +716,7 @@ export async function findMostSold(
           ON middle.card_id = current.card_id
           AND middle.recorded_at = ?`
     : "";
-  const dailyIncreaseFilter = middleSnapshotDate
+  const snapshotIncreaseFilter = middleSnapshotDate
     ? `AND (${sales.middle}) > (${sales.previous})
         AND (${sales.current}) > (${sales.middle})`
     : "";
@@ -638,7 +737,7 @@ export async function findMostSold(
           AND previous.recorded_at = ?
         ${middleJoin}
         WHERE current.recorded_at = ?
-        ${dailyIncreaseFilter}
+        ${snapshotIncreaseFilter}
       )
       SELECT
         cards.id AS card_id,

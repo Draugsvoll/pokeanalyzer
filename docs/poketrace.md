@@ -107,17 +107,41 @@ in the PokeTrace database. Price-mover categories support a direction, source,
 condition, comparison period, minimum price movement, minimum current sales,
 minimum new sales, result limit, and percentage or absolute sorting.
 
+The configured daily TCG gainers and losers use `useCachedOneDayComparison` to
+rank the existing cached Near Mint 1d percentage changes. Both prices must be
+at least $20. Cards must have at least 200 Near Mint sales in the latest sales
+snapshot and an increase of at least 2 from the previous snapshot. These are
+the two newest distinct TCG snapshot dates within the last 6 UTC calendar days
+(inclusive of the date 6 days ago); future dates are excluded. Both snapshots
+must contain numeric Near Mint counts for the card, and its cached comparison
+must be current as of the latest selected snapshot. The top 12 positive changes
+are gainers; the top 12 negative changes are losers. Other conditions do not
+contribute to eligibility. Fewer than two qualifying snapshot dates produces
+`insufficient_history`; no matching cards produces a ready, empty category.
+The returned snapshot dates describe the sales qualification interval; the
+price change remains the cached 1d comparison. Generic fixed-period queries
+are unchanged when `useCachedOneDayComparison` is false.
+
 The `mostSold` query compares the combined `saleCount` totals across the selected
 conditions for one source and period. A negative combined difference becomes
 zero. These are changes in upstream reported sales-window counts, not locally
 calculated lifetime sales. The configured TCGPlayer and eBay best-seller feeds
-use the latest three consecutive daily snapshots, require the combined total to
-increase on both day-to-day transitions, and rank by the increase from the
-oldest snapshot to the newest.
+use the latest three distinct snapshot dates available for each source, require
+the combined total to increase between each snapshot, and rank by the increase
+from the oldest snapshot to the newest. All three dates must be within the last
+10 UTC calendar days (inclusive of the date 10 days ago); future dates are
+excluded. Fewer than three qualifying dates produces `insufficient_history`.
+Every ranked card must have comparable sales counts on all three selected dates.
+The returned comparison dates and period reflect the actual interval, and the
+frontend shows those dates in the sales tooltip instead of calling it daily.
 
 The backend serves the stored payload from `GET /api/market-categories`.
 Homepage and Explore cache the complete response in browser storage for 24
-hours; missing, expired, or invalid cached data is fetched from the server. Run
+hours when every category has sufficient history. Incomplete history is shown
+as an empty state without a retry button and is kept only in memory for the
+current page visit, so reloading fetches the saved server results again. Old
+browser caches containing insufficient history are also discarded. Missing,
+expired, or invalid cached data is fetched from the server. Run
 the generator manually or assign its npm command to a separate cron schedule. It
 is intentionally not invoked by the daily price refresh.
 

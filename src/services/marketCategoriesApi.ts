@@ -1,4 +1,5 @@
 import type {
+  MarketCategoryStatus,
   MarketMoverItem,
   MarketMoversResponse,
 } from "../../shared/marketMovers";
@@ -11,7 +12,7 @@ const MARKET_CATEGORIES_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 type JsonRecord = Record<string, unknown>;
 
 type MarketCategoriesPayload = {
-  categories: JsonRecord[];
+  categories: (JsonRecord & { status: MarketCategoryStatus })[];
   generatedAt: string;
   schemaVersion: 1;
 };
@@ -50,6 +51,7 @@ export type MostSoldResponse = {
   items: MostSoldItem[];
   periodDays: number;
   source: "ebay" | "tcgplayer";
+  status: MarketCategoryStatus;
 };
 
 let memoryCache: CachedMarketCategories | null = null;
@@ -66,7 +68,12 @@ function parsePayload(value: unknown): MarketCategoriesPayload {
     typeof value.generatedAt !== "string" ||
     !Number.isFinite(Date.parse(value.generatedAt)) ||
     !Array.isArray(value.categories) ||
-    !value.categories.every(isRecord)
+    !value.categories.every(
+      (category) =>
+        isRecord(category) &&
+        (category.status === "ready" ||
+          category.status === "insufficient_history"),
+    )
   ) {
     throw new Error("Invalid market categories response");
   }
@@ -191,6 +198,7 @@ function parseCategory(
       market: "US",
     },
     stale: false,
+    status: category.status,
   };
 }
 
@@ -253,7 +261,14 @@ function parseMostSoldCategory(
     }),
     periodDays,
     source,
+    status: category.status,
   };
+}
+
+function hasInsufficientHistory(payload: MarketCategoriesPayload) {
+  return payload.categories.some(
+    (category) => category.status === "insufficient_history",
+  );
 }
 
 function isFresh(cache: CachedMarketCategories) {
@@ -279,7 +294,7 @@ function readFreshBrowserCache(): MarketCategoriesPayload | null {
       cachedAt: value.cachedAt,
       payload: parsePayload(value.payload),
     };
-    if (!isFresh(cache)) {
+    if (!isFresh(cache) || hasInsufficientHistory(cache.payload)) {
       clearMarketCategoriesCache();
       return null;
     }
@@ -295,7 +310,12 @@ function cachePayload(payload: MarketCategoriesPayload) {
   const cache = { cachedAt: Date.now(), payload };
   memoryCache = cache;
   try {
-    localStorage.setItem(MARKET_CATEGORIES_CACHE_KEY, JSON.stringify(cache));
+    if (hasInsufficientHistory(payload)) {
+      // Share this response during the page visit, but recheck after a reload.
+      localStorage.removeItem(MARKET_CATEGORIES_CACHE_KEY);
+    } else {
+      localStorage.setItem(MARKET_CATEGORIES_CACHE_KEY, JSON.stringify(cache));
+    }
   } catch {
     // The in-memory cache still prevents duplicate requests for this page load.
   }
