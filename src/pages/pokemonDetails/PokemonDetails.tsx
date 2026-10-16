@@ -751,7 +751,7 @@ function PokemonDetailsForCard() {
       notice={
         isDemo ? (
           <aside className="card-view__demo-disclaimer" role="note">
-            Demo - prices and analyses are not live data.
+            Demo - Prices and analyses are not live data.
           </aside>
         ) : undefined
       }

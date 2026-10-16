@@ -25,6 +25,7 @@ export type EbayCompField = {
 
 export type EbayCompResult = {
   thumbnailUrl: string | null;
+  fullResThumbnailUrl: string | null;
   fields: EbayCompField[];
 };
 
@@ -71,6 +72,11 @@ export function getVisibleEbayCompResults(
       return {
         thumbnailUrl:
           typeof result.thumbnailUrl === "string" ? result.thumbnailUrl : null,
+        fullResThumbnailUrl:
+          typeof result.fullResThumbnailUrl === "string" &&
+          /^https?:\/\//i.test(result.fullResThumbnailUrl)
+            ? result.fullResThumbnailUrl
+            : null,
         fields: Object.entries(result)
           .filter(
             ([key]) =>

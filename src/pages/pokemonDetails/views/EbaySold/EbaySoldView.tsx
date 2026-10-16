@@ -22,6 +22,7 @@ import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { FilterInput } from "../../../../components/filterInput/FilterInput";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
+import { EbayImagePreview } from "./EbayImagePreview";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const RESULTS_BATCH_SIZE = 25;
@@ -178,13 +179,17 @@ function EbayResultCard({ result, isActive }: EbayResultCardProps) {
   return (
     <article className="ebay-sold-view__result">
       <div className="ebay-sold-view__visual">
-        <div className="ebay-sold-view__media">
-          {result.thumbnailUrl ? (
-            <img src={result.thumbnailUrl} alt={title} />
-          ) : (
+        {result.thumbnailUrl ? (
+          <EbayImagePreview
+            src={result.thumbnailUrl}
+            previewSrc={result.fullResThumbnailUrl ?? undefined}
+            title={title}
+          />
+        ) : (
+          <div className="ebay-sold-view__media">
             <Gavel aria-hidden="true" />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="ebay-sold-view__content">
