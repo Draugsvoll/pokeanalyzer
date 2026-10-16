@@ -149,7 +149,7 @@ export default function SignUpForm() {
     try {
       await signInWithGoogle();
       showNotification("You are now logged in.");
-      navigate("/profile");
+      navigate("/", { replace: true });
     } catch (err: unknown) {
       logClientError("Google sign-in failed", err);
       setError(

@@ -77,6 +77,10 @@ export default function Profile() {
   );
   const canUseMembership =
     subscription?.status === "active" || subscription?.status === "trialing";
+  const displayedPeriodEnd =
+    subscription?.planId !== "free" || membershipCreditsTotal > 0
+      ? subscription?.currentPeriodEnd
+      : undefined;
   const profileInitial = useInitials(
     profile?.firstName?.trim() || profile?.email,
   );
@@ -104,7 +108,7 @@ export default function Profile() {
     );
 
     let label = `Choose ${plan.name}`;
-    if (planIsCurrent) label = "Your plan";
+    if (planIsCurrent) label = "Current plan";
     else if (switchToFreeIsScheduled) {
       label = subscription?.currentPeriodEnd
         ? `Switching ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US")}`
@@ -382,17 +386,19 @@ export default function Profile() {
                   </h3>
                   <p>
                     {subscription
-                      ? `${membershipCreditsTotal} credits every month`
+                      ? membershipCreditsTotal > 0
+                        ? `${membershipCreditsTotal} credits every month`
+                        : "No monthly credits included"
                       : "No active plan found"}
                   </p>
                 </div>
               </div>
-              {(subscription?.currentPeriodEnd ||
+              {(displayedPeriodEnd ||
                 (subscription &&
                   subscription.planId !== "free" &&
                   subscription.stripeSubscriptionId)) && (
                 <div className="profile__period-row">
-                  {subscription?.currentPeriodEnd && (
+                  {displayedPeriodEnd && subscription && (
                     <small className="profile__period">
                       {subscription.planId === "free"
                         ? "Credits renew"
@@ -400,9 +406,9 @@ export default function Profile() {
                           ? "Access until"
                           : "Next billing date"}{" "}
                       <strong>
-                        {new Date(
-                          subscription.currentPeriodEnd,
-                        ).toLocaleDateString("en-US")}
+                        {new Date(displayedPeriodEnd).toLocaleDateString(
+                          "en-US",
+                        )}
                       </strong>
                       {subscription.cancelAtPeriodEnd &&
                         " · Cancellation scheduled"}

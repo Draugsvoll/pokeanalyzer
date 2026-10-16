@@ -26,9 +26,7 @@ test("renders only the membership plan columns", () => {
   expect(screen.getByText("20 AI credits every month")).toBeVisible();
   expect(screen.getByText("$3.99")).toBeVisible();
   expect(
-    screen.getByText(
-      "Explore card insights and AI-powered analysis at no cost.",
-    ),
+    screen.getByText("Explore card details and market prices at no cost."),
   ).toBeVisible();
   expect(screen.getByText("Track 10 cards in portfolio")).toBeVisible();
   expect(document.querySelectorAll(".default-container-inner")).toHaveLength(3);
@@ -56,7 +54,7 @@ test("renders full pricing cards when embedded and delegates plan actions", () =
       currentPlanId="free"
       getPlanAction={(plan) => ({
         disabled: plan.id === "free",
-        label: plan.id === "free" ? "Your plan" : `Choose ${plan.name}`,
+        label: plan.id === "free" ? "Current plan" : `Choose ${plan.name}`,
         onClick: plan.id === "collector" ? chooseCollector : undefined,
       })}
       plans={MEMBERSHIP_PLANS}
@@ -64,8 +62,8 @@ test("renders full pricing cards when embedded and delegates plan actions", () =
     { uid: "user-1" } as User,
   );
 
-  expect(screen.getByRole("button", { name: "Your plan" })).toBeDisabled();
-  expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Current plan" })).toBeDisabled();
+  expect(screen.getAllByText("Current plan")).toHaveLength(1);
   expect(document.querySelector(".pricing-bar__plan--free")).toHaveClass(
     "is-current",
   );

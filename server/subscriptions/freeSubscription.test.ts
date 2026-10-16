@@ -6,22 +6,22 @@ import {
   getFreeSubscriptionRefresh,
 } from "./freeSubscription.js";
 
-test("new free subscriptions receive monthly credits without signup bonus credits", () => {
+test("new free subscriptions receive no membership or signup bonus credits", () => {
   const subscription = buildFreeSubscription(
     new Date("2026-01-15T12:00:00.000Z"),
   );
 
   assert.equal(subscription.bonusCreditsRemaining, 0);
   assert.equal(subscription.bonusCreditsTotal, 0);
-  assert.equal(subscription.membershipCreditsRemaining, 3);
-  assert.equal(subscription.membershipCreditsTotal, 3);
+  assert.equal(subscription.membershipCreditsRemaining, 0);
+  assert.equal(subscription.membershipCreditsTotal, 0);
   assert.equal(
     subscription.currentPeriodEnd?.toDate().toISOString(),
     "2026-02-15T12:00:00.000Z",
   );
 });
 
-test("free credits refresh after the monthly period and keep a stable boundary", () => {
+test("free periods renew without granting credits and keep a stable boundary", () => {
   const subscription = {
     ...buildFreeSubscription(new Date("2026-01-31T12:00:00.000Z")),
     currentPeriodStart: Timestamp.fromDate(
@@ -29,7 +29,7 @@ test("free credits refresh after the monthly period and keep a stable boundary",
     ),
     currentPeriodEnd: Timestamp.fromDate(new Date("2026-02-28T12:00:00.000Z")),
     membershipCreditsRemaining: 0,
-    membershipCreditsUsed: 3,
+    membershipCreditsUsed: 0,
   };
 
   const refresh = getFreeSubscriptionRefresh(
@@ -37,7 +37,8 @@ test("free credits refresh after the monthly period and keep a stable boundary",
     new Date("2026-03-01T00:00:00.000Z"),
   );
 
-  assert.equal(refresh?.membershipCreditsRemaining, 3);
+  assert.equal(refresh?.membershipCreditsRemaining, 0);
+  assert.equal(refresh?.membershipCreditsTotal, 0);
   assert.equal(refresh?.membershipCreditsUsed, 0);
   assert.equal(
     refresh?.currentPeriodStart?.toDate().toISOString(),
@@ -61,7 +62,7 @@ test("legacy free subscriptions are migrated into a monthly period", () => {
     new Date("2026-09-20T10:00:00.000Z"),
   );
 
-  assert.equal(refresh?.membershipCreditsRemaining, 3);
+  assert.equal(refresh?.membershipCreditsRemaining, 0);
   assert.equal(
     refresh?.currentPeriodStart?.toDate().toISOString(),
     "2026-09-20T10:00:00.000Z",
@@ -72,6 +73,48 @@ test("an active free period is left unchanged", () => {
   const subscription = buildFreeSubscription(
     new Date("2026-09-01T00:00:00.000Z"),
   );
+  assert.equal(
+    getFreeSubscriptionRefresh(
+      subscription,
+      new Date("2026-09-20T00:00:00.000Z"),
+    ),
+    null,
+  );
+});
+
+test("existing free allowances are removed without changing extra credits", () => {
+  const current = {
+    ...buildFreeSubscription(new Date("2026-09-01T00:00:00.000Z")),
+    membershipCreditsRemaining: 2,
+    membershipCreditsTotal: 3,
+    membershipCreditsUsed: 1,
+    bonusCreditsRemaining: 18,
+    bonusCreditsTotal: 20,
+    bonusCreditsUsed: 2,
+  };
+  const refresh = getFreeSubscriptionRefresh(
+    current,
+    new Date("2026-09-20T00:00:00.000Z"),
+  );
+  assert.ok(refresh);
+  const updated = { ...current, ...refresh };
+  assert.equal(updated.membershipCreditsRemaining, 0);
+  assert.equal(updated.membershipCreditsTotal, 0);
+  assert.equal(updated.membershipCreditsUsed, 0);
+  assert.equal(updated.bonusCreditsRemaining, 18);
+  assert.equal(updated.bonusCreditsTotal, 20);
+  assert.equal(updated.bonusCreditsUsed, 2);
+});
+
+test("free allowance changes do not affect paid memberships", () => {
+  const subscription = {
+    ...buildFreeSubscription(new Date("2026-09-01T00:00:00.000Z")),
+    planId: "collector",
+    planName: "Collector",
+    membershipCreditsRemaining: 15,
+    membershipCreditsTotal: 20,
+    membershipCreditsUsed: 5,
+  };
   assert.equal(
     getFreeSubscriptionRefresh(
       subscription,

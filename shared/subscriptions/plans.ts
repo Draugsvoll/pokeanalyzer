@@ -18,10 +18,9 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     price: 0,
     currency: "NOK",
     billingInterval: "month",
-    credits: 3,
-    description: "Explore card insights and AI-powered analysis at no cost.",
+    credits: 0,
+    description: "Explore card details and market prices at no cost.",
     features: [
-      "3 AI credits every month",
       "Track 10 cards in portfolio",
       "Basic card details and price data",
     ],

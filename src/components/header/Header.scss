@@ -27,15 +27,15 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   margin: 0;
   min-height: var(--header-height);
-  padding: 1rem var(--page-pad-x);
+  padding: var(--space-3) var(--page-pad-x);
   width: 100%;
 
   @media (min-width: 1024px) {
-    padding: 1rem var(--page-pad-x-lg);
+    padding-inline: var(--page-pad-x-lg);
   }
 
   @media (min-width: 1440px) {
-    padding: 1rem var(--page-pad-x-xl);
+    padding-inline: var(--page-pad-x-xl);
   }
 }
 

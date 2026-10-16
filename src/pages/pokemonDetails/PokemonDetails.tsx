@@ -969,7 +969,7 @@ function PokemonDetailsForCard() {
               return {
                 disabled: loadingSubscription || isCurrentPlan,
                 label: isCurrentPlan
-                  ? "Your plan"
+                  ? "Current plan"
                   : plan.id === "free"
                     ? "Get started"
                     : `Choose ${plan.name}`,

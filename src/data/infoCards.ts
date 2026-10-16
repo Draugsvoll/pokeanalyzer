@@ -17,7 +17,7 @@ export type InfoCard = {
 export const INFO_CARDS: InfoCard[] = [
   {
     description:
-      "Scan multiple markets for a clear summary of how the card is performing today.",
+      "Scan across different markets to summarize your card’s overall performance.",
     id: "market",
     title: "Market analysis",
     icon: ChartNoAxesCombined,
@@ -25,7 +25,7 @@ export const INFO_CARDS: InfoCard[] = [
   },
   {
     description:
-      "Evaluate grading potential and get a complete collector-focused breakdown.",
+      "Explore grading insights, collectibility, and what makes your card stand out.",
     id: "insights",
     title: "Grading & collector insights",
     icon: ScanSearch,
@@ -33,7 +33,7 @@ export const INFO_CARDS: InfoCard[] = [
   },
   {
     description:
-      "Get a clear overview of sales & listings with dedicated filtering and sorting.",
+      "Browse recent sales and active listings with dedicated filters to narrow your search.",
     id: "ebay",
     title: "eBay sales & listings",
     icon: CircleDollarSign,

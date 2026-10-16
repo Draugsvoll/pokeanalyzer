@@ -29,7 +29,7 @@
     line-height: var(--font-leading-relaxed);
     margin: 0.2rem auto 0;
     max-width: 32rem;
-    font-weight: 500;
+    font-weight: var(--font-weight-regular);
   }
 
   &__search {

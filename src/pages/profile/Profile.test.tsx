@@ -43,11 +43,16 @@ vi.mock("../../context/authContextValue", () => ({
 
 vi.mock("../../subscriptions", () => ({
   useCredits: () => ({
-    bonusCreditsRemaining: 0,
-    creditsRemaining: 3,
-    creditsTotal: 3,
-    membershipCreditsRemaining: 3,
-    membershipCreditsTotal: 3,
+    bonusCreditsRemaining: mocks.subscription?.bonusCreditsRemaining ?? 0,
+    creditsRemaining:
+      (mocks.subscription?.membershipCreditsRemaining ?? 0) +
+      (mocks.subscription?.bonusCreditsRemaining ?? 0),
+    creditsTotal:
+      (mocks.subscription?.membershipCreditsTotal ?? 0) +
+      (mocks.subscription?.bonusCreditsTotal ?? 0),
+    membershipCreditsRemaining:
+      mocks.subscription?.membershipCreditsRemaining ?? 0,
+    membershipCreditsTotal: mocks.subscription?.membershipCreditsTotal ?? 0,
   }),
   useMembershipSubscription: () => ({
     loadingSubscription: false,
@@ -72,8 +77,8 @@ function subscription(
     bonusCreditsTotal: 0,
     bonusCreditsUsed: 0,
     cancelAtPeriodEnd: false,
-    membershipCreditsRemaining: 3,
-    membershipCreditsTotal: 3,
+    membershipCreditsRemaining: 0,
+    membershipCreditsTotal: 0,
     membershipCreditsUsed: 0,
     planId: "free",
     planName: "Free",
@@ -113,7 +118,7 @@ test("keeps the current plan disabled and starts checkout for an upgrade", async
   renderProfile();
 
   expect(
-    await screen.findByRole("button", { name: "Your plan" }),
+    await screen.findByRole("button", { name: "Current plan" }),
   ).toBeDisabled();
 
   fireEvent.click(screen.getByRole("button", { name: "Choose Collector" }));
@@ -123,8 +128,22 @@ test("keeps the current plan disabled and starts checkout for an upgrade", async
   expect(mocks.openBillingPortal).not.toHaveBeenCalled();
 });
 
+test("shows no included credits or credit renewal date for Free", async () => {
+  mocks.subscription = subscription({
+    currentPeriodEnd: "2026-11-15T00:00:00.000Z",
+  });
+  renderProfile();
+
+  expect(await screen.findByText("No monthly credits included")).toBeVisible();
+  expect(screen.queryByText(/Credits renew/)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("progressbar", { name: "Credits remaining" }),
+  ).toHaveAttribute("aria-valuenow", "0");
+});
+
 test("uses the billing portal when an active subscriber changes plans", async () => {
   mocks.subscription = subscription({
+    currentPeriodEnd: "2026-11-15T00:00:00.000Z",
     membershipCreditsRemaining: 20,
     membershipCreditsTotal: 20,
     planId: "collector",
@@ -134,8 +153,10 @@ test("uses the billing portal when an active subscriber changes plans", async ()
   renderProfile();
 
   expect(
-    await screen.findByRole("button", { name: "Your plan" }),
+    await screen.findByRole("button", { name: "Current plan" }),
   ).toBeDisabled();
+  expect(screen.getByText("20 credits every month")).toBeVisible();
+  expect(screen.getByText(/Next billing date/)).toBeVisible();
 
   fireEvent.click(screen.getByRole("button", { name: "Switch plan" }));
   fireEvent.click(screen.getByRole("button", { name: "Switch to Free" }));

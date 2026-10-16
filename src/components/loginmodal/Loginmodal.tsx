@@ -6,7 +6,7 @@ import { login, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
 import { useNotification } from "../../context/notificationContextValue";
 import { useModalDialog } from "../../hooks/useModalDialog";
-import { Link } from "react-router-dom";
+import { Link, useMatch, useNavigate } from "react-router-dom";
 import { getAuthErrorMessage } from "../../utils/userFacingError";
 
 type ModalProps = {
@@ -17,6 +17,8 @@ type ModalProps = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginModal({ isOpen, onClose }: ModalProps) {
+  const signupMatch = useMatch("/signup");
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const finishLogin = () => {
     onClose();
     showNotification("You are now logged in.");
+    if (signupMatch) navigate("/", { replace: true });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
