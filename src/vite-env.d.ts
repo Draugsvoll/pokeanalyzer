@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
   readonly VITE_FIREBASE_API_KEY: string;
+  readonly VITE_FIREBASE_APPCHECK_SITE_KEY?: string;
   readonly VITE_FIREBASE_APP_ID: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN: string;
   readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string;
@@ -12,4 +13,8 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+interface Window {
+  FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string;
 }

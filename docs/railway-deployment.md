@@ -1,5 +1,41 @@
 # Railway deployment
 
+## Firebase App Check (frontend)
+
+Set the public Enterprise site key on `pokelyzer-frontend` before building:
+
+```env
+VITE_FIREBASE_APPCHECK_SITE_KEY=6Lequ_AtAAAAAKqbRqq-f4wZAESjG45gYN9gbHYb
+```
+
+Rebuild and redeploy after changing this variable. Vite rejects frontend builds
+when the key is missing, empty, or whitespace-only. When configured, App Check
+initializes before Authentication and Firestore and automatically refreshes tokens.
+The backend runtime does not need the key; any service that runs the frontend
+build must provide it at build time.
+
+In the Enterprise key settings, authorize the website hostnames that actually
+run the frontend (for example, `pokelyzer.com` and `www.pokelyzer.com`), not just
+the `auth.pokelyzer.com` authentication handler. Keep Authentication and Firestore
+in App Check **Monitoring** while testing email signup/login, Google login, and
+profile access. Check that requests from the new deployment are verified before
+enabling enforcement. This integration does not enforce App Check on the custom
+Railway API.
+
+For local development (`npm run dev`), the site key is optional. Without it,
+App Check is disabled locally. Firebase enforcement still applies: login or
+database requests will fail without a valid token if the service enforces App Check.
+To use enforced services locally, set the same site key in `.env` and register
+the debug token printed in the browser console under App Check > Apps > Manage
+debug tokens. Treat that generated token as a secret; do not commit or share it.
+Production builds do not enable debug mode. Running `npm run build` locally
+still requires the site key.
+
+See [Firebase's Enterprise setup guide](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider)
+and [debug provider guide](https://firebase.google.com/docs/app-check/web/debug-provider).
+
+## Service commands
+
 The backend uses Railway's **Pre-deploy Command** so its databases are migrated
 before a new deployment starts:
 
