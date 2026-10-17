@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PokemonCard } from "../../../../types/pokemon";
 import type {
   PaidFeatureResponse,
@@ -33,6 +33,7 @@ type EbaySoldViewProps = {
   demoResponse?: Record<string, unknown>;
   runToken: number;
   onSubscriptionChange?: (subscription: UserSubscription) => void;
+  onCreditRejected?: () => Promise<unknown>;
   onLoadingChange?: (loading: boolean) => void;
   onReportAvailableChange?: (available: boolean) => void;
 };
@@ -360,6 +361,7 @@ export default function EbaySoldView({
   demoResponse,
   runToken,
   onSubscriptionChange,
+  onCreditRejected,
   onLoadingChange,
   onReportAvailableChange,
 }: EbaySoldViewProps) {
@@ -378,7 +380,12 @@ export default function EbaySoldView({
   const [visibleResultCount, setVisibleResultCount] =
     useState(RESULTS_BATCH_SIZE);
   const filterTimerRef = useRef<number | undefined>(undefined);
+  const onCreditRejectedRef = useRef(onCreditRejected);
   const { isCurrentRequest, startRequest } = useAbortableRequest();
+
+  useLayoutEffect(() => {
+    onCreditRejectedRef.current = onCreditRejected;
+  }, [onCreditRejected]);
 
   useEffect(() => {
     onLoadingChange?.(loading);
@@ -430,6 +437,9 @@ export default function EbaySoldView({
         };
 
         if (!res.ok) {
+          if (res.status === 409 && !signal.aborted) {
+            await onCreditRejectedRef.current?.();
+          }
           throw new Error(
             data?.error ?? data?.message ?? "Failed to fetch eBay listings",
           );

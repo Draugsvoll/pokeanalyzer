@@ -20,7 +20,7 @@ export type GrokResult =
       subscription: UserSubscription;
       fromDatabase: boolean;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; status?: number };
 
 export type GrokRequestState = {
   loading: boolean;
@@ -74,6 +74,7 @@ export async function askGrok(
     if (!res.ok) {
       return {
         ok: false,
+        status: res.status,
         error:
           res.status === 409
             ? "This feature is currently unavailable."

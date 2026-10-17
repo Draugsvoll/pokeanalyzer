@@ -6,6 +6,7 @@ import PsaEstimateResultView from "./views/PsaEstimateResultView";
 import "./UploadCardPage.scss";
 import { authenticatedFetch } from "../../utils/authenticatedFetch";
 import { Badge } from "../../components/ui/Badge";
+import { getFeatureCreditLabel } from "../../../shared/subscriptions/featureCosts";
 import {
   isAbortError,
   useAbortableRequest,
@@ -54,6 +55,7 @@ const uploadOptions = [
 const analysisOptions = [
   {
     type: "psa",
+    feature: "worth_grading",
     endpoint: "/ai/psa-grade",
     label: "Get PSA estimate",
     loadingLabel: "Analyzing...",
@@ -62,6 +64,7 @@ const analysisOptions = [
   },
   {
     type: "authenticity",
+    feature: "authenticity_check",
     endpoint: "/ai/authenticity-check",
     label: "Check authenticity",
     loadingLabel: "Checking...",
@@ -70,6 +73,7 @@ const analysisOptions = [
   },
 ] satisfies ReadonlyArray<{
   type: AnalysisType;
+  feature: string;
   endpoint: string;
   label: string;
   loadingLabel: string;
@@ -296,7 +300,9 @@ export default function UploadCardPage() {
                 ) : (
                   <ScanSearch />
                 )}
-                {isLoading ? option.loadingLabel : option.label}
+                {isLoading
+                  ? option.loadingLabel
+                  : `${option.label} (${getFeatureCreditLabel(option.feature)})`}
               </Button>
             );
           })}

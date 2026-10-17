@@ -30,6 +30,10 @@
     > .feature-analysis-accent-container {
       background: var(--bg2);
     }
+
+    .feature-analysis-summary-text {
+      max-width: var(--max-text-width);
+    }
   }
 
   &__categories {

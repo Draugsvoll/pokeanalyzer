@@ -73,7 +73,7 @@ function toGridItem(
 export function MostSoldGrid({
   minimized = false,
   loadCards = mostSoldCards,
-  title = "Most Sold",
+  title = "Most Sold Daily",
 }: MostSoldGridProps = {}) {
   const [result, setResult] = useState<{
     error: string | null;
