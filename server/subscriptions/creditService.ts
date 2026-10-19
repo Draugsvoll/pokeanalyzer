@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { getFeatureCreditCost } from "../../shared/subscriptions/featureCosts.js";
 import { adminDb } from "./firebaseAdmin.js";
 import { getFreeSubscriptionRefresh } from "./freeSubscription.js";
 import {
@@ -16,13 +17,9 @@ export class CreditHttpError extends Error {
   }
 }
 
-function validateCreditSpendInput(credits: unknown, feature: unknown) {
-  const parsedCredits = Number(credits);
+function getValidatedFeatureCreditCost(feature: unknown) {
   const parsedFeature = typeof feature === "string" ? feature.trim() : "";
 
-  if (!Number.isSafeInteger(parsedCredits) || parsedCredits < 1) {
-    throw new CreditHttpError("credits must be a positive integer", 400);
-  }
   if (
     !parsedFeature ||
     parsedFeature.length > 100 ||
@@ -34,7 +31,7 @@ function validateCreditSpendInput(credits: unknown, feature: unknown) {
     throw new CreditHttpError("feature must be a valid string", 400);
   }
 
-  return { credits: parsedCredits, feature: parsedFeature };
+  return getFeatureCreditCost(parsedFeature);
 }
 
 function assertCreditBalance(
@@ -112,7 +109,7 @@ export async function runPaidFeature<T>(
   operation: () => Promise<T>,
   signal?: AbortSignal,
 ) {
-  const { credits } = validateCreditSpendInput(1, feature);
+  const credits = getValidatedFeatureCreditCost(feature);
   const current = await checkUserCredits(uid, credits);
 
   const data = await operation();

@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   hasSubscription: true,
   loadingSubscription: false,
   updateSubscription: vi.fn(),
+  refreshSubscription: vi.fn(),
 }));
 
 const subscription = {
@@ -98,6 +99,7 @@ vi.mock("../../subscriptions", () => ({
     loadingSubscription: mocks.loadingSubscription,
     subscription: mocks.hasSubscription ? subscription : null,
     updateSubscription: mocks.updateSubscription,
+    refreshSubscription: mocks.refreshSubscription,
   }),
 }));
 
@@ -134,15 +136,16 @@ vi.mock("../../components/loginmodal/Loginmodal", () => ({
 }));
 
 vi.mock("./components/CardFeatureHeader", () => ({
-  CARD_FEATURE_HEADER_ACTION_LABEL: "Open",
   CARD_FEATURE_VARIANTS_ID: "card-feature-variants",
   CardFeatureHeader: ({
+    actionLabel,
     actionDisabled,
     actionHidden,
     actionLoading,
     label,
     onAction,
   }: {
+    actionLabel?: string;
     actionDisabled?: boolean;
     actionHidden?: boolean;
     actionLoading?: boolean;
@@ -154,6 +157,7 @@ vi.mock("./components/CardFeatureHeader", () => ({
       {onAction && !actionHidden && (
         <button
           data-testid="feature-action"
+          data-credit-label={actionLabel}
           type="button"
           disabled={actionDisabled || actionLoading}
           aria-busy={actionLoading}
@@ -267,6 +271,7 @@ beforeEach(() => {
   mocks.hasSubscription = true;
   mocks.loadingSubscription = false;
   mocks.updateSubscription.mockReset();
+  mocks.refreshSubscription.mockReset();
 
   mocks.fetchCardById.mockImplementation(async (cardId: string) =>
     cardId === "card-a"
@@ -404,7 +409,7 @@ test("shows membership pricing at the bottom of the demo card page", async () =>
   expect(
     await screen.findByRole("heading", { name: "Compare plans" }),
   ).toBeVisible();
-  expect(screen.getByRole("button", { name: "Your plan" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Current plan" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Choose Collector" }),
   ).toBeVisible();
@@ -507,6 +512,117 @@ test("sends a user with no credits to the profile page", async () => {
   fireEvent.click(action);
 
   expect(await screen.findByText("Profile page")).toBeVisible();
+});
+
+test("offers a top-up for grading with one credit while other features remain affordable", async () => {
+  mocks.creditsRemaining = 1;
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  const action = await screen.findByTestId("feature-action");
+  expect(action).toHaveAttribute("data-credit-label", "1 Credit");
+  expect(action).toBeEnabled();
+
+  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  expect(screen.getByTestId("feature-action")).toHaveAttribute(
+    "data-credit-label",
+    "Add credits",
+  );
+  fireEvent.click(screen.getByTestId("feature-action"));
+
+  expect(await screen.findByText("Profile page")).toBeVisible();
+  expect(mocks.askGrok).not.toHaveBeenCalled();
+});
+
+test("offers grading for two credits when the balance is exactly two", async () => {
+  mocks.creditsRemaining = 2;
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByTestId("feature-action");
+  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  const action = screen.getByTestId("feature-action");
+  expect(action).toHaveAttribute("data-credit-label", "2 Credits");
+  expect(action).toBeEnabled();
+  fireEvent.click(action);
+
+  await waitFor(() => {
+    expect(mocks.askGrok).toHaveBeenCalledWith(
+      "worth_grading",
+      expect.any(Object),
+    );
+  });
+});
+
+test.each(["Grading", "Collector's Value", "Market Analysis"])(
+  "%s refreshes a stale balance after a credit rejection and offers a top-up",
+  async (feature) => {
+    mocks.askGrok.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "Unavailable",
+    });
+    mocks.refreshSubscription.mockImplementation(async () => {
+      mocks.creditsRemaining = 0;
+      return { ...subscription, membershipCreditsRemaining: 0 };
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/card/card-a"]}>
+        <TestRoutes />
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("feature-action");
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(`^${feature}`) }),
+    );
+    fireEvent.click(screen.getByTestId("feature-action"));
+
+    await waitFor(() => {
+      expect(mocks.refreshSubscription).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("feature-action")).toHaveAttribute(
+        "data-credit-label",
+        "Add credits",
+      );
+      expect(screen.getByTestId("feature-action")).toBeEnabled();
+    });
+    expect(mocks.askGrok).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId("feature-action"));
+    expect(await screen.findByText("Profile page")).toBeVisible();
+  },
+);
+
+test("does not refresh the balance for an unrelated analysis failure", async () => {
+  mocks.askGrok.mockResolvedValue({
+    ok: false,
+    status: 502,
+    error: "Unavailable",
+  });
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  await screen.findByTestId("feature-action");
+  fireEvent.click(screen.getByRole("button", { name: /^Grading/ }));
+  fireEvent.click(screen.getByTestId("feature-action"));
+
+  await waitFor(() => {
+    expect(mocks.askGrok).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("feature-action")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
+  });
+  expect(mocks.refreshSubscription).not.toHaveBeenCalled();
 });
 
 test("shows market loading while fetching a variant and reuses the result", async () => {

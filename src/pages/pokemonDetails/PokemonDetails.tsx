@@ -45,7 +45,6 @@ import {
 import { waitForStoredResponse } from "../../utils/waitForStoredResponse";
 import {
   CardFeatureHeader,
-  CARD_FEATURE_HEADER_ACTION_LABEL,
   CARD_FEATURE_VARIANTS_ID,
 } from "./components/CardFeatureHeader";
 import LoginModal from "../../components/loginmodal/Loginmodal";
@@ -60,6 +59,10 @@ import { SetTopCardsGrid } from "./components/SetTopCardsGrid";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
 import { PricingBar } from "../../components/pricingBar/PricingBar";
 import { MEMBERSHIP_PLANS } from "../../../shared/subscriptions/plans";
+import {
+  getFeatureCreditCost,
+  getFeatureCreditLabel,
+} from "../../../shared/subscriptions/featureCosts";
 import "../../components/welcomeView/WelcomeView.scss";
 import "./PokemonDetails.scss";
 
@@ -254,8 +257,12 @@ function PokemonDetailsForCard() {
 
     openEmbeddedSearch();
   }
-  const { loadingSubscription, subscription, updateSubscription } =
-    useMembershipSubscription();
+  const {
+    loadingSubscription,
+    subscription,
+    updateSubscription,
+    refreshSubscription,
+  } = useMembershipSubscription();
   const { creditsRemaining, updatingCredits } = useCredits(subscription);
 
   async function handleGoogleAuth() {
@@ -326,7 +333,8 @@ function PokemonDetailsForCard() {
       !card ||
       featureCooldown ||
       !subscription ||
-      creditsRemaining < 1
+      creditsRemaining <
+        getFeatureCreditCost(view === "prices" ? "market_analysis" : view)
     )
       return;
 
@@ -360,6 +368,10 @@ function PokemonDetailsForCard() {
       if (signal.aborted) return false;
 
       if (!result.ok) {
+        if (result.status === 409) {
+          await refreshSubscription();
+          if (signal.aborted) return false;
+        }
         updateGrokError(featureKey, FEATURE_ERROR_MESSAGE);
         return false;
       } else {
@@ -619,6 +631,9 @@ function PokemonDetailsForCard() {
       : activeView === "ebay_sold"
         ? currentEbayReportAvailable
         : Boolean(currentGrokResponse));
+  const activeFeatureCreditCost = getFeatureCreditCost(
+    activeFeature?.featureKey ?? "",
+  );
   const activeFeatureActionDisabled =
     isDemo ||
     !authUser ||
@@ -626,7 +641,7 @@ function PokemonDetailsForCard() {
     loadingSubscription ||
     updatingCredits ||
     !subscription ||
-    creditsRemaining < 1 ||
+    creditsRemaining < activeFeatureCreditCost ||
     isActiveFeatureLoading;
   const shouldAddCredits =
     !isDemo &&
@@ -634,7 +649,7 @@ function PokemonDetailsForCard() {
     Boolean(subscription) &&
     !loadingSubscription &&
     !updatingCredits &&
-    creditsRemaining === 0;
+    creditsRemaining < activeFeatureCreditCost;
 
   // RENDERING
   return (
@@ -870,7 +885,7 @@ function PokemonDetailsForCard() {
                   actionLabel={
                     shouldAddCredits
                       ? "Add credits"
-                      : CARD_FEATURE_HEADER_ACTION_LABEL
+                      : getFeatureCreditLabel(activeFeature.featureKey)
                   }
                   actionLoading={
                     authLoading || loadingSubscription || isActiveFeatureLoading
@@ -927,6 +942,7 @@ function PokemonDetailsForCard() {
                     demoResponse={isDemo ? card.grok?.ebay_sold : undefined}
                     runToken={currentEbayRunToken}
                     onSubscriptionChange={updateSubscription}
+                    onCreditRejected={refreshSubscription}
                     onLoadingChange={setEbayLoading}
                     onReportAvailableChange={handleEbayReportAvailableChange}
                   />

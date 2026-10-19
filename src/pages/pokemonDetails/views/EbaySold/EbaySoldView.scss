@@ -27,16 +27,12 @@
   }
 
   &__listing-toggle.segmented-radio-group {
-    --segment-group-accent: var(--font-color-secondary);
+    --segment-group-accent: var(--ebay-accent);
 
     display: flex;
     justify-self: center;
     width: fit-content;
     margin: 0.6rem;
-
-    .segmented-radio-group__option input:checked + span {
-      color: var(--font-color-primary);
-    }
   }
 
   &__filter-row {
@@ -397,7 +393,7 @@
   &__price-row > strong {
     color: var(--ebay-accent);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-price-md);
+    font-size: var(--font-size-price-value);
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--font-tracking-price);

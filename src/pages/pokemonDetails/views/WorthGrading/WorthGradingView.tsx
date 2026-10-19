@@ -414,7 +414,7 @@ function ScenarioCard({
                   <>
                     Raw net proceeds
                     <p className="worth-grading-view__cost-note">
-                      Profits if you sold raw (incl. eBay fees)
+                      (incl. eBay fees)
                     </p>
                   </>
                 }
@@ -635,7 +635,7 @@ export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
                     </Badge>
                   ) : undefined
                 }
-                eyebrow="Overall Score"
+                eyebrow="Overall Grading Score"
                 headline={activeVariant.headline?.trim() || undefined}
                 score={attractivenessScore}
                 scoreLabel="Grading attractiveness score"

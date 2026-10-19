@@ -77,13 +77,13 @@
   padding: 0.2rem;
 
   .segmented-radio-group__option {
-    min-width: 2.5rem;
+    min-width: 4.75rem;
   }
 
   .segmented-radio-group__option > span {
     font-size: var(--font-size-label);
     line-height: 1;
-    padding: 0.28rem 0.48rem;
+    padding: 0.34rem 0.58rem;
   }
 }
 
