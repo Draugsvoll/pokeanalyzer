@@ -56,6 +56,20 @@
   opacity: 0.55;
 }
 
+.segmented-radio-group__label--loading {
+  visibility: hidden;
+}
+
+.segmented-radio-group__spinner.app-loading-spinner {
+  --feature-accent: var(--segment-accent);
+
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 0.8em;
+  width: 0.8em;
+}
+
 .segmented-radio-group__option:hover > span {
   background: rgba(255, 255, 255, 0.035);
   color: var(--font-color-secondary);

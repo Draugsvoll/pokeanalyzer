@@ -21,6 +21,93 @@ const credits: EbayCredits = {
   version: 1,
 };
 
+test("HTTP streaming delivers the first result while the second is still pending", async (t) => {
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  t.after(() => finish());
+  const { baseUrl } = await startRouter(t, {
+    requestListings: async (_uid, _card, _signal, _dependencies, emit) => {
+      emit?.({ type: "started", credits });
+      emit?.({ type: "result", side: "active", data: { items: [] } });
+      await pending;
+      emit?.({ type: "result", side: "sold", data: { items: [] } });
+      return {
+        data: {
+          sold: { items: [] },
+          active: { items: [] },
+          request_query: "test",
+        },
+        credits,
+        fromDatabase: false,
+      };
+    },
+  });
+  const response = await fetch(`${baseUrl}?cardId=card-1&stream=1`, {
+    headers: { Authorization: "Bearer verified" },
+    signal: AbortSignal.timeout(5_000),
+  });
+  assert.match(
+    response.headers.get("content-type") ?? "",
+    /application\/x-ndjson/,
+  );
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  while (!text.includes('"type":"result"')) {
+    const chunk = await reader.read();
+    assert.equal(chunk.done, false);
+    text += decoder.decode(chunk.value, { stream: true });
+  }
+  assert.ok(text.includes('"side":"active"'));
+  assert.ok(!text.includes('"type":"complete"'));
+  finish();
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    text += decoder.decode(chunk.value, { stream: true });
+  }
+  const events = text
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["started", "result", "result", "complete"],
+  );
+});
+
+test("streaming preflight failures still return an ordinary HTTP error", async (t) => {
+  const { request } = await startRouter(t, {
+    requestListings: async () => {
+      throw new EbayCreditError("Not enough eBay credits", 409);
+    },
+  });
+  assert.deepEqual(await request("/?cardId=card-1&stream=1", "verified"), {
+    status: 409,
+    body: { error: "Not enough eBay credits" },
+  });
+});
+
+test("errors after streaming starts are sent as terminal events", async (t) => {
+  const { baseUrl } = await startRouter(t, {
+    requestListings: async (_uid, _card, _signal, _dependencies, emit) => {
+      emit?.({ type: "started", credits });
+      throw new Error("Provider failure");
+    },
+  });
+  const response = await fetch(`${baseUrl}?cardId=card-1&stream=1`, {
+    headers: { Authorization: "Bearer verified" },
+  });
+  assert.equal(response.status, 200);
+  const events = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.equal(events.at(-1).type, "error");
+});
+
 async function startRouter(
   t: TestContext,
   overrides: Parameters<typeof createEbayRouter>[0] = {},
@@ -86,7 +173,7 @@ async function startRouter(
     const body: unknown = await response.json();
     return { status: response.status, body };
   };
-  return { calls, request };
+  return { calls, request, baseUrl };
 }
 
 test("unverified authenticated users can claim signup credits but cannot search or read balances", async (t) => {

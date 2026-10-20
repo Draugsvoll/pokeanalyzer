@@ -22,6 +22,7 @@ type CreditReservation = {
   membershipCredits: number;
   bonusCredits: number;
   currentPeriodStart: string | null;
+  credits: EbayCredits;
 };
 
 export class EbayCreditError extends Error {
@@ -206,20 +207,18 @@ async function reserveCredit(
       EBAY_REQUEST_CREDIT_COST,
     );
     const bonusCredits = EBAY_REQUEST_CREDIT_COST - membershipCredits;
-    transaction.set(
-      creditsRef,
-      updateBalances({
-        ...current,
-        membershipCreditsUsed:
-          current.membershipCreditsUsed + membershipCredits,
-        bonusCreditsUsed: current.bonusCreditsUsed + bonusCredits,
-        version: current.version + 1,
-      }),
-    );
+    const reserved = updateBalances({
+      ...current,
+      membershipCreditsUsed: current.membershipCreditsUsed + membershipCredits,
+      bonusCreditsUsed: current.bonusCreditsUsed + bonusCredits,
+      version: current.version + 1,
+    });
+    transaction.set(creditsRef, reserved);
     return {
       membershipCredits,
       bonusCredits,
       currentPeriodStart: current.currentPeriodStart,
+      credits: serializeCredits(reserved),
     };
   });
 }
@@ -254,18 +253,23 @@ export async function runEbayFeature<T>(
   uid: string,
   operation: () => Promise<T>,
   signal?: AbortSignal,
+  options: {
+    hasSucceeded?: () => boolean;
+    onReserved?: (credits: EbayCredits) => void;
+  } = {},
 ): Promise<{ data: T; credits: EbayCredits }> {
   assertNotAborted(signal);
   const reservation = await reserveCredit(uid, signal);
   try {
     assertNotAborted(signal);
+    options.onReserved?.(reservation.credits);
     const data = await operation();
     assertNotAborted(signal);
     const credits = await getEbayCredits(uid);
     assertNotAborted(signal);
     return { data, credits };
   } catch (error) {
-    await refundCredit(uid, reservation);
+    if (!options.hasSucceeded?.()) await refundCredit(uid, reservation);
     throw error;
   }
 }

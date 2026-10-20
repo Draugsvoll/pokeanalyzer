@@ -31,8 +31,9 @@ export function buildEbayCompsUrl(
   const params = new URLSearchParams({
     [apiParam]: query,
     categoryId: "183454",
-    count: "200",
+    count: "240",
     page: "1",
+    hydrateBoa: "false",
   });
   if (options.sold === false) params.set("sold", "false");
 

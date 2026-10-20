@@ -44,7 +44,8 @@
 
   &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--ebay-accent);
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(7.5rem, 1fr));
     justify-self: center;
     width: fit-content;
     margin: 0;

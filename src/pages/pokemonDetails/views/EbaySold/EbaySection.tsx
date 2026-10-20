@@ -2,13 +2,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CircleDollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { EbayCredits } from "../../../../../shared/ebayCredits";
+import type {
+  EbayListingStatus,
+  EbayListingType,
+} from "../../../../../shared/ebaySearch";
+import { readEbaySearchStream } from "../../../../ebay/ebaySearchStream";
 import LoginModal from "../../../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../../../context/authContextValue";
 import { useEbayCredits } from "../../../../ebay/useEbayCredits";
-import {
-  isAbortError,
-  useAbortableRequest,
-} from "../../../../hooks/useAbortableRequest";
+import { useAbortableRequest } from "../../../../hooks/useAbortableRequest";
 import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
 import type { EbayCompsResponse } from "../../../../utils/ebayComps";
 import { CardFeatureHeader } from "../../components/CardFeatureHeader";
@@ -19,6 +21,11 @@ import "./EbaySection.scss";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const EBAY_REQUEST_ERROR =
   "We couldn't load eBay sales and listings. Please try again.";
+const LISTING_STATUS_LABELS = {
+  pending: "loading",
+  success: "ready",
+  error: "failed",
+};
 
 type EbaySectionProps = {
   cardId: string;
@@ -71,6 +78,14 @@ function EbaySectionForAccount({
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [listingStates, setListingStates] = useState<
+    Record<EbayListingType, EbayListingStatus>
+  >({
+    sold: "pending",
+    active: "pending",
+  });
+  const [firstListingType, setFirstListingType] =
+    useState<EbayListingType>("sold");
   const [showLoginModal, setShowLoginModal] = useState(false);
   const requestPendingRef = useRef(false);
   const { abortActiveRequest, isCurrentRequest, startRequest } =
@@ -95,11 +110,20 @@ function EbaySectionForAccount({
     typeof displayedResponse === "object" &&
     "active" in displayedResponse &&
     displayedResponse.active != null;
-  const hasCompleteResponse = hasSoldResponse && hasActiveResponse;
-  const responseError =
-    hasResponse && !hasCompleteResponse
-      ? `We couldn't load eBay ${hasSoldResponse ? "listings" : hasActiveResponse ? "sales" : "sales and listings"}. Please try again.`
-      : "";
+  const hasUsableResponse = hasSoldResponse || hasActiveResponse;
+  const soldFailed = isDemo
+    ? hasResponse && !hasSoldResponse
+    : listingStates.sold === "error";
+  const activeFailed = isDemo
+    ? hasResponse && !hasActiveResponse
+    : listingStates.active === "error";
+  const failedSides = [soldFailed && "sales", activeFailed && "listings"]
+    .filter(Boolean)
+    .join(" and ");
+  const responseError = failedSides
+    ? `We couldn't load eBay ${failedSides}. Please try again.`
+    : "";
+  const headerError = error || responseError;
   const noCredits = Boolean(
     userId && !authLoading && credits && credits.creditsRemaining < 1,
   );
@@ -120,18 +144,17 @@ function EbaySectionForAccount({
     const signal = startRequest();
     setLoading(true);
     setError("");
+    setResponse(null);
+    setListingStates({ sold: "pending", active: "pending" });
+    let receivedResult = false;
 
     try {
-      const params = new URLSearchParams({ cardId });
+      const params = new URLSearchParams({ cardId, stream: "1" });
       const res = await authenticatedFetch(
         `${API_URL}/ebay?${params.toString()}`,
-        { signal },
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(45_000)]) },
         userId,
       );
-      const data = (await res.json()) as {
-        data?: EbayCompsResponse;
-        credits?: EbayCredits;
-      };
       if (signal.aborted || !isCurrentRequest(signal)) return;
 
       if (!res.ok) {
@@ -150,19 +173,58 @@ function EbaySectionForAccount({
         }
         throw new Error("eBay request failed");
       }
+      if (res.headers.get("content-type")?.includes("application/x-ndjson")) {
+        await readEbaySearchStream(res, (event) => {
+          if (signal.aborted || !isCurrentRequest(signal)) return;
+          if (event.type === "started" || event.type === "complete") {
+            updateCredits(event.credits);
+          } else if (event.type === "result") {
+            if (!receivedResult) {
+              setFirstListingType(event.side);
+              receivedResult = true;
+            }
+            setResponse((previous: unknown) => ({
+              ...(previous && typeof previous === "object" ? previous : {}),
+              [event.side]: event.data,
+            }));
+            setListingStates((previous) => ({
+              ...previous,
+              [event.side]: "success",
+            }));
+          } else if (event.type === "failure") {
+            setListingStates((previous) => ({
+              ...previous,
+              [event.side]: "error",
+            }));
+          }
+        });
+        return;
+      }
+      // Older servers still return the complete JSON response.
+      const data = (await res.json()) as {
+        data?: EbayCompsResponse;
+        credits?: EbayCredits;
+      };
+      if (signal.aborted || !isCurrentRequest(signal)) return;
       if (!data.credits || data.data == null) {
         throw new Error("Incomplete eBay response");
       }
 
       updateCredits(data.credits);
       setResponse(data.data);
-    } catch (requestError) {
-      if (
-        !isAbortError(requestError) &&
-        !signal.aborted &&
-        isCurrentRequest(signal)
-      ) {
+      const result = data.data as { sold?: unknown; active?: unknown };
+      setFirstListingType(result.sold != null ? "sold" : "active");
+      setListingStates({
+        sold: result.sold != null ? "success" : "error",
+        active: result.active != null ? "success" : "error",
+      });
+    } catch {
+      if (!signal.aborted && isCurrentRequest(signal)) {
         setError(EBAY_REQUEST_ERROR);
+        setListingStates((previous) => ({
+          sold: previous.sold === "pending" ? "error" : previous.sold,
+          active: previous.active === "pending" ? "error" : previous.active,
+        }));
         // A failed provider request can refund a previously reserved credit.
         void refreshCredits();
       }
@@ -176,7 +238,12 @@ function EbaySectionForAccount({
 
   return (
     <section aria-label="eBay sales and listings" className="ebay-section">
-      {!hasCompleteResponse && (
+      <p className="ebay-section__announcement" aria-live="polite">
+        {!isDemo && hasUsableResponse
+          ? `Sold: ${LISTING_STATUS_LABELS[listingStates.sold]}. Listed: ${LISTING_STATUS_LABELS[listingStates.active]}.`
+          : ""}
+      </p>
+      {(!hasUsableResponse || headerError) && (
         <CardFeatureHeader
           card={{
             name: cardName,
@@ -187,12 +254,13 @@ function EbaySectionForAccount({
           icon={CircleDollarSign}
           label="eBay Comps"
           actionLabel={noCredits ? "Add credits" : "1 eBay credit"}
-          actionLoading={loading}
+          actionLoading={loading && !headerError}
           actionLoadingLabel="Searching eBay..."
           actionLoadingMessage="Loading eBay listings and sales..."
-          errorMessage={error || responseError}
+          errorMessage={headerError}
           actionDisabled={
-            noCredits ? false : authLoading || !emailVerified || !credits
+            loading ||
+            (noCredits ? false : authLoading || !emailVerified || !credits)
           }
           actionHidden={isDemo}
           onAction={
@@ -220,9 +288,13 @@ function EbaySectionForAccount({
           )}
         </CardFeatureHeader>
       )}
-      {hasResponse && (
+      {hasUsableResponse && (
         <div className="ebay-section__results default-container">
-          <EbaySoldView response={displayedResponse} />
+          <EbaySoldView
+            response={displayedResponse}
+            initialListingType={isDemo ? "sold" : firstListingType}
+            listingStates={isDemo ? undefined : listingStates}
+          />
         </div>
       )}
       <LoginModal

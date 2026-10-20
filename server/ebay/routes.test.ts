@@ -5,6 +5,7 @@ import type { PokeTraceSavedResponses } from "../../shared/pokeTraceSavedRespons
 import { buildEbayCardRequests } from "../services/ebayCompsApi.js";
 import { EbayCreditError } from "./creditService.js";
 import { requestEbayListings } from "./routes.js";
+import type { EbaySearchEvent } from "../../shared/ebaySearch.js";
 
 const credits: EbayCredits = {
   membershipCreditsRemaining: 0,
@@ -196,4 +197,99 @@ test("aborted eBay requests do not save results or complete a charge", async () 
     { name: "AbortError" },
   );
   assert.deepEqual(calls, { fetch: 2, save: 0, credits: 0 });
+});
+
+for (const first of ["sold", "active"] as const) {
+  test(`publishes ${first} before waiting for the other provider`, async () => {
+    const { dependencies, signal } = fixture();
+    let finish!: (value: typeof listings) => void;
+    const pending = new Promise<typeof listings>((resolve) => {
+      finish = resolve;
+    });
+    dependencies.fetchComps = async (_query, _signal, options) =>
+      (options?.sold === false ? "active" : "sold") === first
+        ? listings
+        : pending;
+    const events: EbaySearchEvent[] = [];
+    let firstPublished!: () => void;
+    const published = new Promise<void>((resolve) => {
+      firstPublished = resolve;
+    });
+    let complete = false;
+    const request = requestEbayListings(
+      "user-1",
+      "card-1",
+      signal,
+      dependencies,
+      (event) => {
+        events.push(event);
+        if (event.type === "result") firstPublished();
+      },
+    ).then((result) => {
+      complete = true;
+      return result;
+    });
+    await published;
+    assert.equal(complete, false);
+    assert.deepEqual(events, [{ type: "result", side: first, data: listings }]);
+    finish(listings);
+    await request;
+    assert.equal(events.filter((event) => event.type === "result").length, 2);
+  });
+}
+
+test("streams the failed side and keeps successful empty results billable", async () => {
+  const { dependencies, signal, calls } = fixture();
+  dependencies.fetchComps = async (_query, _signal, options) => {
+    if (options?.sold === false) throw new Error("Timed out");
+    return { items: [] };
+  };
+  const events: EbaySearchEvent[] = [];
+  const result = await requestEbayListings(
+    "user-1",
+    "card-1",
+    signal,
+    dependencies,
+    (event) => events.push(event),
+  );
+  assert.deepEqual(result.data.sold, { items: [] });
+  assert.equal(result.data.active, null);
+  assert.equal(calls.credits, 1);
+  assert.equal(calls.save, 0);
+  assert.ok(
+    events.some((event) => event.type === "failure" && event.side === "active"),
+  );
+  assert.ok(
+    events.some((event) => event.type === "result" && event.side === "sold"),
+  );
+});
+
+test("a cache write failure does not discard or refund successful results", async () => {
+  const { dependencies, signal, calls } = fixture();
+  dependencies.save = async () => {
+    throw new Error("Cache unavailable");
+  };
+  const result = await requestEbayListings(
+    "user-1",
+    "card-1",
+    signal,
+    dependencies,
+  );
+  assert.deepEqual(result.data.sold, listings);
+  assert.deepEqual(result.data.active, listings);
+  assert.equal(calls.credits, 1);
+});
+
+test("cached results emit both sides without contacting the providers", async () => {
+  const { dependencies, signal, calls } = fixture();
+  dependencies.getContext = async () => ({
+    ...context,
+    savedResponses: { ebay: response },
+  });
+  const events: EbaySearchEvent[] = [];
+  await requestEbayListings("user-1", "card-1", signal, dependencies, (event) =>
+    events.push(event),
+  );
+  assert.equal(calls.fetch, 0);
+  assert.equal(events.filter((event) => event.type === "result").length, 2);
 });

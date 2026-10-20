@@ -1,11 +1,13 @@
 import { ensurePokeTraceReady, pokeTraceDb } from "./pokeTraceDb.js";
+import { isEbayListings } from "../../shared/ebaySearch.js";
 import {
   parsePokeTraceSavedResponses,
   type JsonRecord,
   type PokeTraceSavedResponses,
 } from "../../shared/pokeTraceSavedResponses.js";
 
-const EBAY_CACHE_MS = 4 * 24 * 60 * 60 * 1000;
+const reuseDays = 2;
+const EBAY_CACHE_MS = reuseDays * 24 * 60 * 60 * 1000;
 
 export type EbayListingsResponse = JsonRecord & {
   active: JsonRecord & { items: unknown[] };
@@ -26,10 +28,8 @@ export function isCompleteEbayResponse(
 ): value is EbayListingsResponse {
   return (
     isRecord(value) &&
-    isRecord(value.active) &&
-    Array.isArray(value.active.items) &&
-    isRecord(value.sold) &&
-    Array.isArray(value.sold.items)
+    isEbayListings(value.active) &&
+    isEbayListings(value.sold)
   );
 }
 
@@ -38,7 +38,7 @@ export function getStoredEbayResponse(
   query: string,
   now = Date.now(),
 ): StoredEbayResponse | null {
-  // Legacy results remain usable during the four-day migration window.
+  // Legacy results use the same cache duration.
   const legacy = isRecord(savedResponses.grok)
     ? savedResponses.grok.ebay_sold
     : null;

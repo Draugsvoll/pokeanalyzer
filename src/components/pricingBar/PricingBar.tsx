@@ -71,9 +71,7 @@ export function PricingBar({
             </div>
 
             <small className="pricing-bar__billing-note">
-              {plan.price === 0
-                ? "No credit card needed. Free forever."
-                : "Billed monthly."}
+              {plan.price === 0 ? "No credit card needed." : "Billed monthly."}
             </small>
 
             <ul className="pricing-bar__features">

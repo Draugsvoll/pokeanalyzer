@@ -295,7 +295,11 @@ beforeEach(() => {
     async () =>
       new Response(
         JSON.stringify({
-          data: { label: "eBay response" },
+          data: {
+            label: "eBay response",
+            sold: { items: [] },
+            active: { items: [] },
+          },
           credits: { creditsRemaining: 9, version: 1 },
           fromDatabase: false,
         }),

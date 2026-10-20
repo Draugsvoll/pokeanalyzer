@@ -6,6 +6,8 @@ export type SegmentedRadioOption<T extends string> = {
   color?: CustomColors;
   label: string;
   value: T;
+  disabled?: boolean;
+  loading?: boolean;
 };
 
 type SegmentedRadioGroupProps<T extends string> = {
@@ -43,13 +45,14 @@ export function SegmentedRadioGroup<T extends string>({
     >
       {options.map((option) => {
         const checked = option.value === value;
+        const optionDisabled = disabled || option.disabled || option.loading;
 
         return (
           <label
             key={option.value}
             className={[
               "segmented-radio-group__option",
-              disabled && "segmented-radio-group__option--disabled",
+              optionDisabled && "segmented-radio-group__option--disabled",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -63,13 +66,31 @@ export function SegmentedRadioGroup<T extends string>({
           >
             <input
               checked={checked}
-              disabled={disabled}
+              disabled={optionDisabled}
+              aria-label={option.label}
+              aria-busy={option.loading || undefined}
               name={name}
               onChange={() => onChange(option.value)}
               type="radio"
               value={option.value}
             />
-            <span>{option.label}</span>
+            <span>
+              <span
+                className={
+                  option.loading
+                    ? "segmented-radio-group__label--loading"
+                    : undefined
+                }
+              >
+                {option.label}
+              </span>
+              {option.loading && (
+                <i
+                  className="app-loading-spinner segmented-radio-group__spinner"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
           </label>
         );
       })}

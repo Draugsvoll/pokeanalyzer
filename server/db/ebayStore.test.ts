@@ -30,13 +30,23 @@ test("eBay cache accepts empty results and rejects partial or malformed results"
   }
 });
 
-test("eBay cache enforces four days, matching query and valid timestamp", () => {
+test("eBay cache enforces two days, matching query and valid timestamp", () => {
+  const expiryBoundary = now - 2 * 86_400_000;
+  const justBeforeExpiry = {
+    ...response,
+    timestamp: new Date(expiryBoundary + 1).toISOString(),
+  };
   assert.deepEqual(
     getStoredEbayResponse({ ebay: response }, query, now),
     response,
   );
+  assert.deepEqual(
+    getStoredEbayResponse({ ebay: justBeforeExpiry }, query, now),
+    justBeforeExpiry,
+  );
   for (const candidate of [
-    { ...response, timestamp: new Date(now - 4 * 86_400_000).toISOString() },
+    { ...response, timestamp: new Date(expiryBoundary).toISOString() },
+    { ...response, timestamp: new Date(expiryBoundary - 1).toISOString() },
     { ...response, timestamp: new Date(now + 1).toISOString() },
     { ...response, timestamp: "invalid" },
     { ...response, request_query: "different query" },

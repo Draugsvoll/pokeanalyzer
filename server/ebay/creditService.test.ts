@@ -13,6 +13,49 @@ import {
 const subscriptionPath = "users/user-1/subscription/current";
 const creditsPath = "users/user-1/ebay_credits/current";
 
+test("a partial success stays charged if the client disconnects", async (t) => {
+  mockFirestore(t, buildSubscription());
+  const controller = new AbortController();
+  let succeeded = false;
+  let reservedBalance = -1;
+  await assert.rejects(
+    runEbayFeature(
+      "user-1",
+      async () => {
+        succeeded = true;
+        controller.abort();
+        throw new DOMException("Disconnected", "AbortError");
+      },
+      controller.signal,
+      {
+        hasSucceeded: () => succeeded,
+        onReserved: (credits) => {
+          reservedBalance = credits.creditsRemaining;
+        },
+      },
+    ),
+    { name: "AbortError" },
+  );
+  assert.equal(reservedBalance, 99);
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 99);
+});
+
+test("a failed search with no successful side refunds its one reservation", async (t) => {
+  mockFirestore(t, buildSubscription());
+  await assert.rejects(
+    runEbayFeature(
+      "user-1",
+      async () => {
+        throw new Error("Both providers failed");
+      },
+      undefined,
+      { hasSucceeded: () => false },
+    ),
+    /Both providers failed/,
+  );
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 100);
+});
+
 function buildSubscription(
   overrides: Partial<StoredUserSubscription> = {},
 ): StoredUserSubscription {

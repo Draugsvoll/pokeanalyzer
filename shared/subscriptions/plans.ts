@@ -23,9 +23,9 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     ebayCredits: 0,
     description: "Explore card details and market prices at no cost.",
     features: [
+      "10 free eBay credits at signup",
       "Track 10 cards in portfolio",
       "Track 10 cards in watchlist",
-      "10 free eBay credits at signup",
       "Basic card details and price data",
     ],
   },

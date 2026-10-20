@@ -10,6 +10,10 @@ import { FilterInput } from "../../../../components/filterInput/FilterInput";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
 import { EbayImagePreview } from "./EbayImagePreview";
+import type {
+  EbayListingStatus,
+  EbayListingType,
+} from "../../../../../shared/ebaySearch";
 
 const RESULTS_BATCH_SIZE = 10;
 const FILTER_TRANSITION_MS = 250;
@@ -17,6 +21,8 @@ const FILTER_TRANSITION_MS = 250;
 type EbaySoldViewProps = {
   response: EbayCompsResponse;
   children?: ReactNode;
+  initialListingType?: EbayListingType;
+  listingStates?: Record<EbayListingType, EbayListingStatus>;
 };
 
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
@@ -340,10 +346,12 @@ function matchesGrade(
 export default function EbaySoldView({
   response,
   children,
+  initialListingType = "sold",
+  listingStates,
 }: EbaySoldViewProps) {
   const [sortOrder, setSortOrder] = useState<EbaySortOrder>("date-desc");
   const [listingTypeFilter, setListingTypeFilter] =
-    useState<ListingTypeFilter>("sold");
+    useState<ListingTypeFilter>(initialListingType);
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>("all");
   const [appliedGradeFilter, setAppliedGradeFilter] =
     useState<GradeFilter>("all");
@@ -399,7 +407,8 @@ export default function EbaySoldView({
   const filteredResults = gradeFilteredResults.filter(
     (result) =>
       (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
-      (!appliedExcludeFilter || !matchesTextFilter(result, appliedExcludeFilter)),
+      (!appliedExcludeFilter ||
+        !matchesTextFilter(result, appliedExcludeFilter)),
   );
   const sortedResults = [...filteredResults].sort(
     (firstResult, secondResult) => {
@@ -496,8 +505,18 @@ export default function EbaySoldView({
             name="ebay-listing-type"
             onChange={handleListingTypeChange}
             options={[
-              { label: "Sold", value: "sold" },
-              { label: "Listed", value: "active" },
+              {
+                label: "Sold",
+                value: "sold",
+                loading: listingStates?.sold === "pending",
+                disabled: listingStates && listingStates.sold !== "success",
+              },
+              {
+                label: "Listed",
+                value: "active",
+                loading: listingStates?.active === "pending",
+                disabled: listingStates && listingStates.active !== "success",
+              },
             ]}
             value={listingTypeFilter}
           />

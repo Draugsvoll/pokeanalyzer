@@ -4,11 +4,13 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { EbayCredits } from "../../../../../shared/ebayCredits";
 import { EbaySection } from "./EbaySection";
+import type { EbaySearchEvent } from "../../../../../shared/ebaySearch";
 
 const mocks = vi.hoisted(() => ({
   user: { uid: "user-1" } as { uid: string; emailVerified?: boolean } | null,
@@ -99,6 +101,251 @@ function view(cardId = "card-a") {
     </MemoryRouter>
   );
 }
+
+function progressiveResponse() {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+    }),
+    { headers: { "Content-Type": "application/x-ndjson" } },
+  );
+  return {
+    response,
+    send: (event: EbaySearchEvent) =>
+      controller.enqueue(
+        new TextEncoder().encode(`${JSON.stringify(event)}\n`),
+      ),
+    close: () => controller.close(),
+    fail: (error: Error) => controller.error(error),
+  };
+}
+
+test.each(["sold", "active"] as const)(
+  "renders %s immediately and disables the other tab until it finishes",
+  async (first) => {
+    const second = first === "sold" ? "active" : "sold";
+    const stream = progressiveResponse();
+    mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    await act(async () => {
+      stream.send({ type: "started", credits });
+      stream.send({
+        type: "result",
+        side: first,
+        data: {
+          items: [{ title: "Pikachu first result", listingType: first }],
+        },
+      });
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Pikachu First Result" }),
+    ).toBeVisible();
+    expect(screen.queryByText("eBay Comps")).not.toBeInTheDocument();
+    const firstTab = screen.getByRole("radio", {
+      name: first === "sold" ? "Sold" : "Listed",
+    });
+    const secondTab = screen.getByRole("radio", {
+      name: second === "sold" ? "Sold" : "Listed",
+    });
+    expect(firstTab).toBeChecked();
+    expect(secondTab).toBeDisabled();
+    expect(secondTab).toHaveAttribute("aria-busy", "true");
+    const listingTabs = () =>
+      within(screen.getByRole("radiogroup", { name: "eBay listing type" }))
+        .getAllByRole("radio")
+        .map((tab) => tab.getAttribute("value"));
+    expect(listingTabs()).toEqual(["sold", "active"]);
+    expect(
+      secondTab
+        .closest("label")
+        ?.querySelector(".segmented-radio-group__label--loading"),
+    ).toHaveTextContent(second === "sold" ? "Sold" : "Listed");
+    expect(
+      secondTab.closest("label")?.querySelector(".app-loading-spinner"),
+    ).not.toBeNull();
+    await act(async () => {
+      stream.send({ type: "result", side: second, data: { items: [] } });
+      stream.send({ type: "complete", credits });
+      stream.close();
+    });
+    expect(secondTab).toBeEnabled();
+    expect(firstTab).toBeChecked();
+    expect(listingTabs()).toEqual(["sold", "active"]);
+    expect(
+      secondTab
+        .closest("label")
+        ?.querySelector(".segmented-radio-group__label--loading"),
+    ).toBeNull();
+    expect(
+      secondTab.closest("label")?.querySelector(".app-loading-spinner"),
+    ).toBeNull();
+    fireEvent.click(secondTab);
+    expect(screen.getByText(/No matching eBay/)).toBeVisible();
+    expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("restores the header on a late failure while keeping the first result", async () => {
+  const stream = progressiveResponse();
+  mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+  render(view());
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  await act(async () => {
+    stream.send({ type: "started", credits });
+    stream.send({
+      type: "result",
+      side: "active",
+      data: { items: [{ title: "Pikachu available", listingType: "active" }] },
+    });
+  });
+  expect(
+    await screen.findByRole("heading", { name: "Pikachu Available" }),
+  ).toBeVisible();
+  await act(async () => {
+    stream.send({ type: "failure", side: "sold", message: "Unavailable" });
+    stream.send({ type: "complete", credits });
+    stream.close();
+  });
+  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+    screen.getByRole("alert"),
+  );
+  expect(
+    screen.getByRole("heading", { name: "Pikachu Available" }),
+  ).toBeVisible();
+  expect(screen.getByRole("radio", { name: "Sold" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Sold" })).not.toHaveAttribute(
+    "aria-busy",
+  );
+  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+});
+
+test.each(["disconnect", "timeout"])(
+  "a stream %s keeps received results and stops pending spinners",
+  async (failure) => {
+    const stream = progressiveResponse();
+    mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    await act(async () => {
+      stream.send({ type: "started", credits });
+      stream.send({
+        type: "result",
+        side: "sold",
+        data: { items: [{ title: "Pikachu available", listingType: "sold" }] },
+      });
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Pikachu Available" }),
+    ).toBeVisible();
+    await act(async () => {
+      if (failure === "timeout")
+        stream.fail(new DOMException("Body aborted", "AbortError"));
+      else stream.close();
+    });
+    expect(await screen.findByRole("alert")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Pikachu Available" }),
+    ).toBeVisible();
+    expect(screen.getByRole("radio", { name: "Listed" })).not.toHaveAttribute(
+      "aria-busy",
+    );
+    expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("keeps retry disabled after an early failure until the other side finishes", async () => {
+  const stream = progressiveResponse();
+  mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+  render(view());
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  await act(async () => {
+    stream.send({ type: "started", credits });
+    stream.send({ type: "failure", side: "sold", message: "Unavailable" });
+  });
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "couldn't load eBay sales.",
+  );
+  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    stream.send({ type: "result", side: "active", data: { items: [] } });
+    stream.send({ type: "complete", credits });
+    stream.close();
+  });
+  expect(screen.getByRole("radio", { name: "Listed" })).toBeChecked();
+  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+  expect(screen.getByText("No matching eBay listings found.")).toBeVisible();
+});
+
+test("keeps only the header when both streamed sides fail and refreshes the refunded balance", async () => {
+  const stream = progressiveResponse();
+  mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+  render(view());
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  await act(async () => {
+    stream.send({ type: "started", credits });
+    stream.send({ type: "failure", side: "sold", message: "Unavailable" });
+    stream.send({ type: "failure", side: "active", message: "Unavailable" });
+    stream.send({ type: "error", message: "Search failed" });
+    stream.close();
+  });
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "couldn't load eBay sales and listings.",
+  );
+  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+    screen.getByRole("alert"),
+  );
+  expect(screen.queryByText("eBay Sold & Listed")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+  expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
+});
+
+test.each(["card", "logout", "account"])(
+  "ignores subsequent stream events after a %s change",
+  async (change) => {
+    const stream = progressiveResponse();
+    mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+    const { rerender } = render(view());
+    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    await act(async () => {
+      stream.send({ type: "started", credits });
+      stream.send({
+        type: "result",
+        side: "sold",
+        data: { items: [{ title: "Pikachu old result", listingType: "sold" }] },
+      });
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Pikachu Old Result" }),
+    ).toBeVisible();
+    const signal = mocks.authenticatedFetch.mock.calls[0][1]
+      .signal as AbortSignal;
+    mocks.updateCredits.mockClear();
+    if (change === "logout") mocks.user = null;
+    if (change === "account") mocks.user = { uid: "user-2" };
+    rerender(view(change === "card" ? "card-b" : "card-a"));
+    expect(signal.aborted).toBe(true);
+    await act(async () => {
+      stream.send({
+        type: "result",
+        side: "active",
+        data: {
+          items: [{ title: "Pikachu late result", listingType: "active" }],
+        },
+      });
+      stream.send({ type: "complete", credits });
+      stream.close();
+    });
+    expect(mocks.updateCredits).not.toHaveBeenCalled();
+    expect(screen.queryByText("eBay Sold & Listed")).not.toBeInTheDocument();
+    expect(mocks.refreshCredits).not.toHaveBeenCalled();
+  },
+);
 
 beforeEach(() => {
   mocks.user = { uid: "user-1" };
@@ -265,7 +512,7 @@ test("keeps results visible without credit prompts after spending the final cred
 });
 
 test.each(["sold", "active"] as const)(
-  "keeps the header and successful results when %s fails, until a complete retry",
+  "keeps successful results when %s fails and starts a fresh search on retry",
   async (failedSide) => {
     const availableSide = failedSide === "sold" ? "active" : "sold";
     mocks.authenticatedFetch.mockResolvedValueOnce(
@@ -312,8 +559,8 @@ test.each(["sold", "active"] as const)(
     fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
     await screen.findByRole("alert");
     expect(
-      screen.getByRole("heading", { name: "Pikachu Partial Result" }),
-    ).toBeVisible();
+      screen.queryByRole("heading", { name: "Pikachu Partial Result" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
@@ -325,14 +572,18 @@ test.each(["sold", "active"] as const)(
       screen.queryByRole("button", { name: "1 eBay credit" }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
-    expect(screen.getByRole("heading", { name: "Pikachu Psa 10" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Pikachu Psa 10" }),
+    ).toBeVisible();
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(3);
   },
 );
 
 test("keeps a single error inside the header when both eBay responses are missing", async () => {
   mocks.authenticatedFetch.mockResolvedValueOnce(
-    new Response(JSON.stringify({ credits, data: { sold: null, active: null } })),
+    new Response(
+      JSON.stringify({ credits, data: { sold: null, active: null } }),
+    ),
   );
   render(view());
   fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
@@ -340,7 +591,9 @@ test("keeps a single error inside the header when both eBay responses are missin
   expect(alert).toHaveTextContent(
     "We couldn't load eBay sales and listings. Please try again.",
   );
-  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(alert);
+  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+    alert,
+  );
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
