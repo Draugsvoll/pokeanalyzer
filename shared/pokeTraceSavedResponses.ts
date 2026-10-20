@@ -2,6 +2,7 @@ export type JsonRecord = Record<string, unknown>;
 
 export type PokeTraceSavedResponses = JsonRecord & {
   grok?: JsonRecord;
+  ebay?: JsonRecord;
 };
 
 function isRecord(value: unknown): value is JsonRecord {

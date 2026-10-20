@@ -11,9 +11,11 @@ export class AuthHttpError extends Error {
   }
 }
 
-export async function getVerifiedUid(req: Request) {
+async function getAuthenticatedToken(req: Request) {
   const authHeader = req.header("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
 
   if (!token) {
     throw new AuthHttpError("Missing auth token", 401);
@@ -26,6 +28,11 @@ export async function getVerifiedUid(req: Request) {
     throw new AuthHttpError("Invalid or expired auth token", 401);
   }
 
+  return decodedToken;
+}
+
+export async function getVerifiedUid(req: Request) {
+  const decodedToken = await getAuthenticatedToken(req);
   if (decodedToken.email_verified !== true) {
     throw new AuthHttpError("Verify your email before using this feature", 403);
   }
@@ -43,7 +50,24 @@ export const requireVerifiedUser: RequestHandler = async (
     next();
   } catch (error) {
     const statusCode = error instanceof AuthHttpError ? error.statusCode : 401;
-    const message = error instanceof AuthHttpError ? error.message : "Authentication failed";
+    const message =
+      error instanceof AuthHttpError ? error.message : "Authentication failed";
+    res.status(statusCode).json({ message });
+  }
+};
+
+export const requireAuthenticatedUser: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    res.locals.authUid = (await getAuthenticatedToken(req)).uid;
+    next();
+  } catch (error) {
+    const statusCode = error instanceof AuthHttpError ? error.statusCode : 401;
+    const message =
+      error instanceof AuthHttpError ? error.message : "Authentication failed";
     res.status(statusCode).json({ message });
   }
 };

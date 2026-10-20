@@ -4,26 +4,22 @@ import { URL } from "node:url";
 import {
   buildEbayCardRequests,
   buildEbayCompsUrl,
+  fetchEbayComps,
   filterEbayCompsResponseByTitle,
 } from "./ebayCompsApi.js";
 
 test("eBay card requests preserve the sold and active request contract", () => {
   const { query, soldOptions, activeOptions } = buildEbayCardRequests({
-    cardName: "Charizard",
-    cardNumber: "4",
-    formattedCardNumber: "004/102",
-    setName: "Base Set",
-    unpaddedCardNumber: "4/102",
+    cardName: "Charizard ex",
+    cardNumber: "004/102",
   });
 
-  assert.equal(query, "Charizard (004/102,4/102,4) Base Set");
+  assert.equal(query, "Charizard ex 004/102");
   assert.deepEqual(soldOptions, {
-    aspectFilter: { Set: "Base Set" },
-    requiredTitle: "Charizard",
+    titleFilter: { cardName: "Charizard ex", cardNumber: "004/102" },
   });
   assert.deepEqual(activeOptions, {
-    aspectFilter: { Set: "Base Set" },
-    requiredTitle: "Charizard",
+    titleFilter: { cardName: "Charizard ex", cardNumber: "004/102" },
     sold: false,
   });
 
@@ -42,10 +38,7 @@ test("eBay card requests preserve the sold and active request contract", () => {
 
     assert.equal(requestUrl.searchParams.get("keyword"), query);
     assert.equal(requestUrl.searchParams.get("categoryId"), "183454");
-    assert.deepEqual(
-      JSON.parse(requestUrl.searchParams.get("aspectFilter") ?? ""),
-      { Set: "Base Set" },
-    );
+    assert.equal(requestUrl.searchParams.has("aspectFilter"), false);
     assert.equal(
       requestUrl.searchParams.get("sold"),
       listingType === "active" ? "false" : null,
@@ -53,33 +46,40 @@ test("eBay card requests preserve the sold and active request contract", () => {
   }
 });
 
-test("eBay card requests retain a bare-number fallback for PokeTrace fractions", () => {
+test("eBay card requests use only the name when the card has no number", () => {
   const { query } = buildEbayCardRequests({
     cardName: "Charizard",
-    cardNumber: "004/102",
-    formattedCardNumber: "004/102",
-    setName: "Base Set",
-    unpaddedCardNumber: "4/102",
+    cardNumber: "",
   });
 
-  assert.equal(query, "Charizard (004/102,4/102,4) Base Set");
+  assert.equal(query, "Charizard");
 });
 
-test("eBay comps keep only titles containing the card name", () => {
+test("eBay comps keep titles with either the number or first name token", () => {
+  const matching = [
+    { title: "Pokemon Mew Holo" },
+    { title: "Pokemon 008/102 Holo" },
+    { title: "MEW ex 008/102" },
+  ];
   const response = filterEbayCompsResponseByTitle(
     {
       items: [
-        { title: "Pokemon Base Set Mew 8/102 Holo" },
+        ...matching,
         { title: "Pokemon Base Set Mewtwo 10/102 Holo" },
         { title: "Pokemon Base Set Charizard 4/102 Holo" },
+        { title: "Pokemon ex 8/102 Holo" },
+        { title: "" },
+        { title: 8 },
+        null,
+        {},
       ],
-      totalItems: 3,
+      totalItems: 10,
     },
-    "Mew",
+    { cardName: "Mew ex", cardNumber: "008/102" },
   ) as { items: unknown[]; totalItems: number };
 
-  assert.equal(response.items.length, 1);
-  assert.equal(response.totalItems, 1);
+  assert.deepEqual(response.items, matching);
+  assert.equal(response.totalItems, matching.length);
 });
 
 test("eBay comps title matching ignores punctuation and accents", () => {
@@ -87,8 +87,46 @@ test("eBay comps title matching ignores punctuation and accents", () => {
     {
       items: [{ title: "Ho Oh Pokemon Card" }, { title: "Flabebe Pokemon" }],
     },
-    "Ho-Oh",
+    { cardName: "Ho-Oh", cardNumber: "" },
   ) as { items: unknown[] };
 
   assert.equal(response.items.length, 1);
+  const accented = filterEbayCompsResponseByTitle(
+    { items: [{ title: "FLABEBE Pokemon" }] },
+    { cardName: "Flabébé", cardNumber: "" },
+  ) as { items: unknown[] };
+  assert.equal(accented.items.length, 1);
+});
+
+test("empty match criteria do not match every title", () => {
+  const response = filterEbayCompsResponseByTitle(
+    { items: [{ title: "Pikachu" }] },
+    { cardName: "", cardNumber: "" },
+  ) as { items: unknown[] };
+  assert.deepEqual(response.items, []);
+});
+
+test("fresh sold and active responses use the same title filter", async (t) => {
+  const previousKey = process.env.EBAYCOMPS_API_KEY;
+  process.env.EBAYCOMPS_API_KEY = "test-key";
+  t.after(() => {
+    if (previousKey === undefined) delete process.env.EBAYCOMPS_API_KEY;
+    else process.env.EBAYCOMPS_API_KEY = previousKey;
+  });
+  const matching = [{ title: "Charizard Holo" }, { title: "Card SVP001" }];
+  t.mock.method(globalThis, "fetch", async () =>
+    new Response(
+      JSON.stringify({
+        items: [...matching, { title: "Unrelated Pikachu" }],
+      }),
+    ),
+  );
+  const { query, soldOptions, activeOptions } = buildEbayCardRequests({
+    cardName: "Charizard ex",
+    cardNumber: "svp001",
+  });
+  for (const options of [soldOptions, activeOptions]) {
+    const result = await fetchEbayComps(query, undefined, options);
+    assert.deepEqual(result, { items: matching, totalItems: 2 });
+  }
 });

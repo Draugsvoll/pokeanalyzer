@@ -74,15 +74,6 @@ export function isValidStoredFeatureResponse(
     return isValidWorthGradingResponse(value);
   }
 
-  if (storageKey === "ebay_sold") {
-    return (
-      isJsonObject(value.sold) &&
-      Array.isArray(value.sold.items) &&
-      isJsonObject(value.active) &&
-      Array.isArray(value.active.items)
-    );
-  }
-
   return false;
 }
 
@@ -149,19 +140,9 @@ export async function getCardGrokContext(
       : typeof rawCardNumber === "number" && Number.isFinite(rawCardNumber)
         ? String(rawCardNumber)
         : "";
-  const numberParts = cardNumber.split("/");
-  const unpaddedNumerator = numberParts[0]?.replace(/^0+(?=\d)/, "") ?? "";
-  const unpaddedCardNumber =
-    numberParts.length > 1
-      ? [unpaddedNumerator, ...numberParts.slice(1)].join("/")
-      : unpaddedNumerator;
-
   return {
     cardName,
-    cardNameAndSet: [cardName, setName].filter(Boolean).join(" "),
     cardNumber,
-    formattedCardNumber: cardNumber,
-    unpaddedCardNumber: unpaddedCardNumber || cardNumber,
     rarity,
     setName,
     variantName,

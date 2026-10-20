@@ -773,7 +773,7 @@ input[type="radio"] {
 
 .app-loading-spinner {
   animation: app-loading-spinner-spin 0.75s linear infinite;
-  border: 3px solid
+  border: 2px solid
     color-mix(
       in srgb,
       var(--feature-accent, var(--custom-color-blue)) 24%,
@@ -784,8 +784,8 @@ input[type="radio"] {
   box-sizing: border-box;
   display: block;
   flex: 0 0 auto;
-  height: 2rem;
-  width: 2rem;
+  height: 1rem;
+  width: 1rem;
 }
 
 @keyframes app-loading-spinner-spin {

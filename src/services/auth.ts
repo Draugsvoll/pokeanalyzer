@@ -1,17 +1,36 @@
 import {
   createUserWithEmailAndPassword,
+  getAdditionalUserInfo,
   GoogleAuthProvider,
   signOut,
   signInWithPopup,
   signInWithEmailAndPassword,
+  type User,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, db } from "../firebase";
 import { initializeFreeSubscription } from "../subscriptions/subscriptionApi";
+import { initializeEbaySignupCredits } from "../ebay/ebayCreditsApi";
+import { logClientError } from "../utils/logClientError";
+
+async function initializeSignupCredits(user: User) {
+  try {
+    await initializeEbaySignupCredits(user);
+  } catch (error) {
+    // A temporary eBay failure must not prevent verification or signing in.
+    logClientError("Failed to initialize signup eBay credits", error);
+  }
+}
 
 export async function register(email: string, password: string) {
-  return createUserWithEmailAndPassword(auth, email, password);
+  const credential = await createUserWithEmailAndPassword(
+    auth,
+    email,
+    password,
+  );
+  await initializeSignupCredits(credential.user);
+  return credential;
 }
 
 export async function login(email: string, password: string) {
@@ -39,6 +58,9 @@ export async function login(email: string, password: string) {
 export async function signInWithGoogle() {
   const userCredential = await signInWithPopup(auth, new GoogleAuthProvider());
   const { user } = userCredential;
+  if (getAdditionalUserInfo(userCredential)?.isNewUser) {
+    await initializeSignupCredits(user);
+  }
   const userRef = doc(db, "users", user.uid);
   const userSnapshot = await getDoc(userRef);
 

@@ -37,6 +37,8 @@ export function toPokemonCard(
   const updatedAt = text(raw.lastUpdated) ?? "";
   const parsedMarketComparisons =
     parsePokeTraceMarketComparisons(marketComparisons);
+  const { ebay_sold: legacyEbay, ...grok } = savedResponses.grok ?? {};
+  const ebay = record(savedResponses.ebay) ?? record(legacyEbay);
 
   return {
     id: text(raw.id)!,
@@ -59,6 +61,7 @@ export function toPokemonCard(
         marketComparisons: parsedMarketComparisons,
       }),
     },
-    grok: savedResponses.grok ?? {},
+    grok,
+    ...(ebay && { ebay }),
   };
 }

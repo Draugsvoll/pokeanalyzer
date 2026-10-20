@@ -373,13 +373,13 @@ test("stored feature validation rejects missing or empty analysis content", () =
   }
 });
 
-test("stored eBay validation requires both item arrays but allows zero results", () => {
+test("AI response validation does not accept eBay results", () => {
   assert.equal(
     isValidStoredFeatureResponse("ebay_sold", {
       active: { items: [] },
       sold: { items: [] },
     }),
-    true,
+    false,
   );
   assert.equal(
     isValidStoredFeatureResponse("ebay_sold", {

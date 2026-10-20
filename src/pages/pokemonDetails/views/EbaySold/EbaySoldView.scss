@@ -1,10 +1,9 @@
 .ebay-sold-view {
-  /* Follows feature button / header accent from page --feature-accent */
-  --ebay-accent: var(--feature-accent, var(--custom-color-teal));
+  --ebay-accent: var(--custom-color-teal);
 
+  accent-color: var(--ebay-accent);
   margin-inline: auto;
-  max-width: 72rem;
-  min-height: 30rem;
+  max-width: 100%;
   width: 100%;
 
   &__eyebrow {
@@ -16,8 +15,8 @@
 
   &__surface {
     display: grid;
-    gap: var(--space-5);
-    margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
   }
 
   &__state {
@@ -26,27 +25,44 @@
     text-align: center;
   }
 
+  &__result-count {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
+    margin: 0 0 0 auto;
+    min-width: 10ch;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &__listing-selector {
+    display: grid;
+    justify-items: center;
+    margin-top: var(--space-2);
+  }
+
   &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--ebay-accent);
-
     display: flex;
     justify-self: center;
     width: fit-content;
-    margin: 0.6rem;
+    margin: 0;
   }
 
   &__filter-row {
     align-items: end;
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-4);
     justify-content: space-between;
     min-width: 0;
-    margin-bottom: 0.5rem;
   }
 
   &__control-group {
     align-items: flex-end;
     display: flex;
+    flex: 1 1 32rem;
     gap: var(--space-3);
     justify-content: flex-end;
     margin-left: auto;
@@ -57,6 +73,12 @@
       box-shadow: 0 0 0 1px
         color-mix(in srgb, var(--ebay-accent) 7%, transparent);
     }
+  }
+
+  &__sorting {
+    display: grid;
+    flex-shrink: 0;
+    justify-content: end;
 
     .ui-select-dropdown__toggle:focus-visible {
       border-color: var(--ebay-accent);
@@ -65,23 +87,10 @@
     }
   }
 
-  &__sorting {
-    display: grid;
-    gap: 0.3rem;
-    justify-content: end;
-
-    > span {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-medium);
-      line-height: var(--font-leading-snug);
-    }
-  }
-
   &__text-filter {
-    flex: 0 1 15rem;
-    max-width: 15rem;
-    width: 15rem;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
   }
 
   &__filters {
@@ -145,6 +154,10 @@
       outline: 2px solid var(--ebay-accent);
       outline-offset: 2px;
     }
+  }
+
+  &__filters.radio-group.radio-group {
+    --radio-accent: var(--ebay-accent);
   }
 
   &__filters.radio-group.radio-group label > span {
@@ -425,10 +438,6 @@
       gap: 0.75rem;
     }
 
-    &__surface {
-      gap: 1rem;
-    }
-
     &__text-filter {
       flex: 1 1 auto;
       max-width: none;
@@ -437,6 +446,7 @@
 
     &__control-group {
       align-items: stretch;
+      flex-basis: auto;
       flex-direction: column;
       margin-left: 0;
       width: 100%;

@@ -2,6 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { toPokemonCard } from "./pokeTraceCardView.js";
 
+test("legacy eBay results are exposed separately from AI responses", () => {
+  const ebay = {
+    timestamp: "2026-10-20",
+    sold: { items: [] },
+    active: { items: [] },
+  };
+  const market = { timestamp: "2026-10-20" };
+  const card = toPokemonCard(
+    { id: "card-1", name: "Nidoking" },
+    { grok: { ebay_sold: ebay, market_analysis: market } },
+  );
+  assert.deepEqual(card.ebay, ebay);
+  assert.deepEqual(card.grok, { market_analysis: market });
+  const updatedEbay = { ...ebay, timestamp: "2026-10-21" };
+  assert.deepEqual(
+    toPokemonCard(
+      { id: "card-1", name: "Nidoking" },
+      { ebay: updatedEbay, grok: { ebay_sold: ebay } },
+    ).ebay,
+    updatedEbay,
+  );
+});
+
 test("PokeTrace cards are mapped to the app card model", () => {
   const card = toPokemonCard(
     {

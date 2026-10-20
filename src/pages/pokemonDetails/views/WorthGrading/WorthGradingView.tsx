@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
 import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
-import { GrokLoadingState } from "../../components/GrokLoadingState";
 import { isValidWorthGradingResponse } from "../../../../../shared/validateWorthGrading";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { parseJsonText } from "../../../../utils/parseJsonText";
@@ -13,6 +12,7 @@ import "./WorthGradingView.scss";
 
 type WorthGradingViewProps = {
   grokRequest: GrokRequestState;
+  errorFallback?: ReactNode;
 };
 
 type CardInfo = {
@@ -535,23 +535,33 @@ function PsaPopulationCard({ population }: { population: PsaPopulation }) {
   );
 }
 
-export function WorthGradingView({ grokRequest }: WorthGradingViewProps) {
+export function WorthGradingView({
+  grokRequest,
+  errorFallback,
+}: WorthGradingViewProps) {
   const { loading, error, response } = grokRequest;
   const [selectedVariant, setSelectedVariant] = useState({
     index: 0,
     responseKey: "",
   });
 
-  if (loading)
-    return <GrokLoadingState>Building grading report...</GrokLoadingState>;
+  if (loading) return null;
   if (error)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
   if (!response) return null;
 
   const responseKey = response;
   const data = parseWorthGradingResponse(response);
   if (!data)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
 
   const variants = data.variants;
 

@@ -13,7 +13,7 @@ export const SUBSCRIPTION_REFRESH_EVENT = "pokeanalyzer:subscription-refresh";
 async function subscriptionRequest<T>(
   user: User,
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<T> {
   const token = await user.getIdToken();
   const response = await fetch(`${API_URL}/api/subscription${path}`, {
@@ -38,9 +38,13 @@ export function fetchSubscription(user: User) {
 }
 
 export async function initializeFreeSubscription(user: User) {
-  const response = await subscriptionRequest<SubscriptionResponse>(user, "/initialize-free", {
-    method: "POST",
-  });
+  const response = await subscriptionRequest<SubscriptionResponse>(
+    user,
+    "/initialize-free",
+    {
+      method: "POST",
+    },
+  );
   window.dispatchEvent(new Event(SUBSCRIPTION_REFRESH_EVENT));
   return response;
 }
@@ -52,10 +56,7 @@ export function createMembershipCheckout(user: User, planId: MembershipPlanId) {
   });
 }
 
-export function createTopUpCheckout(
-  user: User,
-  packageId: TopUpPackageId,
-) {
+export function createTopUpCheckout(user: User, packageId: TopUpPackageId) {
   return subscriptionRequest<CheckoutResponse>(user, "/checkout/top-up", {
     method: "POST",
     body: JSON.stringify({
@@ -66,9 +67,13 @@ export function createTopUpCheckout(
 }
 
 export function cancelSubscriptionAtPeriodEnd(user: User) {
-  return subscriptionRequest<SubscriptionResponse>(user, "/cancel-at-period-end", {
-    method: "POST",
-  });
+  return subscriptionRequest<SubscriptionResponse>(
+    user,
+    "/cancel-at-period-end",
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function createBillingPortal(user: User) {

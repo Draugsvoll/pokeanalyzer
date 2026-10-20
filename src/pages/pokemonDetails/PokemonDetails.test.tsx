@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -6,6 +7,7 @@ import {
   within,
 } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
 import type { GrokRequestState } from "../../utils/grok/grokClient";
@@ -16,7 +18,11 @@ const mocks = vi.hoisted(() => ({
   authUser: { uid: "user-1" } as { uid: string } | null,
   askGrok: vi.fn(),
   creditsRemaining: 10,
-  ebayRuns: vi.fn(),
+  authenticatedFetch: vi.fn(),
+  ebayCreditsRemaining: 10,
+  ebayCreditsLoading: false,
+  updateEbayCredits: vi.fn(),
+  refreshEbayCredits: vi.fn(),
   fetchCardById: vi.fn(),
   fetchCardPriceHistory: vi.fn(),
   fetchMarketPriceHistory: vi.fn(),
@@ -103,6 +109,23 @@ vi.mock("../../subscriptions", () => ({
   }),
 }));
 
+vi.mock("../../utils/authenticatedFetch", () => ({
+  authenticatedFetch: mocks.authenticatedFetch,
+}));
+
+vi.mock("../../ebay/useEbayCredits", () => ({
+  useEbayCredits: () => ({
+    credits: {
+      creditsRemaining: mocks.ebayCreditsRemaining,
+      planId: "free",
+    },
+    loading: mocks.ebayCreditsLoading,
+    error: "",
+    updateCredits: mocks.updateEbayCredits,
+    refreshCredits: mocks.refreshEbayCredits,
+  }),
+}));
+
 vi.mock("../../context/watchlistCacheContextValue", () => ({
   useWatchlistCache: () => ({
     isItemUpdating: () => false,
@@ -135,40 +158,55 @@ vi.mock("../../components/loginmodal/Loginmodal", () => ({
   default: () => null,
 }));
 
-vi.mock("./components/CardFeatureHeader", () => ({
-  CARD_FEATURE_VARIANTS_ID: "card-feature-variants",
-  CardFeatureHeader: ({
-    actionLabel,
-    actionDisabled,
-    actionHidden,
-    actionLoading,
-    label,
-    onAction,
-  }: {
-    actionLabel?: string;
-    actionDisabled?: boolean;
-    actionHidden?: boolean;
-    actionLoading?: boolean;
-    label: string;
-    onAction?: () => void;
-  }) => (
-    <header>
-      <span>{label}</span>
-      {onAction && !actionHidden && (
-        <button
-          data-testid="feature-action"
-          data-credit-label={actionLabel}
-          type="button"
-          disabled={actionDisabled || actionLoading}
-          aria-busy={actionLoading}
-          onClick={onAction}
-        >
-          {actionLoading ? `Loading ${label}` : `Open ${label}`}
-        </button>
-      )}
-    </header>
-  ),
-}));
+vi.mock("./components/CardFeatureHeader", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("./components/CardFeatureHeader")>();
+  return {
+    CARD_FEATURE_VARIANTS_ID: "card-feature-variants",
+    CardFeatureHeader: (
+      props: Parameters<typeof actual.CardFeatureHeader>[0],
+    ) => {
+      if (props.label === "eBay Comps")
+        return <actual.CardFeatureHeader {...props} />;
+      const {
+        actionLabel,
+        actionDisabled,
+        actionHidden,
+        actionLoading,
+        label,
+        onAction,
+      }: {
+        actionLabel?: string;
+        actionDisabled?: boolean;
+        actionHidden?: boolean;
+        actionLoading?: boolean;
+        label: string;
+        onAction?: () => void;
+      } = props;
+      return (
+        <header>
+          <span>{label}</span>
+          {props.errorMessage && <p role="alert">{props.errorMessage}</p>}
+          {onAction && !actionHidden && (
+            <button
+              data-testid="feature-action"
+              data-credit-label={actionLabel}
+              type="button"
+              disabled={actionDisabled || actionLoading}
+              aria-busy={actionLoading}
+              onClick={onAction}
+            >
+              {actionLoading ? `Loading ${label}` : `Open ${label}`}
+            </button>
+          )}
+          {actionLoading && props.actionLoadingMessage && (
+            <p role="status">{props.actionLoadingMessage}</p>
+          )}
+        </header>
+      );
+    },
+  };
+});
 
 function ResponseView({
   emptyLabel,
@@ -212,36 +250,20 @@ vi.mock("./views/MarketAnalysis/MarketAnalysisView", () => ({
   ),
 }));
 
-vi.mock("./views/EbaySold/EbaySoldView", async () => {
-  const { useEffect, useState } = await import("react");
-
-  function MockEbaySoldView({
-    onLoadingChange,
-    onReportAvailableChange,
-    runToken,
+vi.mock("./views/EbaySold/EbaySoldView", () => ({
+  default: ({
+    response,
+    children,
   }: {
-    onLoadingChange: (loading: boolean) => void;
-    onReportAvailableChange: (available: boolean) => void;
-    runToken: number;
-  }) {
-    const [response, setResponse] = useState("");
-
-    useEffect(() => {
-      if (!runToken) return;
-
-      mocks.ebayRuns(runToken);
-      onLoadingChange(false);
-      onReportAvailableChange(true);
-      setResponse(`eBay response ${runToken}`);
-    }, [onLoadingChange, onReportAvailableChange, runToken]);
-
-    return (
-      <div data-testid="ebay-response">{response || "No eBay response"}</div>
-    );
-  }
-
-  return { default: MockEbaySoldView };
-});
+    response: { label: string } | null;
+    children?: ReactNode;
+  }) => (
+    <>
+      {children}
+      {response && <div data-testid="ebay-response">{response.label}</div>}
+    </>
+  ),
+}));
 
 function TestRoutes() {
   const navigate = useNavigate();
@@ -264,7 +286,21 @@ beforeEach(() => {
   mocks.authUser = { uid: "user-1" };
   mocks.creditsRemaining = 10;
   mocks.askGrok.mockReset();
-  mocks.ebayRuns.mockReset();
+  mocks.ebayCreditsRemaining = 10;
+  mocks.ebayCreditsLoading = false;
+  mocks.authenticatedFetch.mockReset();
+  mocks.updateEbayCredits.mockReset();
+  mocks.refreshEbayCredits.mockReset().mockResolvedValue(undefined);
+  mocks.authenticatedFetch.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          data: { label: "eBay response" },
+          credits: { creditsRemaining: 9, version: 1 },
+          fromDatabase: false,
+        }),
+      ),
+  );
   mocks.fetchCardById.mockReset();
   mocks.fetchCardPriceHistory.mockReset();
   mocks.fetchMarketPriceHistory.mockReset();
@@ -326,6 +362,56 @@ test("shows links to the card directory and current set in the breadcrumb", asyn
   );
 });
 
+test.each([
+  ["Grading", "Building grading report..."],
+  ["Collector Insights", "Building collector report..."],
+  ["Market Analysis", "Building market report..."],
+])("shows %s loading text inside its header", async (feature, message) => {
+  let resolveRequest!: (value: unknown) => void;
+  mocks.askGrok.mockReturnValue(
+    new Promise((resolve) => {
+      resolveRequest = resolve;
+    }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await screen.findByTestId("feature-action");
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(feature) }));
+  fireEvent.click(screen.getByTestId("feature-action"));
+  const status = await screen.findByText(message);
+  expect(screen.getByTestId("feature-action").closest("header"))
+    .toContainElement(status);
+  expect(screen.getAllByText(message)).toHaveLength(1);
+  await act(async () => resolveRequest({ ok: false, status: 502 }));
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  expect(screen.getByTestId("feature-action").closest("header"))
+    .toContainElement(screen.getByRole("alert"));
+});
+
+test.each(["Grading", "Collector Insights", "Market Analysis"])(
+  "keeps the %s request error inside its header",
+  async (feature) => {
+    mocks.askGrok.mockResolvedValue({ ok: false, status: 502 });
+    render(
+      <MemoryRouter initialEntries={["/card/card-a"]}>
+        <TestRoutes />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("feature-action");
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(feature) }));
+    fireEvent.click(screen.getByTestId("feature-action"));
+    const alert = await screen.findByRole("alert");
+    expect(
+      screen.getByTestId("feature-action").closest("header"),
+    ).toContainElement(alert);
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  },
+);
+
 test("places the card number between the title and rarity without repeating the set", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
@@ -333,7 +419,10 @@ test("places the card number between the title and rarity without repeating the 
     </MemoryRouter>,
   );
 
-  const title = await screen.findByRole("heading", { name: "Pikachu" });
+  const title = await screen.findByRole("heading", {
+    name: "Pikachu",
+    level: 1,
+  });
   const number = screen.getByLabelText("Card number 058/102");
   const rarity = screen.getByText("Common");
 
@@ -343,7 +432,8 @@ test("places the card number between the title and rarity without repeating the 
   expect(number.compareDocumentPosition(rarity)).toBe(
     Node.DOCUMENT_POSITION_FOLLOWING,
   );
-  expect(screen.getAllByText("Base Set")).toHaveLength(1);
+  const cardDetails = title.closest(".details-page__primary") as HTMLElement;
+  expect(within(cardDetails).getAllByText("Base Set")).toHaveLength(1);
 });
 
 test("keeps the embedded card search open while using its controls", async () => {
@@ -353,7 +443,7 @@ test("keeps the embedded card search open while using its controls", async () =>
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   fireEvent.click(screen.getByRole("button", { name: "Next Card" }));
 
   const dialog = await screen.findByRole("dialog", { name: "Switch card" });
@@ -382,7 +472,7 @@ test("closes the embedded card search with its visible close button", async () =
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   const trigger = screen.getByRole("button", { name: "Next Card" });
   trigger.focus();
   fireEvent.click(trigger);
@@ -422,7 +512,7 @@ test("contains focus and lets autocomplete dismiss itself before the dialog", as
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   fireEvent.click(screen.getByRole("button", { name: "Next Card" }));
 
   const dialog = await screen.findByRole("dialog", { name: "Switch card" });
@@ -469,9 +559,10 @@ test("enables feature actions after authentication and subscription loading", as
   );
   const { rerender } = render(renderView());
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
+  fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
   let actionButton = screen.getByRole("button", {
-    name: "Loading eBay Comps",
+    name: "Loading Market Analysis",
   });
 
   expect(actionButton).toBeDisabled();
@@ -482,7 +573,7 @@ test("enables feature actions after authentication and subscription loading", as
   rerender(renderView());
 
   actionButton = screen.getByRole("button", {
-    name: "Loading eBay Comps",
+    name: "Loading Market Analysis",
   });
   expect(actionButton).toBeDisabled();
 
@@ -491,7 +582,7 @@ test("enables feature actions after authentication and subscription loading", as
   rerender(renderView());
 
   actionButton = screen.getByRole("button", {
-    name: "Open eBay Comps",
+    name: "Open Market Analysis",
   });
   expect(actionButton).toBeEnabled();
   expect(actionButton).toHaveAttribute("aria-busy", "false");
@@ -523,7 +614,7 @@ test("offers a top-up for grading with one credit while other features remain af
   );
 
   const action = await screen.findByTestId("feature-action");
-  expect(action).toHaveAttribute("data-credit-label", "1 Credit");
+  expect(action).toHaveAttribute("data-credit-label", "1 AI credit");
   expect(action).toBeEnabled();
 
   fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
@@ -548,7 +639,7 @@ test("offers grading for two credits when the balance is exactly two", async () 
   await screen.findByTestId("feature-action");
   fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
   const action = screen.getByTestId("feature-action");
-  expect(action).toHaveAttribute("data-credit-label", "2 Credits");
+  expect(action).toHaveAttribute("data-credit-label", "2 AI credits");
   expect(action).toBeEnabled();
   fireEvent.click(action);
 
@@ -560,7 +651,7 @@ test("offers grading for two credits when the balance is exactly two", async () 
   });
 });
 
-test.each(["Grading", "Collector's Value", "Market Analysis"])(
+test.each(["Grading", "Collector Insights", "Market Analysis"])(
   "%s refreshes a stale balance after a credit rejection and offers a top-up",
   async (feature) => {
     mocks.askGrok.mockResolvedValue({
@@ -650,9 +741,11 @@ test("shows market loading while fetching a variant and reuses the result", asyn
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   fireEvent.click(screen.getByRole("radio", { name: "Holofoil" }));
-  expect(screen.getByRole("heading", { name: "Pikachu" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "Pikachu", level: 1 }),
+  ).toBeInTheDocument();
   const variantLoading = screen.getByRole("status", {
     name: "Loading market data",
   });
@@ -664,7 +757,7 @@ test("shows market loading while fetching a variant and reuses the result", asyn
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
   resolveCardB(cardB);
-  await screen.findByRole("heading", { name: "Raichu" });
+  await screen.findByRole("heading", { name: "Raichu", level: 1 });
 
   expect(
     mocks.fetchCardById.mock.calls.filter(([cardId]) => cardId === "card-b"),
@@ -695,7 +788,7 @@ test("keeps navigation details visible while the complete card loads", async () 
   );
 
   expect(
-    screen.getByRole("heading", { name: "Cached Pikachu" }),
+    screen.getByRole("heading", { name: "Cached Pikachu", level: 1 }),
   ).toBeInTheDocument();
   expect(
     screen.getByRole("status", { name: "Loading complete card details" }),
@@ -715,7 +808,7 @@ test("keeps navigation details visible while the complete card loads", async () 
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
   resolveRequest(completeCard);
-  await screen.findByRole("heading", { name: "Complete Pikachu" });
+  await screen.findByRole("heading", { name: "Complete Pikachu", level: 1 });
   expect(
     screen.queryByRole("status", { name: "Loading complete card details" }),
   ).not.toBeInTheDocument();
@@ -754,7 +847,7 @@ test("keeps navigation data and offers retry when complete card loading fails", 
 
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-  await screen.findByRole("heading", { name: "Complete Pikachu" });
+  await screen.findByRole("heading", { name: "Complete Pikachu", level: 1 });
   expect(mocks.fetchCardById).toHaveBeenCalledTimes(2);
 });
 
@@ -765,8 +858,8 @@ test("Market Analysis fetches the stored market report", async () => {
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
-  fireEvent.click(screen.getByRole("button", { name: /Market Analysis/ }));
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
+  fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
   fireEvent.click(screen.getByRole("button", { name: "Open Market Analysis" }));
 
   await waitFor(() => {
@@ -801,7 +894,7 @@ test("Worth Grading sends the normalized active variant", async () => {
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
   const openGradingButton = screen.getByRole("button", {
     name: "Open Grading",
@@ -832,29 +925,29 @@ test("eBay data survives feature switches and clears for a new card", async () =
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
-  fireEvent.click(screen.getByRole("button", { name: "Open eBay Comps" }));
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
 
   await waitFor(() => {
     expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-      "eBay response 1",
+      "eBay response",
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
-  fireEvent.click(screen.getByRole("button", { name: /eBay Comps/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector Insights/ }));
+  expect(screen.getByTestId("ebay-response")).not.toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  expect(screen.getByTestId("ebay-response")).toBeVisible();
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-    "eBay response 1",
+    "eBay response",
   );
-  expect(mocks.ebayRuns).toHaveBeenCalledTimes(1);
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "Open next card" }));
-  await screen.findByRole("heading", { name: "Raichu" });
+  await screen.findByRole("heading", { name: "Raichu", level: 1 });
 
-  expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-    "No eBay response",
-  );
-  expect(mocks.ebayRuns).toHaveBeenCalledTimes(1);
+  expect(screen.queryByTestId("ebay-response")).not.toBeInTheDocument();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 });
 
 test("feature responses survive view switches and clear for a new card", async () => {
@@ -864,11 +957,11 @@ test("feature responses survive view switches and clear for a new card", async (
     </MemoryRouter>,
   );
 
-  await screen.findByRole("heading", { name: "Pikachu" });
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector Insights/ }));
   fireEvent.click(
-    screen.getByRole("button", { name: "Open Collector's Value" }),
+    screen.getByRole("button", { name: "Open Collector Insights" }),
   );
   await waitFor(() => {
     expect(screen.getByTestId("collector-response")).toHaveTextContent(
@@ -890,15 +983,15 @@ test("feature responses survive view switches and clear for a new card", async (
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Collector Insights/ }));
   expect(screen.getByTestId("collector-response")).toHaveTextContent(
     "collector_analysis response",
   );
   expect(mocks.askGrok).toHaveBeenCalledTimes(2);
 
   fireEvent.click(screen.getByRole("button", { name: "Open next card" }));
-  await screen.findByRole("heading", { name: "Raichu" });
-  fireEvent.click(screen.getByRole("button", { name: /Collector's Value/ }));
+  await screen.findByRole("heading", { name: "Raichu", level: 1 });
+  fireEvent.click(screen.getByRole("button", { name: /Collector Insights/ }));
 
   await waitFor(() => {
     expect(screen.getByTestId("collector-response")).toHaveTextContent(
@@ -906,7 +999,170 @@ test("feature responses survive view switches and clear for a new card", async (
     );
   });
   expect(
-    screen.getByRole("button", { name: "Open Collector's Value" }),
+    screen.getByRole("button", { name: "Open Collector Insights" }),
   ).toBeEnabled();
   expect(mocks.askGrok).toHaveBeenCalledTimes(2);
+});
+
+test("opens the eBay tab in the shared feature layout without an automatic request", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+
+  const title = await screen.findByRole("heading", {
+    name: "Pikachu",
+    level: 1,
+  });
+  const primary = title.closest(".details-page__primary")!;
+  const ebay = screen.getByRole("region", { name: "eBay sales and listings" });
+  const ai = screen.getByRole("region", { name: "Card insights" });
+  expect(primary.nextElementSibling).toBe(ai);
+  expect(ai).toContainElement(ebay);
+  expect(
+    within(ai).getByRole("button", { name: "eBay Comps" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    screen.getByRole("button", { name: /^Market Analysis/ }),
+  ).toHaveAttribute("aria-pressed", "false");
+  expect(ebay).toBeVisible();
+  expect(screen.getByTestId("feature-action")).not.toBeVisible();
+  expect(mocks.askGrok).not.toHaveBeenCalled();
+  expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
+});
+
+test("runs eBay and AI simultaneously and updates only their respective credits", async () => {
+  let resolveEbay!: (response: Response) => void;
+  let resolveAi!: (response: unknown) => void;
+  mocks.authenticatedFetch.mockReturnValue(
+    new Promise<Response>((resolve) => {
+      resolveEbay = resolve;
+    }),
+  );
+  mocks.askGrok.mockReturnValue(
+    new Promise((resolve) => {
+      resolveAi = resolve;
+    }),
+  );
+
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
+  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
+  expect(
+    screen.getByRole("button", { name: "Open Market Analysis" }),
+  ).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: /^Collector Insights/ }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Open Collector Insights" }),
+  );
+  expect(mocks.askGrok).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  expect(
+    screen.getByRole("button", { name: "Searching eBay..." }),
+  ).toBeDisabled();
+  const ebayTab = screen.getByRole("button", { name: "eBay Comps" });
+  expect(ebayTab).toBeEnabled();
+  expect(ebayTab).toHaveAttribute("aria-busy", "true");
+  expect(ebayTab.querySelector(".feature-button__spinner")).not.toBeNull();
+
+  await act(async () => {
+    resolveEbay(
+      new Response(
+        JSON.stringify({
+          data: {
+            label: "independent eBay results",
+            sold: { items: [] },
+            active: { items: [] },
+          },
+          credits: { creditsRemaining: 9, version: 1 },
+        }),
+      ),
+    );
+  });
+  expect(screen.getByTestId("ebay-response")).toHaveTextContent(
+    "independent eBay results",
+  );
+  expect(mocks.updateEbayCredits).toHaveBeenCalledTimes(1);
+  expect(ebayTab).toHaveAttribute("aria-busy", "false");
+  expect(ebayTab.querySelector(".feature-button__spinner")).toBeNull();
+  expect(mocks.updateSubscription).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /^Collector Insights/ }));
+  expect(
+    screen.getByRole("button", { name: "Loading Collector Insights" }),
+  ).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  const ebaySection = screen.getByRole("region", {
+    name: "eBay sales and listings",
+  });
+  expect(within(ebaySection).getByTestId("ebay-response")).toBeVisible();
+  expect(
+    within(ebaySection).queryByRole("heading", { name: "eBay Comps" }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(ebaySection).queryByRole("button", {
+      name: /1 eBay credit|Hide results|Show results/,
+    }),
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    resolveAi({
+      ok: true,
+      fromDatabase: false,
+      subscription,
+      text: "independent AI results",
+    });
+  });
+  expect(screen.getByTestId("collector-response")).toHaveTextContent(
+    "independent AI results",
+  );
+  expect(screen.getByTestId("ebay-response")).toHaveTextContent(
+    "independent eBay results",
+  );
+  expect(mocks.updateEbayCredits).toHaveBeenCalledTimes(1);
+  expect(mocks.updateSubscription).toHaveBeenCalledTimes(1);
+});
+
+test("AI loading and credit refreshes do not disable eBay", async () => {
+  mocks.loadingSubscription = true;
+  mocks.creditsRemaining = 0;
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  const action = await screen.findByRole("button", { name: "1 eBay credit" });
+  expect(action).toBeEnabled();
+  fireEvent.click(action);
+  expect(await screen.findByTestId("ebay-response")).toBeVisible();
+  expect(mocks.updateSubscription).not.toHaveBeenCalled();
+  expect(mocks.refreshSubscription).not.toHaveBeenCalled();
+});
+
+test("eBay credit rejection stays local while AI actions remain available", async () => {
+  mocks.authenticatedFetch.mockResolvedValue(
+    new Response("{}", { status: 409 }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "1 eBay credit" }),
+  );
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "enough eBay credits",
+  );
+  fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
+  expect(
+    screen.getByRole("button", { name: "Open Market Analysis" }),
+  ).toBeEnabled();
+  expect(mocks.refreshEbayCredits).toHaveBeenCalledTimes(1);
+  expect(mocks.refreshSubscription).not.toHaveBeenCalled();
 });

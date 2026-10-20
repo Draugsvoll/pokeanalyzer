@@ -1,114 +1,183 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
-import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
-import type { PokemonCard } from "../../../../types/pokemon";
-import { FEATURE_ERROR_MESSAGE } from "../featureError";
+﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { expect, test } from "vitest";
 import EbaySoldView from "./EbaySoldView";
 
-vi.mock("../../../../utils/authenticatedFetch", () => ({
-  authenticatedFetch: vi.fn(),
-}));
+function listing(index: number, listingType = "sold") {
+  return {
+    title: `Pikachu listing ${index}`,
+    listingType,
+    soldPrice: String(index),
+    soldCurrency: "USD",
+    currentPrice: String(index),
+    currentCurrency: "USD",
+    endedAt: `2026-10-${String(index).padStart(2, "0")}`,
+    url: `https://www.ebay.com/itm/${index}`,
+  };
+}
 
-const card: PokemonCard = {
-  id: "card-a",
-  name: "Pikachu",
-  image: "card-a.png",
-  set: { id: "base1", name: "Base Set" },
-  pokeTrace: {
-    currency: "USD",
-    marketplaceUrls: {},
-    prices: {},
-    variant: "Normal",
-    variants: [{ id: "card-a", name: "Normal" }],
-  },
-};
-
-test("changing the credit callback does not repeat a completed request, but a new run token does", async () => {
-  vi.mocked(authenticatedFetch)
-    .mockReset()
-    .mockImplementation(
-      async () =>
-        new Response(
-          JSON.stringify({
-            subscription: {},
-            data: { sold: [], active: [] },
-          }),
-        ),
-    );
-  const onSubscriptionChange = vi.fn();
-  const originalCallback = vi.fn().mockResolvedValue(null);
-  const latestCallback = vi.fn().mockResolvedValue(null);
-  const props = { card, runToken: 1, onSubscriptionChange };
+test("renders controls before optional intro content without a premature empty-results message", () => {
   const { rerender } = render(
-    <EbaySoldView {...props} onCreditRejected={originalCallback} />,
+    <EbaySoldView response={null}>
+      <button type="button">Search this card</button>
+    </EbaySoldView>,
   );
-  await waitFor(() => expect(onSubscriptionChange).toHaveBeenCalledTimes(1));
-
-  rerender(<EbaySoldView {...props} onCreditRejected={latestCallback} />);
-  expect(authenticatedFetch).toHaveBeenCalledTimes(1);
-
-  rerender(
-    <EbaySoldView {...props} runToken={2} onCreditRejected={latestCallback} />,
+  const intro = screen.getByRole("button", { name: "Search this card" });
+  const sort = screen.getByRole("button", { name: "Sort eBay listings" });
+  expect(sort.compareDocumentPosition(intro)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
   );
-  await waitFor(() => expect(onSubscriptionChange).toHaveBeenCalledTimes(2));
-  expect(authenticatedFetch).toHaveBeenCalledTimes(2);
-  expect(originalCallback).not.toHaveBeenCalled();
-  expect(latestCallback).not.toHaveBeenCalled();
+  expect(screen.getByRole("radio", { name: "Sold" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: "Grade 10" })).toBeVisible();
+  expect(
+    screen.getByRole("searchbox", { name: "Filter eBay results" }),
+  ).toBeVisible();
+  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  rerender(<EbaySoldView response={{ sold: [], active: [] }} />);
+  expect(screen.getByRole("radio", { name: "Listed" })).toBeChecked();
+  expect(screen.getByText("No matching eBay listings found.")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Search this card" }),
+  ).not.toBeInTheDocument();
 });
 
-test("an in-flight credit rejection calls the latest callback without restarting the request", async () => {
-  let resolveResponse!: (response: Response) => void;
-  const response = new Promise<Response>((resolve) => {
-    resolveResponse = resolve;
-  });
-  vi.mocked(authenticatedFetch).mockReset().mockReturnValue(response);
-  const originalCallback = vi.fn().mockResolvedValue(null);
-  const latestCallback = vi.fn().mockResolvedValue(null);
-  const { rerender } = render(
+test("counts all matching results while displaying them in batches", () => {
+  render(
     <EbaySoldView
-      card={card}
-      runToken={1}
-      onCreditRejected={originalCallback}
+      response={{
+        sold: Array.from({ length: 15 }, (_, index) => listing(index + 1)),
+        active: [],
+      }}
     />,
   );
-
-  rerender(
-    <EbaySoldView card={card} runToken={1} onCreditRejected={latestCallback} />,
-  );
-  expect(authenticatedFetch).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    resolveResponse(
-      new Response(JSON.stringify({ error: "Not enough credits" }), {
-        status: 409,
-      }),
-    );
-  });
-
-  expect(await screen.findByText(FEATURE_ERROR_MESSAGE)).toBeVisible();
-  expect(originalCallback).not.toHaveBeenCalled();
-  expect(latestCallback).toHaveBeenCalledTimes(1);
-  expect(authenticatedFetch).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByRole("article")).toHaveLength(10);
+  expect(screen.getByRole("status")).toHaveTextContent("15 results");
+  fireEvent.click(screen.getByRole("button", { name: "Show 5 more" }));
+  expect(screen.getAllByRole("article")).toHaveLength(15);
+  expect(screen.getByRole("status")).toHaveTextContent("15 results");
 });
 
-test.each([409, 502])(
-  "refreshes credits only for an eBay credit rejection (HTTP %s)",
-  async (status) => {
-    vi.mocked(authenticatedFetch)
-      .mockReset()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ error: "Request rejected" }), { status }),
-      );
-    const onCreditRejected = vi.fn().mockResolvedValue(null);
-    const onSubscriptionChange = vi.fn();
-    const props = { card, runToken: 1, onCreditRejected, onSubscriptionChange };
+test("preserves sold/listed and text filtering behavior", async () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [listing(1), { ...listing(2), title: "Pikachu stamped" }],
+        active: [listing(3, "active")],
+      }}
+    />,
+  );
+  expect(screen.getAllByRole("link", { name: "View sale" })).toHaveLength(2);
+  expect(screen.getByRole("status")).toHaveTextContent("2 results");
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  expect(screen.getAllByRole("link", { name: "Buy" })).toHaveLength(1);
+  expect(screen.getByRole("status")).toHaveTextContent("1 result");
+  fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Filter eBay results" }),
+    {
+      target: { value: "stamped" },
+    },
+  );
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
+  expect(
+    screen.getByRole("heading", { name: "Pikachu Stamped" }),
+  ).toBeVisible();
+  expect(screen.getByRole("status")).toHaveTextContent(/^1 result$/);
 
-    const { rerender } = render(<EbaySoldView {...props} />);
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Filter eBay results" }),
+    { target: { value: "missing" } },
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("0 results"),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Clear eBay results filter" }));
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("2 results"),
+  );
+});
 
-    expect(await screen.findByText(FEATURE_ERROR_MESSAGE)).toBeVisible();
-    expect(onCreditRejected).toHaveBeenCalledTimes(status === 409 ? 1 : 0);
-    expect(onSubscriptionChange).not.toHaveBeenCalled();
+test("updates the result count when filtering by grade", async () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [listing(1), { ...listing(2), title: "Pikachu PSA 10" }],
+        active: [],
+      }}
+    />,
+  );
+  expect(screen.getByRole("status")).toHaveTextContent("2 results");
+  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent(/^1 result$/),
+  );
+  expect(screen.getAllByRole("article")).toHaveLength(1);
+});
 
-    rerender(<EbaySoldView {...props} />);
-    await waitFor(() => expect(authenticatedFetch).toHaveBeenCalledTimes(1));
-  },
-);
+test("retains available results when the other provider request failed", () => {
+  render(<EbaySoldView response={{ sold: [listing(1)], active: null }} />);
+  expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  expect(screen.queryByText(/load these eBay listings/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+test("combines exclusion with text and grade filters across sold and listed results", async () => {
+  const items = [
+    { ...listing(1), title: "Pikachu PSA 10 stamped" },
+    { ...listing(2), title: "Pikachu PSA 10 regular" },
+    { ...listing(3), title: "Pikachu raw" },
+    { ...listing(4), title: "Charizard PSA 10 regular" },
+  ];
+  render(
+    <EbaySoldView
+      response={{
+        sold: items,
+        active: items.map((item) => ({ ...item, listingType: "active" })),
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  fireEvent.change(screen.getByRole("searchbox", { name: "Filter eBay results" }), {
+    target: { value: "pikachu" },
+  });
+  fireEvent.change(screen.getByRole("searchbox", { name: "Exclude eBay results" }), {
+    target: { value: "STAMPED" },
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent(/^1 result$/),
+  );
+  expect(screen.getByRole("heading", { name: "Pikachu Psa 10 Regular" })).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  expect(screen.getAllByRole("link", { name: "Buy" })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Clear eBay exclusion filter" }));
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("2 results"),
+  );
+});
+
+test("exclusion resets pagination and ignores queries shorter than two characters", async () => {
+  render(
+    <EbaySoldView
+      response={{ sold: Array.from({ length: 15 }, (_, index) => listing(index + 1)) }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Show 5 more" }));
+  const exclude = screen.getByRole("searchbox", { name: "Exclude eBay results" });
+  fireEvent.change(exclude, { target: { value: "p" } });
+  expect(screen.getByRole("status")).toHaveTextContent("15 results");
+  fireEvent.change(exclude, { target: { value: "missing" } });
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(10));
+  expect(screen.getByRole("status")).toHaveTextContent("15 results");
+  fireEvent.change(exclude, { target: { value: "pikachu" } });
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("0 results"),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Clear eBay exclusion filter" }));
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(10));
+  expect(screen.getByRole("status")).toHaveTextContent("15 results");
+});

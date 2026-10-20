@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import "./Signup.scss";
 
 import {
-  createUserWithEmailAndPassword,
   sendEmailVerification,
   signOut,
   validatePassword,
@@ -13,7 +12,7 @@ import { auth, db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/button/Button";
 import type { UserUpload } from "../../types/user.types";
-import { signInWithGoogle } from "../../services/auth";
+import { register, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import { logClientError } from "../../utils/logClientError";
 import { useNotification } from "../../context/notificationContextValue";
@@ -106,11 +105,7 @@ export default function SignUpForm() {
         return;
       }
 
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        trimmedEmail,
-        formData.password,
-      );
+      const userCredential = await register(trimmedEmail, formData.password);
       const userRef = doc(db, "users", userCredential.user.uid);
       const user: UserUpload = {
         uid: userCredential.user.uid,

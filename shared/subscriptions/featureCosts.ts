@@ -4,5 +4,5 @@ export function getFeatureCreditCost(feature: string) {
 
 export function getFeatureCreditLabel(feature: string) {
   const credits = getFeatureCreditCost(feature);
-  return `${credits} ${credits === 1 ? "Credit" : "Credits"}`;
+  return `${credits} ${credits === 1 ? "AI credit" : "AI credits"}`;
 }

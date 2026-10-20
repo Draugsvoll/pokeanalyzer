@@ -23,15 +23,16 @@ import Button from "../../components/button/Button";
 import { DetailsPage } from "../../components/detailsPage/DetailsPage";
 import { Badge } from "../../components/ui/Badge";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
-import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
+import { CardFeatureAuthActions } from "./components/CardFeatureAuthActions";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
-import EbaySoldView from "./views/EbaySold/EbaySoldView";
+import { EbaySection } from "./views/EbaySold/EbaySection";
 import { getCustomColors, type CustomColors } from "../../utils/customStylings";
 import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
 import { usePokemonPortfolio } from "../../hooks/pokemonPortfolio";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { MarketAnalysisView } from "./views/MarketAnalysis/MarketAnalysisView";
 import { FEATURE_ERROR_MESSAGE } from "./views/featureError";
+import { GrokLoadingState } from "./components/GrokLoadingState";
 import {
   useCredits,
   useMembershipSubscription,
@@ -48,7 +49,6 @@ import {
   CARD_FEATURE_VARIANTS_ID,
 } from "./components/CardFeatureHeader";
 import LoginModal from "../../components/loginmodal/Loginmodal";
-import { signInWithGoogle } from "../../services/auth";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
@@ -67,11 +67,7 @@ import "../../components/welcomeView/WelcomeView.scss";
 import "./PokemonDetails.scss";
 
 type ActiveView =
-  | "empty_view"
-  | "collector_analysis"
-  | "ebay_sold"
-  | "prices"
-  | "worth_grading";
+  "empty_view" | "collector_analysis" | "prices" | "worth_grading";
 
 type FeatureView = Exclude<ActiveView, "empty_view">;
 type StoredGrokFeature =
@@ -81,6 +77,7 @@ type AiFeature = {
   view: FeatureView;
   title: string;
   description: string;
+  loadingMessage: string;
   icon: LucideIcon;
   color: CustomColors;
   featureKey: CreditUsageFeature;
@@ -160,7 +157,9 @@ function PokemonDetailsForCard() {
   const [failedCardImageSrc, setFailedCardImageSrc] = useState<string | null>(
     null,
   );
-  const [activeView, setActiveView] = useState<ActiveView>("ebay_sold");
+  const [showEbay, setShowEbay] = useState(true);
+  const [ebayLoading, setEbayLoading] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [cardSearchCardId, setCardSearchCardId] = useState<string | null>(null);
   const showCardSearch = Boolean(id && cardSearchCardId === id);
   const cardSearchTriggerRef = useRef<HTMLButtonElement>(null);
@@ -175,13 +174,7 @@ function PokemonDetailsForCard() {
   >({});
   const [grokLoading, setGrokLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [googleAuthLoading, setGoogleAuthLoading] = useState(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
-  const [ebayLoading, setEbayLoading] = useState(false);
-  const [ebayRunToken, setEbayRunToken] = useState(0);
-  const [ebayRunCardId, setEbayRunCardId] = useState<string | null>(null);
-  const [ebayReportAvailable, setEbayReportAvailable] = useState(false);
-  const [ebayReportCardId, setEbayReportCardId] = useState<string | null>(null);
   const [featureCooldown, setFeatureCooldown] = useState(false);
   const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
   const { isCurrentRequest, startRequest } = useAbortableRequest();
@@ -264,19 +257,6 @@ function PokemonDetailsForCard() {
     refreshSubscription,
   } = useMembershipSubscription();
   const { creditsRemaining, updatingCredits } = useCredits(subscription);
-
-  async function handleGoogleAuth() {
-    if (googleAuthLoading) return;
-
-    setGoogleAuthLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      logClientError("Google sign-in failed", error);
-    } finally {
-      setGoogleAuthLoading(false);
-    }
-  }
 
   useLayoutEffect(() => {
     routeCardIdRef.current = id;
@@ -405,17 +385,6 @@ function PokemonDetailsForCard() {
     });
   }
 
-  async function openEbayAnalysis() {
-    await runPaidFeatureAction("ebay_sold", () => {
-      if (!card) return;
-
-      setEbayRunCardId(card.id);
-      setEbayReportAvailable(false);
-      setEbayReportCardId(null);
-      setEbayRunToken((current) => current + 1);
-    });
-  }
-
   async function openWorthGradingAnalysis() {
     await runPaidFeatureAction("worth_grading", async () => {
       await requestStoredGrokAnalysis("worth_grading");
@@ -424,17 +393,9 @@ function PokemonDetailsForCard() {
 
   const aiFeatures: AiFeature[] = [
     {
-      view: "ebay_sold",
-      title: "eBay Comps",
-      description: "Show completed sales & active listings.",
-      icon: CircleDollarSign,
-      color: "teal",
-      featureKey: "ebay_sold",
-      onOpen: openEbayAnalysis,
-    },
-    {
       view: "prices",
       title: "Market Analysis",
+      loadingMessage: "Building market report...",
       description:
         "Scan markets to show you the cards activity and relevant metrics.",
       icon: LineChart,
@@ -444,7 +405,8 @@ function PokemonDetailsForCard() {
     },
     {
       view: "collector_analysis",
-      title: "Collector's Value",
+      title: "Collector Insights",
+      loadingMessage: "Building collector report...",
       description: "AI score for long-term collectibility",
       icon: Gem,
       color: "blue",
@@ -454,6 +416,7 @@ function PokemonDetailsForCard() {
     {
       view: "worth_grading",
       title: "Grading",
+      loadingMessage: "Building grading report...",
       description: "PSA economics for this card",
       icon: ScanSearch,
       color: "pink",
@@ -522,15 +485,6 @@ function PokemonDetailsForCard() {
 
     return () => window.clearTimeout(cooldownTimer);
   }, [featureCooldown]);
-
-  const activeCardId = card?.id ?? null;
-  const handleEbayReportAvailableChange = useCallback(
-    (available: boolean) => {
-      setEbayReportAvailable(available);
-      setEbayReportCardId(available ? activeCardId : null);
-    },
-    [activeCardId],
-  );
 
   if (loading) {
     return (
@@ -610,27 +564,13 @@ function PokemonDetailsForCard() {
   const currentGrokError = activeFeature
     ? (grokErrors[activeFeature.featureKey] ?? "")
     : "";
-  const currentEbayRunToken = isDemo
-    ? 1
-    : ebayRunCardId === card.id
-      ? ebayRunToken
-      : 0;
-  const currentEbayReportAvailable =
-    isDemo || (ebayReportCardId === card.id && ebayReportAvailable);
   const grokRequest: GrokRequestState = {
     loading: grokLoading,
     error: currentGrokError,
     response: currentGrokResponse,
   };
-  const isActiveFeatureLoading =
-    grokLoading || (activeView === "ebay_sold" && ebayLoading);
-  const activeFeatureHasResponse =
-    isDemo ||
-    (activeView === "prices"
-      ? Boolean(currentGrokResponse)
-      : activeView === "ebay_sold"
-        ? currentEbayReportAvailable
-        : Boolean(currentGrokResponse));
+  const isActiveFeatureLoading = grokLoading;
+  const activeFeatureHasResponse = isDemo || Boolean(currentGrokResponse);
   const activeFeatureCreditCost = getFeatureCreditCost(
     activeFeature?.featureKey ?? "",
   );
@@ -650,6 +590,49 @@ function PokemonDetailsForCard() {
     !loadingSubscription &&
     !updatingCredits &&
     creditsRemaining < activeFeatureCreditCost;
+
+  function renderFeatureHeader(errorMessage = currentGrokError) {
+    if (!activeFeature || !card) return null;
+
+    return (
+      <CardFeatureHeader
+        card={card}
+        cardNumber={activeView === "prices" ? displayedCardNumber : undefined}
+        color={activeFeature.color}
+        icon={activeFeature.icon}
+        label={activeFeature.title}
+        actionLabel={
+          shouldAddCredits
+            ? "Add credits"
+            : getFeatureCreditLabel(activeFeature.featureKey)
+        }
+        actionLoading={
+          authLoading || loadingSubscription || isActiveFeatureLoading
+        }
+        actionLoadingMessage={
+          isActiveFeatureLoading ? (
+            <GrokLoadingState>{activeFeature.loadingMessage}</GrokLoadingState>
+          ) : undefined
+        }
+        actionDisabled={shouldAddCredits ? false : activeFeatureActionDisabled}
+        onAction={
+          shouldAddCredits
+            ? () => navigate("/profile")
+            : () => void activeFeature.onOpen()
+        }
+        errorMessage={errorMessage}
+        authActions={
+          !authUser && !authLoading ? (
+            <CardFeatureAuthActions
+              color={activeFeature.color}
+              onSignup={() => navigate("/signup")}
+              onLogin={() => setShowLoginModal(true)}
+            />
+          ) : undefined
+        }
+      />
+    );
+  }
 
   // RENDERING
   return (
@@ -817,29 +800,46 @@ function PokemonDetailsForCard() {
       <section aria-label="Card insights" className="card-view__analysis-panel">
         <div className="card-view__analysis-divider" aria-hidden="true" />
         <div className="card-view__actions">
+          <button
+            type="button"
+            className={`feature-button${showEbay ? " is-active" : ""}${ebayLoading ? " is-loading" : ""}`}
+            style={getCustomColors("teal")}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setShowEbay(true)}
+            aria-pressed={showEbay}
+            aria-busy={ebayLoading}
+          >
+            <span className="feature-button__icon" aria-hidden="true">
+              {ebayLoading ? (
+                <span className="feature-button__spinner" />
+              ) : (
+                <CircleDollarSign size={22} strokeWidth={2} />
+              )}
+            </span>
+            <span className="feature-button__text">
+              <span className="feature-button__title">eBay Comps</span>
+            </span>
+          </button>
           {aiFeatures.map((aiFeature) => {
             const Icon = aiFeature.icon;
             const isFeatureLoading =
-              activeView === aiFeature.view &&
-              (grokLoading || (aiFeature.view === "ebay_sold" && ebayLoading));
+              activeView === aiFeature.view && grokLoading;
 
             return (
               <button
                 key={aiFeature.view}
                 type="button"
-                className={`feature-button${activeView === aiFeature.view ? " is-active" : ""}${
+                className={`feature-button${!showEbay && activeView === aiFeature.view ? " is-active" : ""}${
                   isFeatureLoading ? " is-loading" : ""
                 }`}
                 style={getCustomColors(aiFeature.color)}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setActiveView(aiFeature.view)}
-                disabled={
-                  loadingSubscription ||
-                  updatingCredits ||
-                  grokLoading ||
-                  ebayLoading
-                }
-                aria-pressed={activeView === aiFeature.view}
+                onClick={() => {
+                  setShowEbay(false);
+                  setActiveView(aiFeature.view);
+                }}
+                disabled={grokLoading && activeView !== aiFeature.view}
+                aria-pressed={!showEbay && activeView === aiFeature.view}
                 aria-busy={isFeatureLoading}
               >
                 <span className="feature-button__icon" aria-hidden="true">
@@ -862,10 +862,25 @@ function PokemonDetailsForCard() {
           })}
         </div>
 
+        {/* Tab changes preserve eBay's independent request and results. */}
+        <div className="card-view__ebay-panel" hidden={!showEbay}>
+          <EbaySection
+            onLoadingChange={setEbayLoading}
+            key={card.id}
+            cardId={card.id}
+            cardName={card.name}
+            cardNumber={formatCardNumber(card)}
+            setName={card.set?.name}
+            isDemo={isDemo}
+            demoResponse={isDemo ? card.ebay : undefined}
+          />
+        </div>
+
         <div
+          hidden={showEbay}
           className={`card-view__page${
             activeView === "prices" ? " card-view__page--prices" : ""
-          }${activeView === "ebay_sold" ? " card-view__page--ebay" : ""}`}
+          }`}
           aria-live="polite"
         >
           {activeFeature && activeView !== "empty_view" && (
@@ -873,88 +888,30 @@ function PokemonDetailsForCard() {
               className="card-view__active-feature ui-render-fade"
               style={getCustomColors(activeFeature.color)}
             >
-              {!activeFeatureHasResponse && (
-                <CardFeatureHeader
-                  card={card}
-                  cardNumber={
-                    activeView === "prices" ? displayedCardNumber : undefined
-                  }
-                  color={activeFeature.color}
-                  icon={activeFeature.icon}
-                  label={activeFeature.title}
-                  actionLabel={
-                    shouldAddCredits
-                      ? "Add credits"
-                      : getFeatureCreditLabel(activeFeature.featureKey)
-                  }
-                  actionLoading={
-                    authLoading || loadingSubscription || isActiveFeatureLoading
-                  }
-                  actionDisabled={
-                    shouldAddCredits ? false : activeFeatureActionDisabled
-                  }
-                  onAction={
-                    shouldAddCredits
-                      ? () => navigate("/profile")
-                      : () => void activeFeature.onOpen()
-                  }
-                  authActions={
-                    !authUser && !authLoading && !loadingSubscription ? (
-                      <>
-                        <div className="card-feature-header__auth-row">
-                          <Button
-                            fill="ghost"
-                            size="large"
-                            style={getCustomColors(activeFeature.color)}
-                            onClick={() => navigate("/signup")}
-                          >
-                            Sign up
-                          </Button>
-                          <Button
-                            fill="solid"
-                            size="large"
-                            style={getCustomColors(activeFeature.color)}
-                            onClick={() => setShowLoginModal(true)}
-                          >
-                            Log in
-                          </Button>
-                        </div>
-                        <span className="card-feature-header__auth-divider">
-                          or
-                        </span>
-                        <GoogleLoginButton
-                          disabled={googleAuthLoading}
-                          onClick={() => void handleGoogleAuth()}
-                        />
-                      </>
-                    ) : undefined
-                  }
-                />
-              )}
+              {(!activeFeatureHasResponse || currentGrokError) &&
+                renderFeatureHeader()}
               <div
                 className="card-view__active-variants card-feature-header__variants"
                 id={CARD_FEATURE_VARIANTS_ID}
               />
               <div className="card-view__active-body">
-                <div hidden={activeView !== "ebay_sold"}>
-                  <EbaySoldView
-                    card={card}
-                    demoResponse={isDemo ? card.grok?.ebay_sold : undefined}
-                    runToken={currentEbayRunToken}
-                    onSubscriptionChange={updateSubscription}
-                    onCreditRejected={refreshSubscription}
-                    onLoadingChange={setEbayLoading}
-                    onReportAvailableChange={handleEbayReportAvailableChange}
+                {!currentGrokError && activeView === "prices" && (
+                  <MarketAnalysisView
+                    grokRequest={grokRequest}
+                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
                   />
-                </div>
-                {activeView === "prices" && (
-                  <MarketAnalysisView grokRequest={grokRequest} />
                 )}
-                {activeView === "worth_grading" && (
-                  <WorthGradingView grokRequest={grokRequest} />
+                {!currentGrokError && activeView === "worth_grading" && (
+                  <WorthGradingView
+                    grokRequest={grokRequest}
+                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
+                  />
                 )}
-                {activeView === "collector_analysis" && (
-                  <CollectorAnalysis grokRequest={grokRequest} />
+                {!currentGrokError && activeView === "collector_analysis" && (
+                  <CollectorAnalysis
+                    grokRequest={grokRequest}
+                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
+                  />
                 )}
               </div>
             </div>

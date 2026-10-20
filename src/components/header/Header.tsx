@@ -11,6 +11,7 @@ import { useInitials } from "../../hooks/useInitials";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
 import { BrandMark } from "../brand/BrandMark";
 import { AccountDropdown } from "./AccountDropdown";
+import { useEbayCredits } from "../../ebay/useEbayCredits";
 
 function formatAccountName(value?: string | null) {
   const name = value?.trim();
@@ -41,6 +42,7 @@ export const Header: React.FC = () => {
     setMobileNavState({ open: false, pathname: location.pathname });
   const { subscription } = useMembershipSubscription();
   const { creditsRemaining } = useCredits(subscription);
+  const { credits: ebayCredits } = useEbayCredits();
 
   const savedFirstName =
     profileName?.uid === user?.uid ? (profileName?.firstName ?? "") : "";
@@ -154,10 +156,18 @@ export const Header: React.FC = () => {
               <Link
                 to="/profile"
                 className="header__credits"
-                title="Credits remaining"
+                title="View AI and eBay credits"
+                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits ? `${ebayCredits.creditsRemaining} eBay credits remaining` : "eBay credit balance unavailable"}. View credits`}
               >
-                <span className="header__credits-dot" aria-hidden="true" />
-                <span>{creditsRemaining} credits</span>
+                <span className="header__credits-balance">
+                  <strong>{creditsRemaining}</strong> AI{" "}
+                  {creditsRemaining === 1 ? "credit" : "credits"}
+                </span>
+                <span className="header__credits-separator" aria-hidden="true" />
+                <span className="header__credits-balance">
+                  <strong>{ebayCredits?.creditsRemaining ?? "—"}</strong> eBay{" "}
+                  {ebayCredits?.creditsRemaining === 1 ? "credit" : "credits"}
+                </span>
               </Link>
               <AccountDropdown
                 key={`${user.uid}:${location.key}`}

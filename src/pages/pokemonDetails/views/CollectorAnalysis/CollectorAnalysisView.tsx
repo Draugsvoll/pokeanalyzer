@@ -9,14 +9,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { parseScoreString } from "../../../../../shared/analysisScores";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { parseJsonText } from "../../../../utils/parseJsonText";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import { Badge } from "../../../../components/ui/Badge";
 import { FeatureAnalysisHero } from "../../components/FeatureAnalysisPanel";
 import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
-import { GrokLoadingState } from "../../components/GrokLoadingState";
 import "./CollectorAnalysisView.scss";
 
 type CollectorCategory = {
@@ -36,6 +35,7 @@ type CollectorAnalysisData = {
 
 type CollectorAnalysisProps = {
   grokRequest: GrokRequestState;
+  errorFallback?: ReactNode;
 };
 
 const categories: { name: string; icon: LucideIcon }[] = [
@@ -136,6 +136,7 @@ function parseCollectorAnalysis(
 
 export default function CollectorAnalysis({
   grokRequest,
+  errorFallback,
 }: CollectorAnalysisProps) {
   const { loading, error, response } = grokRequest;
   const responseKey = response ?? "";
@@ -144,15 +145,22 @@ export default function CollectorAnalysis({
     responseKey: "",
   });
 
-  if (loading)
-    return <GrokLoadingState>Building collector report...</GrokLoadingState>;
+  if (loading) return null;
   if (error)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
   if (!response) return null;
 
   const analyses = parseCollectorAnalysis(response);
   if (!analyses) {
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
   }
 
   const selectedVariantIndex =

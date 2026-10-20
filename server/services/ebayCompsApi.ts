@@ -1,40 +1,18 @@
 export type EbayCompsOptions = {
-  aspectFilter?: Record<string, string>;
-  requiredTitle?: string;
+  titleFilter?: EbayCardSearchContext;
   sold?: boolean;
 };
 
 type EbayCardSearchContext = {
   cardName: string;
   cardNumber: string;
-  formattedCardNumber: string;
-  setName: string;
-  unpaddedCardNumber: string;
 };
 
-function bareCardNumber(value: string) {
-  const numerator = value.split("/", 1)[0]?.trim() ?? "";
-  if (!/^\d+$/.test(numerator)) return "";
-  return numerator.replace(/^0+(?=\d)/, "");
-}
-
 export function buildEbayCardRequests(context: EbayCardSearchContext) {
-  const cardNumberCandidates = [
-    context.formattedCardNumber,
-    context.unpaddedCardNumber,
-    context.cardNumber,
-    bareCardNumber(context.cardNumber),
-  ].filter((value, index, values) => value && values.indexOf(value) === index);
-  const cardNumberQuery =
-    cardNumberCandidates.length > 1
-      ? `(${cardNumberCandidates.join(",")})`
-      : cardNumberCandidates[0];
-  const query = [context.cardName, cardNumberQuery, context.setName]
-    .filter(Boolean)
-    .join(" ");
+  const { cardName, cardNumber } = context;
+  const query = [cardName, cardNumber].filter(Boolean).join(" ");
   const soldOptions: EbayCompsOptions = {
-    aspectFilter: { Set: context.setName },
-    requiredTitle: context.cardName,
+    titleFilter: { cardName, cardNumber },
   };
 
   return {
@@ -56,9 +34,6 @@ export function buildEbayCompsUrl(
     count: "200",
     page: "1",
   });
-  if (options.aspectFilter) {
-    params.set("aspectFilter", JSON.stringify(options.aspectFilter));
-  }
   if (options.sold === false) params.set("sold", "false");
 
   return `${apiUrl}?${params.toString()}`;
@@ -73,23 +48,9 @@ function normalizeTitleTokens(value: string) {
     .filter(Boolean);
 }
 
-function titleContainsName(title: string, requiredName: string) {
-  const titleTokens = normalizeTitleTokens(title);
-  const nameTokens = normalizeTitleTokens(requiredName);
-  if (nameTokens.length === 0 || nameTokens.length > titleTokens.length) {
-    return false;
-  }
-
-  return titleTokens.some((_, startIndex) =>
-    nameTokens.every(
-      (token, tokenIndex) => titleTokens[startIndex + tokenIndex] === token,
-    ),
-  );
-}
-
 export function filterEbayCompsResponseByTitle(
   response: unknown,
-  requiredTitle: string,
+  { cardName, cardNumber }: EbayCardSearchContext,
 ) {
   if (!response || typeof response !== "object" || Array.isArray(response)) {
     return response;
@@ -98,16 +59,18 @@ export function filterEbayCompsResponseByTitle(
   const record = response as Record<string, unknown>;
   if (!Array.isArray(record.items)) return response;
 
-  const items = record.items.filter(
-    (item) =>
-      item !== null &&
-      typeof item === "object" &&
-      typeof (item as Record<string, unknown>).title === "string" &&
-      titleContainsName(
-        (item as Record<string, unknown>).title as string,
-        requiredTitle,
-      ),
-  );
+  const firstNameToken = normalizeTitleTokens(cardName)[0];
+  const number = cardNumber.trim().toLocaleLowerCase("en-US");
+  const items = record.items.filter((item) => {
+    if (!item || typeof item !== "object" || typeof item.title !== "string") {
+      return false;
+    }
+    return (
+      (number !== "" && item.title.toLocaleLowerCase("en-US").includes(number)) ||
+      (firstNameToken !== undefined &&
+        normalizeTitleTokens(item.title).includes(firstNameToken))
+    );
+  });
 
   return { ...record, items, totalItems: items.length };
 }
@@ -143,7 +106,7 @@ export async function fetchEbayComps(
   }
 
   const response: unknown = await res.json();
-  return options.requiredTitle
-    ? filterEbayCompsResponseByTitle(response, options.requiredTitle)
+  return options.titleFilter
+    ? filterEbayCompsResponseByTitle(response, options.titleFilter)
     : response;
 }

@@ -23,7 +23,7 @@ export function useCredits(subscription: UserSubscription | null) {
     } catch (error) {
       logClientError("Failed to top up credits", error);
       setCreditMessage(
-        "We couldn’t open the credit purchase. Please try again.",
+        "We couldn’t open the AI credit purchase. Please try again.",
       );
       creditActionInProgressRef.current = false;
       setUpdatingCredits(false);

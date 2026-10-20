@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { PokemonCard } from "../../../types/pokemon";
 import {
   getCustomColors,
   type CustomColors,
@@ -34,17 +33,25 @@ export function CardFeatureHeaderVariants({
 }
 
 type CardFeatureHeaderProps = {
-  card: PokemonCard;
+  card: {
+    name: string;
+    number?: string;
+    set?: { name?: string; printedTotal?: number };
+  };
   cardNumber?: string;
   color: CustomColors;
   icon: LucideIcon;
   label: string;
   actionLabel?: string;
   actionLoading?: boolean;
+  actionLoadingLabel?: string;
+  actionLoadingMessage?: ReactNode;
   actionDisabled?: boolean;
   actionHidden?: boolean;
   onAction?: () => void;
   authActions?: ReactNode;
+  errorMessage?: string;
+  children?: ReactNode;
 };
 
 export function CardFeatureHeader({
@@ -55,10 +62,14 @@ export function CardFeatureHeader({
   label,
   actionLabel,
   actionLoading,
+  actionLoadingLabel,
+  actionLoadingMessage,
   actionDisabled,
   actionHidden,
   onAction,
   authActions,
+  errorMessage,
+  children,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
   const metadata = [
@@ -105,7 +116,9 @@ export function CardFeatureHeader({
               disabled={actionDisabled || actionLoading}
               aria-busy={actionLoading}
               aria-label={
-                actionLoading ? `Loading ${actionLabel ?? label}` : undefined
+                actionLoading
+                  ? (actionLoadingLabel ?? `Loading ${actionLabel ?? label}`)
+                  : undefined
               }
             >
               {actionLoading ? (
@@ -117,6 +130,17 @@ export function CardFeatureHeader({
           </div>
         )
       )}
+      {actionLoading && actionLoadingMessage && (
+        <p className="card-feature-header__status" role="status">
+          {actionLoadingMessage}
+        </p>
+      )}
+      {!actionLoading && errorMessage && (
+        <p className="card-feature-header__error" role="alert">
+          {errorMessage}
+        </p>
+      )}
+      {children}
     </header>
   );
 }

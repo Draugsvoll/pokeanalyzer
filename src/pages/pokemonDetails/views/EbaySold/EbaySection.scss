@@ -1,0 +1,25 @@
+.ebay-section {
+  --ebay-accent: var(--custom-color-teal);
+
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+
+  .app-btn-pill {
+    --feature-accent: var(--ebay-accent);
+  }
+
+  &__results {
+    margin-top: var(--space-4);
+  }
+
+  &__notice {
+    align-items: center;
+    color: var(--font-color-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: var(--font-size-paragraph-sm);
+    gap: var(--space-3);
+    margin: 0;
+  }
+}

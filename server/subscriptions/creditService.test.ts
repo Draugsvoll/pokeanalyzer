@@ -73,7 +73,6 @@ test("other paid features still cost one credit", async (t) => {
   for (const feature of [
     "market_analysis",
     "collector_analysis",
-    "ebay_sold",
     "card_identification",
     "authenticity_check",
   ]) {

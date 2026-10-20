@@ -178,24 +178,24 @@
   }
 
   &--loading {
-    min-height: min(36rem, 68vh);
+    min-height: 0;
   }
 
   &__loading-panel {
     align-items: center;
     color: var(--font-color-muted);
     display: flex;
-    flex-direction: column;
     font-size: var(--font-size-caption);
     font-weight: var(--font-weight-medium);
     gap: var(--space-3);
     justify-content: center;
-    min-height: 20rem;
+    min-height: 3rem;
+    padding-block: var(--space-3);
 
     .app-btn__spinner {
       color: var(--custom-color-blue);
-      height: 1.5rem;
-      width: 1.5rem;
+      height: 1rem;
+      width: 1rem;
     }
   }
 

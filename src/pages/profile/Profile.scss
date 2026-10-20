@@ -72,10 +72,6 @@
     margin-top: var(--space-5);
   }
 
-  &__loading-state {
-    min-height: 18rem;
-  }
-
   &__page-heading {
     margin-bottom: 1rem;
 
@@ -232,8 +228,8 @@
   }
 
   &__summary-spinner.app-btn__spinner {
-    height: 1.25rem;
-    width: 1.25rem;
+    height: 1rem;
+    width: 1rem;
   }
 
   &__status {
@@ -280,7 +276,7 @@
 
     h3 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-price-lg);
+      font-size: var(--font-size-h3);
       line-height: 1;
       margin-bottom: 0.35rem;
     }
@@ -342,64 +338,88 @@
     }
   }
 
-  &__credits-total {
-    align-items: baseline;
-    display: flex;
-    gap: 0.35rem;
-    margin-top: 0.9rem;
+  &__free-plan-footer {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    line-height: var(--font-leading-normal);
+    margin-top: auto;
+    padding-top: var(--space-5);
+  }
+
+  &__period-row + &__free-plan-footer {
+    margin-top: var(--space-3);
+    padding-top: 0;
+  }
+
+  &__credit-balances {
+    display: grid;
+    gap: var(--space-7);
+    margin-top: var(--space-3);
+  }
+
+  &__credit-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+
+    .profile__credit-label {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-paragraph-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .profile__credit-value {
+      align-items: baseline;
+      display: flex;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      gap: 0.4rem;
+      margin: 0;
+    }
 
     strong {
       color: var(--font-color-primary);
       font-family: var(--font-family-price);
-      font-size: var(--font-size-price-lg);
-      font-variant-numeric: tabular-nums;
+      font-size: calc(var(--font-size-h3) + 2px);
       letter-spacing: var(--font-tracking-price);
       line-height: 1;
     }
 
-    span {
-      color: var(--font-color-faint);
+    .profile__credit-allowance {
+      color: var(--font-color-muted);
       font-size: var(--font-size-paragraph-sm);
+      margin-left: auto;
+      white-space: nowrap;
     }
   }
 
-  &__credits-progress {
+  &__credit-bar {
     background: color-mix(in srgb, var(--font-color-muted) 10%, transparent);
     border-radius: var(--border-radius-pill);
-    height: 0.3rem;
-    margin: 0.9rem 0;
+    grid-column: 1 / -1;
+    height: 4px;
     overflow: hidden;
 
-    span {
+    > span {
       background: linear-gradient(
         90deg,
         var(--custom-color-blue),
         var(--custom-color-blue-bright)
       );
+      filter: brightness(0.9);
       border-radius: inherit;
       display: block;
       height: 100%;
-      transition: width var(--animation-duration-fast)
-        var(--animation-ease-standard);
     }
   }
 
-  &__credit-breakdown {
-    display: grid;
-    gap: 0.35rem;
-
-    > span {
-      color: var(--font-color-muted);
-      display: flex;
-      font-size: var(--font-size-paragraph-sm);
-      justify-content: space-between;
-    }
-
-    strong {
-      color: var(--font-color-secondary);
-      font-variant-numeric: tabular-nums;
-      font-weight: var(--font-weight-semibold);
-    }
+  &__credit-row--ebay .profile__credit-bar > span {
+    background: linear-gradient(
+      90deg,
+      var(--custom-color-teal),
+      color-mix(in srgb, var(--custom-color-teal) 82%, white)
+    );
   }
 
   &__plan-actions {

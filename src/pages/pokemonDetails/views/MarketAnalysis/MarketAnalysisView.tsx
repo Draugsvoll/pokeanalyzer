@@ -1,4 +1,5 @@
 import { parseMarketAnalysisResponse } from "../../../../../shared/marketAnalysis";
+import type { ReactNode } from "react";
 import { Layers3, TrendingUp, TriangleAlert } from "lucide-react";
 import { Badge } from "../../../../components/ui/Badge";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
@@ -7,7 +8,6 @@ import {
   FeatureAnalysisScoreMeter,
 } from "../../components/FeatureAnalysisPanel";
 import { CardFeatureHeaderVariants } from "../../components/CardFeatureHeader";
-import { GrokLoadingState } from "../../components/GrokLoadingState";
 import { FEATURE_ERROR_MESSAGE } from "../featureError";
 import "./MarketAnalysisView.scss";
 
@@ -53,20 +53,29 @@ function TextList({ items }: { items: string[] }) {
 
 export function MarketAnalysisView({
   grokRequest,
+  errorFallback,
 }: {
   grokRequest: GrokRequestState;
+  errorFallback?: ReactNode;
 }) {
   const { error, loading, response } = grokRequest;
 
-  if (loading)
-    return <GrokLoadingState>Building market report...</GrokLoadingState>;
+  if (loading) return null;
   if (error)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
   if (!response) return null;
 
   const data = parseMarketAnalysisResponse(response);
   if (!data) {
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
+    return (
+      errorFallback ?? (
+        <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>
+      )
+    );
   }
 
   return (

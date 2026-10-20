@@ -261,12 +261,12 @@
     div {
       align-items: baseline;
       display: flex;
-      gap: 0.35rem;
+      gap: 0.25rem;
     }
 
     dt {
       color: color-mix(in srgb, var(--font-color-muted) 82%, white);
-      font-size: var(--font-size-caption);
+      font-size: var(--font-size-label);
     }
 
     dd {
@@ -279,7 +279,7 @@
 
     dd.poketrace-market__range-price {
       font-family: var(--font-family-price);
-      font-weight: var(--font-weight-medium);
+      font-weight: var(--font-weight-regular);
       letter-spacing: var(--font-tracking-price);
     }
   }

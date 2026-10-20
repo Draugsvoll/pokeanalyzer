@@ -38,6 +38,29 @@ test("loads the static demo without calling the card API", async () => {
   expect(card.id).toBe("demo");
 });
 
+test("normalizes older demo eBay results without exposing them as AI data", async () => {
+  const ebay = {
+    timestamp: "2026-10-20",
+    sold: { items: [] },
+    active: { items: [] },
+  };
+  const analysis = { timestamp: "2026-10-20" };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "demo",
+        name: "Charizard",
+        grok: { ebay_sold: ebay, market_analysis: analysis },
+      }),
+    }),
+  );
+  const card = await fetchCardById("demo");
+  expect(card.ebay).toEqual(ebay);
+  expect(card.grok).toEqual({ market_analysis: analysis });
+});
+
 test("loads and validates cached marketplace price history", async () => {
   const fixture = {
     cardId: "card-123",

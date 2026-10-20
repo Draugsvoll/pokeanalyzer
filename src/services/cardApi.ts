@@ -175,6 +175,18 @@ export async function fetchCardById(cardId: string, signal?: AbortSignal) {
   if (!isRecord(value) || value.id !== cardId) {
     throw new Error("Invalid card response");
   }
+  // Normalize older API/demo payloads at the boundary. Feature components only
+  // receive eBay results through the independent field.
+  if (isRecord(value.grok) && "ebay_sold" in value.grok) {
+    const { ebay_sold: legacyEbay, ...grok } = value.grok;
+    return {
+      ...value,
+      grok,
+      ...(isRecord(value.ebay) || isRecord(legacyEbay)
+        ? { ebay: isRecord(value.ebay) ? value.ebay : legacyEbay }
+        : {}),
+    } as PokemonCard;
+  }
   return value as PokemonCard;
 }
 

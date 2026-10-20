@@ -23,6 +23,20 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../firebase", () => ({ db: {} }));
 
+vi.mock("../../ebay/useEbayCredits", () => ({
+  useEbayCredits: () => ({
+    credits: {
+      creditsRemaining: 10,
+      membershipCreditsRemaining: 0,
+      membershipCreditsTotal: 0,
+      bonusCreditsRemaining: 10,
+    },
+    loading: false,
+    error: "",
+    refreshCredits: vi.fn(),
+  }),
+}));
+
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn(),
   getDoc: vi.fn(),
@@ -134,16 +148,44 @@ test("shows no included credits or credit renewal date for Free", async () => {
   });
   renderProfile();
 
-  expect(await screen.findByText("No monthly credits included")).toBeVisible();
-  expect(screen.queryByText(/Credits renew/)).not.toBeInTheDocument();
+  expect(await screen.findByText("No monthly credits included.")).toBeVisible();
   expect(
-    screen.getByRole("progressbar", { name: "Credits remaining" }),
-  ).toHaveAttribute("aria-valuenow", "0");
+    screen.getByText(
+      "You can browse cards, explore prices, and manage a small collection.",
+    ),
+  ).toBeVisible();
+  expect(screen.queryByText(/AI credits renew/)).not.toBeInTheDocument();
+  expect(
+    screen.getByLabelText("AI credits: 0 remaining, 0 per month"),
+  ).toHaveTextContent(/0\s*AI credits\s*0 monthly/);
+  expect(
+    screen.getByLabelText("eBay credits: 10 remaining, 0 per month"),
+  ).toHaveTextContent(/10\s*eBay credits\s*0 monthly/);
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+});
+
+test("keeps existing Free credit renewal information alongside the footer", async () => {
+  mocks.subscription = subscription({
+    membershipCreditsTotal: 10,
+    currentPeriodEnd: "2026-11-15T00:00:00.000Z",
+  });
+  renderProfile();
+
+  expect(
+    await screen.findByText(
+      "You can browse cards, explore prices, and manage a small collection.",
+    ),
+  ).toBeVisible();
+  expect(screen.getByText(/AI credits renew/)).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Manage plan" }),
+  ).not.toBeInTheDocument();
 });
 
 test("uses the billing portal when an active subscriber changes plans", async () => {
   mocks.subscription = subscription({
     currentPeriodEnd: "2026-11-15T00:00:00.000Z",
+    bonusCreditsRemaining: 5,
     membershipCreditsRemaining: 20,
     membershipCreditsTotal: 20,
     planId: "collector",
@@ -155,8 +197,18 @@ test("uses the billing portal when an active subscriber changes plans", async ()
   expect(
     await screen.findByRole("button", { name: "Current plan" }),
   ).toBeDisabled();
-  expect(screen.getByText("20 credits every month")).toBeVisible();
+  expect(
+    screen.getByText("20 AI credits every month.", { selector: "p" }),
+  ).toBeVisible();
+  expect(
+    screen.queryByText(
+      "You can browse cards, explore prices, and manage a small collection.",
+    ),
+  ).not.toBeInTheDocument();
   expect(screen.getByText(/Next billing date/)).toBeVisible();
+  expect(
+    screen.getByLabelText("AI credits: 25 remaining, 20 per month"),
+  ).toHaveTextContent(/25\s*AI credits\s*20 monthly/);
 
   fireEvent.click(screen.getByRole("button", { name: "Switch plan" }));
   fireEvent.click(screen.getByRole("button", { name: "Switch to Free" }));

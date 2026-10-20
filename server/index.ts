@@ -11,29 +11,12 @@ import watchlistRoutes from "./db/routes/watchlistRoutes.js";
 import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import pokeTraceRoutes from "./db/routes/pokeTraceRoutes.js";
 import pokeTraceSealedRoutes from "./db/routes/pokeTraceSealedRoutes.js";
-import {
-  buildEbayCardRequests,
-  fetchEbayComps,
-  filterEbayCompsResponseByTitle,
-} from "./services/ebayCompsApi.js";
+import ebayRoutes from "./ebay/routes.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
 import { getSafeErrorDetails, logError } from "./security/logging.js";
-import {
-  CreditHttpError,
-  runPaidFeature,
-} from "./subscriptions/creditService.js";
-import {
-  attachRequestAbortSignal,
-  getRequestAbortSignal,
-  isRequestAbort,
-} from "./security/requestAbort.js";
-import { CARD_GROK_FEATURES } from "./db/cardGrokConfig.js";
-import {
-  getCardGrokContext,
-  saveCardGrokResponse,
-} from "./db/cardGrokStore.js";
+import { attachRequestAbortSignal } from "./security/requestAbort.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "./db/pokeTraceDb.js";
 import { warmPokeTraceCatalogInBackground } from "./services/pokeTraceCatalog.js";
 import { warmPokeTraceSealedCatalogInBackground } from "./services/pokeTraceSealedCatalog.js";
@@ -79,15 +62,6 @@ const cardPriceHistoryLimiter = rateLimit({
   message: {
     error: "Too many price-history requests. Please wait and try again.",
   },
-});
-
-const ebayLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 5,
-  keyGenerator: (_req, res) => String(res.locals.authUid),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many eBay requests. Please wait and try again." },
 });
 
 const grokLimiter = rateLimit({
@@ -159,6 +133,7 @@ app.use(
   grokRoutes,
 );
 app.use(express.json({ limit: "256kb" }));
+app.use("/ebay", ebayRoutes);
 app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/market-summary", marketSummaryRoutes);
@@ -212,116 +187,6 @@ app.get("/api/admin/check", requireVerifiedUser, (_req, res) => {
     const message =
       error instanceof Error ? error.message : "Authentication failed";
     res.status(statusCode).json({ message });
-  }
-});
-
-function isCompleteEbayResponse(
-  value: Record<string, unknown> | null,
-): value is Record<string, unknown> & { active: object; sold: object } {
-  return Boolean(
-    value &&
-    value.active &&
-    typeof value.active === "object" &&
-    value.sold &&
-    typeof value.sold === "object",
-  );
-}
-
-app.get("/ebay", requireVerifiedUser, ebayLimiter, async (req, res) => {
-  const signal = getRequestAbortSignal(res);
-  try {
-    const uid = getAuthenticatedUid(res);
-    const cardId =
-      typeof req.query.cardId === "string" ? req.query.cardId.trim() : "";
-    if (!cardId || cardId.length > 100) {
-      throw new CreditHttpError("A valid cardId is required", 400);
-    }
-
-    const feature = CARD_GROK_FEATURES.ebay_sold;
-    const context = await getCardGrokContext(
-      cardId,
-      feature.storageKey,
-      feature.reuseDays,
-    );
-    if (!context || !context.cardNameAndSet) {
-      throw new CreditHttpError("Card not found", 404);
-    }
-    const ebayRequests = buildEbayCardRequests(context);
-    if (
-      isCompleteEbayResponse(context.storedResponse) &&
-      context.storedResponse.request_query === ebayRequests.query
-    ) {
-      const storedResponse = {
-        ...context.storedResponse,
-        active: filterEbayCompsResponseByTitle(
-          context.storedResponse.active,
-          context.cardName,
-        ),
-        sold: filterEbayCompsResponseByTitle(
-          context.storedResponse.sold,
-          context.cardName,
-        ),
-      };
-      const storedResult = await runPaidFeature(
-        uid,
-        "ebay_sold",
-        async () => storedResponse,
-        signal,
-      );
-      res.json({
-        ...storedResult,
-        fromDatabase: true,
-      });
-      return;
-    }
-
-    const result = await runPaidFeature(
-      uid,
-      "ebay_sold",
-      async () => {
-        const { query, soldOptions, activeOptions } = ebayRequests;
-        const [soldResult, activeResult] = await Promise.allSettled([
-          fetchEbayComps(query, signal, soldOptions),
-          fetchEbayComps(query, signal, activeOptions),
-        ]);
-        if (
-          soldResult.status === "rejected" &&
-          activeResult.status === "rejected"
-        ) {
-          throw soldResult.reason;
-        }
-        const response = {
-          sold: soldResult.status === "fulfilled" ? soldResult.value : null,
-          active:
-            activeResult.status === "fulfilled" ? activeResult.value : null,
-          request_query: query,
-        };
-        if (!isCompleteEbayResponse(response)) return response;
-
-        const storedResponse = await saveCardGrokResponse(
-          cardId,
-          feature.storageKey,
-          response,
-        );
-        if (!storedResponse) {
-          throw new CreditHttpError("eBay returned invalid response data", 502);
-        }
-        return storedResponse;
-      },
-      signal,
-    );
-
-    res.json({ ...result, fromDatabase: false });
-  } catch (error) {
-    if (isRequestAbort(error, signal)) return;
-    logError("eBay request failed", error);
-    const statusCode =
-      error instanceof CreditHttpError ? error.statusCode : 502;
-    const message =
-      error instanceof CreditHttpError
-        ? error.message
-        : "Failed to fetch eBay listings";
-    res.status(statusCode).json({ error: message });
   }
 });
 

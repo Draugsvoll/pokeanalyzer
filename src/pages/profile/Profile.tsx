@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
+import { useEbayCredits } from "../../ebay/useEbayCredits";
 import type {
   MembershipPlan,
   SubscriptionStatus,
@@ -53,13 +54,13 @@ export default function Profile() {
     subscriptionMessage,
     updatingSubscription,
   } = useMembershipSubscription();
+  const { creditsRemaining, membershipCreditsTotal } = useCredits(subscription);
   const {
-    bonusCreditsRemaining,
-    creditsRemaining,
-    creditsTotal,
-    membershipCreditsRemaining,
-    membershipCreditsTotal,
-  } = useCredits(subscription);
+    credits: ebayCredits,
+    loading: loadingEbayCredits,
+    error: ebayCreditsError,
+    refreshCredits: refreshEbayCredits,
+  } = useEbayCredits();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -90,10 +91,6 @@ export default function Profile() {
     (plan) =>
       plan.id === "free" || plan.id === "collector" || plan.id === "pro",
   );
-  const creditPercentage =
-    creditsTotal > 0
-      ? Math.min(100, Math.max(0, (creditsRemaining / creditsTotal) * 100))
-      : 0;
 
   const getPlanAction = (plan: MembershipPlan): PricingBarAction => {
     const isFreePlan = plan.id === "free";
@@ -193,10 +190,17 @@ export default function Profile() {
     fetchProfile();
   }, [authUser, loadAttempt]);
 
-  if (authLoading) {
+  if (
+    authLoading ||
+    (authUser && (loading || (!error && profile?.uid !== authUser.uid)))
+  ) {
     return (
-      <div className="profile profile--status" aria-busy="true">
-        <LoadingState>Checking your session</LoadingState>
+      <div className="profile" aria-busy="true">
+        <header className="profile__page-heading">
+          <span className="profile__eyebrow">Profile</span>
+          <h1>My Account</h1>
+        </header>
+        <LoadingState>Loading account details…</LoadingState>
       </div>
     );
   }
@@ -226,20 +230,6 @@ export default function Profile() {
           </div>
         </section>
         <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
-      </div>
-    );
-  }
-
-  if (loading || (!error && profile?.uid !== authUser.uid)) {
-    return (
-      <div className="profile profile--status" aria-busy="true">
-        <header className="profile__page-heading">
-          <span className="profile__eyebrow">Profile</span>
-          <h1>My Account</h1>
-        </header>
-        <section className="profile__loading-state default-container">
-          <LoadingState>Loading account details</LoadingState>
-        </section>
       </div>
     );
   }
@@ -387,9 +377,9 @@ export default function Profile() {
                   <p>
                     {subscription
                       ? membershipCreditsTotal > 0
-                        ? `${membershipCreditsTotal} credits every month`
-                        : "No monthly credits included"
-                      : "No active plan found"}
+                        ? `${membershipCreditsTotal} AI credits every month.`
+                        : "No monthly credits included."
+                      : "No active plan found."}
                   </p>
                 </div>
               </div>
@@ -401,7 +391,7 @@ export default function Profile() {
                   {displayedPeriodEnd && subscription && (
                     <small className="profile__period">
                       {subscription.planId === "free"
-                        ? "Credits renew"
+                        ? "AI credits renew"
                         : subscription.cancelAtPeriodEnd
                           ? "Access until"
                           : "Next billing date"}{" "}
@@ -436,52 +426,93 @@ export default function Profile() {
                     )}
                 </div>
               )}
+              {!loadingSubscription && subscription?.planId === "free" && (
+                <p className="profile__free-plan-footer">
+                  You can browse cards, explore prices, and manage a small collection.
+                </p>
+              )}
             </article>
 
             <article
-              className={`profile__credits-card${loadingSubscription ? " is-loading" : ""}`}
-              aria-busy={loadingSubscription}
+              className="profile__credits-card"
+              aria-labelledby="profile-credits-title"
             >
               <div className="profile__section-heading">
-                <span className="profile__eyebrow">Credit balance</span>
+                <span className="profile__eyebrow" id="profile-credits-title">
+                  Credits remaining
+                </span>
                 <span className="profile__credits-icon" aria-hidden="true">
                   <Coins />
                 </span>
               </div>
-              {loadingSubscription && (
-                <div className="profile__summary-loading">
-                  <span
-                    className="app-btn__spinner profile__summary-spinner"
-                    role="status"
-                    aria-label="Loading credit balance"
-                  />
+              <div className="profile__credit-balances">
+                {[
+                  {
+                    label: "AI credits",
+                    remaining:
+                      !loadingSubscription && subscription
+                        ? creditsRemaining
+                        : undefined,
+                    allowance:
+                      !loadingSubscription && subscription
+                        ? membershipCreditsTotal
+                        : undefined,
+                    loading: loadingSubscription,
+                  },
+                  {
+                    label: "eBay credits",
+                    remaining: ebayCredits?.creditsRemaining,
+                    allowance: ebayCredits?.membershipCreditsTotal,
+                    loading: loadingEbayCredits,
+                  },
+                ].map(
+                  ({
+                    label,
+                    remaining,
+                    allowance,
+                    loading: balanceLoading,
+                  }) => (
+                    <div
+                      className={`profile__credit-row${label === "eBay credits" ? " profile__credit-row--ebay" : ""}`}
+                      key={label}
+                      aria-busy={balanceLoading}
+                    >
+                      <span
+                        className="profile__credit-value"
+                        aria-label={
+                          remaining == null || allowance == null
+                            ? `${label}: balance unavailable`
+                            : `${label}: ${remaining} remaining, ${allowance} per month`
+                        }
+                      >
+                        <strong>{remaining ?? "—"}</strong>
+                        <span className="profile__credit-label">{label}</span>
+                        <span className="profile__credit-allowance">
+                          {allowance ?? "—"} monthly
+                        </span>
+                      </span>
+                      <div className="profile__credit-bar" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${allowance ? Math.min(100, Math.max(0, ((remaining ?? 0) / allowance) * 100)) : (remaining ?? 0) > 0 ? 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+              {ebayCreditsError && (
+                <div role="alert">
+                  <p>{ebayCreditsError}</p>
+                  <Button
+                    onClick={() => void refreshEbayCredits()}
+                    disabled={loadingEbayCredits}
+                  >
+                    Retry eBay credits
+                  </Button>
                 </div>
               )}
-              <div className="profile__credits-total">
-                <strong>{subscription ? creditsRemaining : 0}</strong>
-                <span>/ {subscription ? creditsTotal : 0}</span>
-              </div>
-              <div
-                className="profile__credits-progress"
-                role="progressbar"
-                aria-label="Credits remaining"
-                aria-valuemin={0}
-                aria-valuemax={creditsTotal}
-                aria-valuenow={creditsRemaining}
-              >
-                <span style={{ width: `${creditPercentage}%` }} />
-              </div>
-              <div className="profile__credit-breakdown">
-                <span>
-                  Monthly credits{" "}
-                  <strong>
-                    {membershipCreditsRemaining}/{membershipCreditsTotal}
-                  </strong>
-                </span>
-                <span>
-                  Extra credits <strong>{bonusCreditsRemaining}</strong>
-                </span>
-              </div>
             </article>
           </div>
 

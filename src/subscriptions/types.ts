@@ -31,7 +31,6 @@ export type UserSubscription = {
 export type CreditUsageFeature =
   | "market_analysis"
   | "collector_analysis"
-  | "ebay_sold"
   | "worth_grading"
   | "card_identification"
   | "authenticity_check"

@@ -1,10 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { PokemonCard } from "../../../../types/pokemon";
-import type {
-  PaidFeatureResponse,
-  UserSubscription,
-} from "../../../../subscriptions/types";
-import { authenticatedFetch } from "../../../../utils/authenticatedFetch";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   getVisibleEbayCompResults,
   type EbayCompsResponse,
@@ -12,30 +6,17 @@ import {
 } from "../../../../utils/ebayComps";
 import { ChevronDown, ExternalLink, Gavel } from "lucide-react";
 import "./EbaySoldView.scss";
-import {
-  isAbortError,
-  useAbortableRequest,
-} from "../../../../hooks/useAbortableRequest";
-import { waitForStoredResponse } from "../../../../utils/waitForStoredResponse";
-import { FEATURE_ERROR_MESSAGE } from "../featureError";
-import { LoadingState } from "../../../../components/loadingState/LoadingState";
 import { FilterInput } from "../../../../components/filterInput/FilterInput";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
 import { EbayImagePreview } from "./EbayImagePreview";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const RESULTS_BATCH_SIZE = 25;
+const RESULTS_BATCH_SIZE = 10;
 const FILTER_TRANSITION_MS = 250;
 
 type EbaySoldViewProps = {
-  card: PokemonCard;
-  demoResponse?: Record<string, unknown>;
-  runToken: number;
-  onSubscriptionChange?: (subscription: UserSubscription) => void;
-  onCreditRejected?: () => Promise<unknown>;
-  onLoadingChange?: (loading: boolean) => void;
-  onReportAvailableChange?: (available: boolean) => void;
+  response: EbayCompsResponse;
+  children?: ReactNode;
 };
 
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
@@ -357,17 +338,9 @@ function matchesGrade(
 }
 
 export default function EbaySoldView({
-  card,
-  demoResponse,
-  runToken,
-  onSubscriptionChange,
-  onCreditRejected,
-  onLoadingChange,
-  onReportAvailableChange,
+  response,
+  children,
 }: EbaySoldViewProps) {
-  const [response, setResponse] = useState<EbayCompsResponse>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [sortOrder, setSortOrder] = useState<EbaySortOrder>("date-desc");
   const [listingTypeFilter, setListingTypeFilter] =
     useState<ListingTypeFilter>("sold");
@@ -376,20 +349,12 @@ export default function EbaySoldView({
     useState<GradeFilter>("all");
   const [textFilter, setTextFilter] = useState("");
   const [appliedTextFilter, setAppliedTextFilter] = useState("");
+  const [excludeFilter, setExcludeFilter] = useState("");
+  const [appliedExcludeFilter, setAppliedExcludeFilter] = useState("");
   const [filtering, setFiltering] = useState(false);
   const [visibleResultCount, setVisibleResultCount] =
     useState(RESULTS_BATCH_SIZE);
   const filterTimerRef = useRef<number | undefined>(undefined);
-  const onCreditRejectedRef = useRef(onCreditRejected);
-  const { isCurrentRequest, startRequest } = useAbortableRequest();
-
-  useLayoutEffect(() => {
-    onCreditRejectedRef.current = onCreditRejected;
-  }, [onCreditRejected]);
-
-  useEffect(() => {
-    onLoadingChange?.(loading);
-  }, [loading, onLoadingChange]);
 
   useEffect(
     () => () => {
@@ -398,110 +363,7 @@ export default function EbaySoldView({
     [],
   );
 
-  useEffect(() => {
-    if (runToken <= 0) return;
-
-    if (demoResponse) return;
-
-    async function loadEbayListings() {
-      const params = new URLSearchParams({ cardId: card.id });
-      const signal = startRequest();
-
-      setLoading(true);
-      setError("");
-      setResponse(null);
-      onReportAvailableChange?.(false);
-      setSortOrder("date-desc");
-      setListingTypeFilter("sold");
-      setGradeFilter("all");
-      setAppliedGradeFilter("all");
-      setTextFilter("");
-      setAppliedTextFilter("");
-      setFiltering(false);
-      window.clearTimeout(filterTimerRef.current);
-      setVisibleResultCount(RESULTS_BATCH_SIZE);
-
-      try {
-        const res = await authenticatedFetch(
-          `${API_URL}/ebay?${params.toString()}`,
-          {
-            signal,
-          },
-        );
-        const data = (await res.json()) as Partial<
-          PaidFeatureResponse<EbayCompsResponse>
-        > & {
-          error?: string;
-          fromDatabase?: boolean;
-          message?: string;
-        };
-
-        if (!res.ok) {
-          if (res.status === 409 && !signal.aborted) {
-            await onCreditRejectedRef.current?.();
-          }
-          throw new Error(
-            data?.error ?? data?.message ?? "Failed to fetch eBay listings",
-          );
-        }
-
-        if (!data.subscription) {
-          throw new Error(
-            "The eBay response did not include subscription data",
-          );
-        }
-        onSubscriptionChange?.(data.subscription);
-        if (data.fromDatabase) {
-          await waitForStoredResponse(signal);
-        }
-        if (!signal.aborted) {
-          const responseData = data.data as EbayCompsResponse;
-          setResponse(responseData);
-          const hasCompleteResponse =
-            responseData &&
-            typeof responseData === "object" &&
-            !Array.isArray(responseData) &&
-            "sold" in responseData &&
-            "active" in responseData &&
-            Boolean(responseData.sold) &&
-            Boolean(responseData.active);
-          onReportAvailableChange?.(Boolean(hasCompleteResponse));
-        }
-      } catch (requestError) {
-        if (isAbortError(requestError)) return;
-        if (!signal.aborted) {
-          setError(FEATURE_ERROR_MESSAGE);
-          onReportAvailableChange?.(false);
-        }
-      } finally {
-        if (isCurrentRequest(signal)) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadEbayListings();
-  }, [
-    card.id,
-    isCurrentRequest,
-    onReportAvailableChange,
-    onSubscriptionChange,
-    runToken,
-    demoResponse,
-    startRequest,
-  ]);
-
-  if (runToken <= 0) {
-    return null;
-  }
-
-  if (loading) {
-    return <LoadingState>Loading eBay listings and sales...</LoadingState>;
-  }
-  if (error)
-    return <p className="card-view__page-error">{FEATURE_ERROR_MESSAGE}</p>;
-
-  const responseData = (demoResponse ?? response) as
+  const responseData = response as
     | { sold?: EbayCompsResponse; active?: EbayCompsResponse }
     | EbayCompsResponse;
   const splitResponse =
@@ -534,11 +396,11 @@ export default function EbaySoldView({
         : listingTypeResults.filter((result) =>
             matchesGrade(result, appliedGradeFilter),
           );
-  const filteredResults = appliedTextFilter
-    ? gradeFilteredResults.filter((result) =>
-        matchesTextFilter(result, appliedTextFilter),
-      )
-    : gradeFilteredResults;
+  const filteredResults = gradeFilteredResults.filter(
+    (result) =>
+      (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
+      (!appliedExcludeFilter || !matchesTextFilter(result, appliedExcludeFilter)),
+  );
   const sortedResults = [...filteredResults].sort(
     (firstResult, secondResult) => {
       const sortingByDate =
@@ -568,34 +430,52 @@ export default function EbaySoldView({
     setVisibleResultCount(RESULTS_BATCH_SIZE);
   }
 
-  function scheduleFilterChange(nextGrade: GradeFilter, nextText: string) {
-    setFiltering(true);
-    setVisibleResultCount(RESULTS_BATCH_SIZE);
+  function scheduleFilterChange(
+    nextGrade: GradeFilter,
+    text: string,
+    exclude: string,
+  ) {
+    const nextText = normalizeFilterText(text).length >= 2 ? text : "";
+    const nextExclude = normalizeFilterText(exclude).length >= 2 ? exclude : "";
     window.clearTimeout(filterTimerRef.current);
+    if (
+      nextGrade === appliedGradeFilter &&
+      nextText === appliedTextFilter &&
+      nextExclude === appliedExcludeFilter
+    ) {
+      setFiltering(false);
+      return;
+    }
+    setVisibleResultCount(RESULTS_BATCH_SIZE);
+    if (response == null) {
+      setAppliedGradeFilter(nextGrade);
+      setAppliedTextFilter(nextText);
+      setAppliedExcludeFilter(nextExclude);
+      setFiltering(false);
+      return;
+    }
+    setFiltering(true);
     filterTimerRef.current = window.setTimeout(() => {
       setAppliedGradeFilter(nextGrade);
       setAppliedTextFilter(nextText);
+      setAppliedExcludeFilter(nextExclude);
       setFiltering(false);
     }, FILTER_TRANSITION_MS);
   }
 
   function handleGradeFilterChange(value: GradeFilter) {
     setGradeFilter(value);
-    scheduleFilterChange(value, textFilter);
+    scheduleFilterChange(value, textFilter, excludeFilter);
   }
 
   function handleTextFilterChange(value: string) {
     setTextFilter(value);
-    const nextTextFilter = normalizeFilterText(value).length >= 2 ? value : "";
-    if (
-      nextTextFilter === appliedTextFilter &&
-      gradeFilter === appliedGradeFilter
-    ) {
-      window.clearTimeout(filterTimerRef.current);
-      setFiltering(false);
-      return;
-    }
-    scheduleFilterChange(gradeFilter, nextTextFilter);
+    scheduleFilterChange(gradeFilter, value, excludeFilter);
+  }
+
+  function handleExcludeFilterChange(value: string) {
+    setExcludeFilter(value);
+    scheduleFilterChange(gradeFilter, textFilter, value);
   }
 
   function handleListingTypeChange(value: ListingTypeFilter) {
@@ -604,22 +484,24 @@ export default function EbaySoldView({
   }
 
   return (
-    <div className="ebay-sold-view default-container ui-render-fade">
+    <div className="ebay-sold-view ui-render-fade">
       <span className="feature-analysis-eyebrow ebay-sold-view__eyebrow">
         eBay Sold &amp; Listed
       </span>
       <div className="ebay-sold-view__surface">
-        <SegmentedRadioGroup
-          ariaLabel="eBay listing type"
-          className="ebay-sold-view__listing-toggle"
-          name="ebay-listing-type"
-          onChange={handleListingTypeChange}
-          options={[
-            { label: "Sold", value: "sold" },
-            { label: "Listed", value: "active" },
-          ]}
-          value={listingTypeFilter}
-        />
+        <div className="ebay-sold-view__listing-selector">
+          <SegmentedRadioGroup
+            ariaLabel="eBay listing type"
+            className="ebay-sold-view__listing-toggle"
+            name="ebay-listing-type"
+            onChange={handleListingTypeChange}
+            options={[
+              { label: "Sold", value: "sold" },
+              { label: "Listed", value: "active" },
+            ]}
+            value={listingTypeFilter}
+          />
+        </div>
         <div className="ebay-sold-view__filter-row">
           <fieldset className="ebay-sold-view__filters radio-group">
             <legend>Grade</legend>
@@ -638,7 +520,27 @@ export default function EbaySoldView({
               ))}
             </div>
           </fieldset>
+          {response != null && !selectedResponseUnavailable && (
+            <p
+              className="ebay-sold-view__result-count"
+              role="status"
+              aria-busy={filtering}
+            >
+              {filteredResults.length}{" "}
+              {filteredResults.length === 1 ? "result" : "results"}
+            </p>
+          )}
+        </div>
+        <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__control-group">
+            <FilterInput
+              ariaLabel="Exclude eBay results"
+              className="ebay-sold-view__text-filter"
+              clearLabel="Clear eBay exclusion filter"
+              onChange={handleExcludeFilterChange}
+              placeholder="Exclude"
+              value={excludeFilter}
+            />
             <FilterInput
               ariaLabel="Filter eBay results"
               className="ebay-sold-view__text-filter"
@@ -648,7 +550,6 @@ export default function EbaySoldView({
               value={textFilter}
             />
             <div className="ebay-sold-view__sorting">
-              <span>Sort by</span>
               <SelectDropdown
                 ariaLabel="Sort eBay listings"
                 options={EBAY_SORT_OPTIONS}
@@ -659,50 +560,50 @@ export default function EbaySoldView({
           </div>
         </div>
       </div>
-      <div className="ebay-sold-view__results-region" aria-busy={filtering}>
-        <>
-          {selectedResponseUnavailable ? (
-            <p className="ebay-sold-view__state">
-              We couldn’t load these eBay{" "}
-              {listingTypeFilter === "sold" ? "sales" : "listings"}.
-            </p>
-          ) : visibleResults.length === 0 ? (
-            <p className="ebay-sold-view__state">
-              No matching eBay{" "}
-              {listingTypeFilter === "sold" ? "sales" : "listings"} found.
-            </p>
-          ) : null}
-          <div
-            className="ebay-sold-view__results ui-render-fade"
-            key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedTextFilter}-${sortOrder}`}
-          >
-            {visibleResults.map((result, index) => (
-              <EbayResultCard
-                key={
-                  getField(result, "url") ??
-                  `${getField(result, "title")}-${index}`
-                }
-                isActive={getField(result, "listingType") === "active"}
-                result={result}
-              />
-            ))}
-          </div>
-          {remainingResultCount > 0 && (
-            <div className="ebay-sold-view__load-more">
-              <button
-                className="ebay-sold-view__load-more-button"
-                type="button"
-                onClick={() => {
-                  setVisibleResultCount((count) => count + RESULTS_BATCH_SIZE);
-                }}
-              >
-                Show {nextBatchSize} more
-                <ChevronDown aria-hidden="true" />
-              </button>
+      {children}
+      {response != null && (
+        <div className="ebay-sold-view__results-region" aria-busy={filtering}>
+          <>
+            {!selectedResponseUnavailable && visibleResults.length === 0 ? (
+              <p className="ebay-sold-view__state">
+                No matching eBay{" "}
+                {listingTypeFilter === "sold" ? "sales" : "listings"} found.
+              </p>
+            ) : null}
+            <div
+              className="ebay-sold-view__results ui-render-fade"
+              key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
+            >
+              {visibleResults.map((result, index) => (
+                <EbayResultCard
+                  key={
+                    getField(result, "url") ??
+                    `${getField(result, "title")}-${index}`
+                  }
+                  isActive={getField(result, "listingType") === "active"}
+                  result={result}
+                />
+              ))}
             </div>
-          )}
-        </>
-      </div>
+            {remainingResultCount > 0 && (
+              <div className="ebay-sold-view__load-more">
+                <button
+                  className="ebay-sold-view__load-more-button"
+                  type="button"
+                  onClick={() => {
+                    setVisibleResultCount(
+                      (count) => count + RESULTS_BATCH_SIZE,
+                    );
+                  }}
+                >
+                  Show {nextBatchSize} more
+                  <ChevronDown aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </>
+        </div>
+      )}
     </div>
   );
 }

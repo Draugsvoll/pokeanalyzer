@@ -1,6 +1,8 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GrokLoadingState } from "./GrokLoadingState";
+import { CardFeatureHeader } from "./CardFeatureHeader";
+import { LineChart } from "lucide-react";
 
 describe("GrokLoadingState", () => {
   afterEach(() => {
@@ -12,14 +14,50 @@ describe("GrokLoadingState", () => {
     vi.useFakeTimers();
     vi.spyOn(Math, "random").mockReturnValue(0);
 
-    render(<GrokLoadingState>Building market report...</GrokLoadingState>);
+    const { rerender } = render(
+      <CardFeatureHeader
+        card={{ name: "Pikachu" }}
+        color="orange"
+        icon={LineChart}
+        label="Market Analysis"
+        actionLabel="1 AI credit"
+        onAction={() => undefined}
+        actionLoading
+        actionLoadingMessage={
+          <GrokLoadingState>Building market report...</GrokLoadingState>
+        }
+      />,
+    );
 
-    expect(screen.getByText("Building market report...")).toBeInTheDocument();
+    const status = screen.getByRole("status");
+    const button = screen.getByRole("button");
+    expect(status).toHaveTextContent("Building market report...");
+    expect(button.closest("header")).toContainElement(status);
+    expect(button.compareDocumentPosition(status)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(status.querySelector("svg, .app-loading-spinner")).toBeNull();
+    expect(button).toBeDisabled();
 
     act(() => vi.advanceTimersByTime(5_000));
 
-    expect(
-      screen.getByText("Comparing sources, this might take a minute..."),
-    ).toBeInTheDocument();
+    expect(status).toHaveTextContent(
+      "Comparing sources, this might take a minute...",
+    );
+
+    rerender(
+      <CardFeatureHeader
+        card={{ name: "Pikachu" }}
+        color="orange"
+        icon={LineChart}
+        label="Market Analysis"
+        actionLabel="1 AI credit"
+        onAction={() => undefined}
+        errorMessage="Please try again."
+      />,
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(button.closest("header")).toContainElement(screen.getByRole("alert"));
+    expect(button).toBeEnabled();
   });
 });

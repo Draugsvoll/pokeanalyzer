@@ -16,6 +16,10 @@ vi.mock("../../subscriptions", () => ({
   useCredits: () => ({ creditsRemaining: 0 }),
 }));
 
+vi.mock("../../ebay/useEbayCredits", () => ({
+  useEbayCredits: () => ({ credits: { creditsRemaining: 10 } }),
+}));
+
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn(),
   getDoc: vi.fn(),

@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { LoadingState } from "../../../components/loadingState/LoadingState";
-import "./GrokLoadingState.scss";
 
 const RESEARCHING_MESSAGE = "Comparing sources, this might take a minute...";
 
@@ -13,9 +11,5 @@ export function GrokLoadingState({ children }: { children: string }) {
     return () => window.clearTimeout(timeout);
   }, []);
 
-  return (
-    <LoadingState className="grok-loading-state">
-      {isResearching ? RESEARCHING_MESSAGE : children}
-    </LoadingState>
-  );
+  return isResearching ? RESEARCHING_MESSAGE : children;
 }
