@@ -35,7 +35,7 @@ export const INFO_CARDS: InfoCard[] = [
     description:
       "Browse recent sales and active listings with dedicated filters to narrow your search.",
     id: "ebay",
-    title: "eBay sales & listings",
+    title: "Ebay sales & listings",
     icon: CircleDollarSign,
     color: "teal",
   },

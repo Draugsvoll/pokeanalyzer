@@ -4,11 +4,9 @@ const HIDDEN_EBAY_COMP_FIELDS = new Set([
   "conditionid",
   "sellertype",
   "buyingformat",
-  "bestofferaccepted",
   "categoryid",
   "shippingprice",
   "shippingcurrency",
-  "shippingtype",
   "totalprice",
   "scrapedat",
   "fullresthumbnail",
@@ -26,8 +24,17 @@ export type EbayCompField = {
 export type EbayCompResult = {
   thumbnailUrl: string | null;
   fullResThumbnailUrl: string | null;
+  shippingCurrency: string | null;
+  shippingPrice: string | null;
   fields: EbayCompField[];
 };
+
+function optionalText(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const text = value.trim();
+  return text && text.toLowerCase() !== "n/a" ? text : null;
+}
 
 function getEbayCompsCards(data: EbayCompsResponse): unknown[] {
   if (Array.isArray(data)) return data;
@@ -77,6 +84,8 @@ export function getVisibleEbayCompResults(
           /^https?:\/\//i.test(result.fullResThumbnailUrl)
             ? result.fullResThumbnailUrl
             : null,
+        shippingCurrency: optionalText(result.shippingCurrency),
+        shippingPrice: optionalText(result.shippingPrice),
         fields: Object.entries(result)
           .filter(
             ([key]) =>

@@ -42,20 +42,23 @@ function useAccountEbayCredits(user: User | null) {
     setError("");
   }
 
-  const updateCredits = useCallback((value: EbayCredits) => {
-    if (activeAccount.current !== account) return;
-    const next = parseEbayCredits(value);
-    if (
-      currentCredits.current &&
-      next.version < currentCredits.current.version
-    ) {
-      return;
-    }
-    currentCredits.current = next;
-    setCredits(next);
-    setError("");
-    setLoading(false);
-  }, [account]);
+  const updateCredits = useCallback(
+    (value: EbayCredits) => {
+      if (activeAccount.current !== account) return;
+      const next = parseEbayCredits(value);
+      if (
+        currentCredits.current &&
+        next.version < currentCredits.current.version
+      ) {
+        return;
+      }
+      currentCredits.current = next;
+      setCredits(next);
+      setError("");
+      setLoading(false);
+    },
+    [account],
+  );
 
   const refreshCredits = useCallback(async () => {
     if (!uid || !verified || activeAccount.current !== account) return;
@@ -74,7 +77,7 @@ function useAccountEbayCredits(user: User | null) {
       }
     } catch {
       if (!controller.signal.aborted && activeAccount.current === account) {
-        setError("We couldn’t load your eBay credits. Please try again.");
+        setError("We couldn’t load your Ebay credits. Please try again.");
       }
     } finally {
       if (!controller.signal.aborted && activeAccount.current === account) {

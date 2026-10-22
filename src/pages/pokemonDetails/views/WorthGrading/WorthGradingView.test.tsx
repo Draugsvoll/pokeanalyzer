@@ -172,11 +172,11 @@ describe("WorthGradingView", () => {
       />,
     );
 
-    expect(screen.queryByText("eBay sell time")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ebay sell time")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Calculations" }));
     expect(screen.queryByText("turnaround")).not.toBeInTheDocument();
     expect(screen.queryByText("grading tier")).not.toBeInTheDocument();
-    expect(screen.getAllByText("eBay Fees")).toHaveLength(2);
+    expect(screen.getAllByText("Ebay Fees")).toHaveLength(2);
   });
 
   it("rejects a required field with the wrong type", () => {

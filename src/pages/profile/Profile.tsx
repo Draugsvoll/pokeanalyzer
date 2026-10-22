@@ -428,7 +428,8 @@ export default function Profile() {
               )}
               {!loadingSubscription && subscription?.planId === "free" && (
                 <p className="profile__free-plan-footer">
-                  You can browse cards, explore prices, and manage a small collection.
+                  You can browse cards, explore prices, and manage a small
+                  collection.
                 </p>
               )}
             </article>
@@ -460,7 +461,7 @@ export default function Profile() {
                     loading: loadingSubscription,
                   },
                   {
-                    label: "eBay credits",
+                    label: "Ebay credits",
                     remaining: ebayCredits?.creditsRemaining,
                     allowance: ebayCredits?.membershipCreditsTotal,
                     loading: loadingEbayCredits,
@@ -473,7 +474,7 @@ export default function Profile() {
                     loading: balanceLoading,
                   }) => (
                     <div
-                      className={`profile__credit-row${label === "eBay credits" ? " profile__credit-row--ebay" : ""}`}
+                      className="profile__credit-row"
                       key={label}
                       aria-busy={balanceLoading}
                     >
@@ -488,7 +489,7 @@ export default function Profile() {
                         <strong>{remaining ?? "—"}</strong>
                         <span className="profile__credit-label">{label}</span>
                         <span className="profile__credit-allowance">
-                          {allowance ?? "—"} monthly
+                          {allowance ?? "—"} renewed monthly
                         </span>
                       </span>
                       <div className="profile__credit-bar" aria-hidden="true">
@@ -509,7 +510,7 @@ export default function Profile() {
                     onClick={() => void refreshEbayCredits()}
                     disabled={loadingEbayCredits}
                   >
-                    Retry eBay credits
+                    Retry Ebay credits
                   </Button>
                 </div>
               )}

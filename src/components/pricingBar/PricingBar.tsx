@@ -76,9 +76,12 @@ export function PricingBar({
 
             <ul className="pricing-bar__features">
               {plan.features.map((feature) => (
-                <li key={feature}>
+                <li
+                  className={feature.highlighted ? "is-highlighted" : undefined}
+                  key={feature.label}
+                >
                   <Check aria-hidden="true" />
-                  {feature}
+                  {feature.label}
                 </li>
               ))}
             </ul>

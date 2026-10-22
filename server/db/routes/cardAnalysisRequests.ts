@@ -80,7 +80,7 @@ const CARD_ANALYSIS_REQUESTS: Record<CardAnalysisFeature, CardAnalysisRequest> =
       buildUserInput: worthGradingCardInput,
       grokOptions: {
         model: "grok-4.5",
-        reasoningEffort: "high",
+        reasoningEffort: "medium",
         useCodeInterpreter: true,
       },
       instructions: worthGradingInstructions,

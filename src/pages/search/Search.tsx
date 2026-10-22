@@ -21,7 +21,7 @@ export default function Search({
       <MostSoldGrid
         minimized
         loadCards={mostSoldEbayCards}
-        title="eBay Most Sold Daily"
+        title="Ebay Most Sold Daily"
       />
       <MarketMoversGrid
         minimized

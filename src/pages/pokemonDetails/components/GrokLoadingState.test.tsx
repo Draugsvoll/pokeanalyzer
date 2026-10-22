@@ -42,7 +42,7 @@ describe("GrokLoadingState", () => {
     act(() => vi.advanceTimersByTime(5_000));
 
     expect(status).toHaveTextContent(
-      "Comparing sources, this might take a minute...",
+      "Still comparing sources. This can take a minute.",
     );
 
     rerender(
@@ -57,7 +57,9 @@ describe("GrokLoadingState", () => {
       />,
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(button.closest("header")).toContainElement(screen.getByRole("alert"));
+    expect(button.closest("header")).toContainElement(
+      screen.getByRole("alert"),
+    );
     expect(button).toBeEnabled();
   });
 });

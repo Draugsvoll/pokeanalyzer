@@ -130,7 +130,7 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1170px;
-  --shell-wide-max-width: 1490px;
+  --shell-wide-max-width: 1510px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;
   --search-height: 49px;
@@ -217,7 +217,7 @@
   --card-view-max-width: 76rem;
   --max-text-width: 53rem;
   --summary-max-width: 45rem;
-  --card-view-section-gap: var(--space-7);
+  --card-view-section-gap: var(--space-6);
   --card-view-header-gap: var(--space-2);
   --card-view-datestamp-gap: var(--space-1);
   --default-container-padding: 1.5rem;
@@ -286,7 +286,7 @@
   --font-size-logo: 15px;
   --font-size-price: 16px;
   --font-size-price-sm: 18px;
-  --font-size-price-value: 19px;
+  --font-size-price-value-ebay: 18px;
   --font-size-price-md: 21px;
   --font-size-price-lg: 30px;
   --font-size-price-xl: 38px;

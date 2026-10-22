@@ -274,10 +274,10 @@ test("renders stored sealed details with live graph data", async () => {
   ).toBeInTheDocument();
   expect(
     screen.getByLabelText(
-      "Price increased by 1.4%. 7-day eBay unopened price change",
+      "Price increased by 1.4%. 7-day Ebay unopened price change",
     ),
   ).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "eBay" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Ebay" })).toBeInTheDocument();
   expect(screen.getByText("$142.00")).toBeInTheDocument();
   expect(screen.getByText("8+")).toBeInTheDocument();
   expect(screen.getByText("12")).toBeInTheDocument();

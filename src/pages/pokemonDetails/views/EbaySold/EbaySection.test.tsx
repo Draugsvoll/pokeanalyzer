@@ -130,7 +130,7 @@ test.each(["sold", "active"] as const)(
     const stream = progressiveResponse();
     mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
     render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     await act(async () => {
       stream.send({ type: "started", credits });
       stream.send({
@@ -144,7 +144,7 @@ test.each(["sold", "active"] as const)(
     expect(
       await screen.findByRole("heading", { name: "Pikachu First Result" }),
     ).toBeVisible();
-    expect(screen.queryByText("eBay Comps")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ebay Explorer")).not.toBeInTheDocument();
     const firstTab = screen.getByRole("radio", {
       name: first === "sold" ? "Sold" : "Listed",
     });
@@ -155,7 +155,7 @@ test.each(["sold", "active"] as const)(
     expect(secondTab).toBeDisabled();
     expect(secondTab).toHaveAttribute("aria-busy", "true");
     const listingTabs = () =>
-      within(screen.getByRole("radiogroup", { name: "eBay listing type" }))
+      within(screen.getByRole("radiogroup", { name: "Ebay listing type" }))
         .getAllByRole("radio")
         .map((tab) => tab.getAttribute("value"));
     expect(listingTabs()).toEqual(["sold", "active"]);
@@ -184,7 +184,7 @@ test.each(["sold", "active"] as const)(
       secondTab.closest("label")?.querySelector(".app-loading-spinner"),
     ).toBeNull();
     fireEvent.click(secondTab);
-    expect(screen.getByText(/No matching eBay/)).toBeVisible();
+    expect(screen.getByText(/No matching Ebay/)).toBeVisible();
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
   },
 );
@@ -193,7 +193,7 @@ test("restores the header on a late failure while keeping the first result", asy
   const stream = progressiveResponse();
   mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
   render(view());
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   await act(async () => {
     stream.send({ type: "started", credits });
     stream.send({
@@ -210,7 +210,7 @@ test("restores the header on a late failure while keeping the first result", asy
     stream.send({ type: "complete", credits });
     stream.close();
   });
-  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+  expect(screen.getByText("Ebay Explorer").closest("header")).toContainElement(
     screen.getByRole("alert"),
   );
   expect(
@@ -220,7 +220,7 @@ test("restores the header on a late failure while keeping the first result", asy
   expect(screen.getByRole("radio", { name: "Sold" })).not.toHaveAttribute(
     "aria-busy",
   );
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
 });
 
 test.each(["disconnect", "timeout"])(
@@ -229,7 +229,7 @@ test.each(["disconnect", "timeout"])(
     const stream = progressiveResponse();
     mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
     render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     await act(async () => {
       stream.send({ type: "started", credits });
       stream.send({
@@ -261,16 +261,16 @@ test("keeps retry disabled after an early failure until the other side finishes"
   const stream = progressiveResponse();
   mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
   render(view());
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   await act(async () => {
     stream.send({ type: "started", credits });
     stream.send({ type: "failure", side: "sold", message: "Unavailable" });
   });
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "couldn't load eBay sales.",
+    "couldn't load Ebay sales.",
   );
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
   await act(async () => {
     stream.send({ type: "result", side: "active", data: { items: [] } });
@@ -278,15 +278,15 @@ test("keeps retry disabled after an early failure until the other side finishes"
     stream.close();
   });
   expect(screen.getByRole("radio", { name: "Listed" })).toBeChecked();
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
-  expect(screen.getByText("No matching eBay listings found.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
+  expect(screen.getByText("No matching Ebay listings found.")).toBeVisible();
 });
 
 test("keeps only the header when both streamed sides fail and refreshes the refunded balance", async () => {
   const stream = progressiveResponse();
   mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
   render(view());
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   await act(async () => {
     stream.send({ type: "started", credits });
     stream.send({ type: "failure", side: "sold", message: "Unavailable" });
@@ -295,13 +295,13 @@ test("keeps only the header when both streamed sides fail and refreshes the refu
     stream.close();
   });
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "couldn't load eBay sales and listings.",
+    "couldn't load Ebay sales and listings.",
   );
-  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+  expect(screen.getByText("Ebay Explorer").closest("header")).toContainElement(
     screen.getByRole("alert"),
   );
-  expect(screen.queryByText("eBay Sold & Listed")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+  expect(screen.queryByText("Ebay Sold & Listed")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
   expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
 });
 
@@ -311,7 +311,7 @@ test.each(["card", "logout", "account"])(
     const stream = progressiveResponse();
     mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
     const { rerender } = render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     await act(async () => {
       stream.send({ type: "started", credits });
       stream.send({
@@ -342,7 +342,7 @@ test.each(["card", "logout", "account"])(
       stream.close();
     });
     expect(mocks.updateCredits).not.toHaveBeenCalled();
-    expect(screen.queryByText("eBay Sold & Listed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ebay Sold & Listed")).not.toBeInTheDocument();
     expect(mocks.refreshCredits).not.toHaveBeenCalled();
   },
 );
@@ -360,12 +360,12 @@ beforeEach(() => {
 
 test("replaces the intro with results after an explicit search and does not refetch on rerenders", async () => {
   const { rerender } = render(view());
-  const heading = screen.getByText("eBay Comps");
+  const heading = screen.getByText("Ebay Explorer");
   expect(heading).toBeVisible();
-  expect(screen.queryByText("10 eBay credits")).not.toBeInTheDocument();
+  expect(screen.queryByText("10 Ebay credits")).not.toBeInTheDocument();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
-  const action = screen.getByRole("button", { name: "1 eBay credit" });
-  expect(action).toHaveTextContent(/^1 eBay credit$/);
+  const action = screen.getByRole("button", { name: "1 Ebay credit" });
+  expect(action).toHaveTextContent(/^1 Ebay credit$/);
   expect(action).toHaveClass(
     "app-btn-pill--solid",
     "app-btn--fit-content",
@@ -374,32 +374,32 @@ test("replaces the intro with results after an explicit search and does not refe
   for (const control of [
     screen.queryByRole("radio", { name: "Sold" }),
     screen.queryByRole("radio", { name: "Grade 10" }),
-    screen.queryByRole("searchbox", { name: "Filter eBay results" }),
-    screen.queryByRole("button", { name: "Sort eBay listings" }),
+    screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
+    screen.queryByRole("button", { name: "Sort Ebay listings" }),
   ]) {
     expect(control).not.toBeInTheDocument();
   }
   expect(screen.getByText("Pikachu").compareDocumentPosition(action)).toBe(
     Node.DOCUMENT_POSITION_FOLLOWING,
   );
-  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
   fireEvent.click(action);
   expect(
     await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
   ).toBeVisible();
   expect(mocks.updateCredits).toHaveBeenCalledTimes(1);
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
   expect(
-    screen.queryByText("eBay completed sales & active listings"),
+    screen.queryByText("Ebay completed sales & active listings"),
   ).not.toBeInTheDocument();
-  expect(screen.queryByText("10 eBay credits")).not.toBeInTheDocument();
+  expect(screen.queryByText("10 Ebay credits")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", {
-      name: /1 eBay credit|Hide results|Show results/,
+      name: /1 Ebay credit|Hide results|Show results/,
     }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("radiogroup", { name: "eBay listing type" }),
+    screen.getByRole("radiogroup", { name: "Ebay listing type" }),
   ).toBeVisible();
 
   mocks.updateCredits = vi.fn();
@@ -408,7 +408,7 @@ test("replaces the intro with results after an explicit search and does not refe
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
   expect(mocks.updateCredits).not.toHaveBeenCalled();
   expect(screen.getByRole("heading", { name: "Pikachu Psa 10" })).toBeVisible();
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
 });
 
 test("keeps the intro while loading, prevents duplicate requests, and leaves result controls usable", async () => {
@@ -419,21 +419,21 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
     }),
   );
   render(view());
-  const action = screen.getByRole("button", { name: "1 eBay credit" });
+  const action = screen.getByRole("button", { name: "1 Ebay credit" });
   fireEvent.click(action);
   fireEvent.click(action);
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
-  expect(screen.getByText("eBay Comps")).toBeVisible();
-  expect(screen.queryByText("10 eBay credits")).not.toBeInTheDocument();
+  expect(screen.getByText("Ebay Explorer")).toBeVisible();
+  expect(screen.queryByText("10 Ebay credits")).not.toBeInTheDocument();
   const pendingAction = screen.getByRole("button", {
-    name: "Searching eBay...",
+    name: "Searching Ebay...",
   });
   expect(pendingAction).toBeDisabled();
   expect(pendingAction).toHaveAttribute("aria-busy", "true");
-  expect(pendingAction).not.toHaveTextContent("1 eBay credit");
+  expect(pendingAction).not.toHaveTextContent("1 Ebay credit");
   const loadingMessage = screen.getByRole("status");
   expect(loadingMessage).toHaveTextContent(
-    "Loading eBay listings and sales...",
+    "Fetching Ebay listings and sales...",
   );
   expect(pendingAction.closest(".card-feature-header")).toContainElement(
     loadingMessage,
@@ -450,18 +450,18 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
     screen.queryByRole("radio", { name: "Grade 10" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("searchbox", { name: "Filter eBay results" }),
+    screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "Sort eBay listings" }),
+    screen.queryByRole("button", { name: "Sort Ebay listings" }),
   ).not.toBeInTheDocument();
-  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
   await act(async () => {
     resolve(successResponse());
   });
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
-  expect(screen.getByText("No matching eBay listings found.")).toBeVisible();
+  expect(screen.getByText("No matching Ebay listings found.")).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
   expect(screen.getByRole("heading", { name: "Pikachu Psa 10" })).toBeVisible();
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
@@ -472,15 +472,15 @@ test("shows no-matches only after an empty successful search and removes the CTA
     new Response(JSON.stringify({ credits, data: { sold: [], active: [] } })),
   );
   render(view());
-  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   expect(
-    await screen.findByText("No matching eBay sales found."),
+    await screen.findByText("No matching Ebay sales found."),
   ).toBeVisible();
   expect(
-    screen.queryByRole("button", { name: "1 eBay credit" }),
+    screen.queryByRole("button", { name: "1 Ebay credit" }),
   ).not.toBeInTheDocument();
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
   expect(screen.getByRole("radio", { name: "Listed" })).toBeEnabled();
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 });
@@ -492,19 +492,19 @@ test("keeps results visible without credit prompts after spending the final cred
   });
   mocks.authenticatedFetch.mockResolvedValue(successResponse(0));
   const { rerender } = render(view());
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   expect(
     await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
   ).toBeVisible();
   expect(mocks.creditsRemaining).toBe(0);
   rerender(view());
 
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
-  expect(screen.queryByText("0 eBay credits")).not.toBeInTheDocument();
-  expect(screen.queryByText(/No eBay credits left/)).not.toBeInTheDocument();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(screen.queryByText("0 Ebay credits")).not.toBeInTheDocument();
+  expect(screen.queryByText(/No Ebay credits left/)).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", {
-      name: /1 eBay credit|Add credits|Refresh eBay credits/,
+      name: /1 Ebay credit|Add credits|Refresh Ebay credits/,
     }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("radio", { name: "Listed" })).toBeEnabled();
@@ -534,16 +534,16 @@ test.each(["sold", "active"] as const)(
       ),
     );
     render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
-    await screen.findByText("eBay Sold & Listed");
-    expect(screen.getByText("eBay Comps")).toBeVisible();
-    const header = screen.getByText("eBay Comps").closest("header");
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
+    await screen.findByText("Ebay Sold & Listed");
+    expect(screen.getByText("Ebay Explorer")).toBeVisible();
+    const header = screen.getByText("Ebay Explorer").closest("header");
     expect(header).toContainElement(screen.getByRole("alert"));
     expect(screen.getByRole("alert")).toHaveTextContent(
-      `We couldn't load eBay ${failedSide === "sold" ? "sales" : "listings"}. Please try again.`,
+      `We couldn't load Ebay ${failedSide === "sold" ? "sales" : "listings"}. Please try again.`,
     );
     expect(screen.getAllByRole("alert")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
     fireEvent.click(
       screen.getByRole("radio", {
         name: availableSide === "sold" ? "Sold" : "Listed",
@@ -556,20 +556,20 @@ test.each(["sold", "active"] as const)(
     mocks.authenticatedFetch.mockResolvedValueOnce(
       new Response("{}", { status: 502 }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     await screen.findByRole("alert");
     expect(
       screen.queryByRole("heading", { name: "Pikachu Partial Result" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     await waitFor(() =>
-      expect(screen.queryByText("eBay Comps")).not.toBeInTheDocument(),
+      expect(screen.queryByText("Ebay Explorer")).not.toBeInTheDocument(),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "1 eBay credit" }),
+      screen.queryByRole("button", { name: "1 Ebay credit" }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
     expect(
@@ -579,24 +579,24 @@ test.each(["sold", "active"] as const)(
   },
 );
 
-test("keeps a single error inside the header when both eBay responses are missing", async () => {
+test("keeps a single error inside the header when both Ebay responses are missing", async () => {
   mocks.authenticatedFetch.mockResolvedValueOnce(
     new Response(
       JSON.stringify({ credits, data: { sold: null, active: null } }),
     ),
   );
   render(view());
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   const alert = await screen.findByRole("alert");
   expect(alert).toHaveTextContent(
-    "We couldn't load eBay sales and listings. Please try again.",
+    "We couldn't load Ebay sales and listings. Please try again.",
   );
-  expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
+  expect(screen.getByText("Ebay Explorer").closest("header")).toContainElement(
     alert,
   );
   expect(screen.getAllByRole("alert")).toHaveLength(1);
-  expect(screen.queryByText(/No matching eBay/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+  expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
 });
 
 test.each(["card", "logout", "account"])(
@@ -609,7 +609,7 @@ test.each(["card", "logout", "account"])(
       }),
     );
     const { rerender } = render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     const signal = mocks.authenticatedFetch.mock.calls[0][1]
       .signal as AbortSignal;
     expect(mocks.authenticatedFetch.mock.calls[0][2]).toBe("user-1");
@@ -630,37 +630,37 @@ test.each(["card", "logout", "account"])(
 );
 
 test.each([409, 502])(
-  "handles HTTP %s within eBay and keeps the intro available for retry",
+  "handles HTTP %s within Ebay and keeps the intro available for retry",
   async (status) => {
     mocks.authenticatedFetch.mockResolvedValue(new Response("{}", { status }));
     render(view());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       status === 409
-        ? "You don't have enough eBay credits for this search."
-        : "We couldn't load eBay sales and listings. Please try again.",
+        ? "You don't have enough Ebay credits for this search."
+        : "We couldn't load Ebay sales and listings. Please try again.",
     );
-    expect(screen.getByText("eBay Comps").closest("header")).toContainElement(
-      screen.getByRole("alert"),
-    );
+    expect(
+      screen.getByText("Ebay Explorer").closest("header"),
+    ).toContainElement(screen.getByRole("alert"));
     expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
     expect(mocks.updateCredits).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("radiogroup", { name: "eBay listing type" }),
+      screen.queryByRole("radiogroup", { name: "Ebay listing type" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("searchbox", { name: "Filter eBay results" }),
+      screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("eBay Comps")).toBeVisible();
-    expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeEnabled();
+    expect(screen.getByText("Ebay Explorer")).toBeVisible();
+    expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
 
     mocks.authenticatedFetch.mockResolvedValue(successResponse());
-    fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
     expect(
       await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
     ).toBeVisible();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+    expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
     await waitFor(() => expect(mocks.updateCredits).toHaveBeenCalledTimes(1));
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(2);
   },
@@ -672,17 +672,17 @@ test.each(["free", "collector", "pro"] as const)(
     mocks.planId = planId;
     mocks.creditsRemaining = 0;
     render(view());
-    expect(screen.queryByText("0 eBay credits")).not.toBeInTheDocument();
-    expect(screen.queryByText(/No eBay credits left/)).not.toBeInTheDocument();
+    expect(screen.queryByText("0 Ebay credits")).not.toBeInTheDocument();
+    expect(screen.queryByText(/No Ebay credits left/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add credits" })).toBeEnabled();
     expect(
       screen.queryByRole("button", {
-        name: /Refresh eBay credits|Retry eBay credits/,
+        name: /Refresh Ebay credits|Retry Ebay credits/,
       }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
-        name: /1 eBay credit|top.?up/i,
+        name: /1 Ebay credit|top.?up/i,
       }),
     ).not.toBeInTheDocument();
     expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
@@ -702,7 +702,7 @@ test("guests see the original authentication options even with a stale zero bala
   expect(
     screen.queryByRole("button", { name: "Add credits" }),
   ).not.toBeInTheDocument();
-  expect(screen.queryByText(/No eBay credits left/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/No Ebay credits left/)).not.toBeInTheDocument();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
 });
 
@@ -710,9 +710,9 @@ test("explains email verification without fetching", () => {
   mocks.user = { uid: "user-1", emailVerified: false };
   render(view());
   expect(
-    screen.getByText("Please verify your email before searching eBay."),
+    screen.getByText("Please verify your email before searching Ebay."),
   ).toBeVisible();
-  expect(screen.getByRole("button", { name: "1 eBay credit" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeDisabled();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
 });
 
@@ -728,16 +728,16 @@ test("shows independent demo results without fetching or spending credits", () =
     </MemoryRouter>,
   );
   expect(screen.queryByText("Demo results")).not.toBeInTheDocument();
-  expect(screen.getByText("eBay Sold & Listed")).toBeVisible();
+  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
   expect(
-    screen.queryByText("eBay completed sales & active listings"),
+    screen.queryByText("Ebay completed sales & active listings"),
   ).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", {
-      name: /1 eBay credit|Hide results|Show results/,
+      name: /1 Ebay credit|Hide results|Show results/,
     }),
   ).not.toBeInTheDocument();
-  expect(screen.getByText("No matching eBay sales found.")).toBeVisible();
+  expect(screen.getByText("No matching Ebay sales found.")).toBeVisible();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
   expect(mocks.updateCredits).not.toHaveBeenCalled();
 });

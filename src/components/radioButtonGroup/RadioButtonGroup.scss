@@ -1,4 +1,4 @@
-.price-change-period-selector {
+.radio-button-group {
   align-items: center;
   background: var(--dropdown-trigger-bg);
   border: var(--dropdown-border);
@@ -10,7 +10,7 @@
   padding: 0.25rem;
 }
 
-.price-change-period-selector__option {
+.radio-button-group__option {
   align-items: center;
   border-radius: calc(var(--dropdown-trigger-radius) - 0.15rem);
   color: var(--font-color-muted);
@@ -26,6 +26,17 @@
     background var(--delay-short) ease,
     color var(--delay-short) ease;
   white-space: nowrap;
+
+  > span {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+
+  svg {
+    height: 0.95rem;
+    width: 0.95rem;
+  }
 
   input {
     height: 1px;

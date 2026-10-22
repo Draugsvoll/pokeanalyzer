@@ -1,12 +1,17 @@
 export type MembershipPlanId = "free" | "collector" | "pro";
 
+export type MembershipPlanFeature = {
+  highlighted?: boolean;
+  label: string;
+};
+
 export type MembershipPlan = {
   billingInterval: "month";
   credits: number;
   ebayCredits: number;
   currency: "NOK" | "USD";
   description: string;
-  features: readonly string[];
+  features: readonly MembershipPlanFeature[];
   id: MembershipPlanId;
   name: string;
   price: number;
@@ -23,10 +28,9 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     ebayCredits: 0,
     description: "Explore card details and market prices at no cost.",
     features: [
-      "10 free eBay credits at signup",
-      "Track 10 cards in portfolio",
-      "Track 10 cards in watchlist",
-      "Basic card details and price data",
+      { label: "10 Ebay credits at signup", highlighted: true },
+      { label: "Track 10 cards in portfolio & watchlist" },
+      { label: "Basic card details and price data" },
     ],
   },
   {
@@ -39,14 +43,12 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     ebayCredits: 100,
     description: "Built for regular research across an active collection.",
     features: [
-      "Everything in Free",
-      "3 AI credits every month",
-      "100 eBay credits every month",
-      "Track unlimited cards in portfolio",
-      "Track unlimited cards in watchlist",
-      "Weekly market summary",
-      "Graded prices",
-      "Price history",
+      { label: "Everything in Free" },
+      { label: "3 AI credits every month" },
+      { label: "100 Ebay credits every month" },
+      { label: "Track unlimited cards in portfolio & watchlist" },
+      { label: "Weekly market summary" },
+      { label: "Price history & graded prices" },
     ],
   },
   {
@@ -59,9 +61,9 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     ebayCredits: 300,
     description: "More monthly capacity for frequent analysis.",
     features: [
-      "Everything in Collector",
-      "9 AI credits every month",
-      "300 eBay credits every month",
+      { label: "Everything in Collector" },
+      { label: "9 AI credits every month" },
+      { label: "300 Ebay credits every month" },
     ],
   },
 ];

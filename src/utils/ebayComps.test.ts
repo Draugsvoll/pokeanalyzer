@@ -7,11 +7,15 @@ test("preserves the full resolution image without displaying it as metadata", ()
       {
         thumbnailUrl: "https://example.com/small.jpg",
         fullResThumbnailUrl: "https://example.com/large.jpg",
+        shippingCurrency: "USD",
+        shippingPrice: "5.70",
         title: "Charizard",
       },
     ],
   });
   expect(result.fullResThumbnailUrl).toBe("https://example.com/large.jpg");
+  expect(result.shippingCurrency).toBe("USD");
+  expect(result.shippingPrice).toBe("5.70");
   expect(result.fields).toEqual([{ key: "title", value: "Charizard" }]);
 });
 

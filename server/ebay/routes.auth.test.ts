@@ -81,12 +81,12 @@ test("HTTP streaming delivers the first result while the second is still pending
 test("streaming preflight failures still return an ordinary HTTP error", async (t) => {
   const { request } = await startRouter(t, {
     requestListings: async () => {
-      throw new EbayCreditError("Not enough eBay credits", 409);
+      throw new EbayCreditError("Not enough Ebay credits", 409);
     },
   });
   assert.deepEqual(await request("/?cardId=card-1&stream=1", "verified"), {
     status: 409,
-    body: { error: "Not enough eBay credits" },
+    body: { error: "Not enough Ebay credits" },
   });
 });
 

@@ -8,9 +8,7 @@ test("loads the full resolution image on demand and falls back if it fails", () 
   );
   expect(screen.getByAltText("Eevee")).toHaveAttribute("src", "/small.jpg");
   expect(screen.queryByAltText("Enlarged image: Eevee")).toBeNull();
-  fireEvent.mouseEnter(
-    screen.getByRole("button", { name: "Enlarge image: Eevee" }),
-  );
+  fireEvent.focus(screen.getByRole("button", { name: "Enlarge image: Eevee" }));
   const preview = screen.getByAltText("Enlarged image: Eevee");
   expect(preview).toHaveAttribute("src", "/large.jpg");
   expect(screen.getByRole("status")).toHaveAccessibleName("Loading image");
@@ -27,14 +25,14 @@ test("shows loading feedback until the image loads and resets when reopened", ()
     <EbayImagePreview src="/small.jpg" previewSrc="/large.jpg" title="Mew" />,
   );
   const trigger = screen.getByRole("button", { name: "Enlarge image: Mew" });
-  fireEvent.mouseEnter(trigger);
+  fireEvent.focus(trigger);
   expect(screen.getByRole("status")).toHaveAccessibleName("Loading image");
   const preview = screen.getByAltText("Enlarged image: Mew");
   fireEvent.load(preview);
   expect(screen.queryByRole("status")).toBeNull();
   expect(preview).toBeVisible();
   fireEvent.keyDown(document, { key: "Escape" });
-  fireEvent.mouseEnter(trigger);
+  fireEvent.focus(trigger);
   expect(screen.getByRole("status")).toHaveAccessibleName("Loading image");
 });
 
@@ -48,6 +46,8 @@ test("opens outside the listing and stays open while hovering the preview", () =
       name: "Enlarge image: Charizard",
     });
     fireEvent.mouseEnter(trigger);
+    expect(screen.queryByAltText("Enlarged image: Charizard")).toBeNull();
+    act(() => vi.advanceTimersByTime(250));
     const preview = screen.getByAltText("Enlarged image: Charizard");
     expect(container.contains(preview)).toBe(false);
     fireEvent.mouseLeave(trigger);
@@ -57,6 +57,28 @@ test("opens outside the listing and stays open while hovering the preview", () =
     fireEvent.mouseLeave(preview.parentElement!);
     act(() => vi.advanceTimersByTime(200));
     expect(screen.queryByAltText("Enlarged image: Charizard")).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("keeps an image loaded when a pending hover preview is clicked", () => {
+  vi.useFakeTimers();
+  try {
+    render(<EbayImagePreview src="/card.jpg" title="Lugia" />);
+    const trigger = screen.getByRole("button", {
+      name: "Enlarge image: Lugia",
+    });
+
+    fireEvent.mouseEnter(trigger);
+    fireEvent.click(trigger);
+    const preview = screen.getByAltText("Enlarged image: Lugia");
+    fireEvent.load(preview);
+    expect(screen.queryByRole("status")).toBeNull();
+
+    act(() => vi.advanceTimersByTime(250));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByAltText("Enlarged image: Lugia")).toBeVisible();
   } finally {
     vi.useRealTimers();
   }

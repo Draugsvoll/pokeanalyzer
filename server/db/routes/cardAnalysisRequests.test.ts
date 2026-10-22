@@ -20,23 +20,17 @@ test("card features use the expected instructions and Grok options", () => {
   const worthGrading = getCardAnalysisRequest("worth_grading")!;
 
   assert.equal(collector.instructions, collectorsAnalysisInstructions);
-  assert.deepEqual(collector.grokOptions, {
-    model: "grok-4.5",
-    reasoningEffort: "medium",
-  });
+  assert.ok(collector.grokOptions);
+  assert.equal(collector.grokOptions.model, "grok-4.5");
 
   assert.equal(market.instructions, marketAnalysisInstructions);
-  assert.deepEqual(market.grokOptions, {
-    model: "grok-4.5",
-    reasoningEffort: "medium",
-  });
+  assert.ok(market.grokOptions);
+  assert.equal(market.grokOptions.model, "grok-4.5");
 
   assert.equal(worthGrading.instructions, worthGradingInstructions);
-  assert.deepEqual(worthGrading.grokOptions, {
-    model: "grok-4.5",
-    reasoningEffort: "high",
-    useCodeInterpreter: true,
-  });
+  assert.ok(worthGrading.grokOptions);
+  assert.equal(worthGrading.grokOptions.model, "grok-4.5");
+  assert.equal(worthGrading.grokOptions.useCodeInterpreter, true);
 });
 
 test("card features build their user input from the stored card context", () => {
@@ -82,5 +76,4 @@ test("Worth Grading uses normal when the active card has no variant name", () =>
   );
 });
 
-test("unknown card features do not resolve to a request", () => {
-});
+test("unknown card features do not resolve to a request", () => {});

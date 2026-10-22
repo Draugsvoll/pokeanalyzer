@@ -1,12 +1,28 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type UIEvent,
+} from "react";
 import {
   getVisibleEbayCompResults,
   type EbayCompsResponse,
   type EbayCompResult,
 } from "../../../../utils/ebayComps";
-import { ChevronDown, ExternalLink, Gavel } from "lucide-react";
+import {
+  ChevronDown,
+  CircleHelp,
+  Columns2,
+  ExternalLink,
+  Gavel,
+  Rows2,
+} from "lucide-react";
 import "./EbaySoldView.scss";
+import { ClearFiltersButton } from "../../../../components/clearFiltersButton/ClearFiltersButton";
 import { FilterInput } from "../../../../components/filterInput/FilterInput";
+import { RadioButtonGroup } from "../../../../components/radioButtonGroup/RadioButtonGroup";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { SegmentedRadioGroup } from "../../../../components/ui/SegmentedRadioGroup";
 import { EbayImagePreview } from "./EbayImagePreview";
@@ -15,8 +31,9 @@ import type {
   EbayListingType,
 } from "../../../../../shared/ebaySearch";
 
-const RESULTS_BATCH_SIZE = 10;
+const RESULTS_BATCH_SIZE = 15;
 const FILTER_TRANSITION_MS = 250;
+const DUAL_VIEW_BREAKPOINT = "(min-width: 1100px)";
 
 type EbaySoldViewProps = {
   response: EbayCompsResponse;
@@ -27,11 +44,13 @@ type EbaySoldViewProps = {
 
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
 type ListingTypeFilter = "sold" | "active";
+type ResultViewMode = "basic" | "advanced";
 type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
+type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
-  { value: "price-asc", label: "Price: low to high" },
-  { value: "price-desc", label: "Price: high to low" },
+  { value: "price-desc", label: "Price: high–low" },
+  { value: "price-asc", label: "Price: low–high" },
   { value: "date-desc", label: "Newest" },
   { value: "date-asc", label: "Oldest" },
 ];
@@ -42,6 +61,14 @@ const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
   { value: "8", label: "Grade 8" },
   { value: "9", label: "Grade 9" },
   { value: "10", label: "Grade 10" },
+];
+const GRADER_FILTERS: { value: GraderFilter; label: string }[] = [
+  { value: "all", label: "All companies" },
+  { value: "psa", label: "PSA" },
+  { value: "cgc", label: "CGC" },
+  { value: "bgs", label: "Beckett / BGS" },
+  { value: "sgc", label: "SGC" },
+  { value: "tag", label: "TAG" },
 ];
 
 function getField(result: EbayCompResult, key: string) {
@@ -102,6 +129,50 @@ function getNumericSoldPrice(result: EbayCompResult) {
   return Number.isFinite(numericPrice) ? numericPrice : null;
 }
 
+function getPriceSummary(
+  results: EbayCompResult[],
+  listingType: ListingTypeFilter,
+) {
+  const priceKey = listingType === "sold" ? "soldPrice" : "currentPrice";
+  const currencyKey =
+    listingType === "sold" ? "soldCurrency" : "currentCurrency";
+  const pricesByCurrency = new Map<string, number[]>();
+
+  for (const result of results) {
+    const rawPrice = getField(result, priceKey);
+    if (!rawPrice) continue;
+
+    const price = Number(rawPrice.replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(price) || price <= 0) continue;
+
+    const currency = getField(result, currencyKey)?.toUpperCase() ?? "";
+    const prices = pricesByCurrency.get(currency) ?? [];
+    prices.push(price);
+    pricesByCurrency.set(currency, prices);
+  }
+
+  const dominantCurrency = [...pricesByCurrency.entries()].sort(
+    (first, second) => second[1].length - first[1].length,
+  )[0];
+  if (!dominantCurrency) return null;
+
+  const [currency, prices] = dominantCurrency;
+  prices.sort((first, second) => first - second);
+  const middleIndex = Math.floor(prices.length / 2);
+  const median =
+    prices.length % 2 === 0
+      ? (prices[middleIndex - 1] + prices[middleIndex]) / 2
+      : prices[middleIndex];
+  const format = (price: number) =>
+    formatPrice(String(price), currency || undefined);
+
+  return {
+    high: format(prices[prices.length - 1]),
+    low: format(prices[0]),
+    median: format(median),
+  };
+}
+
 function getEndedAtTimestamp(result: EbayCompResult) {
   const endedAt = getField(result, "endedAt") ?? getField(result, "scrapedAt");
   if (!endedAt) return null;
@@ -124,9 +195,38 @@ function isTrue(value?: string) {
   return value?.trim().toLowerCase() === "true";
 }
 
+function formatBidCount(value?: string) {
+  if (!value) return null;
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 0) return null;
+  return `${count} ${count === 1 ? "bid" : "bids"}`;
+}
+
+function formatCount(
+  value: string | undefined,
+  singular: string,
+  plural: string,
+) {
+  if (!value) return null;
+  const count = Number(value);
+  if (!Number.isInteger(count) || count <= 0) return null;
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatShipping(
+  shippingType: string | undefined,
+  shippingPrice: string | null,
+) {
+  if (shippingType?.trim().toLowerCase() === "free") return "Free shipping";
+  return shippingPrice ? `${shippingPrice} shipping` : null;
+}
+
 type EbayResultCardProps = {
   result: EbayCompResult;
+  gradeFilter: GradeFilter;
+  graderFilter: GraderFilter;
   isActive: boolean;
+  includeQuery: string;
 };
 
 type EbayListingMetadataItem = {
@@ -139,33 +239,133 @@ function isMetadataItem(
   return Boolean(item);
 }
 
-function EbayResultCard({ result, isActive }: EbayResultCardProps) {
-  const title = getField(result, "title") ?? "eBay listing";
+function useDualViewAvailable() {
+  const [available, setAvailable] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(DUAL_VIEW_BREAKPOINT).matches,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+
+    const mediaQuery = window.matchMedia(DUAL_VIEW_BREAKPOINT);
+    const updateAvailability = () => setAvailable(mediaQuery.matches);
+
+    updateAvailability();
+    mediaQuery.addEventListener("change", updateAvailability);
+    return () => mediaQuery.removeEventListener("change", updateAvailability);
+  }, []);
+
+  return available;
+}
+
+function EbayResultCard({
+  result,
+  gradeFilter,
+  graderFilter,
+  isActive,
+  includeQuery,
+}: EbayResultCardProps) {
+  const title = getField(result, "title") ?? "Ebay listing";
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const metadataRef = useRef<HTMLDivElement>(null);
+  const [titleExpanded, setTitleExpanded] = useState(false);
+  const [titleOverflowing, setTitleOverflowing] = useState(false);
+  const [metadataOverflowing, setMetadataOverflowing] = useState(false);
   const url = getField(result, "url");
   const endedAt = getField(result, "endedAt");
   const condition = getField(result, "condition");
   const location = getField(result, "itemLocation");
   const acceptsOffers = isTrue(getField(result, "acceptsOffers"));
+  const offerAccepted = isTrue(getField(result, "bestOfferAccepted"));
+  const bidCount = formatBidCount(getField(result, "bidCount"));
+  const timeLeft = getField(result, "timeLeft");
+  const watchers = formatCount(
+    getField(result, "watcherCount"),
+    "watcher",
+    "watchers",
+  );
+  const buyItNowValue = getField(result, "buyItNowPrice");
+  const buyItNowPrice = buyItNowValue
+    ? formatPrice(
+        buyItNowValue,
+        getField(result, isActive ? "currentCurrency" : "soldCurrency"),
+      )
+    : null;
   const price = formatPrice(
     getField(result, isActive ? "currentPrice" : "soldPrice"),
     getField(result, isActive ? "currentCurrency" : "soldCurrency"),
+  );
+  const shippingPrice = result.shippingPrice
+    ? formatPrice(result.shippingPrice, result.shippingCurrency ?? undefined)
+    : null;
+  const shippingLabel = formatShipping(
+    getField(result, "shippingType"),
+    shippingPrice,
   );
   const hasListingUrl = Boolean(url && /^https?:\/\//i.test(url));
   const metadataCandidates: (EbayListingMetadataItem | null)[] = [
     !isActive
       ? {
-          label: `Sold ${formatDate(endedAt)}`,
+          label: formatDate(endedAt),
         }
       : null,
     isActive && location ? { label: location } : null,
     condition ? { label: condition } : null,
+    bidCount ? { label: bidCount } : null,
     !isActive && location ? { label: location } : null,
     isActive && acceptsOffers ? { label: "Accepts offers" } : null,
+    offerAccepted ? { label: "Offer accepted" } : null,
+    timeLeft ? { label: `${timeLeft} left` } : null,
+    buyItNowPrice ? { label: `Buy It Now ${buyItNowPrice}` } : null,
+    watchers ? { label: watchers } : null,
+    isActive && shippingLabel ? { label: shippingLabel } : null,
   ];
   const metadataItems = metadataCandidates.filter(isMetadataItem);
 
+  useLayoutEffect(() => {
+    const titleElement = titleRef.current;
+    const metadataElement = metadataRef.current;
+    if (!titleElement || titleExpanded) return;
+
+    const updateOverflow = () => {
+      setTitleOverflowing(
+        titleElement.scrollWidth > titleElement.clientWidth + 1,
+      );
+      if (metadataElement) {
+        setMetadataOverflowing(
+          metadataElement.scrollWidth > metadataElement.clientWidth + 1,
+        );
+      }
+    };
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateOverflow);
+    let mounted = true;
+    const animationFrame = window.requestAnimationFrame(updateOverflow);
+
+    updateOverflow();
+    resizeObserver?.observe(titleElement);
+    if (metadataElement) resizeObserver?.observe(metadataElement);
+    window.addEventListener("resize", updateOverflow);
+    void document.fonts?.ready.then(() => {
+      if (mounted) updateOverflow();
+    });
+    return () => {
+      mounted = false;
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateOverflow);
+    };
+  }, [metadataItems.length, title, titleExpanded]);
+
   return (
-    <article className="ebay-sold-view__result">
+    <article
+      className={`ebay-sold-view__result${titleExpanded ? " ebay-sold-view__result--expanded" : ""}`}
+    >
       <div className="ebay-sold-view__visual">
         {result.thumbnailUrl ? (
           <EbayImagePreview
@@ -182,9 +382,18 @@ function EbayResultCard({ result, isActive }: EbayResultCardProps) {
 
       <div className="ebay-sold-view__content">
         <header className="ebay-sold-view__header">
-          <div>
-            <h3>{formatHeadline(title)}</h3>
-            <div className="ebay-sold-view__listing-meta">
+          <div
+            className={`ebay-sold-view__title-block${titleOverflowing || metadataOverflowing ? " ebay-sold-view__title-block--toggleable" : ""}${titleExpanded ? " ebay-sold-view__title-block--expanded" : ""}`}
+          >
+            <h3 ref={titleRef}>
+              {highlightHeadline(
+                title,
+                includeQuery,
+                gradeFilter,
+                graderFilter,
+              )}
+            </h3>
+            <div className="ebay-sold-view__listing-meta" ref={metadataRef}>
               {metadataItems.map((item, itemIndex) => (
                 <span
                   className="ebay-sold-view__sold-date"
@@ -195,6 +404,17 @@ function EbayResultCard({ result, isActive }: EbayResultCardProps) {
                 </span>
               ))}
             </div>
+            {(titleOverflowing || metadataOverflowing) && (
+              <button
+                aria-expanded={titleExpanded}
+                aria-label={`${titleExpanded ? "Collapse" : "Expand"} listing title`}
+                className="ebay-sold-view__title-toggle"
+                onClick={() => setTitleExpanded((expanded) => !expanded)}
+                type="button"
+              >
+                <ChevronDown aria-hidden="true" />
+              </button>
+            )}
           </div>
           <div className="ebay-sold-view__price">
             <div className="ebay-sold-view__price-row">
@@ -229,6 +449,10 @@ function getGradingSearchText(result: EbayCompResult) {
     .filter(Boolean)
     .join(" ")
     .toLocaleLowerCase("en-US")
+    // Preserve half grades and normalize whole decimal grades before
+    // punctuation is removed.
+    .replace(/(\d)\s*\.\s*5\b/g, "$1half")
+    .replace(/(\d)\s*\.\s*0\b/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
   const compactText = searchableText.replace(/\s/g, "");
@@ -245,17 +469,106 @@ function normalizeFilterText(value: string) {
     .trim();
 }
 
+function getFilterKeywords(query: string) {
+  return query
+    .split(",")
+    .map(normalizeFilterText)
+    .filter((keyword) => keyword.length >= 2);
+}
+
+function getGradeHighlightPattern(grade: Exclude<GradeFilter, "all">) {
+  if (grade === "raw") {
+    return String.raw`\b(?:raw|ungraded|not graded)\b`;
+  }
+
+  const gradeNumber = String.raw`${grade}(?:\s*\.\s*(?:0|5))?`;
+  const grader =
+    "psa|bgs|beckett|cgc|sgc|professional sports authenticator|certified guaranty company|sportscard guaranty corporation";
+  const gradeWord = "grade|graded|grading|slab|slabbed|encased|certified";
+  const condition =
+    grade === "10"
+      ? String.raw`gem(?:\s+|-)(?:mint|mt)`
+      : grade === "9"
+        ? String.raw`(?<!gem(?:\s+|-)|near(?:\s+|-))mint`
+        : grade === "8"
+          ? String.raw`(?:near(?:\s+|-)mint(?:\s+|-)?(?:mint|mt)|nm(?:\s+|-)?mt)`
+          : String.raw`(?:near(?:\s+|-)mint|nm)`;
+  const tagGrade = String.raw`\btag(?:[\s-]+(?:grading|pristine))?[\s-]*${gradeNumber}\b`;
+  const tagPristine = grade === "10" ? String.raw`|\btag[\s-]+pristine\b` : "";
+
+  return String.raw`${tagGrade}${tagPristine}|\b(?:${grader})(?:[\s-]+[a-z]+){0,4}[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${grader})\b|\b(?:${gradeWord})[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${gradeWord})\b|\b(?:${condition})[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${condition})\b`;
+}
+
+function getGraderHighlightPattern(grader: Exclude<GraderFilter, "all">) {
+  switch (grader) {
+    case "psa":
+      return String.raw`\bprofessional[\s-]+sports[\s-]+authenticator\b|\bpsa(?=\b|\d)`;
+    case "cgc":
+      return String.raw`\bcertified[\s-]+guaranty[\s-]+company\b|\bcgc(?=\b|\d)`;
+    case "bgs":
+      return String.raw`\bbeckett\b|\bbgs(?=\b|\d)`;
+    case "sgc":
+      return String.raw`\bsportscard[\s-]+guaranty[\s-]+corporation\b|\bsgc(?=\b|\d)`;
+    case "tag":
+      return String.raw`\btag(?=(?:[\s-]+(?:grading|pristine)|[\s-]*(?:10|[1-9])(?:\s*\.\s*5)?\b))`;
+  }
+}
+
+function highlightHeadline(
+  title: string,
+  query: string,
+  grade: GradeFilter = "all",
+  grader: GraderFilter = "all",
+) {
+  const headline = formatHeadline(title);
+  const keywords = getFilterKeywords(query);
+  const keywordPattern = keywords
+    .map((keyword) => keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const gradePattern = grade === "all" ? "" : getGradeHighlightPattern(grade);
+  const graderPattern =
+    grader === "all" ? "" : getGraderHighlightPattern(grader);
+  const pattern = [keywordPattern, gradePattern, graderPattern]
+    .filter(Boolean)
+    .join("|");
+  if (!pattern) return headline;
+
+  const parts = headline.split(new RegExp(`(${pattern})`, "i"));
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      <mark className="ebay-sold-view__keyword-mark" key={`${part}-${index}`}>
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+}
+
 function matchesTextFilter(result: EbayCompResult, query: string) {
-  const normalizedQuery = normalizeFilterText(query);
-  if (normalizedQuery.length < 2) return true;
-
-  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
-  if (terms.length === 0) return true;
-
+  const keywords = getFilterKeywords(query);
+  if (keywords.length === 0) return true;
   const searchableText = normalizeFilterText(
     result.fields.map((field) => field.value).join(" "),
   );
-  return terms.every((term) => searchableText.includes(term));
+  return keywords.every((keyword) => searchableText.includes(keyword));
+}
+
+function matchesAnyTextFilter(result: EbayCompResult, query: string) {
+  const keywords = getFilterKeywords(query);
+  if (keywords.length === 0) return false;
+  const searchableText = normalizeFilterText(
+    result.fields.map((field) => field.value).join(" "),
+  );
+  return keywords.some((keyword) => searchableText.includes(keyword));
+}
+
+function matchesTagGrader(result: EbayCompResult) {
+  const { searchableText } = getGradingSearchText(result);
+
+  return /\btag(?:\s+(?:grading|pristine)(?:\s*(?:10|[1-9](?:half)?))?|\s*(?:10|[1-9](?:half)?))\b/.test(
+    searchableText,
+  );
 }
 
 function isRawListing(result: EbayCompResult) {
@@ -266,11 +579,38 @@ function isRawListing(result: EbayCompResult) {
   }
 
   return !(
+    matchesTagGrader(result) ||
     /\b(?:psa|bgs|cgc|sgc)(?:\b|\d)/.test(searchableText) ||
-    /\b(?:beckett|grade|graded|grading|slab|slabbed|encased|certified|certification)\b/.test(
+    /\b(?:beckett|professional sports authenticator|sportscard guaranty corporation|grade|graded|grading|slab|slabbed|encased|certified|certification)\b/.test(
       searchableText,
     )
   );
+}
+
+function matchesGrader(
+  result: EbayCompResult,
+  grader: Exclude<GraderFilter, "all">,
+) {
+  const { searchableText } = getGradingSearchText(result);
+
+  switch (grader) {
+    case "psa":
+      return /\bpsa(?:\b|\d)|\bprofessional sports authenticator\b/.test(
+        searchableText,
+      );
+    case "cgc":
+      return /\bcgc(?:\b|\d)|\bcertified guaranty company\b/.test(
+        searchableText,
+      );
+    case "bgs":
+      return /\bbgs(?:\b|\d)|\bbeckett\b/.test(searchableText);
+    case "sgc":
+      return /\bsgc(?:\b|\d)|\bsportscard guaranty corporation\b/.test(
+        searchableText,
+      );
+    case "tag":
+      return matchesTagGrader(result);
+  }
 }
 
 function matchesGrade(
@@ -278,6 +618,17 @@ function matchesGrade(
   grade: Exclude<GradeFilter, "all" | "raw">,
 ) {
   const { compactText, searchableText } = getGradingSearchText(result);
+  // 8.5 is preserved as 8half, so a whole-grade filter includes its half grade.
+  const gradeToken = `(?:${grade}|${grade}half)`;
+  const tagGradePattern = new RegExp(
+    `\\btag(?:\\s+(?:grading|pristine))?\\s*${gradeToken}(?:$|\\s)`,
+  );
+  if (
+    tagGradePattern.test(searchableText) ||
+    (grade === "10" && /\btag\s+pristine(?:$|\s)/.test(searchableText))
+  ) {
+    return true;
+  }
 
   // Handles PSA 10, BGS-10, CGC Gem Mint 10, SGC10, Beckett 9, and
   // equivalent compact forms.
@@ -286,19 +637,21 @@ function matchesGrade(
   const compactGrader =
     "(?:psa|bgs|cgc|sgc|beckett|professionalsportsauthenticator|certifiedguarantycompany|sportscardguarantycorporation)";
   if (
-    new RegExp(`${compactGrader}[a-z]{0,30}${grade}(?!\\d)`).test(
+    new RegExp(`${compactGrader}[a-z]{0,30}${gradeToken}(?!\\d)`).test(
       compactText,
     ) ||
-    new RegExp(`(?:^|\\s)${grade}\\s*${grader}(?:$|\\s)`).test(searchableText)
+    new RegExp(`(?:^|\\s)${gradeToken}\\s*${grader}(?:$|\\s)`).test(
+      searchableText,
+    )
   ) {
     return true;
   }
 
-  const hasGradeNumber = new RegExp(`(?:^|\\s)${grade}(?:$|\\s)`).test(
+  const hasGradeNumber = new RegExp(`(?:^|\\s)${gradeToken}(?:$|\\s)`).test(
     searchableText,
   );
   const hasDirectGradePhrase = new RegExp(
-    `\\b(?:grade|graded|grading|slab|slabbed|encased|certified)\\s*${grade}\\b|\\b${grade}\\s*(?:grade|graded|slab|slabbed|encased|certified)\\b`,
+    `\\b(?:grade|graded|grading|slab|slabbed|encased|certified)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:grade|graded|slab|slabbed|encased|certified)\\b`,
   ).test(searchableText);
 
   if (!hasGradeNumber) {
@@ -311,24 +664,29 @@ function matchesGrade(
   switch (grade) {
     case "7":
       return (
-        /\b(?:near mint|nm)\s*7\b|\b7\s*(?:near mint|nm)\b/.test(
-          searchableText,
-        ) && !/\b(?:near mint (?:mint|mt)|nm mt)\b/.test(searchableText)
+        new RegExp(
+          `\\b(?:near mint|nm)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:near mint|nm)\\b`,
+        ).test(searchableText) &&
+        !/\b(?:near mint (?:mint|mt)|nm mt)\b/.test(searchableText)
       );
     case "8":
       return (
-        /\b(?:near mint (?:mint|mt)|nm mt)\s*8\b|\b8\s*(?:near mint (?:mint|mt)|nm mt)\b/.test(
-          searchableText,
-        ) ||
+        new RegExp(
+          `\\b(?:near mint (?:mint|mt)|nm mt)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:near mint (?:mint|mt)|nm mt)\\b`,
+        ).test(searchableText) ||
         compactText.includes("nmmt8") ||
-        compactText.includes("8nmmt")
+        compactText.includes("8nmmt") ||
+        compactText.includes("nmmt8half") ||
+        compactText.includes("8halfnmmt")
       );
     case "9":
       return Boolean(
-        searchableText.match(/\bmint\s*9\b|\b9\s*mint\b/) &&
-        !/\b(?:gem|near) mint\s*9\b|\b9\s*(?:gem|near) mint\b/.test(
-          searchableText,
-        ),
+        new RegExp(
+          `\\bmint\\s*${gradeToken}\\b|\\b${gradeToken}\\s*mint\\b`,
+        ).test(searchableText) &&
+        !new RegExp(
+          `\\b(?:gem|near) mint\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:gem|near) mint\\b`,
+        ).test(searchableText),
       );
     case "10":
       return (
@@ -349,20 +707,26 @@ export default function EbaySoldView({
   initialListingType = "sold",
   listingStates,
 }: EbaySoldViewProps) {
-  const [sortOrder, setSortOrder] = useState<EbaySortOrder>("date-desc");
+  const [sortOrder, setSortOrder] = useState<EbaySortOrder>("price-desc");
   const [listingTypeFilter, setListingTypeFilter] =
     useState<ListingTypeFilter>(initialListingType);
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>("all");
   const [appliedGradeFilter, setAppliedGradeFilter] =
     useState<GradeFilter>("all");
+  const [graderFilter, setGraderFilter] = useState<GraderFilter>("all");
+  const [appliedGraderFilter, setAppliedGraderFilter] =
+    useState<GraderFilter>("all");
   const [textFilter, setTextFilter] = useState("");
   const [appliedTextFilter, setAppliedTextFilter] = useState("");
   const [excludeFilter, setExcludeFilter] = useState("");
   const [appliedExcludeFilter, setAppliedExcludeFilter] = useState("");
   const [filtering, setFiltering] = useState(false);
-  const [visibleResultCount, setVisibleResultCount] =
-    useState(RESULTS_BATCH_SIZE);
+  const [visibleResultCounts, setVisibleResultCounts] = useState<
+    Record<ListingTypeFilter, number>
+  >({ sold: RESULTS_BATCH_SIZE, active: RESULTS_BATCH_SIZE });
+  const [resultViewMode, setResultViewMode] = useState<ResultViewMode>("basic");
   const filterTimerRef = useRef<number | undefined>(undefined);
+  const dualViewAvailable = useDualViewAvailable();
 
   useEffect(
     () => () => {
@@ -387,31 +751,36 @@ export default function EbaySoldView({
   const selectedResponseUnavailable = Boolean(
     splitResponse && !splitResponse[listingTypeFilter],
   );
-  const results = splitResponse
-    ? getVisibleEbayCompResults(splitResponse[listingTypeFilter])
-    : listingTypeFilter === "sold"
-      ? getVisibleEbayCompResults(responseData)
-      : [];
-
-  const listingTypeResults = results.filter(
-    (result) => getField(result, "listingType") === listingTypeFilter,
-  );
-  const gradeFilteredResults =
-    appliedGradeFilter === "all"
-      ? listingTypeResults
-      : appliedGradeFilter === "raw"
-        ? listingTypeResults.filter(isRawListing)
-        : listingTypeResults.filter((result) =>
-            matchesGrade(result, appliedGradeFilter),
+  function getSortedResults(listingType: ListingTypeFilter) {
+    const listingResponse = splitResponse
+      ? splitResponse[listingType]
+      : listingType === "sold"
+        ? responseData
+        : null;
+    const listingTypeResults = getVisibleEbayCompResults(
+      listingResponse,
+    ).filter((result) => getField(result, "listingType") === listingType);
+    const gradeFilteredResults =
+      appliedGradeFilter === "all"
+        ? listingTypeResults
+        : appliedGradeFilter === "raw"
+          ? listingTypeResults.filter(isRawListing)
+          : listingTypeResults.filter((result) =>
+              matchesGrade(result, appliedGradeFilter),
+            );
+    const graderFilteredResults =
+      appliedGraderFilter === "all"
+        ? gradeFilteredResults
+        : gradeFilteredResults.filter((result) =>
+            matchesGrader(result, appliedGraderFilter),
           );
-  const filteredResults = gradeFilteredResults.filter(
-    (result) =>
-      (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
-      (!appliedExcludeFilter ||
-        !matchesTextFilter(result, appliedExcludeFilter)),
-  );
-  const sortedResults = [...filteredResults].sort(
-    (firstResult, secondResult) => {
+    const filteredResults = graderFilteredResults.filter(
+      (result) =>
+        (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
+        (!appliedExcludeFilter ||
+          !matchesAnyTextFilter(result, appliedExcludeFilter)),
+    );
+    return [...filteredResults].sort((firstResult, secondResult) => {
       const sortingByDate =
         sortOrder === "date-desc" || sortOrder === "date-asc";
       const firstValue = sortingByDate
@@ -428,36 +797,47 @@ export default function EbaySoldView({
       return sortOrder === "price-asc" || sortOrder === "date-asc"
         ? firstValue - secondValue
         : secondValue - firstValue;
-    },
-  );
-  const visibleResults = sortedResults.slice(0, visibleResultCount);
-  const remainingResultCount = sortedResults.length - visibleResults.length;
-  const nextBatchSize = Math.min(RESULTS_BATCH_SIZE, remainingResultCount);
+    });
+  }
+
+  const resultsByType = {
+    sold: getSortedResults("sold"),
+    active: getSortedResults("active"),
+  };
+  function resetVisibleResults() {
+    setVisibleResultCounts({
+      sold: RESULTS_BATCH_SIZE,
+      active: RESULTS_BATCH_SIZE,
+    });
+  }
 
   function handleSortChange(value: EbaySortOrder) {
     setSortOrder(value);
-    setVisibleResultCount(RESULTS_BATCH_SIZE);
+    resetVisibleResults();
   }
 
   function scheduleFilterChange(
     nextGrade: GradeFilter,
+    nextGrader: GraderFilter,
     text: string,
     exclude: string,
   ) {
-    const nextText = normalizeFilterText(text).length >= 2 ? text : "";
-    const nextExclude = normalizeFilterText(exclude).length >= 2 ? exclude : "";
+    const nextText = getFilterKeywords(text).length > 0 ? text : "";
+    const nextExclude = getFilterKeywords(exclude).length > 0 ? exclude : "";
     window.clearTimeout(filterTimerRef.current);
     if (
       nextGrade === appliedGradeFilter &&
+      nextGrader === appliedGraderFilter &&
       nextText === appliedTextFilter &&
       nextExclude === appliedExcludeFilter
     ) {
       setFiltering(false);
       return;
     }
-    setVisibleResultCount(RESULTS_BATCH_SIZE);
+    resetVisibleResults();
     if (response == null) {
       setAppliedGradeFilter(nextGrade);
+      setAppliedGraderFilter(nextGrader);
       setAppliedTextFilter(nextText);
       setAppliedExcludeFilter(nextExclude);
       setFiltering(false);
@@ -466,6 +846,7 @@ export default function EbaySoldView({
     setFiltering(true);
     filterTimerRef.current = window.setTimeout(() => {
       setAppliedGradeFilter(nextGrade);
+      setAppliedGraderFilter(nextGrader);
       setAppliedTextFilter(nextText);
       setAppliedExcludeFilter(nextExclude);
       setFiltering(false);
@@ -474,33 +855,216 @@ export default function EbaySoldView({
 
   function handleGradeFilterChange(value: GradeFilter) {
     setGradeFilter(value);
-    scheduleFilterChange(value, textFilter, excludeFilter);
+    scheduleFilterChange(value, graderFilter, textFilter, excludeFilter);
+  }
+
+  function handleGraderFilterChange(value: GraderFilter) {
+    setGraderFilter(value);
+    scheduleFilterChange(gradeFilter, value, textFilter, excludeFilter);
   }
 
   function handleTextFilterChange(value: string) {
     setTextFilter(value);
-    scheduleFilterChange(gradeFilter, value, excludeFilter);
+    scheduleFilterChange(gradeFilter, graderFilter, value, excludeFilter);
   }
 
   function handleExcludeFilterChange(value: string) {
     setExcludeFilter(value);
-    scheduleFilterChange(gradeFilter, textFilter, value);
+    scheduleFilterChange(gradeFilter, graderFilter, textFilter, value);
+  }
+
+  function clearFilters() {
+    window.clearTimeout(filterTimerRef.current);
+    setGradeFilter("all");
+    setAppliedGradeFilter("all");
+    setGraderFilter("all");
+    setAppliedGraderFilter("all");
+    setTextFilter("");
+    setAppliedTextFilter("");
+    setExcludeFilter("");
+    setAppliedExcludeFilter("");
+    setFiltering(false);
+    resetVisibleResults();
   }
 
   function handleListingTypeChange(value: ListingTypeFilter) {
     setListingTypeFilter(value);
-    setVisibleResultCount(RESULTS_BATCH_SIZE);
+  }
+
+  function loadMore(listingType: ListingTypeFilter) {
+    setVisibleResultCounts((counts) => ({
+      ...counts,
+      [listingType]: counts[listingType] + RESULTS_BATCH_SIZE,
+    }));
+  }
+
+  function handleResultScroll(
+    event: UIEvent<HTMLDivElement>,
+    listingType: ListingTypeFilter,
+  ) {
+    const element = event.currentTarget;
+    if (
+      element.scrollHeight - element.scrollTop - element.clientHeight < 96 &&
+      visibleResultCounts[listingType] < resultsByType[listingType].length
+    ) {
+      loadMore(listingType);
+    }
+  }
+
+  const advancedView = dualViewAvailable && resultViewMode === "advanced";
+  const hasFilters =
+    gradeFilter !== "all" ||
+    graderFilter !== "all" ||
+    textFilter.trim().length > 0 ||
+    excludeFilter.trim().length > 0;
+  const viewControls = (
+    <div className="ebay-sold-view__view-controls">
+      {hasFilters && (
+        <ClearFiltersButton label="Clear filters" onClick={clearFilters} />
+      )}
+      <div className="ebay-sold-view__sorting">
+        <SelectDropdown
+          ariaLabel="Sort Ebay listings"
+          options={EBAY_SORT_OPTIONS}
+          value={sortOrder}
+          onChange={handleSortChange}
+        />
+      </div>
+      {dualViewAvailable && (
+        <RadioButtonGroup
+          ariaLabel="Ebay results view"
+          className="ebay-sold-view__view-toggle"
+          onChange={setResultViewMode}
+          options={[
+            {
+              label: (
+                <>
+                  <Rows2 aria-hidden="true" />
+                  Single
+                </>
+              ),
+              value: "basic",
+            },
+            {
+              label: (
+                <>
+                  <Columns2 aria-hidden="true" />
+                  Dual
+                </>
+              ),
+              value: "advanced",
+            },
+          ]}
+          value={resultViewMode}
+        />
+      )}
+    </div>
+  );
+
+  function renderResultList(listingType: ListingTypeFilter) {
+    const results = resultsByType[listingType];
+    const visible = results.slice(0, visibleResultCounts[listingType]);
+    const unavailable = Boolean(splitResponse && !splitResponse[listingType]);
+    const loading = listingStates?.[listingType] === "pending";
+    const label = listingType === "sold" ? "Sold" : "Listed";
+    const priceSummary = getPriceSummary(results, listingType);
+
+    return (
+      <section
+        className={`ebay-sold-view__result-panel${advancedView ? "" : " ebay-sold-view__result-panel--basic"}${loading ? " ebay-sold-view__result-panel--loading" : ""}`}
+        aria-label={
+          listingType === "sold" ? "Sold Ebay results" : "Listed Ebay results"
+        }
+      >
+        {advancedView && (
+          <h2>
+            {loading
+              ? label
+              : `${results.length} ${label} ${results.length === 1 ? "result" : "results"}`}
+          </h2>
+        )}
+        {!advancedView && (
+          <h2>
+            {loading ? (
+              <span>{label}</span>
+            ) : (
+              <span
+                className="ebay-sold-view__result-count"
+                role="status"
+                aria-busy={filtering}
+              >
+                {results.length} {label}{" "}
+                {results.length === 1 ? "result" : "results"}
+              </span>
+            )}
+          </h2>
+        )}
+        {!loading && priceSummary && (
+          <dl
+            aria-label={`${label} price summary`}
+            className="ebay-sold-view__price-summary"
+          >
+            <div>
+              <dt>High</dt>
+              <dd>{priceSummary.high}</dd>
+            </div>
+            <div>
+              <dt>Median</dt>
+              <dd>{priceSummary.median}</dd>
+            </div>
+            <div>
+              <dt>Low</dt>
+              <dd>{priceSummary.low}</dd>
+            </div>
+          </dl>
+        )}
+        {loading && (
+          <div
+            aria-label={`Loading ${label.toLowerCase()} Ebay results`}
+            className="ebay-sold-view__state ebay-sold-view__state--loading"
+            role="status"
+          >
+            <span aria-hidden="true" className="app-loading-spinner" />
+          </div>
+        )}
+        {!loading && !unavailable && visible.length === 0 && (
+          <p className="ebay-sold-view__state">
+            No matching Ebay {listingType === "sold" ? "sales" : "listings"}{" "}
+            found.
+          </p>
+        )}
+        <div
+          className="ebay-sold-view__results ui-render-fade"
+          key={`${listingType}-${appliedGradeFilter}-${appliedGraderFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
+          onScroll={(event) => handleResultScroll(event, listingType)}
+        >
+          {visible.map((result, index) => (
+            <EbayResultCard
+              key={
+                getField(result, "url") ??
+                `${getField(result, "title")}-${index}`
+              }
+              gradeFilter={appliedGradeFilter}
+              graderFilter={appliedGraderFilter}
+              includeQuery={appliedTextFilter}
+              isActive={listingType === "active"}
+              result={result}
+            />
+          ))}
+        </div>
+      </section>
+    );
   }
 
   return (
     <div className="ebay-sold-view ui-render-fade">
       <span className="feature-analysis-eyebrow ebay-sold-view__eyebrow">
-        eBay Sold &amp; Listed
+        Ebay Sold &amp; Listed
       </span>
       <div className="ebay-sold-view__surface">
         <div className="ebay-sold-view__listing-selector">
           <SegmentedRadioGroup
-            ariaLabel="eBay listing type"
+            ariaLabel="Ebay listing type"
             className="ebay-sold-view__listing-toggle"
             name="ebay-listing-type"
             onChange={handleListingTypeChange}
@@ -522,59 +1086,109 @@ export default function EbaySoldView({
           />
         </div>
         <div className="ebay-sold-view__filter-row">
-          <fieldset className="ebay-sold-view__filters radio-group">
-            <legend>Grade</legend>
-            <div>
-              {GRADE_FILTERS.map((filter) => (
-                <label key={filter.value}>
-                  <input
-                    checked={gradeFilter === filter.value}
-                    name="ebay-grade"
-                    type="radio"
-                    value={filter.value}
-                    onChange={() => handleGradeFilterChange(filter.value)}
-                  />
-                  <span>{filter.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {response != null && !selectedResponseUnavailable && (
-            <p
-              className="ebay-sold-view__result-count"
-              role="status"
-              aria-busy={filtering}
+          <div className="ebay-sold-view__grade-controls">
+            <fieldset className="ebay-sold-view__filters radio-group">
+              <legend>Grade</legend>
+              <div>
+                {GRADE_FILTERS.map((filter) => (
+                  <label key={filter.value}>
+                    <input
+                      checked={gradeFilter === filter.value}
+                      name="ebay-grade"
+                      type="radio"
+                      value={filter.value}
+                      onChange={() => handleGradeFilterChange(filter.value)}
+                    />
+                    <span>{filter.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div
+              className={`ebay-sold-view__grader-filter${graderFilter === "all" ? "" : " ebay-sold-view__grader-filter--active"}`}
             >
-              {filteredResults.length}{" "}
-              {filteredResults.length === 1 ? "result" : "results"}
-            </p>
-          )}
+              <SelectDropdown
+                ariaLabel="Filter by grading company"
+                compact
+                options={GRADER_FILTERS}
+                value={graderFilter}
+                onChange={handleGraderFilterChange}
+              />
+            </div>
+          </div>
+          {viewControls}
         </div>
         <div className="ebay-sold-view__filter-row">
           <div className="ebay-sold-view__control-group">
-            <FilterInput
-              ariaLabel="Exclude eBay results"
-              className="ebay-sold-view__text-filter"
-              clearLabel="Clear eBay exclusion filter"
-              onChange={handleExcludeFilterChange}
-              placeholder="Exclude"
-              value={excludeFilter}
-            />
-            <FilterInput
-              ariaLabel="Filter eBay results"
-              className="ebay-sold-view__text-filter"
-              clearLabel="Clear eBay results filter"
-              onChange={handleTextFilterChange}
-              placeholder="Filter"
-              value={textFilter}
-            />
-            <div className="ebay-sold-view__sorting">
-              <SelectDropdown
-                ariaLabel="Sort eBay listings"
-                options={EBAY_SORT_OPTIONS}
-                value={sortOrder}
-                onChange={handleSortChange}
+            <div className="ebay-sold-view__keyword-filter">
+              <FilterInput
+                ariaLabel="Exclude keywords"
+                className="ebay-sold-view__text-filter"
+                clearLabel="Clear excluded keywords"
+                id="ebay-exclude-keywords"
+                onChange={handleExcludeFilterChange}
+                placeholder="Exclude keywords"
+                value={excludeFilter}
               />
+              {!excludeFilter.trim() && (
+                <div className="ebay-sold-view__filter-help">
+                  <button
+                    aria-describedby="ebay-exclude-keywords-help"
+                    aria-label="How excluded keywords work"
+                    type="button"
+                  >
+                    <CircleHelp aria-hidden="true" />
+                  </button>
+                  <div
+                    className="ebay-sold-view__filter-help-tooltip"
+                    id="ebay-exclude-keywords-help"
+                    role="tooltip"
+                  >
+                    <strong>Keywords</strong>
+                    <span>
+                      Apply multiple keywords by separating with commas. Results
+                      are excluded if it matches any of the words.
+                    </span>
+                    <span></span>
+                    <span>"Reverse holo, anniversary, cgc"</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="ebay-sold-view__keyword-filter">
+              <FilterInput
+                ariaLabel="Include keywords"
+                className="ebay-sold-view__text-filter"
+                clearLabel="Clear included keywords"
+                id="ebay-include-keywords"
+                onChange={handleTextFilterChange}
+                placeholder="Include keywords"
+                value={textFilter}
+              />
+              {!textFilter.trim() && (
+                <div className="ebay-sold-view__filter-help">
+                  <button
+                    aria-describedby="ebay-include-keywords-help"
+                    aria-label="How included keywords work"
+                    type="button"
+                  >
+                    <CircleHelp aria-hidden="true" />
+                  </button>
+                  <div
+                    className="ebay-sold-view__filter-help-tooltip"
+                    id="ebay-include-keywords-help"
+                    role="tooltip"
+                  >
+                    <strong>Keywords</strong>
+                    <span>
+                      Apply multiple keywords by separating with commas. Results
+                      must match all words.
+                    </span>
+                    <span></span>
+                    <span>"psa, 1st edition, secret rare"</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -582,45 +1196,19 @@ export default function EbaySoldView({
       {children}
       {response != null && (
         <div className="ebay-sold-view__results-region" aria-busy={filtering}>
-          <>
-            {!selectedResponseUnavailable && visibleResults.length === 0 ? (
-              <p className="ebay-sold-view__state">
-                No matching eBay{" "}
-                {listingTypeFilter === "sold" ? "sales" : "listings"} found.
-              </p>
-            ) : null}
-            <div
-              className="ebay-sold-view__results ui-render-fade"
-              key={`${listingTypeFilter}-${appliedGradeFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
-            >
-              {visibleResults.map((result, index) => (
-                <EbayResultCard
-                  key={
-                    getField(result, "url") ??
-                    `${getField(result, "title")}-${index}`
-                  }
-                  isActive={getField(result, "listingType") === "active"}
-                  result={result}
-                />
-              ))}
-            </div>
-            {remainingResultCount > 0 && (
-              <div className="ebay-sold-view__load-more">
-                <button
-                  className="ebay-sold-view__load-more-button"
-                  type="button"
-                  onClick={() => {
-                    setVisibleResultCount(
-                      (count) => count + RESULTS_BATCH_SIZE,
-                    );
-                  }}
-                >
-                  Show {nextBatchSize} more
-                  <ChevronDown aria-hidden="true" />
-                </button>
-              </div>
+          <div
+            className={`ebay-sold-view__result-panels${advancedView ? " ebay-sold-view__result-panels--advanced" : ""}`}
+          >
+            {advancedView ? (
+              <>
+                {renderResultList("sold")}
+                {renderResultList("active")}
+              </>
+            ) : selectedResponseUnavailable &&
+              listingStates?.[listingTypeFilter] !== "pending" ? null : (
+              renderResultList(listingTypeFilter)
             )}
-          </>
+          </div>
         </div>
       )}
     </div>

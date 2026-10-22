@@ -59,7 +59,6 @@
 
 .app-overview-metric:has(> .app-overview-metric-action) {
   background-color: var(--bg2);
-  border-radius: var(--border-radius);
   transition: background-color var(--animation-duration-fast)
     var(--animation-ease-standard);
 }

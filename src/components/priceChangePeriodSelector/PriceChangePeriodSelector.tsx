@@ -1,10 +1,9 @@
-import { useId } from "react";
 import {
   formatPriceChangePeriodLabel,
   PRICE_CHANGE_PERIODS,
   type PriceChangePeriod,
 } from "../../../shared/priceChangePeriod";
-import "./PriceChangePeriodSelector.scss";
+import { RadioButtonGroup } from "../radioButtonGroup/RadioButtonGroup";
 
 const OPTIONS = PRICE_CHANGE_PERIODS.map((value) => ({
   label: formatPriceChangePeriodLabel(value).toUpperCase(),
@@ -26,32 +25,16 @@ export function PriceChangePeriodSelector({
   onChange,
   value,
 }: PriceChangePeriodSelectorProps) {
-  const name = useId();
-
   return (
-    <div
-      aria-label={ariaLabel}
+    <RadioButtonGroup<PriceChangePeriod>
+      ariaLabel={ariaLabel}
       className={["price-change-period-selector", className]
         .filter(Boolean)
         .join(" ")}
-      role="radiogroup"
-    >
-      {OPTIONS.map((option) => (
-        <label
-          className="price-change-period-selector__option"
-          key={option.value}
-        >
-          <input
-            checked={value === option.value}
-            disabled={disabled}
-            name={name}
-            onChange={() => onChange(option.value)}
-            type="radio"
-            value={option.value}
-          />
-          <span>{option.label}</span>
-        </label>
-      ))}
-    </div>
+      disabled={disabled}
+      onChange={onChange}
+      options={OPTIONS}
+      value={value}
+    />
   );
 }

@@ -166,7 +166,7 @@ vi.mock("./components/CardFeatureHeader", async (importOriginal) => {
     CardFeatureHeader: (
       props: Parameters<typeof actual.CardFeatureHeader>[0],
     ) => {
-      if (props.label === "eBay Comps")
+      if (props.label === "Ebay Explorer")
         return <actual.CardFeatureHeader {...props} />;
       const {
         actionLabel,
@@ -296,7 +296,7 @@ beforeEach(() => {
       new Response(
         JSON.stringify({
           data: {
-            label: "eBay response",
+            label: "Ebay response",
             sold: { items: [] },
             active: { items: [] },
           },
@@ -387,13 +387,15 @@ test.each([
   fireEvent.click(screen.getByRole("button", { name: new RegExp(feature) }));
   fireEvent.click(screen.getByTestId("feature-action"));
   const status = await screen.findByText(message);
-  expect(screen.getByTestId("feature-action").closest("header"))
-    .toContainElement(status);
+  expect(
+    screen.getByTestId("feature-action").closest("header"),
+  ).toContainElement(status);
   expect(screen.getAllByText(message)).toHaveLength(1);
   await act(async () => resolveRequest({ ok: false, status: 502 }));
   expect(screen.queryByText(message)).not.toBeInTheDocument();
-  expect(screen.getByTestId("feature-action").closest("header"))
-    .toContainElement(screen.getByRole("alert"));
+  expect(
+    screen.getByTestId("feature-action").closest("header"),
+  ).toContainElement(screen.getByRole("alert"));
 });
 
 test.each(["Grading", "Collector Insights", "Market Analysis"])(
@@ -756,7 +758,7 @@ test("shows market loading while fetching a variant and reuses the result", asyn
   expect(variantLoading).toBeInTheDocument();
   expect(variantLoading.closest(".poketrace-market")).not.toBeNull();
   expect(
-    screen.queryByRole("status", { name: "Loading eBay prices" }),
+    screen.queryByRole("status", { name: "Loading Ebay prices" }),
   ).not.toBeInTheDocument();
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
@@ -802,7 +804,7 @@ test("keeps navigation details visible while the complete card loads", async () 
   ).not.toBeInTheDocument();
   expect(screen.getByText("$10.00")).toBeInTheDocument();
   expect(
-    screen.getByRole("status", { name: "Loading eBay prices" }),
+    screen.getByRole("status", { name: "Loading Ebay prices" }),
   ).toBeInTheDocument();
   expect(
     screen.getByRole("status", { name: "Loading graded prices" }),
@@ -922,7 +924,7 @@ test("Worth Grading sends the normalized active variant", async () => {
   });
 });
 
-test("eBay data survives feature switches and clears for a new card", async () => {
+test("Ebay data survives feature switches and clears for a new card", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
       <TestRoutes />
@@ -930,20 +932,20 @@ test("eBay data survives feature switches and clears for a new card", async () =
   );
 
   await screen.findByRole("heading", { name: "Pikachu", level: 1 });
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
 
   await waitFor(() => {
     expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-      "eBay response",
+      "Ebay response",
     );
   });
 
   fireEvent.click(screen.getByRole("button", { name: /Collector Insights/ }));
   expect(screen.getByTestId("ebay-response")).not.toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ebay Explorer" }));
   expect(screen.getByTestId("ebay-response")).toBeVisible();
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-    "eBay response",
+    "Ebay response",
   );
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 
@@ -1008,7 +1010,7 @@ test("feature responses survive view switches and clear for a new card", async (
   expect(mocks.askGrok).toHaveBeenCalledTimes(2);
 });
 
-test("opens the eBay tab in the shared feature layout without an automatic request", async () => {
+test("opens the Ebay tab in the shared feature layout without an automatic request", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
       <TestRoutes />
@@ -1020,12 +1022,12 @@ test("opens the eBay tab in the shared feature layout without an automatic reque
     level: 1,
   });
   const primary = title.closest(".details-page__primary")!;
-  const ebay = screen.getByRole("region", { name: "eBay sales and listings" });
+  const ebay = screen.getByRole("region", { name: "Ebay sales and listings" });
   const ai = screen.getByRole("region", { name: "Card insights" });
   expect(primary.nextElementSibling).toBe(ai);
   expect(ai).toContainElement(ebay);
   expect(
-    within(ai).getByRole("button", { name: "eBay Comps" }),
+    within(ai).getByRole("button", { name: "Ebay Explorer" }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(
     screen.getByRole("button", { name: /^Market Analysis/ }),
@@ -1036,7 +1038,7 @@ test("opens the eBay tab in the shared feature layout without an automatic reque
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
 });
 
-test("runs eBay and AI simultaneously and updates only their respective credits", async () => {
+test("runs Ebay and AI simultaneously and updates only their respective credits", async () => {
   let resolveEbay!: (response: Response) => void;
   let resolveAi!: (response: unknown) => void;
   mocks.authenticatedFetch.mockReturnValue(
@@ -1056,7 +1058,7 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
     </MemoryRouter>,
   );
   await screen.findByRole("heading", { name: "Pikachu", level: 1 });
-  fireEvent.click(screen.getByRole("button", { name: "1 eBay credit" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
   fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
   expect(
     screen.getByRole("button", { name: "Open Market Analysis" }),
@@ -1066,11 +1068,11 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
     screen.getByRole("button", { name: "Open Collector Insights" }),
   );
   expect(mocks.askGrok).toHaveBeenCalledTimes(1);
-  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ebay Explorer" }));
   expect(
-    screen.getByRole("button", { name: "Searching eBay..." }),
+    screen.getByRole("button", { name: "Searching Ebay..." }),
   ).toBeDisabled();
-  const ebayTab = screen.getByRole("button", { name: "eBay Comps" });
+  const ebayTab = screen.getByRole("button", { name: "Ebay Explorer" });
   expect(ebayTab).toBeEnabled();
   expect(ebayTab).toHaveAttribute("aria-busy", "true");
   expect(ebayTab.querySelector(".feature-button__spinner")).not.toBeNull();
@@ -1080,7 +1082,7 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
       new Response(
         JSON.stringify({
           data: {
-            label: "independent eBay results",
+            label: "independent Ebay results",
             sold: { items: [] },
             active: { items: [] },
           },
@@ -1090,7 +1092,7 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
     );
   });
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-    "independent eBay results",
+    "independent Ebay results",
   );
   expect(mocks.updateEbayCredits).toHaveBeenCalledTimes(1);
   expect(ebayTab).toHaveAttribute("aria-busy", "false");
@@ -1100,17 +1102,17 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
   expect(
     screen.getByRole("button", { name: "Loading Collector Insights" }),
   ).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "eBay Comps" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ebay Explorer" }));
   const ebaySection = screen.getByRole("region", {
-    name: "eBay sales and listings",
+    name: "Ebay sales and listings",
   });
   expect(within(ebaySection).getByTestId("ebay-response")).toBeVisible();
   expect(
-    within(ebaySection).queryByRole("heading", { name: "eBay Comps" }),
+    within(ebaySection).queryByRole("heading", { name: "Ebay Explorer" }),
   ).not.toBeInTheDocument();
   expect(
     within(ebaySection).queryByRole("button", {
-      name: /1 eBay credit|Hide results|Show results/,
+      name: /1 Ebay credit|Hide results|Show results/,
     }),
   ).not.toBeInTheDocument();
 
@@ -1126,13 +1128,13 @@ test("runs eBay and AI simultaneously and updates only their respective credits"
     "independent AI results",
   );
   expect(screen.getByTestId("ebay-response")).toHaveTextContent(
-    "independent eBay results",
+    "independent Ebay results",
   );
   expect(mocks.updateEbayCredits).toHaveBeenCalledTimes(1);
   expect(mocks.updateSubscription).toHaveBeenCalledTimes(1);
 });
 
-test("AI loading and credit refreshes do not disable eBay", async () => {
+test("AI loading and credit refreshes do not disable Ebay", async () => {
   mocks.loadingSubscription = true;
   mocks.creditsRemaining = 0;
   render(
@@ -1140,7 +1142,7 @@ test("AI loading and credit refreshes do not disable eBay", async () => {
       <TestRoutes />
     </MemoryRouter>,
   );
-  const action = await screen.findByRole("button", { name: "1 eBay credit" });
+  const action = await screen.findByRole("button", { name: "1 Ebay credit" });
   expect(action).toBeEnabled();
   fireEvent.click(action);
   expect(await screen.findByTestId("ebay-response")).toBeVisible();
@@ -1148,7 +1150,7 @@ test("AI loading and credit refreshes do not disable eBay", async () => {
   expect(mocks.refreshSubscription).not.toHaveBeenCalled();
 });
 
-test("eBay credit rejection stays local while AI actions remain available", async () => {
+test("Ebay credit rejection stays local while AI actions remain available", async () => {
   mocks.authenticatedFetch.mockResolvedValue(
     new Response("{}", { status: 409 }),
   );
@@ -1157,11 +1159,9 @@ test("eBay credit rejection stays local while AI actions remain available", asyn
       <TestRoutes />
     </MemoryRouter>,
   );
-  fireEvent.click(
-    await screen.findByRole("button", { name: "1 eBay credit" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "1 Ebay credit" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "enough eBay credits",
+    "enough Ebay credits",
   );
   fireEvent.click(screen.getByRole("button", { name: /^Market Analysis/ }));
   expect(

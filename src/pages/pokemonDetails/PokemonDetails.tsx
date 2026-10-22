@@ -817,7 +817,7 @@ function PokemonDetailsForCard() {
               )}
             </span>
             <span className="feature-button__text">
-              <span className="feature-button__title">eBay Comps</span>
+              <span className="feature-button__title">Ebay Explorer</span>
             </span>
           </button>
           {aiFeatures.map((aiFeature) => {
@@ -923,7 +923,9 @@ function PokemonDetailsForCard() {
         </div>
       </section>
 
-      <SetTopCardsGrid setName={card.set?.name} />
+      <div className="card-view__set-top-cards">
+        <SetTopCardsGrid setName={card.set?.name} />
+      </div>
 
       {isDemo && (
         <section

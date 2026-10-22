@@ -21,7 +21,7 @@ type MostSoldGridProps = {
 };
 
 function sourceLabel(source: MostSoldResponse["source"]) {
-  return source === "tcgplayer" ? "TCGPlayer" : "eBay";
+  return source === "tcgplayer" ? "TCGPlayer" : "Ebay";
 }
 
 function toGridItem(

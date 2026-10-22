@@ -125,12 +125,12 @@ function SealedMarketplacePrice({
 }: {
   change?: number | null;
   currency: string;
-  label: "eBay" | "TCGPlayer";
+  label: "Ebay" | "TCGPlayer";
   price: number | null;
   pricing?: PokeTraceSealedMarketplacePricing;
   url?: string;
 }) {
-  const sourceClass = label === "eBay" ? "ebay" : "tcgplayer";
+  const sourceClass = label === "Ebay" ? "ebay" : "tcgplayer";
   return (
     <article className="poketrace-market__marketplace default-container-inner">
       <div className="poketrace-market__source-heading">
@@ -380,7 +380,7 @@ export default function SealedDetails() {
             <SealedMarketplacePrice
               change={ebayPriceChange}
               currency={product.currency}
-              label="eBay"
+              label="Ebay"
               price={ebayPricing?.price ?? null}
               pricing={ebayPricing}
               url={details?.marketplaceUrls.ebay}

@@ -39,7 +39,7 @@ export async function fetchEbayCredits(uid: string, signal: AbortSignal) {
     { signal, cache: "no-store" },
     uid,
   );
-  if (!response.ok) throw new Error("Could not load eBay credits");
+  if (!response.ok) throw new Error("Could not load Ebay credits");
   const body: unknown = await response.json();
   return parseEbayCredits(
     body && typeof body === "object" && "credits" in body
@@ -59,7 +59,7 @@ export async function initializeEbaySignupCredits(user: User) {
         signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) {
-        throw new Error("Could not initialize signup eBay credits");
+        throw new Error("Could not initialize signup Ebay credits");
       }
       window.dispatchEvent(new Event(EBAY_CREDITS_REFRESH_EVENT));
       return;

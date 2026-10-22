@@ -20,7 +20,7 @@ import "./EbaySection.scss";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const EBAY_REQUEST_ERROR =
-  "We couldn't load eBay sales and listings. Please try again.";
+  "We couldn't load Ebay sales and listings. Please try again.";
 const LISTING_STATUS_LABELS = {
   pending: "loading",
   success: "ready",
@@ -121,7 +121,7 @@ function EbaySectionForAccount({
     .filter(Boolean)
     .join(" and ");
   const responseError = failedSides
-    ? `We couldn't load eBay ${failedSides}. Please try again.`
+    ? `We couldn't load Ebay ${failedSides}. Please try again.`
     : "";
   const headerError = error || responseError;
   const noCredits = Boolean(
@@ -159,16 +159,16 @@ function EbaySectionForAccount({
 
       if (!res.ok) {
         if (res.status === 409) {
-          setError("You don't have enough eBay credits for this search.");
+          setError("You don't have enough Ebay credits for this search.");
           await refreshCredits();
           return;
         }
         if (res.status === 401) {
-          setError("Please log in again to search eBay.");
+          setError("Please log in again to search Ebay.");
           return;
         }
         if (res.status === 403) {
-          setError("Please verify your email before searching eBay.");
+          setError("Please verify your email before searching Ebay.");
           return;
         }
         throw new Error("eBay request failed");
@@ -237,7 +237,7 @@ function EbaySectionForAccount({
   }
 
   return (
-    <section aria-label="eBay sales and listings" className="ebay-section">
+    <section aria-label="Ebay sales and listings" className="ebay-section">
       <p className="ebay-section__announcement" aria-live="polite">
         {!isDemo && hasUsableResponse
           ? `Sold: ${LISTING_STATUS_LABELS[listingStates.sold]}. Listed: ${LISTING_STATUS_LABELS[listingStates.active]}.`
@@ -252,11 +252,11 @@ function EbaySectionForAccount({
           }}
           color="teal"
           icon={CircleDollarSign}
-          label="eBay Comps"
-          actionLabel={noCredits ? "Add credits" : "1 eBay credit"}
+          label="Ebay Explorer"
+          actionLabel={noCredits ? "Add credits" : "1 Ebay credit"}
           actionLoading={loading && !headerError}
-          actionLoadingLabel="Searching eBay..."
-          actionLoadingMessage="Loading eBay listings and sales..."
+          actionLoadingLabel="Searching Ebay..."
+          actionLoadingMessage="Fetching Ebay listings and sales..."
           errorMessage={headerError}
           actionDisabled={
             loading ||
@@ -278,12 +278,12 @@ function EbaySectionForAccount({
         >
           {!isDemo && userId && !emailVerified && (
             <p className="ebay-section__notice">
-              Please verify your email before searching eBay.
+              Please verify your email before searching Ebay.
             </p>
           )}
           {!isDemo && userId && creditsError && (
             <div className="ebay-section__notice" role="alert">
-              <span>We couldn't refresh your eBay credits.</span>
+              <span>We couldn't refresh your Ebay credits.</span>
             </div>
           )}
         </CardFeatureHeader>

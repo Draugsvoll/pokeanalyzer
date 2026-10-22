@@ -121,6 +121,18 @@
       stroke-width: 2.4;
       width: 1rem;
     }
+
+    .is-highlighted {
+      background: color-mix(in srgb, var(--custom-color-teal) 14%, transparent);
+      border-radius: var(--border-radius-sm);
+      color: var(--font-color-primary);
+      margin-inline: calc(var(--space-2) * -1);
+      padding: var(--space-1) var(--space-2);
+
+      svg {
+        color: var(--custom-color-teal);
+      }
+    }
   }
 
   @media (max-width: 60rem) {

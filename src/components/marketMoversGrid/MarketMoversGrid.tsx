@@ -36,7 +36,7 @@ const GRADER_LABELS = new Set(["ACE", "BGS", "CGC", "PSA", "SGC", "TAG"]);
 function sourceLabel(value: string) {
   const normalized = value.trim().toLowerCase();
   if (normalized === "tcgplayer") return "TCG";
-  if (normalized === "ebay") return "eBay";
+  if (normalized === "ebay") return "Ebay";
   return value;
 }
 

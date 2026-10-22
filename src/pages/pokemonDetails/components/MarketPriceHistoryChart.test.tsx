@@ -40,7 +40,7 @@ function history(
   };
 }
 
-test("renders available TCGPlayer and eBay history together", () => {
+test("renders available TCGPlayer and Ebay history together", () => {
   render(
     <MarketPriceHistoryChart
       history={history({
@@ -55,10 +55,10 @@ test("renders available TCGPlayer and eBay history together", () => {
   ).toBeVisible();
   expect(screen.getByRole("heading", { name: "Price history" })).toBeVisible();
   expect(screen.getByText("TCGPlayer")).toBeVisible();
-  expect(screen.getByText("eBay")).toBeVisible();
+  expect(screen.getByText("Ebay")).toBeVisible();
   expect(screen.getByRole("img")).toHaveAttribute(
     "aria-label",
-    "TCGPlayer and eBay Near Mint price history from Sep 17 to Sep 18",
+    "TCGPlayer and Ebay Near Mint price history from Sep 17 to Sep 18",
   );
   expect(
     document.querySelectorAll(".poketrace-market__history-line"),
@@ -86,7 +86,7 @@ test("aligns mismatched dates and keeps a one-point series visible", () => {
 
   expect(screen.getByRole("img")).toHaveAttribute(
     "aria-label",
-    "TCGPlayer and eBay Near Mint price history from Sep 16 to Sep 18",
+    "TCGPlayer and Ebay Near Mint price history from Sep 16 to Sep 18",
   );
   expect(
     document.querySelector(
@@ -117,7 +117,7 @@ test("renders normally when only one marketplace is available", () => {
   );
 
   expect(screen.getByText("TCGPlayer")).toBeVisible();
-  expect(screen.queryByText("eBay")).not.toBeInTheDocument();
+  expect(screen.queryByText("Ebay")).not.toBeInTheDocument();
   expect(screen.getByRole("img")).toHaveAttribute(
     "aria-label",
     "TCGPlayer Near Mint price history from Sep 17 to Sep 18",
@@ -146,7 +146,7 @@ test("shows both marketplace values in the hover tooltip", () => {
   expect(screen.getAllByText("Sep 18")).toHaveLength(2);
 });
 
-test("carries the latest eBay price through missing and trailing dates", () => {
+test("carries the latest Ebay price through missing and trailing dates", () => {
   render(
     <MarketPriceHistoryChart
       history={history({

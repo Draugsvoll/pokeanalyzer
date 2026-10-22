@@ -14,7 +14,7 @@ const PADDING = { top: 24, right: 10, bottom: 30, left: 46 };
 const SOURCES: MarketPriceHistorySource[] = ["tcgplayer", "ebay"];
 
 function sourceLabel(source: MarketPriceHistorySource) {
-  return source === "tcgplayer" ? "TCGPlayer" : "eBay";
+  return source === "tcgplayer" ? "TCGPlayer" : "Ebay";
 }
 
 function formatPrice(value: number, currency: string) {

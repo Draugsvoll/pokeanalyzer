@@ -12,6 +12,7 @@ export function EbayImagePreview({
 }) {
   const anchor = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageState, setImageState] = useState<"loading" | "loaded" | "error">(
     "loading",
   );
@@ -23,22 +24,37 @@ export function EbayImagePreview({
   } | null>(null);
 
   function cancelClose() {
-    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    if (closeTimer.current !== null) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function cancelOpen() {
+    if (openTimer.current !== null) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
   }
 
   function closeSoon() {
+    cancelOpen();
     cancelClose();
-    closeTimer.current = setTimeout(() => setPosition(null), 150);
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = null;
+      setPosition(null);
+    }, 150);
   }
 
   function open() {
+    cancelOpen();
     cancelClose();
     const rect = anchor.current?.getBoundingClientRect();
     if (!rect) return;
     if (!position) setImageState("loading");
     const gap = 12;
-    const width = Math.min(400, window.innerWidth - gap * 2);
-    const height = Math.min(540, window.innerHeight - gap * 2);
+    const width = Math.min(360, window.innerWidth - gap * 2);
+    const height = Math.min(480, window.innerHeight - gap * 2);
     const left =
       rect.right + gap + width <= window.innerWidth - gap
         ? rect.right + gap
@@ -51,7 +67,22 @@ export function EbayImagePreview({
     });
   }
 
-  useEffect(() => () => cancelClose(), []);
+  function openSoon() {
+    cancelClose();
+    cancelOpen();
+    openTimer.current = setTimeout(() => {
+      openTimer.current = null;
+      open();
+    }, 250);
+  }
+
+  useEffect(
+    () => () => {
+      cancelOpen();
+      cancelClose();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!position) return;
@@ -82,7 +113,7 @@ export function EbayImagePreview({
         className="ebay-sold-view__media ebay-sold-view__image-trigger"
         aria-label={`Enlarge image: ${title}`}
         aria-expanded={Boolean(position)}
-        onMouseEnter={open}
+        onMouseEnter={openSoon}
         onMouseLeave={closeSoon}
         onFocus={open}
         onBlur={closeSoon}

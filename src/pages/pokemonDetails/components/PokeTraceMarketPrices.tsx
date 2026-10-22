@@ -50,7 +50,7 @@ const money = new Intl.NumberFormat("en-US", {
 });
 
 function sourceLabel(source: string) {
-  return source.toLowerCase() === "tcgplayer" ? "TCGPlayer" : "eBay";
+  return source.toLowerCase() === "tcgplayer" ? "TCGPlayer" : "Ebay";
 }
 
 function conditionLabel(condition: string) {

@@ -19,7 +19,7 @@ async function initializeSignupCredits(user: User) {
     await initializeEbaySignupCredits(user);
   } catch (error) {
     // A temporary eBay failure must not prevent verification or signing in.
-    logClientError("Failed to initialize signup eBay credits", error);
+    logClientError("Failed to initialize signup Ebay credits", error);
   }
 }
 

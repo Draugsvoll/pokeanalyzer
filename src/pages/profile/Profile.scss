@@ -290,9 +290,6 @@
   &__plan-icon,
   &__credits-icon {
     align-items: center;
-    background: color-mix(in srgb, var(--custom-color-blue) 11%, transparent);
-    border: 1px solid
-      color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
     border-radius: var(--radius-md);
     color: color-mix(in srgb, var(--custom-color-blue) 72%, white);
     display: inline-flex;
@@ -300,6 +297,9 @@
   }
 
   &__plan-icon {
+    background: color-mix(in srgb, var(--custom-color-blue) 11%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--custom-color-blue) 20%, transparent);
     height: 2.7rem;
     width: 2.7rem;
 
@@ -412,14 +412,6 @@
       display: block;
       height: 100%;
     }
-  }
-
-  &__credit-row--ebay .profile__credit-bar > span {
-    background: linear-gradient(
-      90deg,
-      var(--custom-color-teal),
-      color-mix(in srgb, var(--custom-color-teal) 82%, white)
-    );
   }
 
   &__plan-actions {

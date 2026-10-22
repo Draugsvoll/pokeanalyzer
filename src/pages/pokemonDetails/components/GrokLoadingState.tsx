@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const RESEARCHING_MESSAGE = "Comparing sources, this might take a minute...";
+const RESEARCHING_MESSAGE = "Still comparing sources. This can take a minute.";
 
 export function GrokLoadingState({ children }: { children: string }) {
   const [isResearching, setIsResearching] = useState(false);

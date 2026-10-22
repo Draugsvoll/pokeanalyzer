@@ -156,16 +156,19 @@ export const Header: React.FC = () => {
               <Link
                 to="/profile"
                 className="header__credits"
-                title="View AI and eBay credits"
-                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits ? `${ebayCredits.creditsRemaining} eBay credits remaining` : "eBay credit balance unavailable"}. View credits`}
+                title="View AI and Ebay credits"
+                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits ? `${ebayCredits.creditsRemaining} Ebay credits remaining` : "Ebay credit balance unavailable"}. View credits`}
               >
                 <span className="header__credits-balance">
                   <strong>{creditsRemaining}</strong> AI{" "}
                   {creditsRemaining === 1 ? "credit" : "credits"}
                 </span>
-                <span className="header__credits-separator" aria-hidden="true" />
+                <span
+                  className="header__credits-separator"
+                  aria-hidden="true"
+                />
                 <span className="header__credits-balance">
-                  <strong>{ebayCredits?.creditsRemaining ?? "—"}</strong> eBay{" "}
+                  <strong>{ebayCredits?.creditsRemaining ?? "—"}</strong> Ebay{" "}
                   {ebayCredits?.creditsRemaining === 1 ? "credit" : "credits"}
                 </span>
               </Link>

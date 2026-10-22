@@ -28,7 +28,9 @@ test("renders only the membership plan columns", () => {
   expect(
     screen.getByText("Explore card details and market prices at no cost."),
   ).toBeVisible();
-  expect(screen.getByText("Track 10 cards in portfolio")).toBeVisible();
+  expect(
+    screen.getByText("Track 10 cards in portfolio & watchlist"),
+  ).toBeVisible();
   expect(document.querySelectorAll(".default-container-inner")).toHaveLength(3);
 });
 
@@ -36,14 +38,16 @@ test("renders plan descriptions and features from the supplied configuration", (
   const configuredPlan = {
     ...MEMBERSHIP_PLANS[0],
     description: "Configured plan description",
-    features: ["Configured plan feature"],
+    features: [{ label: "Configured plan feature" }],
   };
 
   renderPricingBar(<PricingBar plans={[configuredPlan]} />);
 
   expect(screen.getByText("Configured plan description")).toBeVisible();
   expect(screen.getByText("Configured plan feature")).toBeVisible();
-  expect(screen.queryByText("Track 10 cards in portfolio")).toBeNull();
+  expect(
+    screen.queryByText("Track 10 cards in portfolio & watchlist"),
+  ).toBeNull();
 });
 
 test("renders full pricing cards when embedded and delegates plan actions", () => {

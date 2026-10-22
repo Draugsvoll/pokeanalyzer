@@ -6,7 +6,7 @@ import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 import { toPokemonCard } from "../services/pokeTraceCardView.js";
 import { loadMarketPriceHistory } from "../services/pokeTraceMarketPriceHistory.js";
 
-const DEMO_SOURCE_CARD_ID = "019bff77-befa-771d-bab0-f5909f0a78c9";
+const DEMO_SOURCE_CARD_ID = "019bff9a-8592-77ae-8865-c500279b7630";
 const demoPath = path.resolve("public/demo-card.json");
 const databaseUrl = process.env.POKETRACE_DATABASE_URL?.trim();
 

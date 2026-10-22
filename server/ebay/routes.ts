@@ -39,7 +39,7 @@ const ebayLimiter = rateLimit({
   keyGenerator: (_req, res) => String(res.locals.authUid),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many eBay requests. Please wait and try again." },
+  message: { error: "Too many Ebay requests. Please wait and try again." },
 });
 const creditsLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -48,7 +48,7 @@ const creditsLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: "Too many eBay balance requests. Please wait and try again.",
+    error: "Too many Ebay balance requests. Please wait and try again.",
   },
 });
 
@@ -185,7 +185,7 @@ export function createEbayRouter({
         res.status(isCreditError ? error.statusCode : 500).json({
           error: isCreditError
             ? error.message
-            : "Failed to grant eBay signup credits",
+            : "Failed to grant Ebay signup credits",
         });
       }
     },
@@ -203,7 +203,7 @@ export function createEbayRouter({
       logError("eBay balance request failed", error);
       const isCreditError = error instanceof EbayCreditError;
       res.status(isCreditError ? error.statusCode : 500).json({
-        error: isCreditError ? error.message : "Failed to load eBay credits",
+        error: isCreditError ? error.message : "Failed to load Ebay credits",
       });
     }
   });

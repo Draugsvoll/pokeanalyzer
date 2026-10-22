@@ -288,7 +288,7 @@ function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
           </CostRow>
         </div>
         <div className="worth-grading-view__cost-group">
-          <CostRow label="eBay Fees" tone={costTone}>
+          <CostRow label="Ebay Fees" tone={costTone}>
             {formatCost(rawSale.estimated_fees_usd)}
           </CostRow>
         </div>
@@ -300,7 +300,7 @@ function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
       </div>
       {rawSale.time_to_sell?.trim() && (
         <div className="worth-grading-view__scenario-support">
-          <FieldCard label="eBay sell time">{rawSale.time_to_sell}</FieldCard>
+          <FieldCard label="Ebay sell time">{rawSale.time_to_sell}</FieldCard>
         </div>
       )}
     </section>
@@ -396,13 +396,13 @@ function ScenarioCard({
                 label={
                   scenario.ebay_fee_model?.trim() ? (
                     <details className="worth-grading-view__fee-model">
-                      <summary>eBay Fees</summary>
+                      <summary>Ebay Fees</summary>
                       <p className="worth-grading-view__cost-note">
                         {scenario.ebay_fee_model}
                       </p>
                     </details>
                   ) : (
-                    "eBay Fees"
+                    "Ebay Fees"
                   )
                 }
                 tone={costTone}
@@ -414,7 +414,7 @@ function ScenarioCard({
                   <>
                     Raw net proceeds
                     <p className="worth-grading-view__cost-note">
-                      (incl. eBay fees)
+                      (incl. Ebay fees)
                     </p>
                   </>
                 }

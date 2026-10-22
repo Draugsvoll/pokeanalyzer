@@ -7,7 +7,8 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import { ClearFiltersButton } from "../clearFiltersButton/ClearFiltersButton";
 
 export type PriceFilterValidation = {
   field: "max" | "min";
@@ -203,16 +204,11 @@ export function DatabaseSearchBarShell({
           </div>
 
           <div className="database-search-filter-actions">
-            <button
-              aria-label="Clear all"
-              className="database-search-filters__clear"
+            <ClearFiltersButton
               disabled={filterCount === 0}
+              label="Clear all"
               onClick={onClearFilters}
-              type="button"
-            >
-              <RotateCcw aria-hidden="true" />
-              <span>Clear all</span>
-            </button>
+            />
           </div>
         </div>
       )}
