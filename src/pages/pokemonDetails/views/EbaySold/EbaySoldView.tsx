@@ -49,8 +49,8 @@ type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
 type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
-  { value: "price-desc", label: "Price: high–low" },
-  { value: "price-asc", label: "Price: low–high" },
+  { value: "price-desc", label: "Price: high\u2013low" },
+  { value: "price-asc", label: "Price: low\u2013high" },
   { value: "date-desc", label: "Newest" },
   { value: "date-asc", label: "Oldest" },
 ];
@@ -227,6 +227,7 @@ type EbayResultCardProps = {
   graderFilter: GraderFilter;
   isActive: boolean;
   includeQuery: string;
+  expansion: { expanded: boolean };
 };
 
 type EbayListingMetadataItem = {
@@ -267,11 +268,19 @@ function EbayResultCard({
   graderFilter,
   isActive,
   includeQuery,
+  expansion,
 }: EbayResultCardProps) {
   const title = getField(result, "title") ?? "Ebay listing";
   const titleRef = useRef<HTMLHeadingElement>(null);
   const metadataRef = useRef<HTMLDivElement>(null);
-  const [titleExpanded, setTitleExpanded] = useState(false);
+  const [localExpansion, setLocalExpansion] = useState({
+    command: expansion,
+    expanded: expansion.expanded,
+  });
+  const titleExpanded =
+    localExpansion.command === expansion
+      ? localExpansion.expanded
+      : expansion.expanded;
   const [titleOverflowing, setTitleOverflowing] = useState(false);
   const [metadataOverflowing, setMetadataOverflowing] = useState(false);
   const url = getField(result, "url");
@@ -313,7 +322,9 @@ function EbayResultCard({
         }
       : null,
     isActive && location ? { label: location } : null,
-    condition ? { label: condition } : null,
+    condition && !/^(?:new\s*\(other\)|pre[-\s]owned)$/i.test(condition.trim())
+      ? { label: condition }
+      : null,
     bidCount ? { label: bidCount } : null,
     !isActive && location ? { label: location } : null,
     isActive && acceptsOffers ? { label: "Accepts offers" } : null,
@@ -409,7 +420,12 @@ function EbayResultCard({
                 aria-expanded={titleExpanded}
                 aria-label={`${titleExpanded ? "Collapse" : "Expand"} listing title`}
                 className="ebay-sold-view__title-toggle"
-                onClick={() => setTitleExpanded((expanded) => !expanded)}
+                onClick={() =>
+                  setLocalExpansion({
+                    command: expansion,
+                    expanded: !titleExpanded,
+                  })
+                }
                 type="button"
               >
                 <ChevronDown aria-hidden="true" />
@@ -724,6 +740,7 @@ export default function EbaySoldView({
   const [visibleResultCounts, setVisibleResultCounts] = useState<
     Record<ListingTypeFilter, number>
   >({ sold: RESULTS_BATCH_SIZE, active: RESULTS_BATCH_SIZE });
+  const [expansion, setExpansion] = useState({ expanded: false });
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>("basic");
   const filterTimerRef = useRef<number | undefined>(undefined);
   const dualViewAvailable = useDualViewAvailable();
@@ -931,32 +948,47 @@ export default function EbaySoldView({
         />
       </div>
       {dualViewAvailable && (
-        <RadioButtonGroup
-          ariaLabel="Ebay results view"
-          className="ebay-sold-view__view-toggle"
-          onChange={setResultViewMode}
-          options={[
-            {
-              label: (
-                <>
-                  <Rows2 aria-hidden="true" />
-                  Single
-                </>
-              ),
-              value: "basic",
-            },
-            {
-              label: (
-                <>
-                  <Columns2 aria-hidden="true" />
-                  Dual
-                </>
-              ),
-              value: "advanced",
-            },
-          ]}
-          value={resultViewMode}
-        />
+        <div className="ebay-sold-view__view-toggle-anchor">
+          <RadioButtonGroup
+            ariaLabel="Ebay results view"
+            className="ebay-sold-view__view-toggle"
+            onChange={setResultViewMode}
+            options={[
+              {
+                label: (
+                  <>
+                    <Rows2 aria-hidden="true" />
+                    Single
+                  </>
+                ),
+                value: "basic",
+              },
+              {
+                label: (
+                  <>
+                    <Columns2 aria-hidden="true" />
+                    Dual
+                  </>
+                ),
+                value: "advanced",
+              },
+            ]}
+            value={resultViewMode}
+          />
+          {advancedView && (
+            <button
+              type="button"
+              className="ebay-sold-view__expand-all"
+              aria-label={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
+              title={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
+              aria-expanded={expansion.expanded}
+              onClick={() => setExpansion({ expanded: !expansion.expanded })}
+            >
+              <span>{expansion.expanded ? "Collapse all" : "Expand all"}</span>
+              <ChevronDown aria-hidden="true" size={16} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -976,48 +1008,44 @@ export default function EbaySoldView({
           listingType === "sold" ? "Sold Ebay results" : "Listed Ebay results"
         }
       >
-        {advancedView && (
+        <header className="ebay-sold-view__result-summary">
           <h2>
-            {loading
-              ? label
-              : `${results.length} ${label} ${results.length === 1 ? "result" : "results"}`}
+            <span
+              role={!advancedView && !loading ? "status" : undefined}
+              aria-busy={!advancedView && !loading ? filtering : undefined}
+            >
+              <span className="ebay-sold-view__summary-label">{label}</span>
+              {!loading && (
+                <>
+                  {" \u00b7 "}
+                  <span className="ebay-sold-view__result-count">
+                    {results.length}{" "}
+                    {results.length === 1 ? "match" : "matches"}
+                  </span>
+                </>
+              )}
+            </span>
           </h2>
-        )}
-        {!advancedView && (
-          <h2>
-            {loading ? (
-              <span>{label}</span>
-            ) : (
-              <span
-                className="ebay-sold-view__result-count"
-                role="status"
-                aria-busy={filtering}
-              >
-                {results.length} {label}{" "}
-                {results.length === 1 ? "result" : "results"}
-              </span>
-            )}
-          </h2>
-        )}
-        {!loading && priceSummary && (
-          <dl
-            aria-label={`${label} price summary`}
-            className="ebay-sold-view__price-summary"
-          >
-            <div>
-              <dt>High</dt>
-              <dd>{priceSummary.high}</dd>
-            </div>
-            <div>
-              <dt>Median</dt>
-              <dd>{priceSummary.median}</dd>
-            </div>
-            <div>
-              <dt>Low</dt>
-              <dd>{priceSummary.low}</dd>
-            </div>
-          </dl>
-        )}
+          {!loading && priceSummary && (
+            <dl
+              aria-label={`${label} price summary`}
+              className="ebay-sold-view__price-summary"
+            >
+              <div>
+                <dt>High</dt>
+                <dd>{priceSummary.high}</dd>
+              </div>
+              <div>
+                <dt>Median</dt>
+                <dd>{priceSummary.median}</dd>
+              </div>
+              <div>
+                <dt>Low</dt>
+                <dd>{priceSummary.low}</dd>
+              </div>
+            </dl>
+          )}
+        </header>
         {loading && (
           <div
             aria-label={`Loading ${label.toLowerCase()} Ebay results`}
@@ -1040,6 +1068,7 @@ export default function EbaySoldView({
         >
           {visible.map((result, index) => (
             <EbayResultCard
+              expansion={expansion}
               key={
                 getField(result, "url") ??
                 `${getField(result, "title")}-${index}`

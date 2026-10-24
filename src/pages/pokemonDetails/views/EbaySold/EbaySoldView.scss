@@ -33,29 +33,50 @@
   }
 
   &__result-count {
-    color: var(--font-color-muted);
+    color: var(--font-color-secondary);
     font-size: var(--font-size-caption);
     font-weight: var(--font-weight-medium);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
+  &__summary-label {
+    color: var(--ebay-accent);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--font-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  &__result-summary {
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--space-3);
+    padding: var(--space-4);
+
+    > h2 {
+      color: var(--font-color-secondary);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-medium);
+      text-align: center;
+    }
+  }
+
   &__price-summary {
-    background: color-mix(in srgb, var(--bg2) 72%, transparent);
-    border-bottom: 1px solid var(--border-divider);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0 0 var(--space-3);
+    margin: 0;
     padding: 0.55rem 0;
+    padding-bottom: 0rem;
 
     > div {
       min-width: 0;
-      padding-inline: var(--space-3);
       text-align: center;
-
-      + div {
-        border-left: 1px solid var(--border-divider);
-      }
+      padding: 0.75rem;
+      border: none;
+      border-radius: var(--border-radius);
+      background: var(--surface5);
+      margin: 0.4rem;
     }
 
     dt {
@@ -69,8 +90,8 @@
 
     dd {
       color: var(--font-color-primary);
-      font-size: var(--font-size-paragraph);
-      font-weight: var(--font-weight-semibold);
+      font-size: 19px;
+      font-weight: var(--font-weight-medium);
       font-variant-numeric: tabular-nums;
       margin: 0.2rem 0 0;
       overflow: hidden;
@@ -86,7 +107,7 @@
   &__listing-selector {
     display: grid;
     justify-items: center;
-    margin-top: var(--space-2);
+    margin-top: var(--space-1);
   }
 
   &__listing-toggle.segmented-radio-group {
@@ -96,6 +117,7 @@
     justify-self: center;
     width: fit-content;
     margin: 0;
+    margin-bottom: var(--space-2);
   }
 
   &__filter-row {
@@ -118,7 +140,7 @@
     align-items: end;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-3);
+    gap: var(--space-2);
     min-width: 0;
   }
 
@@ -127,7 +149,7 @@
 
     .ui-select-dropdown__toggle {
       background: transparent;
-      border: 1px solid color-mix(in srgb, var(--ebay-accent) 24%, transparent);
+      border: 1px solid var(--border-color-strong);
       border-radius: var(--border-radius-pill);
       color: var(--font-color-muted);
       font-weight: var(--font-weight-medium);
@@ -136,7 +158,7 @@
 
     .ui-select-dropdown__toggle:hover,
     .ui-select-dropdown__toggle.is-open {
-      background: transparent;
+      background: color-mix(in srgb, var(--ebay-accent) 6%, transparent);
       border-color: color-mix(in srgb, var(--ebay-accent) 35%, transparent);
       color: var(--font-color-primary);
     }
@@ -152,13 +174,13 @@
     .ui-select-dropdown__toggle,
     .ui-select-dropdown__toggle:hover,
     .ui-select-dropdown__toggle.is-open {
-      background: color-mix(in srgb, var(--ebay-accent) 12%, transparent);
-      border-color: color-mix(in srgb, var(--ebay-accent) 28%, transparent);
-      color: var(--ebay-accent);
+      background: color-mix(in srgb, var(--ebay-accent) 80%, var(--bg2));
+      border-color: color-mix(in srgb, var(--ebay-accent) 80%, var(--bg2));
+      color: var(--button-font-color);
     }
 
     .ui-select-dropdown__chevron {
-      color: var(--ebay-accent);
+      color: var(--button-font-color);
     }
   }
 
@@ -208,10 +230,10 @@
     .radio-button-group__option {
       font-weight: var(--font-weight-medium);
     }
+  }
 
-    .radio-button-group__option:has(input:checked) {
-      color: var(--font-color-secondary);
-    }
+  &__view-toggle .radio-button-group__option:has(input:checked) {
+    color: var(--font-color-secondary);
   }
 
   &__text-filter {
@@ -370,11 +392,15 @@
 
   &__filters.radio-group.radio-group {
     --radio-accent: var(--ebay-accent);
-    margin-top: -0.25rem;
   }
 
   &__filters.radio-group.radio-group label > span {
     min-width: 4.35rem;
+    color: var(--font-color-muted);
+  }
+
+  &__filters.radio-group.radio-group input:checked + span {
+    color: var(--button-font-color);
   }
 
   &__filters.radio-group.radio-group > div {
@@ -382,19 +408,27 @@
   }
 
   &__results {
+    --scrollbar-thumb: color-mix(
+      in srgb,
+      var(--font-color-muted) 27%,
+      transparent
+    );
     background: transparent;
     display: grid;
     gap: 0;
     max-height: min(42rem, 65vh);
     overflow-y: auto;
     overscroll-behavior: contain;
-    scrollbar-color: color-mix(
-        in srgb,
-        var(--font-color-muted) 32%,
-        transparent
-      )
-      transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
     scrollbar-width: thin;
+
+    &:hover {
+      --scrollbar-thumb: color-mix(
+        in srgb,
+        var(--font-color-muted) 36%,
+        transparent
+      );
+    }
 
     &::-webkit-scrollbar {
       width: 0.45rem;
@@ -416,14 +450,10 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      background: color-mix(in srgb, var(--font-color-muted) 28%, transparent);
+      background: var(--scrollbar-thumb);
       background-clip: padding-box;
       border: 0.14rem solid transparent;
       border-radius: var(--border-radius-pill);
-    }
-
-    &:hover::-webkit-scrollbar-thumb {
-      background-color: color-mix(in srgb, var(--ebay-accent) 45%, transparent);
     }
 
     &:empty {
@@ -456,53 +486,81 @@
     min-width: 0;
   }
 
+  &__view-toggle-anchor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  &__expand-all {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: max-content;
+    height: 30px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--font-color-secondary);
+    font-family: inherit;
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+
+    svg {
+      height: 0.9rem;
+      margin-top: 0.18rem;
+      width: 0.9rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: var(--font-color-primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--font-color-secondary);
+      outline-offset: 2px;
+    }
+
+    &[aria-expanded="true"] svg {
+      transform: rotate(180deg);
+    }
+  }
+
   &__result-panels--advanced {
     display: grid;
     gap: var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    .ebay-sold-view__result-panel {
-      border: 1px solid var(--border-divider);
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      padding: var(--space-3);
-    }
-
     .ebay-sold-view__price-summary dd {
-      font-size: var(--font-size-paragraph-sm);
+      font-size: 16px;
     }
 
     .ebay-sold-view__result {
       column-gap: 0.6rem;
-      padding-inline: 0.5rem;
     }
 
     .ebay-sold-view__header {
-      gap: 0.85rem;
+      gap: 0.6rem;
+    }
+
+    .ebay-sold-view__price-row > strong {
+      font-size: 17px;
     }
   }
 
   &__result-panel {
     min-width: 0;
 
-    &--basic {
-      border: 1px solid var(--border-divider);
-      border-radius: var(--border-radius);
-      padding-top: var(--space-4);
-    }
-
     &--loading {
       display: grid;
       grid-template-rows: auto 1fr;
       min-height: 8rem;
-    }
-
-    > h2 {
-      color: var(--font-color-muted);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-medium);
-      margin: 0 0 var(--space-2);
-      text-align: center;
     }
 
     .ebay-sold-view__state {
@@ -524,11 +582,16 @@
     gap: 0.8rem;
     grid-template-columns: 3.75rem minmax(0, 1fr);
     overflow: hidden;
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem;
+    padding-left: 0.45rem;
     position: relative;
     text-align: left;
     align-items: center;
     transition: background-color var(--delay-short) ease;
+
+    &:last-child {
+      border-bottom: 1px solid var(--border-divider);
+    }
 
     &:hover {
       background-color: color-mix(
@@ -536,10 +599,6 @@
         var(--font-color-primary) 2.5%,
         transparent
       );
-    }
-
-    &--expanded {
-      padding-block: var(--space-4);
     }
   }
 
@@ -593,47 +652,34 @@
     background: transparent;
     border: 0;
     border-radius: var(--border-radius);
-    color: var(--font-color-faint);
+    color: var(--font-color-secondary);
     cursor: pointer;
     inset: 0;
     padding: 0;
     position: absolute;
-    z-index: 1;
+    z-index: 999;
 
     svg {
       background: var(--bg2);
       border: 1px solid var(--border-divider);
       border-radius: var(--border-radius-pill);
-      box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.28);
       box-sizing: border-box;
       height: 1.55rem;
       opacity: 0;
       padding: 0.22rem;
       pointer-events: none;
       position: absolute;
-      right: -0.55rem;
+      right: -0.2rem;
       top: 50%;
       transform: translateY(-50%);
-      transition:
-        background-color var(--animation-duration-fast)
-          var(--animation-ease-standard),
-        border-color var(--animation-duration-fast)
-          var(--animation-ease-standard),
-        color var(--animation-duration-fast) var(--animation-ease-standard),
-        opacity var(--animation-duration-fast) var(--animation-ease-standard),
-        transform var(--animation-duration-fast) var(--animation-ease-standard);
       width: 1.55rem;
     }
 
     &:focus-visible svg,
     .ebay-sold-view__result:hover & svg,
     .ebay-sold-view__title-block--toggleable:hover & svg {
-      background-color: color-mix(in srgb, var(--bg2) 88%, black);
-      border-color: color-mix(
-        in srgb,
-        var(--font-color-muted) 35%,
-        transparent
-      );
+      background: var(--bg2);
+      border: 1px solid var(--border-divider);
       color: var(--font-color-secondary);
       opacity: 1;
     }
@@ -708,11 +754,12 @@
       overflow: hidden;
       padding-bottom: 0.04em;
       text-overflow: ellipsis;
+      white-space: nowrap;
 
       mark {
         background: color-mix(
           in srgb,
-          var(--custom-color-blue) 30%,
+          var(--custom-color-blue) 25%,
           transparent
         );
         border-radius: 0.08em;
@@ -721,7 +768,6 @@
         font: inherit;
         padding: 0 0.04em;
       }
-      white-space: nowrap;
     }
   }
 
@@ -771,7 +817,7 @@
     flex: 0 0 auto;
     gap: 0.25rem;
     text-align: right;
-    margin-top: 0.16rem;
+    margin-top: 0.33rem;
   }
 
   &__result--expanded &__price {
@@ -781,7 +827,7 @@
   &__price-row > strong {
     color: var(--ebay-accent);
     font-family: var(--font-family-price);
-    font-size: var(--font-size-price-value-ebay);
+    font-size: 18px;
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-medium);
     letter-spacing: var(--font-tracking-price);

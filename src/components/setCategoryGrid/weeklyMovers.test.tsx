@@ -1,3 +1,4 @@
+import { createPokeTraceSetSummaries } from "../../../shared/pokeTraceSetSummaries";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -200,4 +201,26 @@ test("unavailable summaries leave the regular directory visible without a gainer
     screen.queryByRole("heading", { name: "Gainers & Losers" }),
   ).toBeNull();
   expect(screen.getByRole("button", { name: "Open Base Set" })).toBeVisible();
+});
+
+test("filters sets worth less than $2 before filling both rankings", () => {
+  const input = options();
+  input[0].setSummary = createPokeTraceSetSummaries(
+    [
+      {
+        id: "cheap",
+        name: "cheap",
+        setName: input[0].value,
+        currency: "USD",
+        conditionPrices: { NEAR_MINT: 1.99 },
+        priceSnapshots: { "1d": null, "7d": 0.01, "30d": null },
+      },
+    ],
+    new Date().toISOString(),
+  )[0];
+  const rankings = selectWeeklyMovers(input)!;
+  for (const ranking of [rankings.gainers, rankings.losers]) {
+    expect(ranking).toHaveLength(6);
+    expect(ranking.map(({ value }) => value)).not.toContain(input[0].value);
+  }
 });

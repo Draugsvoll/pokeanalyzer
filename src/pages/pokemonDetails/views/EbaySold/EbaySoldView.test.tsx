@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import EbaySoldView from "./EbaySoldView";
 
@@ -54,7 +54,7 @@ test("counts all matching results while displaying them in batches", () => {
     />,
   );
   expect(screen.getAllByRole("article")).toHaveLength(15);
-  expect(screen.getByRole("status")).toHaveTextContent("20 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 20 matches");
   expect(
     screen.queryByRole("button", { name: /Show \d+ more/ }),
   ).not.toBeInTheDocument();
@@ -83,7 +83,7 @@ test("clears all result filters from the shared clear-filter control", async () 
     { target: { value: "Pikachu" } },
   );
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("1 Sold result"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
   );
   const clearFilters = screen.getByRole("button", { name: "Clear filters" });
 
@@ -93,7 +93,7 @@ test("clears all result filters from the shared clear-filter control", async () 
   expect(
     screen.getByRole("searchbox", { name: "Include keywords" }),
   ).toHaveValue("");
-  expect(screen.getByRole("status")).toHaveTextContent("2 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
   expect(
     screen.queryByRole("button", { name: "Clear filters" }),
   ).not.toBeInTheDocument();
@@ -257,13 +257,25 @@ test("shows sold and listed results together in the wide advanced view", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Dual" }));
 
     expect(
-      screen.getByRole("heading", { name: "1 Sold result" }),
+      screen.getByRole("heading", { name: "Sold · 1 match" }),
     ).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "1 Listed result" }),
+      screen.getByRole("heading", { name: "Listed · 1 match" }),
     ).toBeVisible();
     expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Buy" })).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand all listings" }),
+    );
+    for (const row of screen.getAllByRole("article")) {
+      expect(row).toHaveClass("ebay-sold-view__result--expanded");
+    }
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse all listings" }),
+    );
+    for (const row of screen.getAllByRole("article")) {
+      expect(row).not.toHaveClass("ebay-sold-view__result--expanded");
+    }
   } finally {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
@@ -294,7 +306,7 @@ test("keeps a pending dual-view panel visible with a loading spinner", () => {
 
     expect(screen.getByRole("heading", { name: "Listed" })).toBeVisible();
     expect(
-      screen.queryByRole("heading", { name: /Listed results/ }),
+      screen.queryByRole("heading", { name: /Listed · .* matches/ }),
     ).not.toBeInTheDocument();
     const loading = screen.getByRole("status", {
       name: "Loading listed Ebay results",
@@ -311,7 +323,7 @@ test("keeps a pending dual-view panel visible with a loading spinner", () => {
       />,
     );
     expect(
-      screen.getByRole("heading", { name: "0 Listed results" }),
+      screen.getByRole("heading", { name: "Listed · 0 matches" }),
     ).toBeVisible();
     expect(screen.getByText("No matching Ebay listings found.")).toBeVisible();
   } finally {
@@ -361,10 +373,10 @@ test("preserves sold/listed and text filtering behavior", async () => {
     />,
   );
   expect(screen.getAllByRole("link", { name: "View sale" })).toHaveLength(2);
-  expect(screen.getByRole("status")).toHaveTextContent("2 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(screen.getAllByRole("link", { name: "Buy" })).toHaveLength(1);
-  expect(screen.getByRole("status")).toHaveTextContent("1 Listed result");
+  expect(screen.getByRole("status")).toHaveTextContent("Listed · 1 match");
   fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Include keywords" }),
@@ -376,20 +388,20 @@ test("preserves sold/listed and text filtering behavior", async () => {
   expect(
     screen.getByRole("heading", { name: "Pikachu Stamped" }),
   ).toBeVisible();
-  expect(screen.getByRole("status")).toHaveTextContent(/^1 Sold result$/);
+  expect(screen.getByRole("status")).toHaveTextContent(/^Sold · 1 match$/);
 
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Include keywords" }),
     { target: { value: "missing" } },
   );
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("0 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 0 matches"),
   );
   fireEvent.click(
     screen.getByRole("button", { name: "Clear included keywords" }),
   );
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
 });
 
@@ -408,7 +420,7 @@ test("includes half grades in the matching whole-grade filter", async () => {
   );
   fireEvent.click(screen.getByRole("radio", { name: "Grade 8" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
   expect(screen.getByRole("heading", { name: "Pikachu Psa 8" })).toBeVisible();
   expect(
@@ -444,7 +456,7 @@ test("treats decimal whole grades as their matching whole-grade filter", async (
       expect(resultHeadings).toHaveLength(1);
       expect(resultHeadings[0]).toHaveAccessibleName(title);
     });
-    expect(screen.getByRole("status")).toHaveTextContent("1 Sold result");
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match");
   }
 });
 
@@ -457,10 +469,10 @@ test("updates the result count when filtering by grade", async () => {
       }}
     />,
   );
-  expect(screen.getByRole("status")).toHaveTextContent("2 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
   fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent(/^1 Sold result$/),
+    expect(screen.getByRole("status")).toHaveTextContent(/^Sold · 1 match$/),
   );
   expect(screen.getAllByRole("article")).toHaveLength(1);
 });
@@ -490,13 +502,13 @@ test("filters by grading company independently from included keywords", async ()
   fireEvent.click(graderFilter);
   fireEvent.click(screen.getByRole("option", { name: "PSA" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("1 Sold result"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
   );
 
   fireEvent.click(graderFilter);
   fireEvent.click(screen.getByRole("option", { name: "Beckett / BGS" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
   expect(screen.getByText("Beckett", { selector: "mark" })).toBeVisible();
   expect(screen.getByText("Bgs", { selector: "mark" })).toBeVisible();
@@ -506,7 +518,7 @@ test("filters by grading company independently from included keywords", async ()
   });
   fireEvent.change(includeFilter, { target: { value: "special" } });
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("1 Sold result"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
   );
   expect(includeFilter).toHaveValue("special");
   expect(graderFilter).toHaveTextContent("Beckett / BGS");
@@ -514,7 +526,7 @@ test("filters by grading company independently from included keywords", async ()
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
   expect(includeFilter).toHaveValue("");
   expect(graderFilter).toHaveTextContent("All companies");
-  expect(screen.getByRole("status")).toHaveTextContent("6 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 6 matches");
 });
 
 test("recognizes TAG grading names without matching Tag Team titles", async () => {
@@ -540,7 +552,7 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
   fireEvent.click(graderFilter);
   fireEvent.click(screen.getByRole("option", { name: "TAG" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("4 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 4 matches"),
   );
   expect(screen.getAllByText("Tag", { selector: "mark" })).toHaveLength(4);
   expect(
@@ -551,7 +563,7 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
 
   fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
   expect(screen.getByRole("heading", { name: "Umbreon Tag10" })).toBeVisible();
   expect(
@@ -561,7 +573,7 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
   fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
   expect(
     screen.getByRole("heading", {
@@ -587,7 +599,7 @@ test("excludes full grading company names from raw results", async () => {
   fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
 
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("1 Sold result"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
   );
   expect(screen.getByRole("heading", { name: "Pikachu Raw" })).toBeVisible();
 });
@@ -683,7 +695,7 @@ test("combines exclusion with text and grade filters across sold and listed resu
     },
   );
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent(/^1 Sold result$/),
+    expect(screen.getByRole("status")).toHaveTextContent(/^Sold · 1 match$/),
   );
   expect(
     screen.getByRole("heading", { name: "Pikachu Psa 10 Regular" }),
@@ -694,7 +706,7 @@ test("combines exclusion with text and grade filters across sold and listed resu
     screen.getByRole("button", { name: "Clear excluded keywords" }),
   );
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("2 Listed results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Listed · 2 matches"),
   );
 });
 
@@ -748,17 +760,17 @@ test("exclusion resets pagination and ignores queries shorter than two character
     name: "Exclude keywords",
   });
   fireEvent.change(exclude, { target: { value: "p" } });
-  expect(screen.getByRole("status")).toHaveTextContent("20 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 20 matches");
   fireEvent.change(exclude, { target: { value: "missing" } });
   await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(15));
-  expect(screen.getByRole("status")).toHaveTextContent("20 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 20 matches");
   fireEvent.change(exclude, { target: { value: "pikachu" } });
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("0 Sold results"),
+    expect(screen.getByRole("status")).toHaveTextContent("Sold · 0 matches"),
   );
   fireEvent.click(
     screen.getByRole("button", { name: "Clear excluded keywords" }),
   );
   await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(15));
-  expect(screen.getByRole("status")).toHaveTextContent("20 Sold results");
+  expect(screen.getByRole("status")).toHaveTextContent("Sold · 20 matches");
 });

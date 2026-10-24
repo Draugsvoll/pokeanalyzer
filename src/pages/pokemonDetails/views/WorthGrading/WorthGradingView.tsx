@@ -1,4 +1,5 @@
-import { Layers3, Scale } from "lucide-react";
+import { VariantBadgeGroup } from "../../../../components/ui/VariantBadgeGroup";
+import { Scale } from "lucide-react";
 import { parseScoreString } from "../../../../../shared/analysisScores";
 import { useState, type ReactNode } from "react";
 import { Badge } from "../../../../components/ui/Badge";
@@ -590,40 +591,19 @@ export function WorthGradingView({
       <article className="worth-grading-view__card">
         <div className="worth-grading-view__body">
           <CardFeatureHeaderVariants>
-            <fieldset
-              aria-label="Grading recommendation variant"
-              className="worth-grading-view__variant-selector radio-group variant-badge-group"
-            >
-              <div>
-                {variants.map((variant, variantIndex) => {
-                  const variantName =
-                    variant.card?.variant_name ||
-                    variant.card?.name ||
-                    `Variant ${variantIndex + 1}`;
-
-                  return (
-                    <label key={`${variantName}-${variantIndex}`}>
-                      <input
-                        checked={activeVariantIndex === variantIndex}
-                        name="worth-grading-variant"
-                        onChange={() =>
-                          setSelectedVariant({
-                            index: variantIndex,
-                            responseKey,
-                          })
-                        }
-                        type="radio"
-                        value={variantIndex}
-                      />
-                      <span>
-                        <Layers3 aria-hidden="true" />
-                        <strong>{variantName}</strong>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
+            <VariantBadgeGroup
+              ariaLabel="Grading recommendation variant"
+              className="worth-grading-view__variant-selector"
+              options={variants.map((variant, index) => ({
+                value: index,
+                label:
+                  variant.card?.variant_name ||
+                  variant.card?.name ||
+                  `Variant ${index + 1}`,
+              }))}
+              value={activeVariantIndex}
+              onChange={(index) => setSelectedVariant({ index, responseKey })}
+            />
           </CardFeatureHeaderVariants>
 
           <div

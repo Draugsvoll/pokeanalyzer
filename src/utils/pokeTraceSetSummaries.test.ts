@@ -1,3 +1,4 @@
+import { parsePokeTraceFilterOptions } from "../../shared/pokeTraceFilterOptions";
 import { describe, expect, test } from "vitest";
 import type { PokeTraceCatalogCard } from "../../shared/pokeTraceCatalog";
 import { createPokeTraceSetSummaries } from "../../shared/pokeTraceSetSummaries";
@@ -88,4 +89,49 @@ describe("createPokeTraceSetSummaries", () => {
     expect(summary.comparableCards).toBe(0);
     expect(summary.sevenDayChangePercent).toBeNull();
   });
+});
+
+test.each([1.99, 2, 2.01])("checks the set total against $2 (%s)", (total) => {
+  const [summary] = createPokeTraceSetSummaries(
+    [card("first", "1", total / 2, 0.5), card("second", "2", total / 2, 0.5)],
+    "2026-10-03T01:00:00.000Z",
+  );
+  expect(summary.pricedCards).toBe(2);
+  expect(summary.comparableCards).toBe(2);
+  if (total < 2) expect(summary.sevenDayChangePercent).toBeNull();
+  else expect(summary.sevenDayChangePercent).toBeCloseTo((total - 1) * 100);
+});
+
+test("includes cheap cards in eligible set movement", () => {
+  const [summary] = createPokeTraceSetSummaries(
+    [card("cheap", "1", 1, 0.5), card("expensive", "2", 9, 9.5)],
+    "2026-10-03T01:00:00.000Z",
+  );
+  expect(summary.sevenDayChangePercent).toBe(0);
+  expect(summary.comparableCards).toBe(2);
+});
+
+test("uses the full set value for eligibility even when some cards lack history", () => {
+  const [summary] = createPokeTraceSetSummaries(
+    [card("comparable", "1", 1, 0.5), card("no-history", "2", 2, null)],
+    "2026-10-03T01:00:00.000Z",
+  );
+  expect(summary.sevenDayChangePercent).toBe(100);
+});
+
+test("preserves existing version-2 summaries", () => {
+  const summaries = createPokeTraceSetSummaries(
+    [card("eligible", "1", 10, 5)],
+    "2026-10-03T01:00:00Z",
+  );
+  const result = parsePokeTraceFilterOptions({
+    schemaVersion: 2,
+    generatedAt: "2026-10-03T01:00:00Z",
+    rarities: [],
+    setNames: ["Base Set"],
+    setSummaries: summaries,
+  });
+  expect(result.schemaVersion).toBe(2);
+  expect(result.setSummaries).toEqual(summaries);
+  expect(result.setSummaries[0].sevenDayChangePercent).toBe(100);
 });

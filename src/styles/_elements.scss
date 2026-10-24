@@ -700,9 +700,9 @@ input[type="radio"] {
   justify-content: center;
   align-items: center;
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--radio-accent) 24%, transparent);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--border-radius-pill);
-  color: var(--font-color-muted);
+  color: var(--font-color-secondary);
   display: inline-flex;
   font-weight: var(--font-weight-medium);
   gap: 0.4rem;
@@ -715,15 +715,19 @@ input[type="radio"] {
   white-space: nowrap;
 }
 
-.radio-group.radio-group label:hover > span {
+.radio-group.radio-group
+  label:hover
+  > input:not(:disabled):not(:checked)
+  + span {
+  background: color-mix(in srgb, var(--radio-accent) 6%, transparent);
   border-color: color-mix(in srgb, var(--radio-accent) 35%, transparent);
   color: var(--font-color-primary);
 }
 
 .radio-group.radio-group input:checked + span {
-  background: color-mix(in srgb, var(--radio-accent) 12%, transparent);
-  border-color: color-mix(in srgb, var(--radio-accent) 28%, transparent);
-  color: var(--radio-accent);
+  background: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
+  border-color: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
+  color: var(--button-font-color);
 }
 
 .radio-group.radio-group input:focus-visible + span {
@@ -744,7 +748,12 @@ input[type="radio"] {
 }
 
 .radio-group.radio-group input:checked + span strong {
-  color: var(--radio-accent);
+  color: var(--button-font-color);
+}
+
+.radio-group.radio-group input:checked + span svg,
+.radio-group.radio-group input:checked + span small {
+  color: var(--button-font-color);
 }
 
 .radio-group.radio-group small {
@@ -759,16 +768,6 @@ input[type="radio"] {
   color: var(--font-color-faint);
   font-size: 0.8em;
   font-style: normal;
-}
-
-.variant-badge-group.variant-badge-group label > span {
-  font-size: var(--font-size-paragraph-sm);
-  min-width: 7rem;
-  padding: 0.6rem 1.1rem;
-}
-
-.variant-badge-group.variant-badge-group input:checked + span {
-  background: color-mix(in srgb, var(--radio-accent) 7%, transparent);
 }
 
 .app-loading-spinner {

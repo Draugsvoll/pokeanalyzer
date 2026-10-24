@@ -1,6 +1,7 @@
+import { VariantBadgeGroup } from "../../../../components/ui/VariantBadgeGroup";
 import { parseMarketAnalysisResponse } from "../../../../../shared/marketAnalysis";
 import type { ReactNode } from "react";
-import { Layers3, TrendingUp, TriangleAlert } from "lucide-react";
+import { TrendingUp, TriangleAlert } from "lucide-react";
 import { Badge } from "../../../../components/ui/Badge";
 import type { GrokRequestState } from "../../../../utils/grok/grokClient";
 import {
@@ -82,25 +83,12 @@ export function MarketAnalysisView({
     <section className="market-analysis-report ui-render-fade">
       <div className="market-analysis-report__hero-group">
         <CardFeatureHeaderVariants>
-          <fieldset
-            aria-label="Market analysis variant"
-            className="market-analysis-report__variant-selector radio-group variant-badge-group"
-          >
-            <div>
-              <label>
-                <input
-                  checked
-                  name="market-analysis-variant"
-                  readOnly
-                  type="radio"
-                />
-                <span>
-                  <Layers3 aria-hidden="true" />
-                  <strong>{data.variantName}</strong>
-                </span>
-              </label>
-            </div>
-          </fieldset>
+          <VariantBadgeGroup
+            ariaLabel="Market analysis variant"
+            className="market-analysis-report__variant-selector"
+            options={[{ value: "current", label: data.variantName }]}
+            value="current"
+          />
         </CardFeatureHeaderVariants>
 
         <FeatureAnalysisHero

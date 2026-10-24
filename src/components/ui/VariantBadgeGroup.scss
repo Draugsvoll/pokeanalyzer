@@ -1,0 +1,84 @@
+.variant-badge-group {
+  --variant-accent: var(--feature-accent, var(--custom-color-orange));
+
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.variant-badge-group__options {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.variant-badge-group__option {
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 1 auto;
+
+  input {
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 1px;
+  }
+
+  > span {
+    align-items: center;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--variant-accent) 24%, transparent);
+    border-radius: var(--border-radius-pill);
+    color: var(--font-color-muted);
+    display: inline-flex;
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
+    gap: 0.4rem;
+    justify-content: center;
+    line-height: 1;
+    min-width: 7rem;
+    padding: 0.6rem 1.1rem;
+    transition:
+      background var(--delay-short) ease,
+      border-color var(--delay-short) ease,
+      color var(--delay-short) ease;
+    white-space: nowrap;
+  }
+
+  &:hover > span {
+    border-color: color-mix(in srgb, var(--variant-accent) 35%, transparent);
+    color: var(--font-color-primary);
+  }
+
+  input:checked + span {
+    background: color-mix(in srgb, var(--variant-accent) 7%, transparent);
+    border-color: color-mix(in srgb, var(--variant-accent) 28%, transparent);
+    color: var(--variant-accent);
+
+    strong {
+      color: inherit;
+    }
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid var(--variant-accent);
+    outline-offset: 3px;
+  }
+
+  svg {
+    color: var(--variant-accent);
+    flex: 0 0 auto;
+    height: 1rem;
+    width: 1rem;
+  }
+
+  strong {
+    color: var(--font-color-secondary);
+    font-weight: var(--font-weight-bold);
+  }
+}

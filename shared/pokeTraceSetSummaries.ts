@@ -1,6 +1,9 @@
 import type { PokeTraceCatalogCard } from "./pokeTraceCatalog.js";
 import { POKETRACE_CURRENCY } from "./pokeTraceCurrency.js";
-import { calculateDisplayedPriceChangePercent } from "./pokeTracePriceChange.js";
+import {
+  calculateDisplayedPriceChangePercent,
+  MINIMUM_GAINER_LOSER_PRICE,
+} from "./pokeTracePriceChange.js";
 import { selectUniqueSetCardsByPrice } from "./selectUniqueSetCards.js";
 
 export type PokeTraceSetSummary = {
@@ -31,11 +34,13 @@ function summarizeSet(
   let currentComparableValue = 0;
   let previousComparableValue = 0;
   let pricedCards = 0;
+  let totalValue = 0;
 
   for (const card of uniqueCards) {
     const currentPrice = nearMintPrice(card);
     if (currentPrice === null) continue;
     pricedCards += 1;
+    totalValue += currentPrice;
 
     const previousPrice = card.priceSnapshots["7d"];
     if (
@@ -57,10 +62,13 @@ function summarizeSet(
     currency,
     pricedCards,
     setName,
-    sevenDayChangePercent: calculateDisplayedPriceChangePercent(
-      currentComparableValue,
-      previousComparableValue,
-    ),
+    sevenDayChangePercent:
+      totalValue < MINIMUM_GAINER_LOSER_PRICE
+        ? null
+        : calculateDisplayedPriceChangePercent(
+            currentComparableValue,
+            previousComparableValue,
+          ),
     uniqueCards: uniqueCards.length,
   };
 }

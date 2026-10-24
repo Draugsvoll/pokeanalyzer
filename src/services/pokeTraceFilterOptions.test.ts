@@ -159,12 +159,10 @@ test("missing percentages in a valid new response replace cached percentages", a
     JSON.stringify({ cachedAt: now - 6 * 60 * 60 * 1_000, options: payload }),
   );
   vi.spyOn(Date, "now").mockReturnValue(now);
-  const fetchMock = vi
-    .fn<typeof fetch>()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({ ...payload, setSummaries: [] }),
-    } as Response);
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
+    ok: true,
+    json: async () => ({ ...payload, setSummaries: [] }),
+  } as Response);
   vi.stubGlobal("fetch", fetchMock);
   const service = await import("./pokeTraceFilterOptions");
   expect((await service.loadPokeTraceFilterOptions())?.setSummaries).toEqual(

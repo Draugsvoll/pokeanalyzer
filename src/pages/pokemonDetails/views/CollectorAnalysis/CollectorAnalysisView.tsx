@@ -1,9 +1,9 @@
+import { VariantBadgeGroup } from "../../../../components/ui/VariantBadgeGroup";
 import {
   Clock3,
   FileText,
   Gem,
   Landmark,
-  Layers3,
   Palette,
   Users,
   type LucideIcon,
@@ -175,29 +175,16 @@ export default function CollectorAnalysis({
   return (
     <div className="collector-ranking ui-render-fade">
       <CardFeatureHeaderVariants>
-        <fieldset
-          aria-label="Collector analysis variant"
-          className="collector-ranking__variant-selector radio-group variant-badge-group"
-        >
-          <div>
-            {analyses.map((variantAnalysis, variantIndex) => (
-              <label key={`${variantAnalysis.variantName}-${variantIndex}`}>
-                <input
-                  checked={activeVariantIndex === variantIndex}
-                  name="collector-analysis-variant"
-                  onChange={() =>
-                    setSelectedVariant({ index: variantIndex, responseKey })
-                  }
-                  type="radio"
-                />
-                <span>
-                  <Layers3 aria-hidden="true" />
-                  <strong>{variantAnalysis.variantName}</strong>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <VariantBadgeGroup
+          ariaLabel="Collector analysis variant"
+          className="collector-ranking__variant-selector"
+          options={analyses.map((variant, index) => ({
+            value: index,
+            label: variant.variantName,
+          }))}
+          value={activeVariantIndex}
+          onChange={(index) => setSelectedVariant({ index, responseKey })}
+        />
       </CardFeatureHeaderVariants>
       <div
         className="collector-ranking__content ui-render-fade"
