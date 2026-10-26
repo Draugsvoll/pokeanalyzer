@@ -1,3 +1,4 @@
+import { loadPokeTracePriceHistory } from "../db/routes/pokeTraceRoutes.js";
 import "dotenv/config";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -36,11 +37,19 @@ try {
     throw new Error("Price history for the demo source card is missing");
   }
 
+  const priceHistory = await loadPokeTracePriceHistory(DEMO_SOURCE_CARD_ID, 9);
+  if (!priceHistory?.snapshots.length) {
+    throw new Error(
+      "Daily price snapshots for the demo source card are missing",
+    );
+  }
+
   const demoCard = {
     ...card,
     id: "demo",
     pokeTrace: {
       ...card.pokeTrace,
+      priceHistory: { ...priceHistory, cardId: "demo" },
       marketPriceHistory: {
         ...marketPriceHistory,
         cardId: "demo",

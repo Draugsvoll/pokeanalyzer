@@ -499,7 +499,7 @@ test("removes cleared Sealed filters from the URL", async () => {
   );
 
   fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
   await waitFor(() => {
     const params = new URLSearchParams(

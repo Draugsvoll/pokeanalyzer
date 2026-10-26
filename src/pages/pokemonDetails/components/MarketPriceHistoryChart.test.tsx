@@ -146,7 +146,7 @@ test("shows both marketplace values in the hover tooltip", () => {
   expect(screen.getAllByText("Sep 18")).toHaveLength(2);
 });
 
-test("carries the latest Ebay price through missing and trailing dates", () => {
+test("carries the latest Ebay price through trailing dates", () => {
   render(
     <MarketPriceHistoryChart
       history={history({
@@ -163,8 +163,41 @@ test("carries the latest Ebay price through missing and trailing dates", () => {
   expect(screen.getByText("$420")).toBeVisible();
   expect(screen.getByText("$480")).toBeVisible();
   expect(
+    document.querySelector(".poketrace-market__history-point--ebay"),
+  ).toBeInTheDocument();
+  expect(
     document.querySelector(".poketrace-market__history-line--ebay"),
   ).toHaveAttribute("d", expect.stringContaining("L 790.00"));
+});
+
+test("aligns the Ebay line and marker on a carried-forward date", () => {
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [
+          point("2026-09-10", 33),
+          point("2026-09-11", 33),
+          point("2026-09-12", 33),
+        ],
+        ebay: [point("2026-09-10", 40, 35), point("2026-09-12", 20, 25)],
+      })}
+    />,
+  );
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  fireEvent.pointerMove(chart, { clientX: 418 });
+  expect(screen.getByText("$35.00")).toBeVisible();
+  expect(
+    document.querySelector(".poketrace-market__history-point--ebay"),
+  ).toBeInTheDocument();
+
+  const marker = document.querySelector(
+    ".poketrace-market__history-point--ebay",
+  )!;
+  const coordinates = `${Number(marker.getAttribute("cx")).toFixed(2)} ${Number(marker.getAttribute("cy")).toFixed(2)}`;
+  expect(
+    document.querySelector(".poketrace-market__history-line--ebay"),
+  ).toHaveAttribute("d", expect.stringContaining(coordinates));
 });
 
 test("shows only a subtle indicator while history loads", () => {

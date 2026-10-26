@@ -7,7 +7,6 @@
 }
 
 .portfolio-item-card:hover .pokemon-card-view__card {
-  background: color-mix(in srgb, var(--bg-card) 97%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
 }

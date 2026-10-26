@@ -4,7 +4,14 @@
 }
 
 .set-explorer-overview__summary {
+  overflow: visible;
   transition: opacity var(--delay-short) ease;
+}
+
+.set-explorer-overview__summary .app-overview-metric-content > span:has(.info-tooltip) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .set-explorer-overview[aria-busy="true"] .set-explorer-overview__summary {

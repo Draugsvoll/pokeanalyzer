@@ -22,7 +22,7 @@ test("renders controls before optional intro content without a premature empty-r
     </EbaySoldView>,
   );
   const intro = screen.getByRole("button", { name: "Search this card" });
-  const sort = screen.getByRole("button", { name: "Sort Ebay listings" });
+  const sort = screen.getByRole("radiogroup", { name: "Sort Ebay listings" });
   expect(sort.compareDocumentPosition(intro)).toBe(
     Node.DOCUMENT_POSITION_FOLLOWING,
   );
@@ -721,13 +721,11 @@ test("shows keyword help independently for each empty filter", () => {
   });
   expect(excludeHelp).toBeVisible();
   expect(includeHelp).toBeVisible();
-  expect(excludeHelp).toHaveAttribute(
-    "aria-describedby",
-    "ebay-exclude-keywords-help",
+  expect(excludeHelp).toHaveAccessibleDescription(
+    expect.stringContaining("Results are excluded"),
   );
-  expect(includeHelp).toHaveAttribute(
-    "aria-describedby",
-    "ebay-include-keywords-help",
+  expect(includeHelp).toHaveAccessibleDescription(
+    expect.stringContaining("Results must match all words"),
   );
 
   fireEvent.change(

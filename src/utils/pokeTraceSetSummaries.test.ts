@@ -91,14 +91,14 @@ describe("createPokeTraceSetSummaries", () => {
   });
 });
 
-test.each([1.99, 2, 2.01])("checks the set total against $2 (%s)", (total) => {
+test.each([1.99, 2, 9.99, 10, 10.01])("checks the set total against $10 (%s)", (total) => {
   const [summary] = createPokeTraceSetSummaries(
     [card("first", "1", total / 2, 0.5), card("second", "2", total / 2, 0.5)],
     "2026-10-03T01:00:00.000Z",
   );
   expect(summary.pricedCards).toBe(2);
   expect(summary.comparableCards).toBe(2);
-  if (total < 2) expect(summary.sevenDayChangePercent).toBeNull();
+  if (total < 10) expect(summary.sevenDayChangePercent).toBeNull();
   else expect(summary.sevenDayChangePercent).toBeCloseTo((total - 1) * 100);
 });
 
@@ -113,7 +113,7 @@ test("includes cheap cards in eligible set movement", () => {
 
 test("uses the full set value for eligibility even when some cards lack history", () => {
   const [summary] = createPokeTraceSetSummaries(
-    [card("comparable", "1", 1, 0.5), card("no-history", "2", 2, null)],
+    [card("comparable", "1", 1, 0.5), card("no-history", "2", 9, null)],
     "2026-10-03T01:00:00.000Z",
   );
   expect(summary.sevenDayChangePercent).toBe(100);

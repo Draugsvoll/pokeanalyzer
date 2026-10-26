@@ -1,4 +1,11 @@
-import { useId, useState, type PointerEvent } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from "react";
 import type {
   MarketPriceHistoryResponse,
   MarketPriceHistoryPoint,
@@ -107,6 +114,26 @@ export function MarketPriceHistoryChart({
   const [hoverDateIndex, setHoverDateIndex] = useState<number | null>(null);
   const chartId = useId().replaceAll(":", "");
   const glowId = `market-history-glow-${chartId}`;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [axisFontSize, setAxisFontSize] = useState(12);
+  const hasHistory = availableSources.length > 0;
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const updateFontSize = () => {
+      const width = svg.getBoundingClientRect().width;
+      if (width <= 0) return;
+      // Compensate for SVG scaling; keep rendered labels between 11 and 12px.
+      const renderedSize = Math.max(11, Math.min(12, (12 * width) / WIDTH));
+      setAxisFontSize((renderedSize * WIDTH) / width);
+    };
+    updateFontSize();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateFontSize);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [hasHistory]);
 
   if (availableSources.length === 0) {
     return (
@@ -171,15 +198,18 @@ export function MarketPriceHistoryChart({
   const y = (value: number) =>
     PADDING.top + ((axis.max - value) / (axis.max - axis.min)) * plotHeight;
   const plottedSeries = series.map(({ source, points }) => {
-    const positionedPoints = points.map(({ point, value }) => ({
-      x: x(point.date),
-      y: y(value),
-    }));
+    // Use the last known price on shared dates without a new observation.
+    const positionedPoints = dates.flatMap((date) => {
+      if (date > points.at(-1)!.point.date) return [];
+      const latest = points.findLast(({ point }) => point.date <= date);
+      return latest ? [{ x: x(date), y: y(latest.value) }] : [];
+    });
+    const endX = x(dates.at(-1)!);
     return {
       source,
       points,
-      line: monotoneLinePath(positionedPoints, x(dates.at(-1)!)),
-      area: monotoneAreaPath(positionedPoints, x(dates.at(-1)!), plotBottom),
+      line: monotoneLinePath(positionedPoints, endX),
+      area: monotoneAreaPath(positionedPoints, endX, plotBottom),
     };
   });
   const dateTickCount = Math.min(7, dates.length);
@@ -199,20 +229,19 @@ export function MarketPriceHistoryChart({
   const activeDate = dates[activeDateIndex];
   const activeX = x(activeDate);
   const activePoints = plottedSeries.map(({ source, points }) => {
-    const exactPoint = points.find(({ point }) => point.date === activeDate);
-    const carriedPoint = points.findLast(
+    const latestPoint = points.findLast(
       ({ point }) => point.date <= activeDate,
     );
     return {
       source,
-      point: exactPoint ?? carriedPoint ?? null,
+      point: latestPoint ?? null,
     };
   });
   const activePointYs = activePoints.flatMap(({ point }) =>
     point ? [y(point.value)] : [],
   );
   const activeTop = Math.min(...activePointYs);
-  const tooltipViewportWidth = 208;
+  const tooltipViewportWidth = 192;
   const tooltipHeight = availableSources.length > 1 ? 88 : 66;
   const tooltipX = Math.min(
     WIDTH - PADDING.right - tooltipViewportWidth,
@@ -267,6 +296,10 @@ export function MarketPriceHistoryChart({
       </header>
       <div className="poketrace-market__history-chart ui-render-fade">
         <svg
+          ref={svgRef}
+          style={
+            { "--history-axis-font-size": `${axisFontSize}px` } as CSSProperties
+          }
           aria-label={`${sourceNames} ${conditionLabel} price history from ${formatDate(dates[0])} to ${formatDate(dates.at(-1)!)}`}
           onPointerLeave={() => setHoverDateIndex(null)}
           onPointerMove={handlePointerMove}
@@ -422,7 +455,9 @@ export function MarketPriceHistoryChart({
                     <i aria-hidden="true" />
                     <span>{sourceLabel(source)}</span>
                     <strong>
-                      {point ? formatPrice(point.value, history.currency) : "—"}
+                      {point
+                        ? formatPrice(point.value, history.currency)
+                        : "No data"}
                     </strong>
                   </span>
                 ))}

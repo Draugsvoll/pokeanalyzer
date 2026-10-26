@@ -8,19 +8,11 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-export type CardPriceHistorySnapshot = {
-  recordedAt: string;
-  currency: string | null;
-  prices: Record<string, unknown>;
-  sourceUpdatedAt: string | null;
-};
-
-export type CardPriceHistoryResponse = {
-  cardId: string;
-  days: number;
-  /** Daily snapshots ordered oldest to newest. Missing dates are not synthesized. */
-  snapshots: CardPriceHistorySnapshot[];
-};
+import type { CardPriceHistoryResponse } from "../../shared/pokeTracePriceHistory";
+export type {
+  CardPriceHistoryResponse,
+  CardPriceHistorySnapshot,
+} from "../../shared/pokeTracePriceHistory";
 
 export type MarketPriceHistorySource = PokeTraceMarketHistorySource;
 export type MarketPriceHistoryPoint = PokeTraceMarketHistoryPoint;

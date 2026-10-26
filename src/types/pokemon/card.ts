@@ -1,3 +1,4 @@
+import type { CardPriceHistoryResponse } from "../../../shared/pokeTracePriceHistory";
 import type { CardSet } from "./set";
 import type {
   PokeTraceMarketComparisonPeriod,
@@ -58,5 +59,6 @@ export type PokemonCard = {
       Record<PokeTraceMarketComparisonPeriod, number | null>
     >;
     marketPriceHistory?: PokeTraceMarketHistory;
+    priceHistory?: CardPriceHistoryResponse;
   };
 };

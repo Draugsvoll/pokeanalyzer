@@ -4,6 +4,7 @@ import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { CardIdentity } from "../cardIdentity/CardIdentity";
 import { OverviewMetric, OverviewPanel } from "../overviewPanel/OverviewPanel";
+import { InfoTooltip } from "../ui/InfoTooltip";
 import { PriceChange } from "../priceChange/PriceChange";
 import { OverviewScopeControl } from "../overviewPanel/OverviewScopeControl";
 import {
@@ -201,7 +202,23 @@ export function SetExplorerOverview({
               treatment
             </>
           }
-          label="Cards"
+          label={
+            <>
+              Cards{" "}
+              <InfoTooltip label="About numbered cards and all variants">
+                <strong>Numbered cards</strong>
+                <span>
+                  One of each numbered card, including Secret Rares. Uses the
+                  lowest priced variant.
+                </span>
+                <span></span>
+                <strong>Variants & Treatments</strong>
+                <span>
+                  Includes every variant and treatment of all cards in the set.
+                </span>
+              </InfoTooltip>
+            </>
+          }
           size="compact"
           value={overview.uniqueCards.toLocaleString("en-US")}
         />

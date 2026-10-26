@@ -34,7 +34,7 @@
       linear-gradient(
         145deg,
         color-mix(in srgb, var(--surface2) 58%, transparent),
-        color-mix(in srgb, var(--surface) 42%, transparent)
+        color-mix(in srgb, var(--bg2) 42%, transparent)
       );
     border-radius: inherit;
     content: "";
@@ -47,7 +47,7 @@
 
 .product-card:hover > .product-card__surface,
 .product-card:focus-within > .product-card__surface {
-  background: color-mix(in srgb, var(--bg-card) 97%, white);
+  background: color-mix(in srgb, var(--bg-card) 98%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
 }

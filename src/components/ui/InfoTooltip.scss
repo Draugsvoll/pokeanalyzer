@@ -1,0 +1,105 @@
+.info-tooltip {
+  display: inline-flex;
+  position: relative;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
+  > button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: var(--font-color-faint);
+    cursor: help;
+    display: flex;
+    justify-content: center;
+    height: 1.5rem;
+    width: 1.5rem;
+    padding: 0;
+    transition: color var(--animation-duration-fast)
+      var(--animation-ease-standard);
+
+    svg {
+      height: 1rem;
+      width: 1rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: var(--font-color-secondary);
+      outline: none;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--custom-color-teal) 24%, transparent);
+    }
+  }
+}
+
+.info-tooltip__content {
+  background: var(--bg2);
+  border: 1px solid #334154;
+  border-radius: var(--border-radius);
+  bottom: calc(100% + 0.65rem);
+  box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.22);
+  color: var(--font-color-muted);
+  display: grid;
+  font-size: var(--font-size-caption);
+  gap: 0.35rem;
+  line-height: 1.4;
+  opacity: 0;
+  padding: 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  left: auto;
+  right: 0;
+  top: auto;
+  transform: translateY(0.25rem);
+  transition:
+    opacity var(--animation-duration-fast) var(--animation-ease-standard),
+    transform var(--animation-duration-fast) var(--animation-ease-standard),
+    visibility var(--animation-duration-fast);
+  visibility: hidden;
+  width: min(18rem, calc(100vw - 3rem));
+  box-sizing: border-box;
+  text-align: left;
+  z-index: calc(var(--dropdown-z-index) + 1);
+
+  // Bridge the gap so hovering from the trigger to the content keeps it open.
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: calc(0.65rem + 1px);
+  }
+
+  strong {
+    color: var(--font-color-primary);
+    font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: 0.1rem;
+  }
+
+  span {
+    font-weight: var(--font-weight-medium);
+  }
+}
+
+.info-tooltip:hover,
+.info-tooltip:focus-within {
+  z-index: calc(var(--dropdown-z-index) + 1);
+}
+.info-tooltip[data-open="true"] > .info-tooltip__content {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .info-tooltip__content {
+    transition: none;
+  }
+}

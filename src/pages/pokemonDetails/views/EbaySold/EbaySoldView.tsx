@@ -1,3 +1,4 @@
+import { InfoTooltip } from "../../../../components/ui/InfoTooltip";
 import {
   useEffect,
   useLayoutEffect,
@@ -13,9 +14,9 @@ import {
 } from "../../../../utils/ebayComps";
 import {
   ChevronDown,
-  CircleHelp,
   Columns2,
   ExternalLink,
+  Eye,
   Gavel,
   Rows2,
 } from "lucide-react";
@@ -49,8 +50,8 @@ type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
 type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
-  { value: "price-desc", label: "Price: high\u2013low" },
-  { value: "price-asc", label: "Price: low\u2013high" },
+  { value: "price-desc", label: "Price \u2193" },
+  { value: "price-asc", label: "Price \u2191" },
   { value: "date-desc", label: "Newest" },
   { value: "date-asc", label: "Oldest" },
 ];
@@ -232,6 +233,7 @@ type EbayResultCardProps = {
 
 type EbayListingMetadataItem = {
   label: string;
+  icon?: ReactNode;
 };
 
 function isMetadataItem(
@@ -331,7 +333,7 @@ function EbayResultCard({
     offerAccepted ? { label: "Offer accepted" } : null,
     timeLeft ? { label: `${timeLeft} left` } : null,
     buyItNowPrice ? { label: `Buy It Now ${buyItNowPrice}` } : null,
-    watchers ? { label: watchers } : null,
+    watchers ? { label: watchers, icon: <Eye aria-hidden="true" /> } : null,
     isActive && shippingLabel ? { label: shippingLabel } : null,
   ];
   const metadataItems = metadataCandidates.filter(isMetadataItem);
@@ -411,6 +413,7 @@ function EbayResultCard({
                   key={`${item.label}-${itemIndex}`}
                 >
                   {itemIndex > 0 && <span>{"\u2022"}</span>}
+                  {item.icon}
                   {item.label}
                 </span>
               ))}
@@ -940,7 +943,7 @@ export default function EbaySoldView({
         <ClearFiltersButton label="Clear filters" onClick={clearFilters} />
       )}
       <div className="ebay-sold-view__sorting">
-        <SelectDropdown
+        <RadioButtonGroup
           ariaLabel="Sort Ebay listings"
           options={EBAY_SORT_OPTIONS}
           value={sortOrder}
@@ -1018,7 +1021,10 @@ export default function EbaySoldView({
               {!loading && (
                 <>
                   {" \u00b7 "}
-                  <span className="ebay-sold-view__result-count">
+                  <span
+                    className="ebay-sold-view__result-count ui-render-fade"
+                    key={results.length}
+                  >
                     {results.length}{" "}
                     {results.length === 1 ? "match" : "matches"}
                   </span>
@@ -1033,15 +1039,21 @@ export default function EbaySoldView({
             >
               <div>
                 <dt>High</dt>
-                <dd>{priceSummary.high}</dd>
+                <dd className="ui-render-fade" key={priceSummary.high}>
+                  {priceSummary.high}
+                </dd>
               </div>
               <div>
                 <dt>Median</dt>
-                <dd>{priceSummary.median}</dd>
+                <dd className="ui-render-fade" key={priceSummary.median}>
+                  {priceSummary.median}
+                </dd>
               </div>
               <div>
                 <dt>Low</dt>
-                <dd>{priceSummary.low}</dd>
+                <dd className="ui-render-fade" key={priceSummary.low}>
+                  {priceSummary.low}
+                </dd>
               </div>
             </dl>
           )}
@@ -1062,7 +1074,7 @@ export default function EbaySoldView({
           </p>
         )}
         <div
-          className="ebay-sold-view__results ui-render-fade"
+          className="ebay-sold-view__results"
           key={`${listingType}-${appliedGradeFilter}-${appliedGraderFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
           onScroll={(event) => handleResultScroll(event, listingType)}
         >
@@ -1088,7 +1100,7 @@ export default function EbaySoldView({
   return (
     <div className="ebay-sold-view ui-render-fade">
       <span className="feature-analysis-eyebrow ebay-sold-view__eyebrow">
-        Ebay Sold &amp; Listed
+        Sold &amp; active listings
       </span>
       <div className="ebay-sold-view__surface">
         <div className="ebay-sold-view__listing-selector">
@@ -1160,28 +1172,18 @@ export default function EbaySoldView({
                 value={excludeFilter}
               />
               {!excludeFilter.trim() && (
-                <div className="ebay-sold-view__filter-help">
-                  <button
-                    aria-describedby="ebay-exclude-keywords-help"
-                    aria-label="How excluded keywords work"
-                    type="button"
-                  >
-                    <CircleHelp aria-hidden="true" />
-                  </button>
-                  <div
-                    className="ebay-sold-view__filter-help-tooltip"
-                    id="ebay-exclude-keywords-help"
-                    role="tooltip"
-                  >
-                    <strong>Keywords</strong>
-                    <span>
-                      Apply multiple keywords by separating with commas. Results
-                      are excluded if it matches any of the words.
-                    </span>
-                    <span></span>
-                    <span>"Reverse holo, anniversary, cgc"</span>
-                  </div>
-                </div>
+                <InfoTooltip
+                  className="ebay-sold-view__filter-help"
+                  label="How excluded keywords work"
+                >
+                  <strong>Keywords</strong>
+                  <span>
+                    Apply multiple keywords by separating with commas. Results
+                    are excluded if it matches any of the words.
+                  </span>
+
+                  <span>"Reverse holo, anniversary, cgc"</span>
+                </InfoTooltip>
               )}
             </div>
             <div className="ebay-sold-view__keyword-filter">
@@ -1195,28 +1197,18 @@ export default function EbaySoldView({
                 value={textFilter}
               />
               {!textFilter.trim() && (
-                <div className="ebay-sold-view__filter-help">
-                  <button
-                    aria-describedby="ebay-include-keywords-help"
-                    aria-label="How included keywords work"
-                    type="button"
-                  >
-                    <CircleHelp aria-hidden="true" />
-                  </button>
-                  <div
-                    className="ebay-sold-view__filter-help-tooltip"
-                    id="ebay-include-keywords-help"
-                    role="tooltip"
-                  >
-                    <strong>Keywords</strong>
-                    <span>
-                      Apply multiple keywords by separating with commas. Results
-                      must match all words.
-                    </span>
-                    <span></span>
-                    <span>"psa, 1st edition, secret rare"</span>
-                  </div>
-                </div>
+                <InfoTooltip
+                  className="ebay-sold-view__filter-help"
+                  label="How included keywords work"
+                >
+                  <strong>Keywords</strong>
+                  <span>
+                    Apply multiple keywords by separating with commas. Results
+                    must match all words.
+                  </span>
+
+                  <span>"psa, 1st edition, secret rare"</span>
+                </InfoTooltip>
               )}
             </div>
           </div>

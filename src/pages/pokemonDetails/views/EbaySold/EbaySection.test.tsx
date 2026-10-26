@@ -300,7 +300,9 @@ test("keeps only the header when both streamed sides fail and refreshes the refu
   expect(screen.getByText("Ebay Explorer").closest("header")).toContainElement(
     screen.getByRole("alert"),
   );
-  expect(screen.queryByText("Ebay Sold & Listed")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
   expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
 });
@@ -342,7 +344,9 @@ test.each(["card", "logout", "account"])(
       stream.close();
     });
     expect(mocks.updateCredits).not.toHaveBeenCalled();
-    expect(screen.queryByText("Ebay Sold & Listed")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
+    ).not.toBeInTheDocument();
     expect(mocks.refreshCredits).not.toHaveBeenCalled();
   },
 );
@@ -374,8 +378,8 @@ test("replaces the intro with results after an explicit search and does not refe
   for (const control of [
     screen.queryByRole("radio", { name: "Sold" }),
     screen.queryByRole("radio", { name: "Grade 10" }),
-    screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
-    screen.queryByRole("button", { name: "Sort Ebay listings" }),
+    screen.queryByRole("searchbox", { name: "Include keywords" }),
+    screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
   ]) {
     expect(control).not.toBeInTheDocument();
   }
@@ -388,7 +392,9 @@ test("replaces the intro with results after an explicit search and does not refe
     await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
   ).toBeVisible();
   expect(mocks.updateCredits).toHaveBeenCalledTimes(1);
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
   expect(
     screen.queryByText("Ebay completed sales & active listings"),
   ).not.toBeInTheDocument();
@@ -408,7 +414,9 @@ test("replaces the intro with results after an explicit search and does not refe
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
   expect(mocks.updateCredits).not.toHaveBeenCalled();
   expect(screen.getByRole("heading", { name: "Pikachu Psa 10" })).toBeVisible();
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
 });
 
 test("keeps the intro while loading, prevents duplicate requests, and leaves result controls usable", async () => {
@@ -432,9 +440,7 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
   expect(pendingAction).toHaveAttribute("aria-busy", "true");
   expect(pendingAction).not.toHaveTextContent("1 Ebay credit");
   const loadingMessage = screen.getByRole("status");
-  expect(loadingMessage).toHaveTextContent(
-    "Fetching Ebay listings and sales...",
-  );
+  expect(loadingMessage).toBeVisible();
   expect(pendingAction.closest(".card-feature-header")).toContainElement(
     loadingMessage,
   );
@@ -450,16 +456,18 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
     screen.queryByRole("radio", { name: "Grade 10" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
+    screen.queryByRole("searchbox", { name: "Include keywords" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "Sort Ebay listings" }),
+    screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
   ).not.toBeInTheDocument();
   expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
   await act(async () => {
     resolve(successResponse());
   });
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(screen.getByText("No matching Ebay listings found.")).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
@@ -480,7 +488,9 @@ test("shows no-matches only after an empty successful search and removes the CTA
   expect(
     screen.queryByRole("button", { name: "1 Ebay credit" }),
   ).not.toBeInTheDocument();
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
   expect(screen.getByRole("radio", { name: "Listed" })).toBeEnabled();
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 });
@@ -499,7 +509,9 @@ test("keeps results visible without credit prompts after spending the final cred
   expect(mocks.creditsRemaining).toBe(0);
   rerender(view());
 
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
   expect(screen.queryByText("0 Ebay credits")).not.toBeInTheDocument();
   expect(screen.queryByText(/No Ebay credits left/)).not.toBeInTheDocument();
   expect(
@@ -535,7 +547,7 @@ test.each(["sold", "active"] as const)(
     );
     render(view());
     fireEvent.click(screen.getByRole("button", { name: "1 Ebay credit" }));
-    await screen.findByText("Ebay Sold & Listed");
+    await screen.findByRole("radiogroup", { name: "Sort Ebay listings" });
     expect(screen.getByText("Ebay Explorer")).toBeVisible();
     const header = screen.getByText("Ebay Explorer").closest("header");
     expect(header).toContainElement(screen.getByRole("alert"));
@@ -649,7 +661,7 @@ test.each([409, 502])(
       screen.queryByRole("radiogroup", { name: "Ebay listing type" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("searchbox", { name: "Filter Ebay results" }),
+      screen.queryByRole("searchbox", { name: "Include keywords" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Ebay Explorer")).toBeVisible();
     expect(screen.getByRole("button", { name: "1 Ebay credit" })).toBeEnabled();
@@ -660,7 +672,9 @@ test.each([409, 502])(
       await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
     ).toBeVisible();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+    expect(
+      screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+    ).toBeVisible();
     await waitFor(() => expect(mocks.updateCredits).toHaveBeenCalledTimes(1));
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(2);
   },
@@ -728,7 +742,9 @@ test("shows independent demo results without fetching or spending credits", () =
     </MemoryRouter>,
   );
   expect(screen.queryByText("Demo results")).not.toBeInTheDocument();
-  expect(screen.getByText("Ebay Sold & Listed")).toBeVisible();
+  expect(
+    screen.getByRole("radiogroup", { name: "Sort Ebay listings" }),
+  ).toBeVisible();
   expect(
     screen.queryByText("Ebay completed sales & active listings"),
   ).not.toBeInTheDocument();

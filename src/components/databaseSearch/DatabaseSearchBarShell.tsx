@@ -206,7 +206,7 @@ export function DatabaseSearchBarShell({
           <div className="database-search-filter-actions">
             <ClearFiltersButton
               disabled={filterCount === 0}
-              label="Clear all"
+              label="Clear filters"
               onClick={onClearFilters}
             />
           </div>

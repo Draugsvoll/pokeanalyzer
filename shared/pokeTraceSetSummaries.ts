@@ -1,10 +1,10 @@
 import type { PokeTraceCatalogCard } from "./pokeTraceCatalog.js";
 import { POKETRACE_CURRENCY } from "./pokeTraceCurrency.js";
-import {
-  calculateDisplayedPriceChangePercent,
-  MINIMUM_GAINER_LOSER_PRICE,
-} from "./pokeTracePriceChange.js";
+import { calculateDisplayedPriceChangePercent } from "./pokeTracePriceChange.js";
 import { selectUniqueSetCardsByPrice } from "./selectUniqueSetCards.js";
+
+// Only set-list percentages and their gainers/losers rankings use this minimum.
+const MINIMUM_SET_LIST_VALUE = 10;
 
 export type PokeTraceSetSummary = {
   asOf: string;
@@ -63,7 +63,7 @@ function summarizeSet(
     pricedCards,
     setName,
     sevenDayChangePercent:
-      totalValue < MINIMUM_GAINER_LOSER_PRICE
+      totalValue < MINIMUM_SET_LIST_VALUE
         ? null
         : calculateDisplayedPriceChangePercent(
             currentComparableValue,

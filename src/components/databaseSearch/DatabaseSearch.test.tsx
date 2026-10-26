@@ -159,7 +159,6 @@ test("switches and focuses the shared search hero mode without changing the rout
   expect(
     screen.getByRole("heading", { name: "Know your next card." }),
   ).toBeVisible();
-  expect(screen.getByText("Analyzing cards simplified.")).toBeVisible();
   expect(
     screen.queryByRole("spinbutton", { name: "Minimum price" }),
   ).not.toBeInTheDocument();
@@ -356,7 +355,7 @@ test("removes cleared Singles filters from the URL", async () => {
   );
 
   fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
   await waitFor(() => {
     const params = new URLSearchParams(

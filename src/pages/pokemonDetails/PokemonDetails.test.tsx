@@ -463,7 +463,7 @@ test("keeps the embedded card search open while using its controls", async () =>
     name: "Minimum price",
   });
   fireEvent.change(minimumPrice, { target: { value: "25" } });
-  const clearFilters = screen.getByRole("button", { name: "Clear all" });
+  const clearFilters = screen.getByRole("button", { name: "Clear filters" });
   fireEvent.mouseDown(clearFilters);
   fireEvent.click(clearFilters);
 

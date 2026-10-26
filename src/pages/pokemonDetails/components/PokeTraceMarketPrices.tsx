@@ -466,7 +466,9 @@ export function PokeTraceMarketPrices({
             dataRequestFailed={dataRequestFailed}
             key={source}
             prices={prices[source] ?? {}}
-            priceHistory={priceHistory}
+            priceHistory={
+              cardId === "demo" ? (data.priceHistory ?? null) : priceHistory
+            }
             source={source}
             url={typeof urls[source] === "string" ? urls[source] : undefined}
           />

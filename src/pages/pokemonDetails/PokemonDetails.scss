@@ -145,7 +145,7 @@
   &__loading-image {
     align-self: start;
     aspect-ratio: 245 / 342;
-    background: var(--surface);
+    background: var(--bg2);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     max-width: 17.5rem;
@@ -281,7 +281,7 @@
   }
 
   &__actions {
-    background: color-mix(in srgb, var(--bg2) 72%, transparent);
+    background: var(--bg2);
     border: 1px solid var(--border-divider);
     border-radius: var(--border-radius);
     box-sizing: border-box;
@@ -521,7 +521,7 @@
   --poketrace-panel-gap: 0.8rem;
   // Give the image any space released by the gap; keep the info column fixed.
   --poketrace-media-width: calc(
-    17.5rem + var(--default-container-padding) - var(--poketrace-panel-gap)
+    18.3rem + var(--default-container-padding) - var(--poketrace-panel-gap)
   );
   --details-page-column-gap: var(--poketrace-panel-gap);
   --details-page-media-width: var(--poketrace-media-width);
@@ -556,6 +556,11 @@
     align-self: stretch;
     box-sizing: border-box;
     justify-content: start;
+  }
+
+  .card-view__image-controls .asset-save-actions--detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .card-view__image-controls,
