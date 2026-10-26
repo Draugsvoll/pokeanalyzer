@@ -21,10 +21,13 @@ test("renders only the membership plan columns", () => {
     screen.queryByRole("heading", { name: "Choose your membership" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Free" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Collector" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Basic" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Pro" })).toBeVisible();
   expect(screen.getByText("3 AI credits every month")).toBeVisible();
   expect(screen.getByText("$5.99")).toBeVisible();
+  expect(screen.getByText("$2.99")).toBeVisible();
+  expect(screen.getByText("5 Ebay searches every month")).toBeVisible();
+  expect(screen.getByText("Unlimited Ebay searches")).toBeVisible();
   expect(
     screen.getByText("Explore card details and market prices at no cost."),
   ).toBeVisible();
@@ -51,7 +54,7 @@ test("renders plan descriptions and features from the supplied configuration", (
 });
 
 test("renders full pricing cards when embedded and delegates plan actions", () => {
-  const chooseCollector = vi.fn();
+  const chooseBasic = vi.fn();
 
   renderPricingBar(
     <PricingBar
@@ -59,7 +62,7 @@ test("renders full pricing cards when embedded and delegates plan actions", () =
       getPlanAction={(plan) => ({
         disabled: plan.id === "free",
         label: plan.id === "free" ? "Current plan" : `Choose ${plan.name}`,
-        onClick: plan.id === "collector" ? chooseCollector : undefined,
+        onClick: plan.id === "basic" ? chooseBasic : undefined,
       })}
       plans={MEMBERSHIP_PLANS}
     />,
@@ -76,8 +79,8 @@ test("renders full pricing cards when embedded and delegates plan actions", () =
   );
   expect(screen.getByText("Everything in Free")).toBeVisible();
 
-  fireEvent.click(screen.getByRole("button", { name: "Choose Collector" }));
-  expect(chooseCollector).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Choose Basic" }));
+  expect(chooseBasic).toHaveBeenCalledOnce();
 });
 
 test("does not highlight a current plan while signed out", () => {

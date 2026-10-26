@@ -168,7 +168,7 @@ test("shows available listing details without a duplicate Buy It Now price", () 
 
   expect(screen.getByText("2d 3h left")).toBeVisible();
   expect(screen.getByText("Buy It Now $39.00")).toBeVisible();
-  expect(screen.getByText("10 watchers")).toBeVisible();
+  expect(screen.getByText("10 watching")).toBeVisible();
   expect(screen.getByText("Free shipping")).toBeVisible();
   expect(
     screen.queryByText(/Buy It Now Price unavailable/),
@@ -436,6 +436,7 @@ test("treats decimal whole grades as their matching whole-grade filter", async (
     <EbaySoldView
       response={{
         sold: [
+          { ...listing(4), title: "Pikachu PSA 6.0" },
           { ...listing(1), title: "Pikachu PSA 7.0" },
           { ...listing(2), title: "Pikachu CGC 8.0" },
           { ...listing(3), title: "Pikachu BGS 9.0" },
@@ -446,6 +447,7 @@ test("treats decimal whole grades as their matching whole-grade filter", async (
   );
 
   for (const [grade, title] of [
+    ["Grade 6", "Pikachu Psa 6.0"],
     ["Grade 7", "Pikachu Psa 7.0"],
     ["Grade 8", "Pikachu Cgc 8.0"],
     ["Grade 9", "Pikachu Bgs 9.0"],
@@ -571,37 +573,37 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
   ).toBeVisible();
 
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
-  await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
-  );
-  expect(
-    screen.getByRole("heading", {
-      name: "Pikachu & Zekrom Gx Tag Team 33/181",
-    }),
-  ).toBeVisible();
+  expect(screen.getAllByRole("article")).toHaveLength(6);
 });
 
-test("excludes full grading company names from raw results", async () => {
+test("Grade 6 replaces Raw and includes whole and half grades without matching card numbers", async () => {
   render(
     <EbaySoldView
       response={{
         sold: [
-          { ...listing(1), title: "Professional Sports Authenticator 10" },
-          { ...listing(2), title: "Sportscard Guaranty Corporation 10" },
-          { ...listing(3), title: "Pikachu raw" },
+          { ...listing(1), title: "Pikachu PSA 6" },
+          { ...listing(2), title: "Pikachu CGC 6.5" },
+          { ...listing(3), title: "Pikachu EX-MT 6" },
+          { ...listing(4), title: "Pikachu raw 6/102" },
+          { ...listing(5), title: "Pikachu PSA 7" },
         ],
         active: [],
       }}
     />,
   );
-
-  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
-
-  await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
-  );
-  expect(screen.getByRole("heading", { name: "Pikachu Raw" })).toBeVisible();
+  expect(screen.queryByRole("radio", { name: "Raw" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("radio", { name: "Grade 6" }));
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(3));
+  expect(screen.getByRole("heading", { name: "Pikachu Psa 6" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Pikachu Cgc 6.5" }),
+  ).toBeVisible();
+  expect(screen.getByText("Psa 6", { selector: "mark" })).toBeVisible();
+  expect(
+    screen.queryByRole("heading", { name: "Pikachu Raw 6/102" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("radio", { name: "All" }));
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(5));
 });
 
 test("retains available results when the other provider request failed", () => {

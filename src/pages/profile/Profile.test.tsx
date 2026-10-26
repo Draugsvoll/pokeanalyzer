@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   startMembershipCheckout: vi.fn(),
   subscription: null as UserSubscription | null,
   updatingSubscription: false,
+  unlimitedEbay: false,
 }));
 
 vi.mock("../../firebase", () => ({ db: {} }));
@@ -26,6 +27,7 @@ vi.mock("../../firebase", () => ({ db: {} }));
 vi.mock("../../ebay/useEbayCredits", () => ({
   useEbayCredits: () => ({
     credits: {
+      unlimited: mocks.unlimitedEbay,
       creditsRemaining: 10,
       membershipCreditsRemaining: 0,
       membershipCreditsTotal: 0,
@@ -126,6 +128,7 @@ beforeEach(() => {
   mocks.membershipPlans = MEMBERSHIP_PLANS;
   mocks.subscription = subscription();
   mocks.updatingSubscription = false;
+  mocks.unlimitedEbay = false;
 });
 
 test("keeps the current plan disabled and starts checkout for an upgrade", async () => {
@@ -135,10 +138,10 @@ test("keeps the current plan disabled and starts checkout for an upgrade", async
     await screen.findByRole("button", { name: "Current plan" }),
   ).toBeDisabled();
 
-  fireEvent.click(screen.getByRole("button", { name: "Choose Collector" }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose Basic" }));
 
   expect(mocks.startMembershipCheckout).toHaveBeenCalledOnce();
-  expect(mocks.startMembershipCheckout).toHaveBeenCalledWith("collector");
+  expect(mocks.startMembershipCheckout).toHaveBeenCalledWith("basic");
   expect(mocks.openBillingPortal).not.toHaveBeenCalled();
 });
 
@@ -188,8 +191,8 @@ test("uses the billing portal when an active subscriber changes plans", async ()
     bonusCreditsRemaining: 5,
     membershipCreditsRemaining: 20,
     membershipCreditsTotal: 20,
-    planId: "collector",
-    planName: "Collector",
+    planId: "basic",
+    planName: "Basic",
     stripeSubscriptionId: "sub_123",
   });
   renderProfile();
@@ -224,8 +227,8 @@ test("disables a scheduled downgrade and shows its effective date", async () => 
     currentPeriodEnd,
     membershipCreditsRemaining: 20,
     membershipCreditsTotal: 20,
-    planId: "collector",
-    planName: "Collector",
+    planId: "basic",
+    planName: "Basic",
     stripeSubscriptionId: "sub_123",
   });
   renderProfile();
@@ -237,4 +240,12 @@ test("disables a scheduled downgrade and shows its effective date", async () => 
   expect(scheduledDowngrade).toBeDisabled();
   expect(mocks.openBillingPortal).not.toHaveBeenCalled();
   expect(mocks.startMembershipCheckout).not.toHaveBeenCalled();
+});
+
+test("shows unlimited eBay searches without a numeric allowance for Pro", async () => {
+  mocks.unlimitedEbay = true;
+  renderProfile();
+  const balance = await screen.findByLabelText("Unlimited Ebay searches");
+  expect(balance).toHaveTextContent("Included with Pro");
+  expect(balance).not.toHaveTextContent("renewed monthly");
 });

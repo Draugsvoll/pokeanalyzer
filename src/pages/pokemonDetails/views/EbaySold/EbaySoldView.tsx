@@ -46,7 +46,7 @@ type EbaySoldViewProps = {
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
 type ListingTypeFilter = "sold" | "active";
 type ResultViewMode = "basic" | "advanced";
-type GradeFilter = "all" | "raw" | "7" | "8" | "9" | "10";
+type GradeFilter = "all" | "6" | "7" | "8" | "9" | "10";
 type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
 
 const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
@@ -57,7 +57,7 @@ const EBAY_SORT_OPTIONS: { value: EbaySortOrder; label: string }[] = [
 ];
 const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "raw", label: "Raw" },
+  { value: "6", label: "Grade 6" },
   { value: "7", label: "Grade 7" },
   { value: "8", label: "Grade 8" },
   { value: "9", label: "Grade 9" },
@@ -295,8 +295,8 @@ function EbayResultCard({
   const timeLeft = getField(result, "timeLeft");
   const watchers = formatCount(
     getField(result, "watcherCount"),
-    "watcher",
-    "watchers",
+    "watching",
+    "watching",
   );
   const buyItNowValue = getField(result, "buyItNowPrice");
   const buyItNowPrice = buyItNowValue
@@ -496,10 +496,6 @@ function getFilterKeywords(query: string) {
 }
 
 function getGradeHighlightPattern(grade: Exclude<GradeFilter, "all">) {
-  if (grade === "raw") {
-    return String.raw`\b(?:raw|ungraded|not graded)\b`;
-  }
-
   const gradeNumber = String.raw`${grade}(?:\s*\.\s*(?:0|5))?`;
   const grader =
     "psa|bgs|beckett|cgc|sgc|professional sports authenticator|certified guaranty company|sportscard guaranty corporation";
@@ -511,7 +507,9 @@ function getGradeHighlightPattern(grade: Exclude<GradeFilter, "all">) {
         ? String.raw`(?<!gem(?:\s+|-)|near(?:\s+|-))mint`
         : grade === "8"
           ? String.raw`(?:near(?:\s+|-)mint(?:\s+|-)?(?:mint|mt)|nm(?:\s+|-)?mt)`
-          : String.raw`(?:near(?:\s+|-)mint|nm)`;
+          : grade === "7"
+            ? String.raw`(?:near(?:\s+|-)mint|nm)`
+            : String.raw`(?:excellent(?:\s+|-)mint|ex(?:\s+|-)(?:mint|mt))`;
   const tagGrade = String.raw`\btag(?:[\s-]+(?:grading|pristine))?[\s-]*${gradeNumber}\b`;
   const tagPristine = grade === "10" ? String.raw`|\btag[\s-]+pristine\b` : "";
 
@@ -590,22 +588,6 @@ function matchesTagGrader(result: EbayCompResult) {
   );
 }
 
-function isRawListing(result: EbayCompResult) {
-  const { searchableText } = getGradingSearchText(result);
-
-  if (/\b(?:raw|ungraded|not graded)\b/.test(searchableText)) {
-    return true;
-  }
-
-  return !(
-    matchesTagGrader(result) ||
-    /\b(?:psa|bgs|cgc|sgc)(?:\b|\d)/.test(searchableText) ||
-    /\b(?:beckett|professional sports authenticator|sportscard guaranty corporation|grade|graded|grading|slab|slabbed|encased|certified|certification)\b/.test(
-      searchableText,
-    )
-  );
-}
-
 function matchesGrader(
   result: EbayCompResult,
   grader: Exclude<GraderFilter, "all">,
@@ -634,7 +616,7 @@ function matchesGrader(
 
 function matchesGrade(
   result: EbayCompResult,
-  grade: Exclude<GradeFilter, "all" | "raw">,
+  grade: Exclude<GradeFilter, "all">,
 ) {
   const { compactText, searchableText } = getGradingSearchText(result);
   // 8.5 is preserved as 8half, so a whole-grade filter includes its half grade.
@@ -681,6 +663,10 @@ function matchesGrade(
   }
 
   switch (grade) {
+    case "6":
+      return new RegExp(
+        `\\b(?:excellent mint|ex mint|ex mt)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:excellent mint|ex mint|ex mt)\\b`,
+      ).test(searchableText);
     case "7":
       return (
         new RegExp(
@@ -783,11 +769,9 @@ export default function EbaySoldView({
     const gradeFilteredResults =
       appliedGradeFilter === "all"
         ? listingTypeResults
-        : appliedGradeFilter === "raw"
-          ? listingTypeResults.filter(isRawListing)
-          : listingTypeResults.filter((result) =>
-              matchesGrade(result, appliedGradeFilter),
-            );
+        : listingTypeResults.filter((result) =>
+            matchesGrade(result, appliedGradeFilter),
+          );
     const graderFilteredResults =
       appliedGraderFilter === "all"
         ? gradeFilteredResults

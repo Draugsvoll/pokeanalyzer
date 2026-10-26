@@ -21,7 +21,7 @@ const MEMBERSHIP_PRICE_ENV: Record<
   Exclude<MembershipPlanId, "free">,
   string
 > = {
-  collector: "STRIPE_COLLECTOR_PRICE_ID",
+  basic: "STRIPE_BASIC_PRICE_ID",
   pro: "STRIPE_PRO_PRICE_ID",
 };
 
@@ -215,12 +215,26 @@ async function getMembershipCheckoutRequestId(
   });
 }
 
-function getPlanId(subscription: Stripe.Subscription): MembershipPlanId | null {
+export function getStripeMembershipPlanId(
+  subscription: Stripe.Subscription,
+): MembershipPlanId | null {
   const priceId = subscription.items.data[0]?.price.id;
+  if (!priceId) return null;
   const planEntry = Object.entries(MEMBERSHIP_PRICE_ENV).find(
     ([, envName]) => process.env[envName] === priceId,
   );
-  return planEntry ? (planEntry[0] as MembershipPlanId) : null;
+  if (planEntry) return planEntry[0] as MembershipPlanId;
+  // Continue recognizing existing subscriptions after new checkout prices ship.
+  if (priceId && priceId === process.env.STRIPE_COLLECTOR_PRICE_ID)
+    return "basic";
+  if (
+    priceId &&
+    process.env.STRIPE_LEGACY_PRO_PRICE_IDS?.split(",").some(
+      (legacyPriceId) => legacyPriceId.trim() === priceId,
+    )
+  )
+    return "pro";
+  return null;
 }
 
 function getPeriod(subscription: Stripe.Subscription) {
@@ -376,7 +390,7 @@ async function syncSubscription(
   }
 
   const uid = await findUidForSubscription(subscription);
-  const planId = getPlanId(subscription);
+  const planId = getStripeMembershipPlanId(subscription);
   const plan = planId ? getMembershipPlan(planId) : null;
   if (!uid) {
     await recordUnmanagedStripeObject("subscription", subscription.id, {
@@ -505,7 +519,7 @@ async function grantMembershipCredits(
   invoice: Stripe.Invoice,
 ) {
   const uid = await findUidForSubscription(subscription);
-  const planId = getPlanId(subscription);
+  const planId = getStripeMembershipPlanId(subscription);
   const plan = planId ? getMembershipPlan(planId) : null;
   if (!uid) {
     await recordUnmanagedStripeObject("invoice", invoice.id, {
@@ -1059,7 +1073,7 @@ export async function createMembershipCheckout(req: Request, res: Response) {
   try {
     const uid = getAuthenticatedUid(res);
     const requestedPlanId: unknown = req.body?.planId;
-    if (requestedPlanId !== "collector" && requestedPlanId !== "pro") {
+    if (requestedPlanId !== "basic" && requestedPlanId !== "pro") {
       throw new PaymentHttpError("Invalid paid plan", 400);
     }
     const planId: Exclude<MembershipPlanId, "free"> = requestedPlanId;

@@ -506,9 +506,7 @@ test("shows membership pricing at the bottom of the demo card page", async () =>
     await screen.findByRole("heading", { name: "Compare plans" }),
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Current plan" })).toBeDisabled();
-  expect(
-    screen.getByRole("button", { name: "Choose Collector" }),
-  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Choose Basic" })).toBeVisible();
 });
 
 test("contains focus and lets autocomplete dismiss itself before the dialog", async () => {

@@ -88,8 +88,7 @@ export default function Profile() {
   const profileName = profile?.firstName?.trim() || profile?.username?.trim();
   const profileHeading = profileName || profile?.email;
   const planOptions = membershipPlans.filter(
-    (plan) =>
-      plan.id === "free" || plan.id === "collector" || plan.id === "pro",
+    (plan) => plan.id === "free" || plan.id === "basic" || plan.id === "pro",
   );
 
   const getPlanAction = (plan: MembershipPlan): PricingBarAction => {
@@ -461,7 +460,10 @@ export default function Profile() {
                     loading: loadingSubscription,
                   },
                   {
-                    label: "Ebay credits",
+                    label: ebayCredits?.unlimited
+                      ? "Ebay searches"
+                      : "Ebay credits",
+                    unlimited: ebayCredits?.unlimited,
                     remaining: ebayCredits?.creditsRemaining,
                     allowance: ebayCredits?.membershipCreditsTotal,
                     loading: loadingEbayCredits,
@@ -471,6 +473,7 @@ export default function Profile() {
                     label,
                     remaining,
                     allowance,
+                    unlimited,
                     loading: balanceLoading,
                   }) => (
                     <div
@@ -481,21 +484,27 @@ export default function Profile() {
                       <span
                         className="profile__credit-value"
                         aria-label={
-                          remaining == null || allowance == null
-                            ? `${label}: balance unavailable`
-                            : `${label}: ${remaining} remaining, ${allowance} per month`
+                          unlimited
+                            ? "Unlimited Ebay searches"
+                            : remaining == null || allowance == null
+                              ? `${label}: balance unavailable`
+                              : `${label}: ${remaining} remaining, ${allowance} per month`
                         }
                       >
-                        <strong>{remaining ?? "—"}</strong>
+                        <strong>
+                          {unlimited ? "Unlimited" : (remaining ?? "—")}
+                        </strong>
                         <span className="profile__credit-label">{label}</span>
                         <span className="profile__credit-allowance">
-                          {allowance ?? "—"} renewed monthly
+                          {unlimited
+                            ? "Included with Pro"
+                            : `${allowance ?? "—"} renewed monthly`}
                         </span>
                       </span>
                       <div className="profile__credit-bar" aria-hidden="true">
                         <span
                           style={{
-                            width: `${allowance ? Math.min(100, Math.max(0, ((remaining ?? 0) / allowance) * 100)) : (remaining ?? 0) > 0 ? 100 : 0}%`,
+                            width: `${unlimited ? 100 : allowance ? Math.min(100, Math.max(0, ((remaining ?? 0) / allowance) * 100)) : (remaining ?? 0) > 0 ? 100 : 0}%`,
                           }}
                         />
                       </div>

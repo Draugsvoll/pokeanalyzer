@@ -23,7 +23,7 @@ type PricingBarProps = {
 
 const PLAN_ACCENTS: Record<MembershipPlanId, CustomColors> = {
   free: "teal",
-  collector: "blue",
+  basic: "blue",
   pro: "purple",
 };
 

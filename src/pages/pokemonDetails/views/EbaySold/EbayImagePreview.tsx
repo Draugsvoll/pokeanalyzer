@@ -53,8 +53,8 @@ export function EbayImagePreview({
     if (!rect) return;
     if (!position) setImageState("loading");
     const gap = 12;
-    const width = Math.min(360, window.innerWidth - gap * 2);
-    const height = Math.min(480, window.innerHeight - gap * 2);
+    const width = Math.min(396, window.innerWidth - gap * 2);
+    const height = Math.min(528, window.innerHeight - gap * 2);
     const left =
       rect.right + gap + width <= window.innerWidth - gap
         ? rect.right + gap

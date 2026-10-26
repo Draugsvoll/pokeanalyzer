@@ -4,6 +4,7 @@ export const EBAY_REQUEST_CREDIT_COST = 1;
 export const EBAY_SIGNUP_CREDITS = 10;
 
 export type EbayCredits = {
+  unlimited?: boolean;
   membershipCreditsRemaining: number;
   membershipCreditsTotal: number;
   membershipCreditsUsed: number;

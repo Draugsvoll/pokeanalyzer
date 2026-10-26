@@ -88,7 +88,7 @@
       border: none;
       border-radius: var(--border-radius);
       background: var(--surface5);
-      margin: 0.4rem;
+      margin: 0.13rem 0.4rem;
     }
 
     dt {
@@ -695,7 +695,7 @@
       mark {
         background: color-mix(
           in srgb,
-          var(--custom-color-blue) 40%,
+          var(--custom-color-blue) 30%,
           transparent
         );
         border-radius: 0.08em;

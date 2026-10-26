@@ -25,6 +25,8 @@ export function parseEbayCredits(value: unknown): EbayCredits {
       (key) => !Number.isSafeInteger(balance[key]) || Number(balance[key]) < 0,
     ) ||
     typeof balance.planId !== "string" ||
+    (balance.unlimited !== undefined &&
+      typeof balance.unlimited !== "boolean") ||
     (balance.currentPeriodEnd !== undefined &&
       typeof balance.currentPeriodEnd !== "string")
   ) {

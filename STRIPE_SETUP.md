@@ -6,14 +6,14 @@ The app uses Stripe-hosted Checkout. Membership and credit changes are made only
 
 In the Stripe Dashboard, with **Test mode** enabled, create:
 
-- Collector: recurring monthly price, `$3.99 USD`
-- Pro: recurring monthly price, `$11.99 USD`
+- Basic: recurring monthly price, `$2.99 USD` (5 eBay searches/month)
+- Pro: recurring monthly price, `$5.99 USD` (unlimited eBay searches)
 - 20-credit top-up: one-time price, `$3.99 USD`
 
 Copy each `price_...` ID into the matching server variable in `.env`:
 
 ```text
-STRIPE_COLLECTOR_PRICE_ID=price_...
+STRIPE_BASIC_PRICE_ID=price_...
 STRIPE_PRO_PRICE_ID=price_...
 STRIPE_TOPUP_20_PRICE_ID=price_...
 ```
@@ -59,7 +59,7 @@ Activate and configure the Stripe customer portal in the Stripe Dashboard. The p
 
 Enable Stripe's setting that limits each customer to one active subscription and redirects existing subscribers to the customer portal. The backend also enforces this, but the Dashboard setting gives users a cleaner fallback.
 
-Only add Collector and Pro to the portal's allowed products. Plan changes are reconciled from signed webhooks; unrelated Stripe prices are rejected and create a billing-review alert.
+Only add Basic and Pro to the portal's allowed products. Plan changes are reconciled from signed webhooks; unrelated Stripe prices are rejected and create a billing-review alert.
 
 ## 5. Deploy Firestore rules
 
@@ -84,7 +84,7 @@ Use any future expiry, any three-digit CVC, and a valid postal code. Confirm tha
 
 Test all of these flows:
 
-- Free, Collector, and Pro can each purchase a 20-credit top-up.
+- Free, Basic, and Pro can each purchase a 20-credit top-up.
 - A scheduled cancellation keeps access until period end and still shows **Manage billing**.
 - A fully canceled subscription becomes active Free while preserving unused bonus credits.
 - A failed or past-due subscription can still open the billing portal but cannot spend or buy more credits until it is active again.
@@ -93,3 +93,34 @@ Test all of these flows:
 Checkout and portal routes require a Firebase user with a verified email. Membership prices are checked against their expected amounts and monthly interval; the top-up price is checked against the expected one-time `$3.99 USD` amount before Stripe Checkout opens. `STRIPE_TOPUP_100_PRICE_ID` remains supported as a temporary fallback for the existing Stripe price.
 
 Legacy no-charge mock-payment routes have been removed. Use Stripe test mode for all payment testing.
+
+## Updating existing memberships
+
+AI allowances remain 3 credits/month for Basic and 9 for Pro.
+
+Before deploying, configure these backend variables with Stripe recurring monthly
+USD Price IDs:
+
+- `STRIPE_BASIC_PRICE_ID`: the new USD 2.99 Basic price.
+- `STRIPE_PRO_PRICE_ID`: the new USD 5.99 Pro price.
+- Keep `STRIPE_COLLECTOR_PRICE_ID` set to the previous Collector price so existing
+  subscriptions and their webhook events still resolve to Basic.
+- Before replacing `STRIPE_PRO_PRICE_ID`, copy its previous value into
+  `STRIPE_LEGACY_PRO_PRICE_IDS` (comma-separated if there are several).
+
+Checkout verifies the configured price's amount, currency, and monthly interval.
+The old Collector price is recognized for existing subscriptions only, never used
+for new Basic checkout. Configure the Stripe billing portal's available products
+and prices to match the new plans as well.
+
+Changing these variables does not change existing Stripe subscriptions' prices.
+Any move to the new recurring prices must be scheduled separately in Stripe,
+according to the chosen policy for existing subscribers. Keep legacy Price IDs
+configured while old subscriptions or delayed webhook events can reference them.
+
+Stored `collector` subscriptions are exposed as Basic without a database rewrite.
+Basic's five-search allowance preserves spending already recorded in the current
+billing period; unused signup credits remain available separately. Active or
+trialing Pro subscriptions with a valid current billing period have unlimited
+eBay access without spending monthly or bonus credits. Expired/inactive Pro
+subscriptions lose unlimited access. Free/signup and AI credit rules are unchanged.

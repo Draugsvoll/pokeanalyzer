@@ -109,8 +109,8 @@ test("existing free allowances are removed without changing extra credits", () =
 test("free allowance changes do not affect paid memberships", () => {
   const subscription = {
     ...buildFreeSubscription(new Date("2026-09-01T00:00:00.000Z")),
-    planId: "collector",
-    planName: "Collector",
+    planId: "basic",
+    planName: "Basic",
     membershipCreditsRemaining: 15,
     membershipCreditsTotal: 20,
     membershipCreditsUsed: 5,

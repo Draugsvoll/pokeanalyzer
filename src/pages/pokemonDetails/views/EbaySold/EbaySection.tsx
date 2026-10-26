@@ -125,7 +125,11 @@ function EbaySectionForAccount({
     : "";
   const headerError = error || responseError;
   const noCredits = Boolean(
-    userId && !authLoading && credits && credits.creditsRemaining < 1,
+    userId &&
+    !authLoading &&
+    credits &&
+    !credits.unlimited &&
+    credits.creditsRemaining < 1,
   );
 
   async function searchEbay() {
@@ -134,7 +138,7 @@ function EbaySectionForAccount({
       !userId ||
       !emailVerified ||
       !credits ||
-      credits.creditsRemaining < 1 ||
+      (!credits.unlimited && credits.creditsRemaining < 1) ||
       requestPendingRef.current
     ) {
       return;
@@ -253,7 +257,13 @@ function EbaySectionForAccount({
           color="teal"
           icon={CircleDollarSign}
           label="Ebay Explorer"
-          actionLabel={noCredits ? "Add credits" : "1 Ebay credit"}
+          actionLabel={
+            noCredits
+              ? "Add credits"
+              : credits?.unlimited
+                ? "Search Ebay"
+                : "1 Ebay credit"
+          }
           actionLoading={loading && !headerError}
           actionLoadingLabel="Searching Ebay..."
           actionLoadingMessage="Fetching Ebay listings and sales..."

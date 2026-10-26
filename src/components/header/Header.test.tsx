@@ -5,6 +5,7 @@ import { Header } from "./Header";
 
 const mocks = vi.hoisted(() => ({
   auth: { user: null as null | { uid: string } },
+  unlimitedEbay: false,
 }));
 
 vi.mock("../../context/authContextValue", () => ({
@@ -17,7 +18,9 @@ vi.mock("../../subscriptions", () => ({
 }));
 
 vi.mock("../../ebay/useEbayCredits", () => ({
-  useEbayCredits: () => ({ credits: { creditsRemaining: 10 } }),
+  useEbayCredits: () => ({
+    credits: { creditsRemaining: 10, unlimited: mocks.unlimitedEbay },
+  }),
 }));
 
 vi.mock("firebase/firestore", () => ({
@@ -42,6 +45,7 @@ function renderHeader(initialEntry = "/") {
 describe("Header", () => {
   beforeEach(() => {
     mocks.auth.user = null;
+    mocks.unlimitedEbay = false;
   });
 
   test("provides the full navigation from the compact menu", () => {
@@ -94,4 +98,13 @@ describe("Header", () => {
       );
     },
   );
+});
+
+test("shows unlimited eBay access in the signed-in credit display", () => {
+  mocks.auth.user = { uid: "user-1" };
+  mocks.unlimitedEbay = true;
+  renderHeader();
+  expect(
+    screen.getByRole("link", { name: /Unlimited Ebay searches/ }),
+  ).toBeVisible();
 });

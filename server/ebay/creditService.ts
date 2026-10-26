@@ -43,6 +43,7 @@ function assertNotAborted(signal?: AbortSignal) {
 
 function serializeCredits(stored: StoredEbayCredits): EbayCredits {
   return {
+    unlimited: stored.unlimited === true,
     membershipCreditsRemaining: stored.membershipCreditsRemaining,
     membershipCreditsTotal: stored.membershipCreditsTotal,
     membershipCreditsUsed: stored.membershipCreditsUsed,
@@ -102,10 +103,11 @@ function reconcileCredits(
   const samePeriod = stored?.currentPeriodStart === currentPeriodStart;
 
   return updateBalances({
+    unlimited: hasPaidPeriod && plan.ebayCredits === null,
     planId: plan.id,
     currentPeriodStart,
     currentPeriodEnd,
-    membershipCreditsTotal: hasPaidPeriod ? plan.ebayCredits : 0,
+    membershipCreditsTotal: hasPaidPeriod ? (plan.ebayCredits ?? 0) : 0,
     // Keep spending when a plan changes within the same billing period.
     membershipCreditsUsed: samePeriod ? stored.membershipCreditsUsed : 0,
     bonusCreditsTotal: stored?.bonusCreditsTotal ?? 0,
@@ -199,6 +201,16 @@ async function reserveCredit(
   return adminDb.runTransaction(async (transaction) => {
     const { creditsRef, current } = await readCredits(transaction, uid);
     assertNotAborted(signal);
+    if (current.unlimited) {
+      current.version += 1;
+      transaction.set(creditsRef, current);
+      return {
+        membershipCredits: 0,
+        bonusCredits: 0,
+        currentPeriodStart: current.currentPeriodStart,
+        credits: serializeCredits(current),
+      };
+    }
     if (current.creditsRemaining < EBAY_REQUEST_CREDIT_COST) {
       throw new EbayCreditError("Not enough Ebay credits", 409);
     }

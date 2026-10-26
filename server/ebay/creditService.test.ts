@@ -36,8 +36,8 @@ test("a partial success stays charged if the client disconnects", async (t) => {
     ),
     { name: "AbortError" },
   );
-  assert.equal(reservedBalance, 99);
-  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 99);
+  assert.equal(reservedBalance, 4);
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 4);
 });
 
 test("a failed search with no successful side refunds its one reservation", async (t) => {
@@ -53,7 +53,7 @@ test("a failed search with no successful side refunds its one reservation", asyn
     ),
     /Both providers failed/,
   );
-  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 100);
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 5);
 });
 
 function buildSubscription(
@@ -69,8 +69,8 @@ function buildSubscription(
     membershipCreditsRemaining: 4,
     membershipCreditsTotal: 20,
     membershipCreditsUsed: 16,
-    planId: "collector",
-    planName: "Collector",
+    planId: "basic",
+    planName: "Basic",
     status: "active",
     ...overrides,
   };
@@ -205,23 +205,24 @@ test("concurrent signup grants apply the ten-credit bonus only once", async (t) 
   assert.equal(writes.length, 1);
 });
 
-test("Collector and Pro get their own monthly allowance, ignoring AI balances", async (t) => {
+test("Basic gets five monthly searches and Pro gets unlimited access, ignoring AI balances", async (t) => {
   const subscription = buildSubscription();
   const { documents, writes, setSubscription } = mockFirestore(t, subscription);
-  const collector = await getEbayCredits("user-1");
-  assert.equal(collector.membershipCreditsTotal, 100);
-  assert.equal(collector.membershipCreditsRemaining, 100);
-  assert.equal(collector.membershipCreditsUsed, 0);
-  assert.equal(collector.bonusCreditsTotal, 0);
-  assert.equal(collector.creditsRemaining, 100);
+  const basic = await getEbayCredits("user-1");
+  assert.equal(basic.membershipCreditsTotal, 5);
+  assert.equal(basic.membershipCreditsRemaining, 5);
+  assert.equal(basic.membershipCreditsUsed, 0);
+  assert.equal(basic.bonusCreditsTotal, 0);
+  assert.equal(basic.creditsRemaining, 5);
   assert.deepEqual(documents.get(subscriptionPath), subscription);
   assert.deepEqual(writes, [creditsPath]);
 
   setSubscription({ ...subscription, planId: "pro", planName: "Pro" });
   const pro = await getEbayCredits("user-1");
-  assert.equal(pro.membershipCreditsTotal, 300);
+  assert.equal(pro.membershipCreditsTotal, 0);
   assert.equal(pro.bonusCreditsTotal, 0);
-  assert.equal(pro.creditsRemaining, 300);
+  assert.equal(pro.creditsRemaining, 0);
+  assert.equal(pro.unlimited, true);
 });
 
 test("successful fetches spend membership eBay credits before the signup bonus", async (t) => {
@@ -230,12 +231,77 @@ test("successful fetches spend membership eBay credits before the signup bonus",
   await grantEbaySignupCredits("user-1");
   const result = await runEbayFeature("user-1", async () => ["sale"]);
   assert.deepEqual(result.data, ["sale"]);
-  assert.equal(result.credits.membershipCreditsRemaining, 99);
+  assert.equal(result.credits.membershipCreditsRemaining, 4);
   assert.equal(result.credits.membershipCreditsUsed, 1);
   assert.equal(result.credits.bonusCreditsRemaining, 10);
-  assert.equal(result.credits.creditsRemaining, 109);
+  assert.equal(result.credits.creditsRemaining, 14);
   assert.deepEqual(documents.get(subscriptionPath), subscription);
   assert.ok(writes.every((path) => path === creditsPath));
+});
+
+test("Basic permits five searches and rejects a sixth without bonus credits", async (t) => {
+  mockFirestore(t, buildSubscription());
+  for (let index = 0; index < 5; index += 1) {
+    await runEbayFeature("user-1", async () => "listings");
+  }
+  const operation = t.mock.fn(async () => "listings");
+  await assert.rejects(runEbayFeature("user-1", operation), EbayCreditError);
+  assert.equal(operation.mock.callCount(), 0);
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 0);
+});
+
+test("Pro searches never spend bonus credits, including failed requests", async (t) => {
+  mockFirestore(t, buildSubscription({ planId: "pro", planName: "Pro" }));
+  await grantEbaySignupCredits("user-1");
+  for (let index = 0; index < 6; index += 1) {
+    const result = await runEbayFeature("user-1", async () => "listings");
+    assert.equal(result.credits.unlimited, true);
+  }
+  await assert.rejects(
+    runEbayFeature("user-1", async () => {
+      throw new Error("provider failed");
+    }),
+    /provider failed/,
+  );
+  const balance = await getEbayCredits("user-1");
+  assert.equal(balance.bonusCreditsRemaining, 10);
+  assert.equal(balance.bonusCreditsUsed, 0);
+  assert.equal(balance.membershipCreditsUsed, 0);
+});
+
+test("Pro with no numeric balance can search, but loses unlimited access when inactive", async (t) => {
+  const subscription = buildSubscription({ planId: "pro", planName: "Pro" });
+  const { setSubscription } = mockFirestore(t, subscription);
+  assert.equal(
+    (await runEbayFeature("user-1", async () => "listings")).credits.unlimited,
+    true,
+  );
+  for (const next of [
+    { ...subscription, status: "past_due" as const },
+    {
+      ...subscription,
+      currentPeriodEnd: Timestamp.fromMillis(Date.now() - 1000),
+    },
+    { ...subscription, currentPeriodStart: undefined },
+  ]) {
+    setSubscription(next);
+    assert.equal((await getEbayCredits("user-1")).unlimited, false);
+    await assert.rejects(
+      runEbayFeature("user-1", async () => "listings"),
+      EbayCreditError,
+    );
+  }
+});
+
+test("legacy Collector accounts receive Basic's allowance", async (t) => {
+  mockFirestore(
+    t,
+    buildSubscription({ planId: "collector", planName: "Collector" }),
+  );
+  const balance = await getEbayCredits("user-1");
+  assert.equal(balance.planId, "basic");
+  assert.equal(balance.membershipCreditsTotal, 5);
+  assert.equal(balance.unlimited, false);
 });
 
 test("an upgrade increases the allowance without forgetting existing eBay spending", async (t) => {
@@ -244,13 +310,14 @@ test("an upgrade increases the allowance without forgetting existing eBay spendi
   await runEbayFeature("user-1", async () => "listings");
   setSubscription({ ...subscription, planId: "pro", planName: "Pro" });
   const upgraded = await getEbayCredits("user-1");
-  assert.equal(upgraded.membershipCreditsTotal, 300);
-  assert.equal(upgraded.membershipCreditsRemaining, 299);
+  assert.equal(upgraded.membershipCreditsTotal, 0);
+  assert.equal(upgraded.membershipCreditsRemaining, 0);
+  assert.equal(upgraded.unlimited, true);
   assert.equal(upgraded.membershipCreditsUsed, 1);
 
   setSubscription(subscription);
   const downgraded = await getEbayCredits("user-1");
-  assert.equal(downgraded.membershipCreditsRemaining, 99);
+  assert.equal(downgraded.membershipCreditsRemaining, 4);
   assert.equal(downgraded.membershipCreditsUsed, 1);
 });
 
@@ -269,7 +336,7 @@ test("monthly renewal resets only the membership eBay allowance", async (t) => {
     currentPeriodEnd: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
   });
   const renewed = await getEbayCredits("user-1");
-  assert.equal(renewed.membershipCreditsRemaining, 100);
+  assert.equal(renewed.membershipCreditsRemaining, 5);
   assert.equal(renewed.membershipCreditsUsed, 0);
   assert.equal(renewed.bonusCreditsRemaining, 9);
   assert.equal(renewed.bonusCreditsUsed, 1);
@@ -311,7 +378,7 @@ test("reactivating a paid period preserves its previous eBay spending", async (t
   await getEbayCredits("user-1");
   setSubscription(subscription);
   const restored = await getEbayCredits("user-1");
-  assert.equal(restored.membershipCreditsRemaining, 99);
+  assert.equal(restored.membershipCreditsRemaining, 4);
   assert.equal(restored.membershipCreditsUsed, 1);
 });
 
@@ -400,6 +467,6 @@ test("a failed old request cannot refund spending from the next billing period",
     /old request failed/,
   );
   const current = await getEbayCredits("user-1");
-  assert.equal(current.membershipCreditsRemaining, 99);
+  assert.equal(current.membershipCreditsRemaining, 4);
   assert.equal(current.membershipCreditsUsed, 1);
 });

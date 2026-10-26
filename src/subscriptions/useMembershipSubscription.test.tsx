@@ -43,8 +43,8 @@ const initialSubscription = {
   membershipCreditsRemaining: 5,
   membershipCreditsTotal: 10,
   membershipCreditsUsed: 5,
-  planId: "collector",
-  planName: "Collector",
+  planId: "basic",
+  planName: "Basic",
   status: "active",
 } as UserSubscription;
 

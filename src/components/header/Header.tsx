@@ -157,7 +157,7 @@ export const Header: React.FC = () => {
                 to="/profile"
                 className="header__credits"
                 title="View AI and Ebay credits"
-                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits ? `${ebayCredits.creditsRemaining} Ebay credits remaining` : "Ebay credit balance unavailable"}. View credits`}
+                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited Ebay searches" : ebayCredits ? `${ebayCredits.creditsRemaining} Ebay credits remaining` : "Ebay credit balance unavailable"}. View credits`}
               >
                 <span className="header__credits-balance">
                   <strong>{creditsRemaining}</strong> AI{" "}
@@ -168,8 +168,17 @@ export const Header: React.FC = () => {
                   aria-hidden="true"
                 />
                 <span className="header__credits-balance">
-                  <strong>{ebayCredits?.creditsRemaining ?? "—"}</strong> Ebay{" "}
-                  {ebayCredits?.creditsRemaining === 1 ? "credit" : "credits"}
+                  <strong>
+                    {ebayCredits?.unlimited
+                      ? "Unlimited"
+                      : (ebayCredits?.creditsRemaining ?? "—")}
+                  </strong>{" "}
+                  Ebay{" "}
+                  {ebayCredits?.unlimited
+                    ? "searches"
+                    : ebayCredits?.creditsRemaining === 1
+                      ? "credit"
+                      : "credits"}
                 </span>
               </Link>
               <AccountDropdown

@@ -14,8 +14,8 @@ function mockSubscription(t: TestContext, membership: number, bonus = 0) {
     membershipCreditsRemaining: membership,
     membershipCreditsTotal: membership,
     membershipCreditsUsed: 0,
-    planId: "collector",
-    planName: "Collector",
+    planId: "basic",
+    planName: "Basic",
     status: "active",
   };
   const update = t.mock.fn<(values: unknown) => Promise<void>>(

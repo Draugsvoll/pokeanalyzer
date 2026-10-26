@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   refreshCredits: vi.fn(),
   updateCredits: vi.fn(),
   creditsRemaining: 10,
+  unlimited: false,
   planId: "free" as EbayCredits["planId"],
 }));
 
@@ -47,6 +48,7 @@ vi.mock("../../../../ebay/useEbayCredits", () => ({
       ...credits,
       creditsRemaining: mocks.creditsRemaining,
       planId: mocks.planId,
+      unlimited: mocks.unlimited,
     },
     loading: false,
     error: "",
@@ -355,6 +357,7 @@ beforeEach(() => {
   mocks.user = { uid: "user-1" };
   mocks.creditsRemaining = 10;
   mocks.planId = "free";
+  mocks.unlimited = false;
   mocks.authenticatedFetch
     .mockReset()
     .mockImplementation(async () => successResponse());
@@ -680,7 +683,7 @@ test.each([409, 502])(
   },
 );
 
-test.each(["free", "collector", "pro"] as const)(
+test.each(["free", "basic", "pro"] as const)(
   "offers Add credits without a no-credit banner or retry controls for %s",
   (planId) => {
     mocks.planId = planId;
@@ -756,4 +759,18 @@ test("shows independent demo results without fetching or spending credits", () =
   expect(screen.getByText("No matching Ebay sales found.")).toBeVisible();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
   expect(mocks.updateCredits).not.toHaveBeenCalled();
+});
+
+test("unlimited Pro can search with zero credits", async () => {
+  mocks.planId = "pro";
+  mocks.unlimited = true;
+  mocks.creditsRemaining = 0;
+  render(view());
+  const search = screen.getByRole("button", { name: "Search Ebay" });
+  expect(search).toBeEnabled();
+  fireEvent.click(search);
+  expect(
+    await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
+  ).toBeVisible();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 });
