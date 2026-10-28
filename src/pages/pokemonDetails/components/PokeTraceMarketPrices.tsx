@@ -8,6 +8,7 @@ import {
   type MarketPriceHistoryResponse,
 } from "../../../services/cardApi";
 import { PriceChange } from "../../../components/priceChange/PriceChange";
+import { RadioButtonGroup } from "../../../components/radioButtonGroup/RadioButtonGroup";
 import { formatPriceChangePeriodLong } from "../../../../shared/priceChangePeriod";
 import {
   MarketPriceHistoryChart,
@@ -19,6 +20,7 @@ import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
   avg?: number | null;
+  median7d?: number | null;
   low?: number | null;
   high?: number | null;
   saleCount?: number | null;
@@ -114,6 +116,7 @@ function MarketplaceColumn({
   dataRequestFailed = false,
   prices,
   priceHistory,
+  preferMedian = false,
   source,
   url,
 }: {
@@ -122,6 +125,7 @@ function MarketplaceColumn({
   dataRequestFailed?: boolean;
   prices: MarketplacePrices;
   priceHistory: CardPriceHistoryResponse | null;
+  preferMedian?: boolean;
   source: string;
   url?: string;
 }) {
@@ -146,11 +150,13 @@ function MarketplaceColumn({
   const showLoader = source.toLowerCase() === "ebay" && dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !showLoader;
+  const displayedPrice = preferMedian ? (price.median7d ?? price.avg) : price.avg;
   const priceChange = resolveSevenDayMarketPriceChange(
     priceHistory,
     source,
     condition,
-    price.avg,
+    displayedPrice,
+    preferMedian ? "median7d" : "avg",
   );
   const priceChangeTitle = `${formatPriceChangePeriodLong("7d")} ${sourceLabel(source)} ${conditionLabel(condition)} price change`;
 
@@ -213,7 +219,7 @@ function MarketplaceColumn({
             <div className="poketrace-market__quote">
               <div className="poketrace-market__price-row">
                 <div className="poketrace-market__price-summary">
-                  <strong>{formatPrice(price.avg, currency)}</strong>
+                  <strong>{formatPrice(displayedPrice, currency)}</strong>
                   <PriceChange
                     key={`${source}:${condition}:${priceChange?.percent ?? "unavailable"}`}
                     percent={priceChange?.percent ?? null}
@@ -287,7 +293,6 @@ function GradedEbayPrices({
     ? selectedGrader
     : defaultGrader;
   const visibleEntries = groups.get(activeGrader) ?? [];
-  const graderGroup = useId();
   const hasPrices = entries.length > 0;
   const showLoader = dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
@@ -301,24 +306,26 @@ function GradedEbayPrices({
       <header className="poketrace-market__graded-header">
         <h3 id="poketrace-graded-title">Graded</h3>
         {graders.length > 0 && (
-          <div
-            aria-label="Grading company"
-            className="poketrace-market__condition-tabs poketrace-market__condition-tabs--graded poketrace-market__grader-tabs"
-            role="radiogroup"
-          >
-            {graders.map((grader) => (
-              <label key={grader}>
-                <input
-                  checked={grader === activeGrader}
-                  name={graderGroup}
-                  onChange={() => setSelectedGrader(grader)}
-                  type="radio"
-                  value={grader}
-                />
-                <span>{grader}</span>
-              </label>
-            ))}
-          </div>
+          <RadioButtonGroup
+            ariaLabel="Grading company"
+            className="poketrace-market__grader-tabs"
+            onChange={setSelectedGrader}
+            options={graders.map((grader) => ({
+              value: grader,
+              label: (
+                <>
+                  {grader}
+                  <span
+                    className="poketrace-market__grader-count"
+                    title={`${groups.get(grader)?.length ?? 0} graded prices`}
+                  >
+                    {groups.get(grader)?.length ?? 0}
+                  </span>
+                </>
+              ),
+            }))}
+            value={activeGrader}
+          />
         )}
       </header>
       {showLoader && (
@@ -466,6 +473,7 @@ export function PokeTraceMarketPrices({
             dataRequestFailed={dataRequestFailed}
             key={source}
             prices={prices[source] ?? {}}
+            preferMedian={cardId === "demo" && source === "ebay"}
             priceHistory={
               cardId === "demo" ? (data.priceHistory ?? null) : priceHistory
             }

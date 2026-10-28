@@ -17,6 +17,10 @@
   overflow-wrap: anywhere;
 }
 
+.grid-header > h3 {
+  font-size: var(--font-size-grid-title);
+}
+
 .grid-header__toggle {
   align-items: baseline;
   background: transparent;

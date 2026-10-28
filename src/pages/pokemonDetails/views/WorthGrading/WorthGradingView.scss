@@ -316,6 +316,13 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.worth-grading-view__scenario-support {
+  .worth-grading-view__metric,
+  .worth-grading-view__accent-note {
+    background: var(--surface2);
+  }
+}
+
 .worth-grading-view__tier-metric {
   div {
     align-items: baseline;

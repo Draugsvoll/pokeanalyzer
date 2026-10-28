@@ -16,7 +16,7 @@ import { monotoneAreaPath, monotoneLinePath } from "./marketPriceHistoryPaths";
 import "./PokeTraceMarketPrices.scss";
 
 const WIDTH = 800;
-const HEIGHT = 272;
+const HEIGHT = 304;
 const PADDING = { top: 24, right: 10, bottom: 30, left: 46 };
 const SOURCES: MarketPriceHistorySource[] = ["tcgplayer", "ebay"];
 

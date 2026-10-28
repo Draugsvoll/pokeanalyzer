@@ -19,10 +19,11 @@ function averagePrice(
   prices: Record<string, unknown>,
   source: string,
   condition: string,
+  metric: "avg" | "median7d",
 ) {
   const sourcePrices = record(prices[source]);
   const conditionPrice = record(sourcePrices?.[condition]);
-  const average = conditionPrice?.avg;
+  const average = conditionPrice?.[metric] ?? conditionPrice?.avg;
   return typeof average === "number" && Number.isFinite(average)
     ? average
     : null;
@@ -33,6 +34,7 @@ export function resolveSevenDayMarketPriceChange(
   source: string,
   condition: string,
   currentPrice: number | null | undefined,
+  metric: "avg" | "median7d" = "avg",
 ) {
   const latestDate = history?.snapshots.at(-1)?.recordedAt;
   if (!history || !latestDate) return null;
@@ -47,7 +49,12 @@ export function resolveSevenDayMarketPriceChange(
     .find((snapshot) => snapshot !== undefined);
   if (!comparison) return null;
 
-  const comparisonPrice = averagePrice(comparison.prices, source, condition);
+  const comparisonPrice = averagePrice(
+    comparison.prices,
+    source,
+    condition,
+    metric,
+  );
   const percent = calculateDisplayedPriceChangePercent(
     currentPrice,
     comparisonPrice,
