@@ -268,13 +268,13 @@ test("shows sold and listed results together in the wide advanced view", () => {
       screen.getByRole("button", { name: "Expand all listings" }),
     );
     for (const row of screen.getAllByRole("article")) {
-      expect(row).toHaveClass("ebay-sold-view__result--expanded");
+      expect(row).toHaveClass("marketplace-listings__result--expanded");
     }
     fireEvent.click(
       screen.getByRole("button", { name: "Collapse all listings" }),
     );
     for (const row of screen.getAllByRole("article")) {
-      expect(row).not.toHaveClass("ebay-sold-view__result--expanded");
+      expect(row).not.toHaveClass("marketplace-listings__result--expanded");
     }
   } finally {
     Object.defineProperty(window, "matchMedia", {
@@ -348,15 +348,15 @@ test("expands and collapses an overflowing listing title", () => {
     const toggle = screen.getByRole("button", {
       name: "Expand listing title",
     });
-    const titleBlock = toggle.closest(".ebay-sold-view__title-block");
+    const titleBlock = toggle.closest(".marketplace-listings__title-block");
 
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(titleBlock).toHaveClass("ebay-sold-view__title-block--expanded");
+    expect(titleBlock).toHaveClass("marketplace-listings__title-block--expanded");
 
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(titleBlock).not.toHaveClass("ebay-sold-view__title-block--expanded");
+    expect(titleBlock).not.toHaveClass("marketplace-listings__title-block--expanded");
   } finally {
     clientWidth.mockRestore();
     scrollWidth.mockRestore();

@@ -1,5 +1,5 @@
 .ebay-section {
-  --ebay-accent: var(--custom-color-teal);
+  --marketplace-accent: var(--custom-color-teal);
 
   box-sizing: border-box;
   min-width: 0;
@@ -15,11 +15,11 @@
   }
 
   .app-btn-pill {
-    --feature-accent: var(--ebay-accent);
+    --feature-accent: var(--marketplace-accent);
   }
 
   &__results {
-    margin-top: var(--space-4);
+    margin-top: var(--space-3);
   }
 
   &__notice {

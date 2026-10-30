@@ -3,6 +3,7 @@ import test, { type TestContext } from "node:test";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "../subscriptions/firebaseAdmin.js";
 import type { StoredUserSubscription } from "../subscriptions/subscriptionModel.js";
+import { requestTcgExplorer } from "../tcg/routes.js";
 import {
   EbayCreditError,
   getEbayCredits,
@@ -12,6 +13,63 @@ import {
 
 const subscriptionPath = "users/user-1/subscription/current";
 const creditsPath = "users/user-1/ebay_credits/current";
+
+test("TCG searches spend the same allowance as eBay and refund complete failures", async (t) => {
+  mockFirestore(t, buildSubscription());
+  const deps: NonNullable<Parameters<typeof requestTcgExplorer>[3]> = {
+    getContext: async () => ({
+      name: "Pikachu",
+      cardNumber: "58/102",
+      setName: "Base Set",
+      productId: 123,
+      printing: "Normal",
+      supportedGame: true,
+      cached: undefined,
+    }),
+    getConfig: () => ({
+      key: "test",
+      salesUrl: "https://example.com/sales",
+      listingsUrl: "https://example.com/listings",
+    }),
+    fetchSales: async () => [],
+    fetchOffers: async () => ({ offers: [], offersMatched: true }),
+    save: async () => {},
+    runFeature: runEbayFeature,
+  };
+  const search = () =>
+    requestTcgExplorer(
+      "user-1",
+      { cardId: "card", condition: "nearMint", language: "English" },
+      new AbortController().signal,
+      deps,
+    );
+  await runEbayFeature("user-1", async () => "eBay results");
+  await search();
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 3);
+  deps.fetchSales = async () => {
+    throw new Error("Unavailable");
+  };
+  deps.fetchOffers = async () => {
+    throw new Error("Unavailable");
+  };
+  await assert.rejects(search());
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 3);
+  // Once a side has been delivered, disconnecting must not refund it.
+  deps.fetchSales = async () => [];
+  const controller = new AbortController();
+  await assert.rejects(
+    requestTcgExplorer(
+      "user-1",
+      { cardId: "card", condition: "all", language: "English" },
+      controller.signal,
+      deps,
+      (event) => {
+        if (event.type === "result") controller.abort();
+      },
+    ),
+  );
+  assert.equal((await getEbayCredits("user-1")).creditsRemaining, 2);
+});
 
 test("a partial success stays charged if the client disconnects", async (t) => {
   mockFirestore(t, buildSubscription());
@@ -146,7 +204,7 @@ test("reading a free account balance never grants signup credits", async (t) => 
   assert.equal(writes.length, 1);
 });
 
-test("a new signup gets ten eBay credits once and repeated grants never refill them", async (t) => {
+test("a new signup gets ten market credits once and repeated grants never refill them", async (t) => {
   const { writes, setSubscription, setAccountCreatedAt } = mockFirestore(t);
   const initial = await grantEbaySignupCredits("user-1");
   assert.equal(initial.bonusCreditsTotal, 10);
@@ -225,7 +283,7 @@ test("Basic gets five monthly searches and Pro gets unlimited access, ignoring A
   assert.equal(pro.unlimited, true);
 });
 
-test("successful fetches spend membership eBay credits before the signup bonus", async (t) => {
+test("successful fetches spend membership market credits before the signup bonus", async (t) => {
   const subscription = buildSubscription();
   const { documents, writes } = mockFirestore(t, subscription);
   await grantEbaySignupCredits("user-1");
@@ -382,7 +440,7 @@ test("reactivating a paid period preserves its previous eBay spending", async (t
   assert.equal(restored.membershipCreditsUsed, 1);
 });
 
-test("parallel requests cannot both reserve the last eBay credit", async (t) => {
+test("parallel requests cannot both reserve the last market credit", async (t) => {
   mockFirestore(t);
   await grantEbaySignupCredits("user-1");
   for (let index = 0; index < 9; index += 1) {
@@ -404,7 +462,7 @@ test("parallel requests cannot both reserve the last eBay credit", async (t) => 
   assert.equal((await getEbayCredits("user-1")).creditsRemaining, 0);
 });
 
-test("a failed fetch refunds its eBay credit and leaves AI balances untouched", async (t) => {
+test("a failed fetch refunds its market credit and leaves AI balances untouched", async (t) => {
   const subscription = buildSubscription();
   const { documents } = mockFirestore(t, subscription);
   const initial = await getEbayCredits("user-1");
@@ -421,7 +479,7 @@ test("a failed fetch refunds its eBay credit and leaves AI balances untouched", 
   assert.deepEqual(documents.get(subscriptionPath), subscription);
 });
 
-test("aborted requests do not spend eBay credits", async (t) => {
+test("aborted requests do not spend market credits", async (t) => {
   const { writes } = mockFirestore(t);
   const alreadyAborted = new AbortController();
   alreadyAborted.abort();

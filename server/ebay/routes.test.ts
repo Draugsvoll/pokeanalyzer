@@ -72,7 +72,7 @@ test("a fresh eBay result fetches both modes and returns independent credits", a
   assert.equal("subscription" in result, false);
 });
 
-test("cached eBay results cost an eBay credit and preserve title filtering", async () => {
+test("cached eBay results cost a market credit and preserve title filtering", async () => {
   const { calls, dependencies, signal } = fixture();
   const matching = [...listings.items, { title: "Pokemon 011/130 Holo" }];
   dependencies.getContext = async () => ({
@@ -153,10 +153,10 @@ test("total provider failure and invalid payloads do not produce a successful ch
   }
 });
 
-test("insufficient eBay credits prevents fetching and is an eBay-specific error", async () => {
+test("insufficient market credits prevents fetching and is an eBay-specific error", async () => {
   const { calls, dependencies, signal } = fixture();
   dependencies.runFeature = async () => {
-    throw new EbayCreditError("Not enough Ebay credits", 409);
+    throw new EbayCreditError("Not enough Market credits", 409);
   };
   await assert.rejects(
     requestEbayListings("user-1", "card-1", signal, dependencies),

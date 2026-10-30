@@ -4,6 +4,7 @@ import "./RadioButtonGroup.scss";
 type RadioButtonGroupOption<T extends string> = {
   label: ReactNode;
   value: T;
+  disabled?: boolean;
 };
 
 type RadioButtonGroupProps<T extends string> = {
@@ -35,7 +36,7 @@ export function RadioButtonGroup<T extends string>({
         <label className="radio-button-group__option" key={option.value}>
           <input
             checked={value === option.value}
-            disabled={disabled}
+            disabled={disabled || option.disabled}
             name={name}
             onChange={() => onChange(option.value)}
             type="radio"

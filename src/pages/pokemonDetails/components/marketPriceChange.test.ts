@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import type { CardPriceHistoryResponse } from "../../../services/cardApi";
-import { resolveSevenDayMarketPriceChange } from "./marketPriceChange";
+import {
+  resolveEbaySevenDayAverageChange,
+  resolveSevenDayMarketPriceChange,
+} from "./marketPriceChange";
 
 const history: CardPriceHistoryResponse = {
   cardId: "card-1",
@@ -29,6 +32,20 @@ const history: CardPriceHistoryResponse = {
     },
   ],
 };
+
+describe("resolveEbaySevenDayAverageChange", () => {
+  test("compares the displayed price with the card 7-day average", () => {
+    const currentPrice = 29.04;
+    const average7d = 25.173334;
+    expect(resolveEbaySevenDayAverageChange(currentPrice, average7d)).toEqual({
+      percent: ((currentPrice - average7d) / average7d) * 100,
+    });
+  });
+
+  test("returns null when the 7-day average is missing", () => {
+    expect(resolveEbaySevenDayAverageChange(29.04, null)).toBeNull();
+  });
+});
 
 describe("resolveSevenDayMarketPriceChange", () => {
   test("calculates the selected source and condition change", () => {

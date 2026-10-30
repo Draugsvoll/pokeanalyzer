@@ -1,15 +1,12 @@
-import type { EbayCredits } from "./ebayCredits.js";
-
-export type EbayListingType = "sold" | "active";
-export type EbayListingStatus = "pending" | "success" | "error";
+import type {
+  MarketplaceSearchEvent,
+  MarketplaceSide,
+  MarketplaceStatus,
+} from "./marketplaceSearch.js";
+export type EbayListingType = MarketplaceSide;
+export type EbayListingStatus = MarketplaceStatus;
 export type EbayListings = Record<string, unknown> & { items: unknown[] };
-
-export type EbaySearchEvent =
-  | { type: "started"; credits: EbayCredits }
-  | { type: "result"; side: EbayListingType; data: EbayListings }
-  | { type: "failure"; side: EbayListingType; message: string }
-  | { type: "complete"; credits: EbayCredits }
-  | { type: "error"; message: string };
+export type EbaySearchEvent = MarketplaceSearchEvent<EbayListings>;
 
 export function isEbayListings(value: unknown): value is EbayListings {
   return (

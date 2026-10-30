@@ -8,7 +8,6 @@ import {
 } from "react";
 import type {
   MarketPriceHistoryResponse,
-  MarketPriceHistoryPoint,
   MarketPriceHistorySource,
 } from "../../../services/cardApi";
 import { MarketDataUnavailable } from "./MarketDataUnavailable";
@@ -46,13 +45,6 @@ function formatDate(value: string) {
     day: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${value}T00:00:00Z`));
-}
-
-function chartValue(
-  point: MarketPriceHistoryPoint,
-  source: MarketPriceHistorySource,
-) {
-  return source === "ebay" ? (point.median7d ?? point.avg) : point.avg;
 }
 
 function priceAxis(min: number, max: number) {
@@ -101,15 +93,24 @@ export function MarketPriceHistoryLoading({
 
 export function MarketPriceHistoryChart({
   conditionLabel = "Near Mint",
+  ebayUpdatedOn,
   emptyDescription = "Historical prices are not available for this card yet.",
   history,
 }: {
   conditionLabel?: string;
+  ebayUpdatedOn?: string;
   emptyDescription?: string;
   history: MarketPriceHistoryChartData;
 }) {
+  const seriesPoints = (source: MarketPriceHistorySource) =>
+    [...(history.series[source] ?? [])]
+      .filter(
+        (point) =>
+          source !== "ebay" || !ebayUpdatedOn || point.date <= ebayUpdatedOn,
+      )
+      .sort((left, right) => left.date.localeCompare(right.date));
   const availableSources = SOURCES.filter(
-    (source) => (history.series[source]?.length ?? 0) > 0,
+    (source) => seriesPoints(source).length > 0,
   );
   const [hoverDateIndex, setHoverDateIndex] = useState<number | null>(null);
   const chartId = useId().replaceAll(":", "");
@@ -155,12 +156,10 @@ export function MarketPriceHistoryChart({
 
   const series = availableSources.map((source) => ({
     source,
-    points: [...(history.series[source] ?? [])]
-      .sort((left, right) => left.date.localeCompare(right.date))
-      .map((point) => ({
-        point,
-        value: chartValue(point, source),
-      })),
+    points: seriesPoints(source).map((point) => ({
+      point,
+      value: point.avg,
+    })),
   }));
   const dates = [
     ...new Set(
@@ -204,7 +203,9 @@ export function MarketPriceHistoryChart({
       const latest = points.findLast(({ point }) => point.date <= date);
       return latest ? [{ x: x(date), y: y(latest.value) }] : [];
     });
-    const endX = x(dates.at(-1)!);
+    const lastDate = points.at(-1)!.point.date;
+    const endX =
+      source === "ebay" && ebayUpdatedOn ? x(lastDate) : x(dates.at(-1)!);
     return {
       source,
       points,
@@ -229,6 +230,10 @@ export function MarketPriceHistoryChart({
   const activeDate = dates[activeDateIndex];
   const activeX = x(activeDate);
   const activePoints = plottedSeries.map(({ source, points }) => {
+    const lastDate = points.at(-1)!.point.date;
+    if (source === "ebay" && ebayUpdatedOn && activeDate > lastDate) {
+      return { source, point: null };
+    }
     const latestPoint = points.findLast(
       ({ point }) => point.date <= activeDate,
     );

@@ -110,7 +110,7 @@ export function EbayImagePreview({
       <button
         ref={anchor}
         type="button"
-        className="ebay-sold-view__media ebay-sold-view__image-trigger"
+        className="marketplace-listings__media marketplace-listings__image-trigger"
         aria-label={`Enlarge image: ${title}`}
         aria-expanded={Boolean(position)}
         onMouseEnter={openSoon}
@@ -124,14 +124,14 @@ export function EbayImagePreview({
       {position &&
         createPortal(
           <div
-            className="ebay-sold-view__image-preview"
+            className="marketplace-listings__image-preview"
             style={position}
             onMouseEnter={cancelClose}
             onMouseLeave={closeSoon}
           >
             {imageState === "loading" && (
               <div
-                className="ebay-sold-view__image-status"
+                className="marketplace-listings__image-status"
                 role="status"
                 aria-label="Loading image"
               >
@@ -139,7 +139,7 @@ export function EbayImagePreview({
               </div>
             )}
             {imageState === "error" && (
-              <p className="ebay-sold-view__image-status" role="status">
+              <p className="marketplace-listings__image-status" role="status">
                 Image unavailable
               </p>
             )}

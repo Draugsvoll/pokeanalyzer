@@ -1,3 +1,4 @@
+import type { TcgSnapshot } from "../../../shared/tcgExplorer";
 import type { CardPriceHistoryResponse } from "../../../shared/pokeTracePriceHistory";
 import type { CardSet } from "./set";
 import type {
@@ -38,6 +39,7 @@ export type PokemonCard = {
   rarity?: string;
   image?: string;
   ebay?: Record<string, unknown> & { timestamp: string };
+  tcg_listings?: TcgSnapshot;
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };
     market_analysis?: Record<string, unknown> & { timestamp: string };

@@ -51,6 +51,7 @@ type CardFeatureHeaderProps = {
   onAction?: () => void;
   authActions?: ReactNode;
   errorMessage?: string;
+  description?: string;
   children?: ReactNode;
 };
 
@@ -69,6 +70,7 @@ export function CardFeatureHeader({
   onAction,
   authActions,
   errorMessage,
+  description,
   children,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
@@ -139,6 +141,9 @@ export function CardFeatureHeader({
         <p className="card-feature-header__error" role="alert">
           {errorMessage}
         </p>
+      )}
+      {description && (
+        <p className="card-feature-header__status">{description}</p>
       )}
       {children}
     </header>

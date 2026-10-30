@@ -69,12 +69,7 @@ function EbaySectionForAccount({
   authLoading: boolean;
 }) {
   const navigate = useNavigate();
-  const {
-    credits,
-    error: creditsError,
-    refreshCredits,
-    updateCredits,
-  } = useEbayCredits();
+  const { credits, refreshCredits, updateCredits } = useEbayCredits();
   const [response, setResponse] = useState<EbayCompsResponse>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -163,7 +158,7 @@ function EbaySectionForAccount({
 
       if (!res.ok) {
         if (res.status === 409) {
-          setError("You don't have enough Ebay credits for this search.");
+          setError("You don't have enough Market credits for this search.");
           await refreshCredits();
           return;
         }
@@ -256,13 +251,13 @@ function EbaySectionForAccount({
           }}
           color="teal"
           icon={CircleDollarSign}
-          label="Ebay Explorer"
+          label="Available on Ebay"
           actionLabel={
             noCredits
               ? "Add credits"
               : credits?.unlimited
                 ? "Search Ebay"
-                : "1 Ebay credit"
+                : "1 Market credit"
           }
           actionLoading={loading && !headerError}
           actionLoadingLabel="Searching Ebay..."
@@ -290,11 +285,6 @@ function EbaySectionForAccount({
             <p className="ebay-section__notice">
               Please verify your email before searching Ebay.
             </p>
-          )}
-          {!isDemo && userId && creditsError && (
-            <div className="ebay-section__notice" role="alert">
-              <span>We couldn't refresh your Ebay credits.</span>
-            </div>
           )}
         </CardFeatureHeader>
       )}

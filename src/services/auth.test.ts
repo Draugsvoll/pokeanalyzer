@@ -55,7 +55,7 @@ beforeEach(() => {
   mocks.additionalInfo.mockReturnValue({ isNewUser: false });
 });
 
-test("email signup grants the new account's eBay credits before returning", async () => {
+test("email signup grants the new account's market credits before returning", async () => {
   expect(await register("user@example.com", "password")).toBe(credential);
   expect(mocks.initializeEbay).toHaveBeenCalledExactlyOnceWith(user);
   expect(mocks.initializeSubscription).not.toHaveBeenCalled();

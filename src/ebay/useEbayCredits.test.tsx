@@ -123,29 +123,47 @@ test("switching accounts clears the balance and ignores the previous account res
   expect(screen.getByLabelText("eBay balance")).toHaveTextContent("none");
 });
 
-test("background credit errors preserve the known balance and can be retried", async () => {
+test("retries a failed balance load once and then stops", async () => {
+  mocks.fetch
+    .mockReset()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce(response(balance(1, 6)));
+  render(<App />);
+  await waitFor(() =>
+    expect(screen.getByLabelText("eBay balance")).toHaveTextContent("6"),
+  );
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(screen.getByLabelText("eBay error")).toBeEmptyDOMElement();
+});
+
+test("a second balance failure stays quiet and does not retry again", async () => {
+  mocks.fetch.mockReset().mockRejectedValue(new Error("offline"));
+  render(<App />);
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(2));
+  await act(async () => {});
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(screen.getByLabelText("eBay balance")).toHaveTextContent("none");
+  expect(screen.getByLabelText("eBay error")).toBeEmptyDOMElement();
+  expect(screen.getByLabelText("eBay loading")).toHaveTextContent("false");
+});
+
+test("a failed refresh retries once and keeps the known balance", async () => {
   render(<App />);
   await waitFor(() =>
     expect(screen.getByLabelText("eBay balance")).toHaveTextContent("10"),
   );
   mocks.fetch.mockRejectedValueOnce(new Error("offline"));
+  mocks.fetch.mockRejectedValueOnce(new Error("offline"));
   fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-  await waitFor(() =>
-    expect(screen.getByLabelText("eBay error")).toHaveTextContent(
-      "couldn’t load",
-    ),
-  );
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(3));
+  await act(async () => {});
+  expect(mocks.fetch).toHaveBeenCalledTimes(3);
   expect(screen.getByLabelText("eBay balance")).toHaveTextContent("10");
-  expect(screen.getByLabelText("eBay loading")).toHaveTextContent("false");
-  mocks.fetch.mockResolvedValueOnce(response(balance(2, 9)));
-  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-  await waitFor(() =>
-    expect(screen.getByLabelText("eBay balance")).toHaveTextContent("9"),
-  );
   expect(screen.getByLabelText("eBay error")).toBeEmptyDOMElement();
+  expect(screen.getByLabelText("eBay loading")).toHaveTextContent("false");
 });
 
-test("guests and unverified accounts do not fetch eBay credits", () => {
+test("guests and unverified accounts do not fetch market credits", () => {
   mocks.user = null;
   const view = render(<App />);
   mocks.user = { uid: "unverified", emailVerified: false };

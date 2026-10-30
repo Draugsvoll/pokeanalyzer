@@ -25,7 +25,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("signup initializes eBay credits before verification and refreshes only eBay", async () => {
+test("signup initializes market credits before verification and refreshes only eBay", async () => {
   fetchMock.mockResolvedValue({ ok: true });
   const dispatch = vi.spyOn(window, "dispatchEvent");
   await initializeEbaySignupCredits(user);
@@ -53,7 +53,7 @@ test("signup retries a temporary failure once", async () => {
 test("failed signup credit requests stop after one retry", async () => {
   fetchMock.mockResolvedValue({ ok: false, status: 503 });
   await expect(initializeEbaySignupCredits(user)).rejects.toThrow(
-    "Could not initialize signup Ebay credits",
+    "Could not initialize signup Market credits",
   );
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });

@@ -203,7 +203,7 @@ export function createEbayRouter({
       logError("eBay balance request failed", error);
       const isCreditError = error instanceof EbayCreditError;
       res.status(isCreditError ? error.statusCode : 500).json({
-        error: isCreditError ? error.message : "Failed to load Ebay credits",
+        error: isCreditError ? error.message : "Failed to load Market credits",
       });
     }
   });

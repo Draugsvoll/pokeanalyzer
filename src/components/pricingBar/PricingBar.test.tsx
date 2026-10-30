@@ -26,8 +26,8 @@ test("renders only the membership plan columns", () => {
   expect(screen.getByText("3 AI credits every month")).toBeVisible();
   expect(screen.getByText("$5.99")).toBeVisible();
   expect(screen.getByText("$2.99")).toBeVisible();
-  expect(screen.getByText("5 Ebay searches every month")).toBeVisible();
-  expect(screen.getByText("Unlimited Ebay searches")).toBeVisible();
+  expect(screen.getByText("5 eBay & TCGplayer searches every month")).toBeVisible();
+  expect(screen.getByText("Unlimited eBay & TCGplayer searches")).toBeVisible();
   expect(
     screen.getByText("Explore card details and market prices at no cost."),
   ).toBeVisible();

@@ -14,6 +14,7 @@ import {
   Gem,
   LineChart,
   ScanSearch,
+  Layers3,
   Search,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import { Badge } from "../../components/ui/Badge";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { CardFeatureAuthActions } from "./components/CardFeatureAuthActions";
 import CollectorAnalysis from "./views/CollectorAnalysis/CollectorAnalysisView";
+import { TcgExplorerSection } from "./views/TcgExplorer/TcgExplorerSection";
 import { EbaySection } from "./views/EbaySold/EbaySection";
 import { getCustomColors, type CustomColors } from "../../utils/customStylings";
 import { WorthGradingView } from "./views/WorthGrading/WorthGradingView";
@@ -157,7 +159,11 @@ function PokemonDetailsForCard() {
   const [failedCardImageSrc, setFailedCardImageSrc] = useState<string | null>(
     null,
   );
-  const [showEbay, setShowEbay] = useState(true);
+  const [selectedPanel, setSelectedPanel] = useState<
+    "ebay" | "tcg" | "analysis"
+  >("ebay");
+  const showEbay = selectedPanel === "ebay";
+  const [tcgLoading, setTcgLoading] = useState(false);
   const [ebayLoading, setEbayLoading] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("prices");
   const [cardSearchCardId, setCardSearchCardId] = useState<string | null>(null);
@@ -805,7 +811,7 @@ function PokemonDetailsForCard() {
             className={`feature-button${showEbay ? " is-active" : ""}${ebayLoading ? " is-loading" : ""}`}
             style={getCustomColors("teal")}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => setShowEbay(true)}
+            onClick={() => setSelectedPanel("ebay")}
             aria-pressed={showEbay}
             aria-busy={ebayLoading}
           >
@@ -817,7 +823,26 @@ function PokemonDetailsForCard() {
               )}
             </span>
             <span className="feature-button__text">
-              <span className="feature-button__title">Ebay Explorer</span>
+              <span className="feature-button__title">Available on Ebay</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`feature-button${selectedPanel === "tcg" ? " is-active" : ""}${tcgLoading ? " is-loading" : ""}`}
+            style={getCustomColors("orange")}
+            onClick={() => setSelectedPanel("tcg")}
+            aria-pressed={selectedPanel === "tcg"}
+            aria-busy={tcgLoading}
+          >
+            <span className="feature-button__icon" aria-hidden="true">
+              {tcgLoading ? (
+                <span className="feature-button__spinner" />
+              ) : (
+                <Layers3 size={22} strokeWidth={2} />
+              )}
+            </span>
+            <span className="feature-button__text">
+              <span className="feature-button__title">Available on TCG</span>
             </span>
           </button>
           {aiFeatures.map((aiFeature) => {
@@ -829,17 +854,19 @@ function PokemonDetailsForCard() {
               <button
                 key={aiFeature.view}
                 type="button"
-                className={`feature-button${!showEbay && activeView === aiFeature.view ? " is-active" : ""}${
+                className={`feature-button${selectedPanel === "analysis" && activeView === aiFeature.view ? " is-active" : ""}${
                   isFeatureLoading ? " is-loading" : ""
                 }`}
                 style={getCustomColors(aiFeature.color)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
-                  setShowEbay(false);
+                  setSelectedPanel("analysis");
                   setActiveView(aiFeature.view);
                 }}
                 disabled={grokLoading && activeView !== aiFeature.view}
-                aria-pressed={!showEbay && activeView === aiFeature.view}
+                aria-pressed={
+                  selectedPanel === "analysis" && activeView === aiFeature.view
+                }
                 aria-busy={isFeatureLoading}
               >
                 <span className="feature-button__icon" aria-hidden="true">
@@ -862,8 +889,21 @@ function PokemonDetailsForCard() {
           })}
         </div>
 
+        <div className="card-view__marketplace-panel" hidden={selectedPanel !== "tcg"}>
+          <TcgExplorerSection
+            key={card.id}
+            cardId={card.id}
+            cardName={card.name}
+            cardNumber={formatCardNumber(card)}
+            setName={card.set?.name}
+            printing={card.pokeTrace?.variant}
+            isDemo={isDemo}
+            demoResponse={isDemo ? card.tcg_listings : undefined}
+            onLoadingChange={setTcgLoading}
+          />
+        </div>
         {/* Tab changes preserve eBay's independent request and results. */}
-        <div className="card-view__ebay-panel" hidden={!showEbay}>
+        <div className="card-view__ebay-panel card-view__marketplace-panel" hidden={!showEbay}>
           <EbaySection
             onLoadingChange={setEbayLoading}
             key={card.id}
@@ -877,7 +917,7 @@ function PokemonDetailsForCard() {
         </div>
 
         <div
-          hidden={showEbay}
+          hidden={selectedPanel !== "analysis"}
           className={`card-view__page${
             activeView === "prices" ? " card-view__page--prices" : ""
           }`}

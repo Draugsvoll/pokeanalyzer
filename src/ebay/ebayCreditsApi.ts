@@ -7,7 +7,7 @@ export const EBAY_CREDITS_REFRESH_EVENT = "pokeanalyzer:ebay-credits-refresh";
 
 export function parseEbayCredits(value: unknown): EbayCredits {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Invalid eBay credit balance");
+    throw new Error("Invalid market credit balance");
   }
   const balance = value as Record<string, unknown>;
   const counters = [
@@ -30,7 +30,7 @@ export function parseEbayCredits(value: unknown): EbayCredits {
     (balance.currentPeriodEnd !== undefined &&
       typeof balance.currentPeriodEnd !== "string")
   ) {
-    throw new Error("Invalid eBay credit balance");
+    throw new Error("Invalid market credit balance");
   }
   return value as EbayCredits;
 }
@@ -41,7 +41,7 @@ export async function fetchEbayCredits(uid: string, signal: AbortSignal) {
     { signal, cache: "no-store" },
     uid,
   );
-  if (!response.ok) throw new Error("Could not load Ebay credits");
+  if (!response.ok) throw new Error("Could not load Market credits");
   const body: unknown = await response.json();
   return parseEbayCredits(
     body && typeof body === "object" && "credits" in body
@@ -61,7 +61,7 @@ export async function initializeEbaySignupCredits(user: User) {
         signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) {
-        throw new Error("Could not initialize signup Ebay credits");
+        throw new Error("Could not initialize signup Market credits");
       }
       window.dispatchEvent(new Event(EBAY_CREDITS_REFRESH_EVENT));
       return;

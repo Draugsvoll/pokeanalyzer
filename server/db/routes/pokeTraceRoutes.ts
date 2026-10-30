@@ -646,30 +646,21 @@ router.get("/", async (_req, res) => {
 router.get("/:id/price-history", createPokeTracePriceHistoryHandler());
 router.get("/:id/market-price-history", createMarketPriceHistoryHandler());
 
-router.get("/:id", async (req, res) => {
-  const id = req.params.id;
-  if (!isValidCardId(id)) {
-    res.status(400).json({ error: "Invalid card ID" });
-    return;
-  }
-  try {
-    await ensurePokeTraceReady();
-    const result = await pokeTraceDb.execute({
-      sql: `
+export async function loadPokeTraceCard(id: string) {
+  await ensurePokeTraceReady();
+  const result = await pokeTraceDb.execute({
+    sql: `
         SELECT raw_json, saved_responses, fetched_at, name, set_name, card_number,
           tcgplayer_id, tcg_market_comparisons
         FROM poketrace_cards
         WHERE id = ?
       `,
-      args: [id],
-    });
-    const row = result.rows[0];
-    if (!row) {
-      res.status(404).json({ error: "Card not found" });
-      return;
-    }
-    const variantResult = await pokeTraceDb.execute({
-      sql: `
+    args: [id],
+  });
+  const row = result.rows[0];
+  if (!row) return null;
+  const variantResult = await pokeTraceDb.execute({
+    sql: `
         SELECT id, variant, tcgplayer_id
         FROM poketrace_cards
         WHERE name = ?
@@ -677,22 +668,35 @@ router.get("/:id", async (req, res) => {
           AND card_number IS ?
         ORDER BY lower(coalesce(variant, '')), id
       `,
-      args: [row.name, row.set_name, row.card_number],
-    });
-    const variants = selectUnambiguousVariants(
-      variantResult.rows as unknown as VariantIdentityRow[],
-      id,
-      row.tcgplayer_id,
-    );
+    args: [row.name, row.set_name, row.card_number],
+  });
+  const variants = selectUnambiguousVariants(
+    variantResult.rows as unknown as VariantIdentityRow[],
+    id,
+    row.tcgplayer_id,
+  );
+  return toPokemonCard(
+    row.raw_json,
+    parsePokeTraceSavedResponses(row.saved_responses),
+    variants,
+    row.tcg_market_comparisons,
+  );
+}
+
+router.get("/:id", async (req, res) => {
+  const id = req.params.id;
+  if (!isValidCardId(id)) {
+    res.status(400).json({ error: "Invalid card ID" });
+    return;
+  }
+  try {
+    const card = await loadPokeTraceCard(id);
+    if (!card) {
+      res.status(404).json({ error: "Card not found" });
+      return;
+    }
     res.setHeader("Cache-Control", "no-store");
-    res.json(
-      toPokemonCard(
-        row.raw_json,
-        parsePokeTraceSavedResponses(row.saved_responses),
-        variants,
-        row.tcg_market_comparisons,
-      ),
-    );
+    res.json(card);
   } catch (error) {
     logError("Failed to fetch PokeTrace card", error);
     res.status(500).json({ error: "Failed to fetch card" });

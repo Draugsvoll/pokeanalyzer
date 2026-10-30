@@ -12,6 +12,7 @@ import portfolioRoutes from "./db/routes/portfolioRoutes.js";
 import pokeTraceRoutes from "./db/routes/pokeTraceRoutes.js";
 import pokeTraceSealedRoutes from "./db/routes/pokeTraceSealedRoutes.js";
 import ebayRoutes from "./ebay/routes.js";
+import tcgRoutes from "./tcg/routes.js";
 import subscriptionRoutes from "./subscriptions/subscriptionRoutes.js";
 import { stripeWebhookHandler } from "./subscriptions/stripePayments.js";
 import { getAuthenticatedUid, requireVerifiedUser } from "./security/auth.js";
@@ -134,6 +135,7 @@ app.use(
 );
 app.use(express.json({ limit: "256kb" }));
 app.use("/ebay", ebayRoutes);
+app.use("/tcg", tcgRoutes);
 app.use("/openai", requireVerifiedUser, paidApiLimiter, openaiRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/market-summary", marketSummaryRoutes);

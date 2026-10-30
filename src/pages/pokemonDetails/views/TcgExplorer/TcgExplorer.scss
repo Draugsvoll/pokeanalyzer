@@ -1,0 +1,24 @@
+.tcg-explorer {
+  display: grid;
+  gap: 1rem;
+
+  &__results {
+    margin-top: var(--space-3);
+  }
+
+  .marketplace-listings__result {
+    padding-block: 0.7rem;
+  }
+
+  .marketplace-listings__product-link {
+    color: var(--marketplace-accent);
+    margin-bottom: 0.3rem;
+  }
+
+  &__caption {
+    color: var(--font-color-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+}

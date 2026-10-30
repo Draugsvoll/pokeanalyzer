@@ -27,12 +27,23 @@ test("renders both demo marketplace changes from embedded snapshots without fetc
   const headlines = container.querySelectorAll(
     ".poketrace-market__price-summary > strong",
   );
-  expect(headlines[0]).toHaveTextContent("$2,236.75");
-  expect(headlines[1]).toHaveTextContent("$1,800.00");
+  const money = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+  const prices = demoCard.pokeTrace.prices;
+  expect(headlines).toHaveLength(2);
+  expect(headlines[0]).toHaveTextContent(
+    money.format(prices.tcgplayer.NEAR_MINT.avg),
+  );
+  expect(headlines[1]).toHaveTextContent(
+    money.format(prices.ebay.NEAR_MINT.median7d ?? prices.ebay.NEAR_MINT.avg),
+  );
   for (const change of changes) {
     expect(change).not.toHaveClass("app-price-change--unavailable");
     expect(change.textContent).toContain("%");
   }
+  expect(changes[1]).toHaveTextContent("7.4%");
   expect(fetchCardPriceHistory).not.toHaveBeenCalled();
   expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
 });

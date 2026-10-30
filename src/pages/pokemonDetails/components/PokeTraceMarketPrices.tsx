@@ -15,7 +15,10 @@ import {
   MarketPriceHistoryLoading,
 } from "./MarketPriceHistoryChart";
 import { MarketDataUnavailable } from "./MarketDataUnavailable";
-import { resolveSevenDayMarketPriceChange } from "./marketPriceChange";
+import {
+  resolveEbaySevenDayAverageChange,
+  resolveSevenDayMarketPriceChange,
+} from "./marketPriceChange";
 import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
@@ -25,6 +28,8 @@ type TierPrice = {
   high?: number | null;
   saleCount?: number | null;
   approxSaleCount?: boolean | null;
+  avg7d?: number | null;
+  lastUpdated?: string | null;
 };
 
 type MarketplacePrices = Record<string, TierPrice>;
@@ -150,14 +155,19 @@ function MarketplaceColumn({
   const showLoader = source.toLowerCase() === "ebay" && dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !showLoader;
-  const displayedPrice = preferMedian ? (price.median7d ?? price.avg) : price.avg;
-  const priceChange = resolveSevenDayMarketPriceChange(
-    priceHistory,
-    source,
-    condition,
-    displayedPrice,
-    preferMedian ? "median7d" : "avg",
-  );
+  const displayedPrice = preferMedian
+    ? (price.median7d ?? price.avg)
+    : price.avg;
+  const priceChange =
+    source.toLowerCase() === "ebay"
+      ? resolveEbaySevenDayAverageChange(displayedPrice, price.avg7d)
+      : resolveSevenDayMarketPriceChange(
+          priceHistory,
+          source,
+          condition,
+          displayedPrice,
+          preferMedian ? "median7d" : "avg",
+        );
   const priceChangeTitle = `${formatPriceChangePeriodLong("7d")} ${sourceLabel(source)} ${conditionLabel(condition)} price change`;
 
   return (
@@ -230,13 +240,16 @@ function MarketplaceColumn({
                 </div>
                 {url && (
                   <a
-                    aria-label={`Buy on ${sourceLabel(source)}`}
+                    aria-label={`View on ${source.toLowerCase() === "tcgplayer" ? "TCG" : sourceLabel(source)}`}
                     className={`poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
                     href={url}
                     rel="noreferrer"
                     target="_blank"
                   >
-                    Buy
+                    View on{" "}
+                    {source.toLowerCase() === "tcgplayer"
+                      ? "TCG"
+                      : sourceLabel(source)}
                     <ExternalLink aria-hidden="true" />
                   </a>
                 )}
@@ -368,14 +381,23 @@ function GradedEbayPrices({
   );
 }
 
+function ebayNearMintUpdatedOn(prices: Record<string, MarketplacePrices>) {
+  const lastUpdated = prices.ebay?.NEAR_MINT?.lastUpdated;
+  if (typeof lastUpdated !== "string") return undefined;
+  const day = lastUpdated.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined;
+}
+
 function PriceHistory({
   cardId,
   dataPending = false,
   demoHistory,
+  ebayUpdatedOn,
 }: {
   cardId: string;
   dataPending?: boolean;
   demoHistory?: MarketPriceHistoryResponse;
+  ebayUpdatedOn?: string;
 }) {
   const [history, setHistory] = useState<MarketPriceHistoryResponse | null>(
     null,
@@ -401,11 +423,20 @@ function PriceHistory({
   if (dataPending) return <MarketPriceHistoryLoading />;
   if (isDemo)
     return demoHistory ? (
-      <MarketPriceHistoryChart history={demoHistory} />
+      <MarketPriceHistoryChart
+        ebayUpdatedOn={ebayUpdatedOn}
+        history={demoHistory}
+      />
     ) : null;
   if (!cardId) return <MarketPriceHistoryLoading />;
   if (!history && !unavailable) return <MarketPriceHistoryLoading />;
-  if (history) return <MarketPriceHistoryChart history={history} />;
+  if (history)
+    return (
+      <MarketPriceHistoryChart
+        ebayUpdatedOn={ebayUpdatedOn}
+        history={history}
+      />
+    );
   return (
     <section className="poketrace-market__history default-container-inner">
       <header className="poketrace-market__history-header">
@@ -487,6 +518,7 @@ export function PokeTraceMarketPrices({
         cardId={cardId}
         dataPending={dataPending}
         demoHistory={data.marketPriceHistory}
+        ebayUpdatedOn={ebayNearMintUpdatedOn(prices)}
         key={cardId}
       />
 

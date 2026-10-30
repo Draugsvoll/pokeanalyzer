@@ -1,3 +1,4 @@
+import { isTcgSnapshot } from "../../shared/tcgExplorer.js";
 import type { PokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
 import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketComparisons.js";
 
@@ -63,5 +64,8 @@ export function toPokemonCard(
     },
     grok,
     ...(ebay && { ebay }),
+    ...(isTcgSnapshot(savedResponses.tcg_listings) && {
+      tcg_listings: savedResponses.tcg_listings,
+    }),
   };
 }

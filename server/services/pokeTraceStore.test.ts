@@ -302,6 +302,7 @@ test("catalogue upserts preserve saved responses and price refresh state", async
   const database = await createDatabase();
   const fetchedAt = "2026-09-17T08:30:00.000Z";
   const savedResponses = {
+    tcg_listings: {sales: [], offers: [], fetchedAt},
     grok: { market_analysis: { fetched_at: fetchedAt } },
   };
 

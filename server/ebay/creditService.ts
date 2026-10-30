@@ -177,7 +177,7 @@ export async function grantEbaySignupCredits(
         accountAge > SIGNUP_GRANT_WINDOW_MS
       ) {
         throw new EbayCreditError(
-          "Signup Ebay credits are only available for newly created accounts",
+          "Signup Market credits are only available for newly created accounts",
           403,
         );
       }
@@ -212,7 +212,7 @@ async function reserveCredit(
       };
     }
     if (current.creditsRemaining < EBAY_REQUEST_CREDIT_COST) {
-      throw new EbayCreditError("Not enough Ebay credits", 409);
+      throw new EbayCreditError("Not enough Market credits", 409);
     }
     const membershipCredits = Math.min(
       current.membershipCreditsRemaining,

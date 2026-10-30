@@ -1,13 +1,13 @@
-.ebay-sold-view {
-  --ebay-accent: var(--custom-color-teal);
+.marketplace-listings {
+  --marketplace-accent: var(--custom-color-teal);
 
-  accent-color: var(--ebay-accent);
+  accent-color: var(--marketplace-accent);
   margin-inline: auto;
   max-width: 100%;
   width: 100%;
 
   &__eyebrow {
-    color: var(--ebay-accent);
+    color: var(--marketplace-accent);
     display: block;
     margin-bottom: var(--space-1);
     text-align: center;
@@ -42,7 +42,7 @@
   }
 
   &__summary-label {
-    color: var(--ebay-accent);
+    color: var(--marketplace-accent);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--font-tracking-wide);
     text-transform: uppercase;
@@ -112,7 +112,7 @@
     }
 
     > div:nth-child(2) dd {
-      color: var(--ebay-accent);
+      color: var(--marketplace-accent);
     }
   }
 
@@ -123,7 +123,7 @@
   }
 
   &__listing-toggle.segmented-radio-group {
-    --segment-group-accent: var(--ebay-accent);
+    --segment-group-accent: var(--marketplace-accent);
     display: grid;
     grid-template-columns: repeat(2, minmax(7.5rem, 1fr));
     justify-self: center;
@@ -142,7 +142,7 @@
   }
 
   &__filter-row:has(
-      .ebay-sold-view__grader-filter .ui-select-dropdown__toggle.is-open
+      .marketplace-listings__grader-filter .ui-select-dropdown__toggle.is-open
     ) {
     position: relative;
     z-index: calc(var(--dropdown-z-index) + 2);
@@ -170,14 +170,18 @@
 
     .ui-select-dropdown__toggle:hover,
     .ui-select-dropdown__toggle.is-open {
-      background: color-mix(in srgb, var(--ebay-accent) 6%, transparent);
-      border-color: color-mix(in srgb, var(--ebay-accent) 35%, transparent);
+      background: color-mix(in srgb, var(--marketplace-accent) 6%, transparent);
+      border-color: color-mix(
+        in srgb,
+        var(--marketplace-accent) 35%,
+        transparent
+      );
       color: var(--font-color-primary);
     }
     .ui-select-dropdown__toggle:focus-visible {
-      border-color: var(--ebay-accent);
+      border-color: var(--marketplace-accent);
       box-shadow: 0 0 0 3px
-        color-mix(in srgb, var(--ebay-accent) 16%, transparent);
+        color-mix(in srgb, var(--marketplace-accent) 16%, transparent);
     }
   }
 
@@ -185,8 +189,12 @@
     .ui-select-dropdown__toggle,
     .ui-select-dropdown__toggle:hover,
     .ui-select-dropdown__toggle.is-open {
-      background: color-mix(in srgb, var(--ebay-accent) 80%, var(--bg2));
-      border-color: color-mix(in srgb, var(--ebay-accent) 80%, var(--bg2));
+      background: color-mix(in srgb, var(--marketplace-accent) 80%, var(--bg2));
+      border-color: color-mix(
+        in srgb,
+        var(--marketplace-accent) 80%,
+        var(--bg2)
+      );
       color: var(--button-font-color);
     }
 
@@ -205,9 +213,13 @@
     min-width: 0;
 
     .app-filter-input__field:focus {
-      border-color: color-mix(in srgb, var(--ebay-accent) 58%, transparent);
+      border-color: color-mix(
+        in srgb,
+        var(--marketplace-accent) 58%,
+        transparent
+      );
       box-shadow: 0 0 0 1px
-        color-mix(in srgb, var(--ebay-accent) 7%, transparent);
+        color-mix(in srgb, var(--marketplace-accent) 7%, transparent);
     }
   }
 
@@ -299,24 +311,36 @@
     }
 
     label:hover span {
-      border-color: color-mix(in srgb, var(--ebay-accent) 45%, transparent);
+      border-color: color-mix(
+        in srgb,
+        var(--marketplace-accent) 45%,
+        transparent
+      );
       color: var(--font-color-primary);
     }
 
     input:checked + span {
-      background: color-mix(in srgb, var(--ebay-accent) 12%, transparent);
-      border-color: color-mix(in srgb, var(--ebay-accent) 40%, transparent);
-      color: var(--ebay-accent);
+      background: color-mix(
+        in srgb,
+        var(--marketplace-accent) 12%,
+        transparent
+      );
+      border-color: color-mix(
+        in srgb,
+        var(--marketplace-accent) 40%,
+        transparent
+      );
+      color: var(--marketplace-accent);
     }
 
     input:focus-visible + span {
-      outline: 2px solid var(--ebay-accent);
+      outline: 2px solid var(--marketplace-accent);
       outline-offset: 2px;
     }
   }
 
   &__filters.radio-group.radio-group {
-    --radio-accent: var(--ebay-accent);
+    --radio-accent: var(--marketplace-accent);
   }
 
   &__filters.radio-group.radio-group label > span {
@@ -392,7 +416,7 @@
     position: relative;
 
     &[aria-busy="true"] {
-      .ebay-sold-view__results {
+      .marketplace-listings__results {
         opacity: 0.87;
         pointer-events: none;
       }
@@ -463,19 +487,19 @@
     gap: var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    .ebay-sold-view__price-summary dd {
+    .marketplace-listings__price-summary dd {
       font-size: 16px;
     }
 
-    .ebay-sold-view__result {
+    .marketplace-listings__result {
       column-gap: 0.6rem;
     }
 
-    .ebay-sold-view__header {
+    .marketplace-listings__header {
       gap: 0.6rem;
     }
 
-    .ebay-sold-view__price-row > strong {
+    .marketplace-listings__price-row > strong {
       font-size: 17px;
     }
   }
@@ -492,17 +516,17 @@
       min-height: 8rem;
     }
 
-    .ebay-sold-view__state {
+    .marketplace-listings__state {
       min-height: 3.75rem;
     }
 
-    .ebay-sold-view__state--loading {
+    .marketplace-listings__state--loading {
       min-height: 0;
     }
   }
 
   &__result {
-    animation: ebay-result-enter var(--animation-duration-enter)
+    animation: marketplace-result-enter var(--animation-duration-enter)
       var(--animation-ease-standard) both;
     background: transparent;
     border: 0;
@@ -611,8 +635,8 @@
     }
 
     &:focus-visible svg,
-    .ebay-sold-view__result:hover & svg,
-    .ebay-sold-view__title-block--toggleable:hover & svg {
+    .marketplace-listings__result:hover & svg,
+    .marketplace-listings__title-block--toggleable:hover & svg {
       background: var(--bg2);
       border: 1px solid var(--border-divider);
       color: var(--font-color-secondary);
@@ -620,7 +644,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--ebay-accent);
+      outline: 2px solid var(--marketplace-accent);
       outline-offset: 2px;
     }
 
@@ -708,12 +732,12 @@
   }
 
   &__title-block--expanded h3,
-  &__title-block--expanded .ebay-sold-view__listing-meta {
+  &__title-block--expanded .marketplace-listings__listing-meta {
     max-height: none;
     white-space: normal;
   }
 
-  &__title-block--expanded .ebay-sold-view__listing-meta {
+  &__title-block--expanded .marketplace-listings__listing-meta {
     flex-wrap: wrap;
   }
 
@@ -767,7 +791,7 @@
   }
 
   &__price-row > strong {
-    color: var(--ebay-accent);
+    color: var(--marketplace-accent);
     font-family: var(--font-family-price);
     font-size: 18px;
     font-variant-numeric: tabular-nums;
@@ -830,17 +854,47 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ebay-sold-view__header h3,
-  .ebay-sold-view__title-toggle svg {
+  .marketplace-listings__header h3,
+  .marketplace-listings__title-toggle svg {
     transition: none;
   }
 }
 
-@keyframes ebay-result-enter {
+@keyframes marketplace-result-enter {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
   }
+}
+
+.marketplace-listings__result--without-image {
+  grid-template-columns: minmax(0, 1fr);
+}
+.marketplace-listings__footer {
+  padding: 1rem;
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+  }
+}
+@media (max-width: 850px) {
+  .marketplace-listings__result-panels--advanced {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.marketplace-listings__product-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+}
+
+.marketplace-listings__result--expanded {
+  padding-block: 0.7rem;
 }

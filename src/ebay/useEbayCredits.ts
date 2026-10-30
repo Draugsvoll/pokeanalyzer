@@ -62,28 +62,36 @@ function useAccountEbayCredits(user: User | null) {
 
   const refreshCredits = useCallback(async () => {
     if (!uid || !verified || activeAccount.current !== account) return;
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    if (!currentCredits.current) setLoading(true);
-    setError("");
-    try {
-      const next = await fetchEbayCredits(
-        uid,
-        AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
-      );
-      if (!controller.signal.aborted && activeAccount.current === account) {
-        updateCredits(next);
+
+    const loadBalance = async (isRetry: boolean) => {
+      request.current?.abort();
+      const controller = new AbortController();
+      request.current = controller;
+      if (!currentCredits.current) setLoading(true);
+      setError("");
+      try {
+        const next = await fetchEbayCredits(
+          uid,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
+        );
+        if (!controller.signal.aborted && activeAccount.current === account) {
+          updateCredits(next);
+        }
+      } catch {
+        if (controller.signal.aborted || activeAccount.current !== account) {
+          return;
+        }
+        if (!isRetry) {
+          await loadBalance(true);
+          return;
+        }
       }
-    } catch {
-      if (!controller.signal.aborted && activeAccount.current === account) {
-        setError("We couldn’t load your Ebay credits. Please try again.");
-      }
-    } finally {
       if (!controller.signal.aborted && activeAccount.current === account) {
         setLoading(false);
       }
-    }
+    };
+
+    await loadBalance(false);
   }, [uid, verified, account, updateCredits]);
 
   useLayoutEffect(() => {

@@ -55,12 +55,8 @@ export default function Profile() {
     updatingSubscription,
   } = useMembershipSubscription();
   const { creditsRemaining, membershipCreditsTotal } = useCredits(subscription);
-  const {
-    credits: ebayCredits,
-    loading: loadingEbayCredits,
-    error: ebayCreditsError,
-    refreshCredits: refreshEbayCredits,
-  } = useEbayCredits();
+  const { credits: ebayCredits, loading: loadingEbayCredits } =
+    useEbayCredits();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -461,8 +457,8 @@ export default function Profile() {
                   },
                   {
                     label: ebayCredits?.unlimited
-                      ? "Ebay searches"
-                      : "Ebay credits",
+                      ? "eBay & TCGplayer searches"
+                      : "Market credits",
                     unlimited: ebayCredits?.unlimited,
                     remaining: ebayCredits?.creditsRemaining,
                     allowance: ebayCredits?.membershipCreditsTotal,
@@ -485,7 +481,7 @@ export default function Profile() {
                         className="profile__credit-value"
                         aria-label={
                           unlimited
-                            ? "Unlimited Ebay searches"
+                            ? "Unlimited eBay & TCGplayer searches"
                             : remaining == null || allowance == null
                               ? `${label}: balance unavailable`
                               : `${label}: ${remaining} remaining, ${allowance} per month`
@@ -512,17 +508,6 @@ export default function Profile() {
                   ),
                 )}
               </div>
-              {ebayCreditsError && (
-                <div role="alert">
-                  <p>{ebayCreditsError}</p>
-                  <Button
-                    onClick={() => void refreshEbayCredits()}
-                    disabled={loadingEbayCredits}
-                  >
-                    Retry Ebay credits
-                  </Button>
-                </div>
-              )}
             </article>
           </div>
 

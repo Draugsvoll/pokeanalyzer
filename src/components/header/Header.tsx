@@ -156,8 +156,8 @@ export const Header: React.FC = () => {
               <Link
                 to="/profile"
                 className="header__credits"
-                title="View AI and Ebay credits"
-                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited Ebay searches" : ebayCredits ? `${ebayCredits.creditsRemaining} Ebay credits remaining` : "Ebay credit balance unavailable"}. View credits`}
+                title="View AI and Market credits"
+                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited eBay & TCGplayer searches" : ebayCredits ? `${ebayCredits.creditsRemaining} Market credits remaining` : "Market credit balance unavailable"}. View credits`}
               >
                 <span className="header__credits-balance">
                   <strong>{creditsRemaining}</strong> AI{" "}
@@ -173,7 +173,7 @@ export const Header: React.FC = () => {
                       ? "Unlimited"
                       : (ebayCredits?.creditsRemaining ?? "—")}
                   </strong>{" "}
-                  Ebay{" "}
+                  Market{" "}
                   {ebayCredits?.unlimited
                     ? "searches"
                     : ebayCredits?.creditsRemaining === 1

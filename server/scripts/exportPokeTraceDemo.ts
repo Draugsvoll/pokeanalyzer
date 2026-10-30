@@ -1,10 +1,11 @@
-import { loadPokeTracePriceHistory } from "../db/routes/pokeTraceRoutes.js";
+import {
+  loadPokeTraceCard,
+  loadPokeTracePriceHistory,
+} from "../db/routes/pokeTraceRoutes.js";
 import "dotenv/config";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { parsePokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
 import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
-import { toPokemonCard } from "../services/pokeTraceCardView.js";
 import { loadMarketPriceHistory } from "../services/pokeTraceMarketPriceHistory.js";
 
 const DEMO_SOURCE_CARD_ID = "019bff9a-8592-77ae-8865-c500279b7630";
@@ -17,21 +18,9 @@ if (!databaseUrl || databaseUrl.startsWith("file:")) {
 await ensurePokeTraceReady();
 
 try {
-  const result = await pokeTraceDb.execute({
-    sql: "SELECT raw_json, saved_responses FROM poketrace_cards WHERE id = ?",
-    args: [DEMO_SOURCE_CARD_ID],
-  });
-
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error("The Base Set Charizard demo source card is missing");
-  }
-
-  const card = toPokemonCard(
-    row.raw_json,
-    parsePokeTraceSavedResponses(row.saved_responses),
-    [],
-  );
+  // Use exactly the same card loader as GET /api/cards/:id.
+  const card = await loadPokeTraceCard(DEMO_SOURCE_CARD_ID);
+  if (!card) throw new Error("The demo source card is missing");
   const marketPriceHistory = await loadMarketPriceHistory(DEMO_SOURCE_CARD_ID);
   if (!marketPriceHistory) {
     throw new Error("Price history for the demo source card is missing");
@@ -53,14 +42,11 @@ try {
       marketPriceHistory: {
         ...marketPriceHistory,
         cardId: "demo",
-        stale: false,
       },
-      variants: [
-        {
-          id: "demo",
-          name: card.pokeTrace.variant?.trim() || "Holofoil",
-        },
-      ],
+      variants: card.pokeTrace.variants.map((variant) => ({
+        ...variant,
+        id: variant.id === DEMO_SOURCE_CARD_ID ? "demo" : variant.id,
+      })),
     },
   };
 

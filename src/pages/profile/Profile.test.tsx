@@ -162,8 +162,8 @@ test("shows no included credits or credit renewal date for Free", async () => {
     screen.getByLabelText("AI credits: 0 remaining, 0 per month"),
   ).toHaveTextContent(/0\s*AI credits\s*0 renewed monthly/);
   expect(
-    screen.getByLabelText("Ebay credits: 10 remaining, 0 per month"),
-  ).toHaveTextContent(/10\s*Ebay credits\s*0 renewed monthly/);
+    screen.getByLabelText("Market credits: 10 remaining, 0 per month"),
+  ).toHaveTextContent(/10\s*Market credits\s*0 renewed monthly/);
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 
@@ -245,7 +245,7 @@ test("disables a scheduled downgrade and shows its effective date", async () => 
 test("shows unlimited eBay searches without a numeric allowance for Pro", async () => {
   mocks.unlimitedEbay = true;
   renderProfile();
-  const balance = await screen.findByLabelText("Unlimited Ebay searches");
+  const balance = await screen.findByLabelText("Unlimited eBay & TCGplayer searches");
   expect(balance).toHaveTextContent("Included with Pro");
   expect(balance).not.toHaveTextContent("renewed monthly");
 });

@@ -141,8 +141,16 @@ test("shows both marketplace values in the hover tooltip", () => {
   chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
   fireEvent.pointerMove(chart, { clientX: 790 });
 
-  expect(screen.getByText("$420")).toBeVisible();
-  expect(screen.getByText("$485")).toBeVisible();
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-tooltip-row--tcgplayer strong",
+    ),
+  ).toHaveTextContent("$420");
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-tooltip-row--ebay strong",
+    ),
+  ).toHaveTextContent("$500");
   expect(screen.getAllByText("Sep 18")).toHaveLength(2);
 });
 
@@ -161,7 +169,7 @@ test("carries the latest Ebay price through trailing dates", () => {
   fireEvent.pointerMove(chart, { clientX: 790 });
 
   expect(screen.getByText("$420")).toBeVisible();
-  expect(screen.getByText("$480")).toBeVisible();
+  expect(screen.getByText("$490")).toBeVisible();
   expect(
     document.querySelector(".poketrace-market__history-point--ebay"),
   ).toBeInTheDocument();
@@ -186,7 +194,7 @@ test("aligns the Ebay line and marker on a carried-forward date", () => {
   const chart = screen.getByRole("img");
   chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
   fireEvent.pointerMove(chart, { clientX: 418 });
-  expect(screen.getByText("$35.00")).toBeVisible();
+  expect(screen.getByText("$40.00")).toBeVisible();
   expect(
     document.querySelector(".poketrace-market__history-point--ebay"),
   ).toBeInTheDocument();
@@ -198,6 +206,32 @@ test("aligns the Ebay line and marker on a carried-forward date", () => {
   expect(
     document.querySelector(".poketrace-market__history-line--ebay"),
   ).toHaveAttribute("d", expect.stringContaining(coordinates));
+});
+
+test("stops the Ebay line at the price update date", () => {
+  render(
+    <MarketPriceHistoryChart
+      ebayUpdatedOn="2026-09-17"
+      history={history({
+        tcgplayer: [point("2026-09-17", 400), point("2026-09-18", 420)],
+        ebay: [point("2026-09-17", 29.04), point("2026-09-18", 55)],
+      })}
+    />,
+  );
+
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  fireEvent.pointerMove(chart, { clientX: 790 });
+
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-tooltip-row--ebay strong",
+    ),
+  ).toHaveTextContent("No data");
+  expect(screen.queryByText("$55.00")).not.toBeInTheDocument();
+  expect(
+    document.querySelector(".poketrace-market__history-line--ebay"),
+  ).not.toHaveAttribute("d", expect.stringContaining("L 790.00"));
 });
 
 test("shows only a subtle indicator while history loads", () => {

@@ -105,6 +105,6 @@ test("shows unlimited eBay access in the signed-in credit display", () => {
   mocks.unlimitedEbay = true;
   renderHeader();
   expect(
-    screen.getByRole("link", { name: /Unlimited Ebay searches/ }),
+    screen.getByRole("link", { name: /Unlimited eBay & TCGplayer searches/ }),
   ).toBeVisible();
 });

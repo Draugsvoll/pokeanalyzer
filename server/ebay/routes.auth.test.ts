@@ -81,12 +81,12 @@ test("HTTP streaming delivers the first result while the second is still pending
 test("streaming preflight failures still return an ordinary HTTP error", async (t) => {
   const { request } = await startRouter(t, {
     requestListings: async () => {
-      throw new EbayCreditError("Not enough Ebay credits", 409);
+      throw new EbayCreditError("Not enough Market credits", 409);
     },
   });
   assert.deepEqual(await request("/?cardId=card-1&stream=1", "verified"), {
     status: 409,
-    body: { error: "Not enough Ebay credits" },
+    body: { error: "Not enough Market credits" },
   });
 });
 
@@ -191,7 +191,7 @@ test("unverified authenticated users can claim signup credits but cannot search 
   assert.deepEqual(calls, { signup: 1, balance: 0, search: 0 });
 });
 
-test("unauthenticated and invalid-token users cannot reach any eBay credit or search handler", async (t) => {
+test("unauthenticated and invalid-token users cannot reach any market credit or search handler", async (t) => {
   const { calls, request } = await startRouter(t);
   for (const token of [undefined, "invalid"]) {
     for (const [path, method] of [

@@ -29,6 +29,17 @@ function averagePrice(
     : null;
 }
 
+export function resolveEbaySevenDayAverageChange(
+  currentPrice: number | null | undefined,
+  average7d: number | null | undefined,
+) {
+  const percent = calculateDisplayedPriceChangePercent(
+    currentPrice,
+    average7d,
+  );
+  return percent === null ? null : { percent };
+}
+
 export function resolveSevenDayMarketPriceChange(
   history: CardPriceHistoryResponse | null,
   source: string,

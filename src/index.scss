@@ -232,8 +232,11 @@ body {
   max-width: var(--shell-max-width);
 }
 
-/* Advanced Ebay results use the browsing width; other detail sections stay focused. */
-.main-content--details:has(.ebay-sold-view__result-panels--advanced) {
+/* Only the visible marketplace in dual mode uses the wider browsing layout. */
+.main-content--details:has(
+  .card-view__marketplace-panel:not([hidden])
+    .marketplace-listings__result-panels--advanced
+) {
   --details-shell-padding: calc(var(--page-pad-x) - var(--space-2));
   --details-content-max-width: calc(
     var(--shell-max-width) - 2 * var(--details-shell-padding)

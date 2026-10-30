@@ -28,7 +28,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     ebayCredits: 0,
     description: "Explore card details and market prices at no cost.",
     features: [
-      { label: "10 Ebay credits at signup", highlighted: true },
+      { label: "10 Market credits at signup", highlighted: true },
       { label: "Track 10 cards in portfolio & watchlist" },
       { label: "Basic card details and price data" },
     ],
@@ -45,7 +45,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     features: [
       { label: "Everything in Free" },
       { label: "3 AI credits every month" },
-      { label: "5 Ebay searches every month" },
+      { label: "5 eBay & TCGplayer searches every month" },
       { label: "Track unlimited cards in portfolio & watchlist" },
       { label: "Weekly market summary" },
       { label: "Price history & graded prices" },
@@ -60,11 +60,11 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     credits: 9,
     ebayCredits: null,
     description:
-      "Unlimited Ebay searches and more AI credits for frequent research.",
+      "Unlimited eBay & TCGplayer searches and more AI credits for frequent research.",
     features: [
       { label: "Everything in Basic" },
       { label: "9 AI credits every month" },
-      { label: "Unlimited Ebay searches", highlighted: true },
+      { label: "Unlimited eBay & TCGplayer searches", highlighted: true },
     ],
   },
 ];
