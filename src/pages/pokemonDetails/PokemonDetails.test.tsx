@@ -208,6 +208,12 @@ vi.mock("./components/CardFeatureHeader", async (importOriginal) => {
   };
 });
 
+function featureButton(name: string) {
+  return screen.getByRole("button", {
+    name: name === "Grading" ? /^GradingPSA/ : new RegExp(`^${name}`),
+  });
+}
+
 function ResponseView({
   emptyLabel,
   grokRequest,
@@ -384,7 +390,7 @@ test.each([
   );
   await screen.findByTestId("feature-action");
   expect(screen.queryByText(message)).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(feature) }));
+  fireEvent.click(featureButton(feature));
   fireEvent.click(screen.getByTestId("feature-action"));
   const status = await screen.findByText(message);
   expect(
@@ -408,7 +414,7 @@ test.each(["Grading", "Collector Insights", "Market Analysis"])(
       </MemoryRouter>,
     );
     await screen.findByTestId("feature-action");
-    fireEvent.click(screen.getByRole("button", { name: new RegExp(feature) }));
+    fireEvent.click(featureButton(feature));
     fireEvent.click(screen.getByTestId("feature-action"));
     const alert = await screen.findByRole("alert");
     expect(
@@ -621,7 +627,7 @@ test("offers a top-up for grading with one credit while other features remain af
   expect(action).toHaveAttribute("data-credit-label", "1 AI credit");
   expect(action).toBeEnabled();
 
-  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  fireEvent.click(featureButton("Grading"));
   expect(screen.getByTestId("feature-action")).toHaveAttribute(
     "data-credit-label",
     "Add credits",
@@ -641,7 +647,7 @@ test("offers grading for two credits when the balance is exactly two", async () 
   );
 
   await screen.findByTestId("feature-action");
-  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  fireEvent.click(featureButton("Grading"));
   const action = screen.getByTestId("feature-action");
   expect(action).toHaveAttribute("data-credit-label", "2 AI credits");
   expect(action).toBeEnabled();
@@ -675,9 +681,7 @@ test.each(["Grading", "Collector Insights", "Market Analysis"])(
     );
 
     await screen.findByTestId("feature-action");
-    fireEvent.click(
-      screen.getByRole("button", { name: new RegExp(`^${feature}`) }),
-    );
+    fireEvent.click(featureButton(feature));
     fireEvent.click(screen.getByTestId("feature-action"));
 
     await waitFor(() => {
@@ -707,7 +711,7 @@ test("does not refresh the balance for an unrelated analysis failure", async () 
   );
 
   await screen.findByTestId("feature-action");
-  fireEvent.click(screen.getByRole("button", { name: /^Grading/ }));
+  fireEvent.click(featureButton("Grading"));
   fireEvent.click(screen.getByTestId("feature-action"));
 
   await waitFor(() => {
@@ -899,7 +903,7 @@ test("Worth Grading sends the normalized active variant", async () => {
   );
 
   await screen.findByRole("heading", { name: "Pikachu", level: 1 });
-  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  fireEvent.click(featureButton("Grading"));
   const openGradingButton = screen.getByRole("button", {
     name: "Open Grading",
   });
@@ -973,7 +977,7 @@ test("feature responses survive view switches and clear for a new card", async (
     );
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /Grading/ }));
+  fireEvent.click(featureButton("Grading"));
   const openGradingButton = screen.getByRole("button", {
     name: "Open Grading",
   });

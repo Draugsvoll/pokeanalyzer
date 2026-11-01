@@ -132,7 +132,7 @@ export function MarketAnalysisView({
           <article className="default-container-inner default-container-inner--centered">
             <header className="market-analysis-report__summary-heading">
               <h4>Healthiest segment</h4>
-              <Badge accent="orange" weight="strong">
+              <Badge accent="yellow" weight="strong">
                 {data.healthiestSegment.label}
               </Badge>
             </header>

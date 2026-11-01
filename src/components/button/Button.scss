@@ -148,7 +148,7 @@
 /* Ghost — transparent fill + accent border */
 .app-btn-pill--ghost {
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--feature-accent) 34%, transparent);
+  border: 1px solid color-mix(in srgb, var(--feature-accent) 40%, transparent);
   box-shadow: none;
   color: color-mix(in srgb, var(--feature-accent) 55%, white);
 

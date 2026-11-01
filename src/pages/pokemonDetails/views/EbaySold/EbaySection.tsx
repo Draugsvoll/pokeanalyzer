@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CircleDollarSign } from "lucide-react";
+import { Gavel } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { EbayCredits } from "../../../../../shared/ebayCredits";
 import type {
@@ -250,7 +250,7 @@ function EbaySectionForAccount({
             set: { name: setName },
           }}
           color="teal"
-          icon={CircleDollarSign}
+          icon={Gavel}
           label="Available on Ebay"
           actionLabel={
             noCredits

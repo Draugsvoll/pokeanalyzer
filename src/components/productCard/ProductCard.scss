@@ -47,7 +47,7 @@
 
 .product-card:hover > .product-card__surface,
 .product-card:focus-within > .product-card__surface {
-  background: color-mix(in srgb, var(--bg-card) 98%, white);
+  background: color-mix(in srgb, var(--bg-card) 98.5%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
 }

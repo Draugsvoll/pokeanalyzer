@@ -9,6 +9,7 @@ const PAGE_TITLES: Record<string, string> = {
   card: "Card details",
   contact: "Contact",
   "data-disclaimer": "Data disclaimer",
+  "grading-calculator": "Grading",
   portfolio: "Portfolio",
   privacy: "Privacy",
   profile: "Account",

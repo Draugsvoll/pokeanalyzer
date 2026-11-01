@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { Calculator, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
   fetchCardPriceHistory,
@@ -8,6 +8,7 @@ import {
   type MarketPriceHistoryResponse,
 } from "../../../services/cardApi";
 import { PriceChange } from "../../../components/priceChange/PriceChange";
+import Button from "../../../components/button/Button";
 import { RadioButtonGroup } from "../../../components/radioButtonGroup/RadioButtonGroup";
 import { formatPriceChangePeriodLong } from "../../../../shared/priceChangePeriod";
 import {
@@ -286,11 +287,15 @@ function GradedEbayPrices({
   dataPending = false,
   dataRequestFailed = false,
   entries,
+  gradingCalculatorOpen = false,
+  onToggleGradingCalculator,
 }: {
   currency: string;
   dataPending?: boolean;
   dataRequestFailed?: boolean;
   entries: Array<[string, TierPrice]>;
+  gradingCalculatorOpen?: boolean;
+  onToggleGradingCalculator?: () => void;
 }) {
   const groups = new Map<string, Array<[string, TierPrice]>>();
   for (const entry of entries) {
@@ -377,6 +382,25 @@ function GradedEbayPrices({
           })}
         </div>
       )}
+      {onToggleGradingCalculator && (
+        <div className="poketrace-market__calculator-toggle">
+          <Button
+            aria-controls="grading-calculator-title"
+            aria-expanded={gradingCalculatorOpen}
+            fill="ghost"
+            fitContent
+            onClick={onToggleGradingCalculator}
+          >
+            <Calculator aria-hidden="true" size={16} strokeWidth={2.25} />
+            Grading Calculator
+            {gradingCalculatorOpen ? (
+              <ChevronUp aria-hidden="true" size={16} strokeWidth={2.25} />
+            ) : (
+              <ChevronDown aria-hidden="true" size={16} strokeWidth={2.25} />
+            )}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
@@ -459,12 +483,16 @@ export function PokeTraceMarketPrices({
   data,
   dataPending = false,
   dataRequestFailed = false,
+  gradingCalculatorOpen = false,
+  onToggleGradingCalculator,
   variantLoading = false,
 }: {
   cardId: string;
   data: NonNullable<PokemonCard["pokeTrace"]>;
   dataPending?: boolean;
   dataRequestFailed?: boolean;
+  gradingCalculatorOpen?: boolean;
+  onToggleGradingCalculator?: () => void;
   variantLoading?: boolean;
 }) {
   const prices = data.prices as Record<string, MarketplacePrices>;
@@ -527,6 +555,8 @@ export function PokeTraceMarketPrices({
         dataPending={dataPending}
         dataRequestFailed={dataRequestFailed}
         entries={ebayGradedEntries}
+        gradingCalculatorOpen={gradingCalculatorOpen}
+        onToggleGradingCalculator={onToggleGradingCalculator}
       />
 
       {variantLoading && (

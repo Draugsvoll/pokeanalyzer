@@ -14,7 +14,7 @@ import {
   Gem,
   LineChart,
   ScanSearch,
-  Layers3,
+  Gavel,
   Search,
   type LucideIcon,
 } from "lucide-react";
@@ -57,6 +57,7 @@ import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
 import { fetchCardById } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
+import { GradingCalculator } from "./components/GradingCalculator";
 import { SetTopCardsGrid } from "./components/SetTopCardsGrid";
 import { SegmentedRadioGroup } from "../../components/ui/SegmentedRadioGroup";
 import { PricingBar } from "../../components/pricingBar/PricingBar";
@@ -183,6 +184,12 @@ function PokemonDetailsForCard() {
   const [updatingPortfolio, setUpdatingPortfolio] = useState(false);
   const [featureCooldown, setFeatureCooldown] = useState(false);
   const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
+  const [gradingCalculatorOpen, setGradingCalculatorOpen] = useState(false);
+  const [gradingCalculatorCardId, setGradingCalculatorCardId] = useState(id);
+  if (gradingCalculatorCardId !== id) {
+    setGradingCalculatorCardId(id);
+    setGradingCalculatorOpen(false);
+  }
   const { isCurrentRequest, startRequest } = useAbortableRequest();
   const { user: authUser, loading: authLoading } = useAuth();
   const { savePokemonToPortfolio, removePokemonFromPortfolio } =
@@ -399,17 +406,6 @@ function PokemonDetailsForCard() {
 
   const aiFeatures: AiFeature[] = [
     {
-      view: "prices",
-      title: "Market Analysis",
-      loadingMessage: "Building market report...",
-      description:
-        "Scan markets to show you the cards activity and relevant metrics.",
-      icon: LineChart,
-      color: "orange",
-      featureKey: "market_analysis",
-      onOpen: openMarketAnalysis,
-    },
-    {
       view: "collector_analysis",
       title: "Collector Insights",
       loadingMessage: "Building collector report...",
@@ -418,6 +414,17 @@ function PokemonDetailsForCard() {
       color: "blue",
       featureKey: "collector_analysis",
       onOpen: openCollectorAnalysis,
+    },
+    {
+      view: "prices",
+      title: "Market Analysis",
+      loadingMessage: "Building market report...",
+      description:
+        "Scan markets to show you the cards activity and relevant metrics.",
+      icon: LineChart,
+      color: "yellow",
+      featureKey: "market_analysis",
+      onOpen: openMarketAnalysis,
     },
     {
       view: "worth_grading",
@@ -673,6 +680,10 @@ function PokemonDetailsForCard() {
             data={card.pokeTrace}
             dataPending={refreshingCard}
             dataRequestFailed={cardLoadFailed}
+            gradingCalculatorOpen={gradingCalculatorOpen}
+            onToggleGradingCalculator={() =>
+              setGradingCalculatorOpen((open) => !open)
+            }
             variantLoading={Boolean(loadingVariantId)}
           />
         </div>
@@ -803,6 +814,13 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
+      <GradingCalculator
+        currency={card.pokeTrace.currency}
+        hidden={!gradingCalculatorOpen}
+        key={card.id}
+        prices={card.pokeTrace.prices}
+      />
+
       <section aria-label="Card insights" className="card-view__analysis-panel">
         <div className="card-view__analysis-divider" aria-hidden="true" />
         <div className="card-view__actions">
@@ -819,7 +837,7 @@ function PokemonDetailsForCard() {
               {ebayLoading ? (
                 <span className="feature-button__spinner" />
               ) : (
-                <CircleDollarSign size={22} strokeWidth={2} />
+                <Gavel size={22} strokeWidth={2} />
               )}
             </span>
             <span className="feature-button__text">
@@ -838,7 +856,7 @@ function PokemonDetailsForCard() {
               {tcgLoading ? (
                 <span className="feature-button__spinner" />
               ) : (
-                <Layers3 size={22} strokeWidth={2} />
+                <CircleDollarSign size={22} strokeWidth={2} />
               )}
             </span>
             <span className="feature-button__text">

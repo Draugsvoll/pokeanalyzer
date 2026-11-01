@@ -4,7 +4,7 @@ import type {
 } from "../../../../../shared/marketplaceSearch";
 import { readMarketplaceSearchStream } from "../../../../utils/marketplaceSearchStream";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Layers3 } from "lucide-react";
+import { CircleDollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/authContextValue";
 import { useEbayCredits } from "../../../../ebay/useEbayCredits";
@@ -236,7 +236,7 @@ function TcgExplorerForAccount({
         <CardFeatureHeader
           card={{ name: cardName, number: cardNumber, set: { name: setName } }}
           color="orange"
-          icon={Layers3}
+          icon={CircleDollarSign}
           label="Available on TCG"
           actionLabel={
             noCredits

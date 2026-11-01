@@ -9,6 +9,9 @@ const SetExplorer = lazy(() => import("./pages/set/Set"));
 const Cardview = lazy(() => import("./pages/pokemonDetails/PokemonDetails"));
 const SealedDetails = lazy(() => import("./pages/sealedDetails/SealedDetails"));
 const Profile = lazy(() => import("./pages/profile/Profile"));
+const GradingCalculatorPage = lazy(
+  () => import("./pages/gradingCalculator/GradingCalculatorPage"),
+);
 const Portfolio = lazy(() => import("./pages/portfolio/Portfolio"));
 const SignUp = lazy(() => import("./pages/signup/Signup"));
 const Admin = lazy(() => import("./pages/admin/Admin"));
@@ -52,6 +55,10 @@ export default function App() {
         <Route path="sealed/:id" element={withRouteLoader(<SealedDetails />)} />
         <Route path="signup" element={withRouteLoader(<SignUp />)} />
         <Route path="profile" element={withRouteLoader(<Profile />)} />
+        <Route
+          path="grading-calculator"
+          element={withRouteLoader(<GradingCalculatorPage />)}
+        />
         <Route path="portfolio" element={withRouteLoader(<Portfolio />)} />
         <Route path="admin" element={withRouteLoader(<Admin />)} />
         <Route path="privacy" element={withRouteLoader(<PrivacyPolicy />)} />

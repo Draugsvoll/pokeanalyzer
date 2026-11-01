@@ -21,7 +21,7 @@ export const INFO_CARDS: InfoCard[] = [
     id: "market",
     title: "Market analysis",
     icon: ChartNoAxesCombined,
-    color: "orange",
+    color: "yellow",
   },
   {
     description:

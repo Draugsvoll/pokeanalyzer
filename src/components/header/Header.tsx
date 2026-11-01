@@ -141,6 +141,14 @@ export const Header: React.FC = () => {
             Sets
           </NavLink>
           <NavLink
+            to="/grading-calculator"
+            className={({ isActive }) =>
+              `nav-links__item${isActive ? " nav-links__item--active" : ""}`
+            }
+          >
+            Grading
+          </NavLink>
+          <NavLink
             to="/portfolio"
             className={({ isActive }) =>
               `nav-links__item${isActive ? " nav-links__item--active" : ""}`
@@ -240,6 +248,9 @@ export const Header: React.FC = () => {
             </Link>
             <NavLink to="/set" onClick={closeMobileNav}>
               Explore sets
+            </NavLink>
+            <NavLink to="/grading-calculator" onClick={closeMobileNav}>
+              Grading
             </NavLink>
             <NavLink to="/portfolio" onClick={closeMobileNav}>
               Portfolio

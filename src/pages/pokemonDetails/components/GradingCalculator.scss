@@ -1,0 +1,1070 @@
+.grading-calculator {
+  color: var(--font-color-primary);
+  display: grid;
+  gap: 1.15rem;
+  margin-inline: auto;
+  max-width: var(--shell-max-width);
+  width: 100%;
+
+  &[hidden] {
+    display: none;
+  }
+  padding: 1.8rem;
+  padding-bottom: 2.5rem;
+
+  /* Beats .main-content > .container > * { max-width: 100% }. */
+  .main-content > .container > & {
+    max-width: var(--shell-max-width);
+  }
+
+  &__heading {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: center;
+    text-align: center;
+
+    h2 {
+      margin: 0;
+    }
+  }
+
+  &__settings,
+  &__grade {
+    border: var(--border);
+    border-radius: var(--border-radius);
+    min-width: 0;
+  }
+
+  &__summary,
+  &__settings {
+    display: grid;
+
+    h3 {
+      font-size: var(--font-size-h3);
+      margin: 0;
+    }
+  }
+
+  &__summary {
+    gap: 1.15rem;
+    margin-top: 0.5rem;
+
+    > h3 {
+      text-align: center;
+    }
+  }
+
+  &__settings {
+    padding: var(--default-container-padding);
+  }
+
+  &__summary-heading {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.15rem 0.55rem;
+
+    p {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-caption);
+      margin: auto;
+    }
+    h3 {
+      margin: auto;
+    }
+  }
+
+  &__field-label {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.3rem;
+
+    .info-tooltip > button {
+      height: 1rem;
+      width: 1rem;
+
+      svg {
+        height: 0.85rem;
+        width: 0.85rem;
+      }
+    }
+  }
+
+  &__field-link {
+    color: var(--font-color-muted);
+    display: inline-flex;
+    line-height: 0;
+    transition: color var(--animation-duration-fast)
+      var(--animation-ease-standard);
+
+    &:hover {
+      color: var(--font-color-primary);
+    }
+  }
+
+  &__native-tip {
+    background: #ffffe1;
+    border: 1px solid #000;
+    color: #000;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    padding: 2px 4px;
+    pointer-events: none;
+    position: fixed;
+    white-space: nowrap;
+    z-index: 10000;
+  }
+
+  &__grade header {
+    display: grid;
+    justify-items: end;
+    text-align: right;
+    background: var(--surface5);
+
+    strong {
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-h2);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--font-tracking-price);
+    }
+
+    span {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-body);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__value--up {
+    color: var(--green);
+  }
+
+  &__value--down {
+    color: var(--red);
+  }
+
+  &__settings-fields {
+    display: grid;
+    gap: 1rem;
+    margin-inline: auto;
+    max-width: 40rem;
+  }
+
+  &__settings-row {
+    align-items: end;
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    &:not(&--raw) {
+      border-top: var(--border);
+      padding-top: 1.25rem;
+    }
+
+    &--raw {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 0.55rem;
+    }
+
+    .grading-calculator__field {
+      display: grid;
+      gap: 0.4rem;
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
+    }
+
+    .grading-calculator__field > span:not(.grading-calculator__fee-split) {
+      align-items: center;
+      color: var(--font-color-muted);
+      font-size: var(--font-size-label);
+      font-weight: var(--font-weight-medium);
+      display: flex;
+      min-height: 1.25rem;
+    }
+
+    .grading-calculator__money {
+      justify-self: stretch;
+      max-width: none;
+      width: auto;
+    }
+  }
+
+  &__fee-split {
+    align-items: stretch;
+    background: var(--dropdown-trigger-bg);
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-trigger-radius);
+    box-sizing: border-box;
+    display: grid;
+    height: var(--dropdown-trigger-height);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+    transition:
+      border-color var(--animation-duration-fast) var(--animation-ease-standard),
+      box-shadow var(--animation-duration-fast) var(--animation-ease-standard);
+
+    &:hover {
+      border-color: var(--dropdown-border-hover);
+    }
+
+    &:focus-within {
+      border-color: var(--search-border-focus);
+      box-shadow: var(--search-ring-focus);
+    }
+
+    .grading-calculator__money {
+      background: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      height: 100%;
+      justify-self: stretch;
+      max-width: none;
+      min-height: 0;
+      min-width: 0;
+      width: auto;
+
+      &:hover,
+      &:focus-within {
+        border-color: transparent;
+        box-shadow: none;
+      }
+
+      input {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+      }
+    }
+
+    .grading-calculator__money + .grading-calculator__money {
+      border-left: var(--border);
+    }
+  }
+
+  &__settings-proceeds {
+    align-items: center;
+    background: var(--surface2);
+    border: 0;
+    border-radius: var(--radius-control);
+    box-sizing: border-box;
+    color: var(--font-color-primary);
+    display: flex;
+    font-size: var(--font-size-body);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-semibold);
+    height: var(--dropdown-trigger-height);
+    padding: 0 0.82rem;
+
+    &.grading-calculator__value--up {
+      color: var(--green);
+    }
+
+    &.grading-calculator__value--down {
+      color: var(--red);
+    }
+  }
+
+  &__summary-value {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.12rem;
+    height: auto;
+    justify-content: center;
+    min-height: var(--dropdown-trigger-height);
+    padding: 0.55rem 0.82rem;
+
+    > span:first-child {
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  &__summary-note {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+  }
+
+  &__summary-empty {
+    color: var(--font-color-muted);
+    font-weight: var(--font-weight-regular);
+  }
+
+  &__summary-note.grading-calculator__value--up {
+    color: var(--green);
+  }
+
+  &__summary-note.grading-calculator__value--down {
+    color: var(--red);
+  }
+
+  &__outcome-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  &__outcome-card {
+    border: var(--border);
+    background: var(--surface4);
+    border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    min-width: 0;
+    padding: var(--default-container-padding);
+    text-align: center;
+
+    .grading-calculator__field {
+      display: flex;
+      justify-content: center;
+      padding-block: 0.1rem;
+    }
+
+    .grading-calculator__money {
+      max-width: calc(5.5rem + 2.5rem);
+      width: 100%;
+    }
+
+    > .grading-calculator__chance {
+      margin-top: auto;
+    }
+
+    &--spread {
+      background: none;
+      gap: var(--default-container-inner-padding);
+    }
+  }
+
+  &__compare-gain {
+    align-items: center;
+    border: 0;
+    background: var(--surface5);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 1.5rem;
+    width: 100%;
+
+    > h4 {
+      margin: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    > span {
+      font-size: var(--font-size-label);
+      color: var(--font-color-muted);
+      font-weight: var(--font-weight-medium);
+      align-items: center;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.1rem;
+      justify-content: center;
+      max-width: 100%;
+      text-align: center;
+
+      .info-tooltip > button {
+        height: 1.25rem;
+        margin-top: 0.1rem;
+        width: 1.25rem;
+
+        svg {
+          height: 0.85rem;
+          width: 0.85rem;
+        }
+      }
+    }
+
+    > strong {
+      display: block;
+      font-size: var(--font-size-price-lg);
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.15;
+    }
+
+    > .grading-calculator__compare-roi {
+      font-size: var(--font-size-paragraph-sm);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-medium);
+      padding-top: 0.25rem;
+    }
+
+    > .grading-calculator__compare-roi.grading-calculator__value--up {
+      color: var(--green);
+    }
+
+    > .grading-calculator__compare-roi.grading-calculator__value--down {
+      color: var(--red);
+    }
+
+    .grading-calculator__price {
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+    }
+
+    strong.grading-calculator__value--up {
+      color: var(--green);
+    }
+
+    strong.grading-calculator__value--down {
+      color: var(--red);
+    }
+
+    strong.grading-calculator__summary-empty {
+      font-weight: var(--font-weight-regular);
+    }
+  }
+
+  &__outcome-profit.grading-calculator__summary-empty {
+    font-weight: var(--font-weight-regular);
+  }
+
+  &__outcome-result {
+    display: flex;
+    justify-content: center;
+
+    .grading-calculator__outcome-profit {
+      font-size: var(--font-size-price-sm);
+    }
+
+    &.default-container-inner {
+      background: var(--surface5);
+      padding: 0.4rem 0.55rem;
+      max-width: 100%;
+      width: 11rem;
+      margin: auto;
+
+      .grading-calculator__outcome-profit {
+        margin: 0;
+      }
+    }
+  }
+
+  &__outcome-profit {
+    display: flex;
+    flex-direction: column;
+    font-weight: var(--font-weight-semibold);
+    gap: 0.12rem;
+    margin-top: -0.1rem;
+    margin-bottom: -0.1rem;
+  }
+
+  &__summary--disabled {
+    .grading-calculator__outcome-profit,
+    .grading-calculator__outcome-profit > span,
+    .grading-calculator__summary-note,
+    .grading-calculator__chance-label,
+    .grading-calculator__chance-label strong,
+    .grading-calculator__chance-label button {
+      color: var(--font-color-faint);
+    }
+  }
+
+  &__price.ui-render-fade {
+    display: inline-block;
+    transform: translateY(0);
+    transition:
+      opacity var(--animation-duration-enter) var(--animation-ease-standard),
+      transform var(--animation-duration-enter) var(--animation-ease-standard);
+
+    @starting-style {
+      transform: translateY(2px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  &__grades {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &__grade {
+    display: grid;
+    gap: 0.85rem;
+    padding: var(--space-8);
+    background: var(--surface4);
+
+    header {
+      gap: var(--space-3);
+      justify-items: center;
+      text-align: center;
+
+      h3 {
+        color: var(--font-color-primary);
+        letter-spacing: var(--font-tracking-wide);
+        margin: 0;
+        text-transform: uppercase;
+      }
+    }
+
+    &--empty header h3 {
+      color: var(--font-color-muted);
+    }
+  }
+
+  &__grade--empty
+    &__fields
+    .grading-calculator__field
+    > .grading-calculator__sell-label {
+    color: var(--font-color-muted);
+  }
+
+  &__transform {
+    align-items: start;
+    column-gap: 0.55rem;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    justify-content: center;
+    margin: 0 auto;
+
+    .grading-calculator__transform-side {
+      display: grid;
+      justify-items: center;
+      row-gap: 0.12rem;
+    }
+
+    .grading-calculator__transform-amount {
+      color: var(--font-color-primary);
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-h2);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--font-tracking-price);
+      line-height: 1.15;
+      min-height: calc(var(--font-size-h2) * 1.15);
+    }
+
+    .grading-calculator__transform-amount .grading-calculator__price {
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+    }
+
+    .grading-calculator__transform-mid {
+      display: grid;
+      justify-items: center;
+      row-gap: 0.12rem;
+    }
+
+    .grading-calculator__transform-arrow {
+      align-items: center;
+      color: var(--font-color-muted);
+      display: flex;
+      font-size: var(--font-size-body);
+      height: calc(var(--font-size-h2) * 1.15);
+    }
+
+    .grading-calculator__transform-multiple {
+      color: var(--green);
+      font-size: var(--font-size-caption);
+      margin-top: -0.2rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .grading-calculator__transform-label {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-overline);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .grading-calculator__value--up {
+      color: var(--green);
+    }
+
+    .grading-calculator__value--down {
+      color: var(--red);
+    }
+  }
+
+  &__summary--disabled &__compare-gain span,
+  &__summary--disabled &__compare-gain strong,
+  &__summary--disabled &__compare-gain strong.grading-calculator__value--up,
+  &__summary--disabled &__compare-gain strong.grading-calculator__value--down,
+  &__grade--empty header &__transform &__transform-amount,
+  &__grade--empty header &__transform &__transform-arrow,
+  &__grade--empty header &__transform &__transform-label,
+  &__grade--empty header &__transform &__value--up,
+  &__grade--empty header &__transform &__value--down,
+  &__grade--empty
+    &__fields
+    .grading-calculator__field
+    > span:not(.grading-calculator__sell-label),
+  &__grade--empty &__cost > span,
+  &__grade--empty &__cost strong {
+    color: var(--font-color-faint);
+  }
+
+  &__chance--empty &__chance-label {
+    color: var(--font-color-muted);
+  }
+
+  &__chance {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  &__chance-label,
+  &__chance-value {
+    align-items: center;
+    display: flex;
+  }
+
+  &__chance-label {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-paragraph-sm);
+    justify-content: space-between;
+  }
+
+  &__chance-value {
+    gap: 0.15rem;
+
+    strong {
+      font-variant-numeric: tabular-nums;
+    }
+
+    button {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-control);
+      color: var(--font-color-muted);
+      cursor: pointer;
+      display: inline-flex;
+      padding: 0.15rem;
+    }
+
+    button[aria-pressed="true"],
+    button:hover {
+      color: var(--font-color-primary);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 1px;
+    }
+  }
+
+  &__chance input[type="range"] {
+    appearance: none;
+    background: transparent;
+    height: 1.1rem;
+    margin: 0;
+    width: 100%;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &::-webkit-slider-runnable-track {
+      background: linear-gradient(
+        to right,
+        var(--blue) 0 var(--chance-fill, 0%),
+        color-mix(in srgb, var(--font-color-primary) 16%, transparent)
+          var(--chance-fill, 0%) 100%
+      );
+      border: 0;
+      border-radius: 999px;
+      height: 0.24rem;
+    }
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      background: var(--blue);
+      border: 0;
+      border-radius: 50%;
+      height: 0.62rem;
+      margin-top: -0.2rem;
+      width: 0.62rem;
+    }
+
+    &::-moz-range-track {
+      background: color-mix(
+        in srgb,
+        var(--font-color-primary) 16%,
+        transparent
+      );
+      border: 0;
+      border-radius: 999px;
+      height: 0.22rem;
+    }
+
+    &::-moz-range-progress {
+      background: var(--blue);
+      border: 0;
+      border-radius: 999px;
+      height: 0.22rem;
+    }
+
+    &::-moz-range-thumb {
+      background: var(--blue);
+      border: 0;
+      border-radius: 50%;
+      height: 0.62rem;
+      width: 0.62rem;
+    }
+  }
+
+  &__chance-input--locked {
+    pointer-events: none;
+  }
+
+  &__chance--empty input[type="range"] {
+    --chance-muted: color-mix(
+      in srgb,
+      var(--font-color-muted) 42%,
+      var(--surface4)
+    );
+
+    &::-webkit-slider-runnable-track {
+      background: linear-gradient(
+        to right,
+        var(--chance-muted) 0 var(--chance-fill, 0%),
+        color-mix(in srgb, var(--font-color-primary) 16%, transparent)
+          var(--chance-fill, 0%) 100%
+      );
+    }
+
+    &::-webkit-slider-thumb {
+      background: var(--chance-muted);
+    }
+
+    &::-moz-range-progress {
+      background: var(--chance-muted);
+    }
+
+    &::-moz-range-thumb {
+      background: var(--chance-muted);
+    }
+  }
+
+  &__grade--empty &__cost strong {
+    color: var(--font-color-faint);
+  }
+
+  &__breakdown {
+    display: grid;
+  }
+
+  &__breakdown &__fields {
+    border-bottom: var(--border);
+    padding-bottom: 0.65rem;
+  }
+
+  &__breakdown &__ledger {
+    padding-top: 0.65rem;
+  }
+
+  &__fields {
+    display: grid;
+    gap: 0.55rem;
+
+    .grading-calculator__field,
+    .grading-calculator__cost {
+      align-items: center;
+      display: grid;
+      gap: 0.65rem;
+      grid-template-columns: minmax(6.5rem, 0.85fr) minmax(0, 1.2fr);
+      min-height: var(--dropdown-trigger-height);
+      min-width: 0;
+    }
+
+    .grading-calculator__field > span,
+    .grading-calculator__cost > span {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-body);
+    }
+
+    .grading-calculator__field > .grading-calculator__sell-label {
+      color: var(--font-color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .grading-calculator__cost strong {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-body);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-semibold);
+      justify-self: end;
+      max-width: 8rem;
+      text-align: right;
+      width: 100%;
+    }
+  }
+
+  &__ledger {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  &__ledger-row {
+    align-items: baseline;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+
+    > span {
+      font-size: var(--font-size-body);
+      min-width: 0;
+    }
+
+    strong {
+      font-size: var(--font-size-body);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    strong .grading-calculator__price {
+      color: inherit;
+    }
+  }
+
+  &__ledger-row &__ledger-note {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--font-leading-normal);
+    margin-left: 0.4rem;
+  }
+
+  &__ledger-row--total {
+    border-top: var(--border);
+    margin-top: 0.2rem;
+    padding-top: 0.65rem;
+
+    span,
+    strong {
+      color: var(--font-color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    strong.grading-calculator__value--up {
+      color: var(--green);
+    }
+
+    strong.grading-calculator__value--down {
+      color: var(--red);
+    }
+  }
+
+  &__grade--empty &__ledger-row span,
+  &__grade--empty &__ledger-row strong {
+    color: var(--font-color-faint);
+  }
+
+  &__grade--empty &__ledger-row strong {
+    font-weight: var(--font-weight-regular);
+  }
+
+  &__deduction {
+    color: var(--red);
+  }
+
+  &__gain {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    strong {
+      font-family: var(--font-family-price);
+      font-size: var(--font-size-h2);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-medium);
+    }
+  }
+
+  &__money {
+    align-items: center;
+    background: var(--dropdown-trigger-bg);
+    position: relative;
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-trigger-radius);
+    display: flex;
+    flex-shrink: 0;
+    height: var(--dropdown-trigger-height);
+    min-height: var(--dropdown-trigger-height);
+    justify-self: end;
+    max-width: calc(5.5rem + 2.5rem);
+    min-width: 0;
+    width: 100%;
+    padding: 0 0.82rem;
+    transition:
+      border-color var(--animation-duration-fast) var(--animation-ease-standard),
+      box-shadow var(--animation-duration-fast) var(--animation-ease-standard);
+
+    > span:not(.grading-calculator__stepper) {
+      align-items: center;
+      color: var(--font-color-muted);
+      display: inline-flex;
+      flex: none;
+      font-size: var(--font-size-body);
+      font-weight: var(--font-weight-semibold);
+      height: 1em;
+      line-height: 1;
+    }
+
+    input {
+      appearance: textfield;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      color: var(--font-color-primary);
+      flex: 1;
+      font-family: inherit;
+      font-size: var(--font-size-body);
+      font-weight: var(--font-weight-semibold);
+      font-variant-numeric: tabular-nums;
+      height: 1em;
+      line-height: 1;
+      margin: 0;
+      min-height: 0;
+      min-width: 0;
+      outline: none;
+      padding: 0 0 0 0.35rem;
+      text-align: left;
+      width: 100%;
+
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button {
+        appearance: none;
+        margin: 0;
+      }
+    }
+
+    input:focus,
+    input:focus-visible {
+      outline: none;
+    }
+
+    input::placeholder {
+      color: var(--font-color-placeholder);
+    }
+
+    &:hover {
+      border-color: var(--dropdown-border-hover);
+    }
+
+    &:focus-within {
+      border-color: var(--search-border-focus);
+      box-shadow: var(--search-ring-focus);
+    }
+
+    &--empty,
+    &--empty:hover,
+    &--empty:focus-within {
+      border-color: color-mix(
+        in srgb,
+        var(--custom-color-red) 68%,
+        transparent
+      );
+      box-shadow: none;
+    }
+  }
+
+  &__money--percent {
+    padding-right: 0.35rem;
+  }
+
+  &__money--clearable {
+    input {
+      padding-right: 2rem;
+    }
+  }
+
+  &__clear {
+    align-items: center;
+    background: var(--bg-input-strong);
+    border: 1px solid var(--border-color-strong);
+    border-radius: var(--border-radius-round);
+    color: var(--font-color-muted);
+    cursor: pointer;
+    display: flex;
+    height: 1.5rem;
+    justify-content: center;
+    opacity: 0;
+    padding: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0.48rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.5rem;
+
+    svg {
+      height: 0.82rem;
+      width: 0.82rem;
+    }
+
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--font-color-primary) 5%,
+        var(--bg-input-strong)
+      );
+      border-color: color-mix(
+        in srgb,
+        var(--font-color-secondary) 28%,
+        transparent
+      );
+      color: var(--font-color-secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--custom-color-blue);
+      outline-offset: 1px;
+    }
+  }
+
+  &__money:hover > &__clear,
+  &__money:focus-within > &__clear {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &__stepper {
+    align-self: center;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    margin-left: 0.45rem;
+
+    button {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      color: var(--font-color-muted);
+      cursor: pointer;
+      display: flex;
+      height: 0.72rem;
+      justify-content: center;
+      padding: 0;
+      width: 0.85rem;
+
+      &:hover {
+        color: var(--font-color-primary);
+      }
+    }
+  }
+
+  @media (max-width: 52rem) {
+    &__grades,
+    &__settings-row,
+    &__settings-row--raw,
+    &__outcome-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

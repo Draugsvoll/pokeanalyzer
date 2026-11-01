@@ -66,8 +66,17 @@ describe("Header", () => {
       within(navigation).getByRole("link", { name: "Explore sets" }),
     ).toBeVisible();
     expect(
+      within(navigation).getByRole("link", { name: "Grading" }),
+    ).toHaveAttribute("href", "/grading-calculator");
+    expect(
       within(navigation).getByRole("link", { name: "Portfolio" }),
     ).toBeVisible();
+    const labels = within(navigation)
+      .getAllByRole("link")
+      .map((link) => link.textContent);
+    expect(labels.indexOf("Grading")).toBeLessThan(
+      labels.indexOf("Portfolio"),
+    );
     expect(
       within(navigation).getByRole("link", { name: "Create account" }),
     ).toBeVisible();
