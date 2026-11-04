@@ -43,10 +43,16 @@ function toGridItem(
         marketPriceSnapshots: item.priceSnapshots,
       }),
       marketplaceUrls: {},
-      prices: { [response.source]: item.prices },
+      prices: {
+        [response.source]: item.prices,
+        ...(response.source === "ebay" && {
+          tcgplayer: item.tcgPrices ?? {},
+        }),
+      },
       ...(item.variant && { variant: item.variant }),
     },
   };
+  if (response.source === "ebay") return { card };
   const market = sourceLabel(response.source);
   const salesLabel = `${item.newSales.toLocaleString("en-US")} new ${item.newSales === 1 ? "sale" : "sales"}`;
   const condition =
@@ -73,7 +79,7 @@ function toGridItem(
 export function MostSoldGrid({
   minimized = false,
   loadCards = mostSoldCards,
-  title = "Most Sold Daily",
+  title = "TCG high volume this week",
 }: MostSoldGridProps = {}) {
   const [result, setResult] = useState<{
     error: string | null;
@@ -81,7 +87,6 @@ export function MostSoldGrid({
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
-  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -105,12 +110,7 @@ export function MostSoldGrid({
         });
       });
     return () => controller.abort();
-  }, [loadCards, requestVersion]);
-
-  function retry() {
-    setResult({ error: null, items: [], loading: true });
-    setRequestVersion((current) => current + 1);
-  }
+  }, [loadCards]);
 
   return (
     <CardCategoryGrid
@@ -123,7 +123,6 @@ export function MostSoldGrid({
       error={result.error}
       items={result.items}
       loading={result.loading}
-      onRetry={result.error ? retry : undefined}
       subtitle=""
       title={title}
     />

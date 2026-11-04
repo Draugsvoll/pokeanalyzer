@@ -1,0 +1,30 @@
+.card-grid:has(> .product-card > .grading-opportunity__multiplier) {
+  padding-bottom: 1.3rem;
+  row-gap: calc(var(--card-gap) + 1.3rem);
+}
+
+.grading-opportunity__multiplier {
+  position: absolute;
+  left: 0.2rem;
+  bottom: -1.2rem;
+  transition: transform var(--delay-short) ease;
+  z-index: 4;
+
+  .app-badge {
+    backdrop-filter: blur(0.4rem);
+    background: color-mix(in srgb, var(--bg5) 92%, transparent);
+    border-color: var(--border-color-strong);
+    box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.24);
+    color: var(--custom-color-blue);
+    font-size: var(--font-size-badge);
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+    padding: 0.5rem 0.7rem;
+    font-weight: 500;
+  }
+}
+
+.product-card:hover > .grading-opportunity__multiplier,
+.product-card:focus-within > .grading-opportunity__multiplier {
+  transform: translateY(var(--hover-lift));
+}

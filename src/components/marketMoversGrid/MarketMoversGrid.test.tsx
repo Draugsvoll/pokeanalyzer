@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { MarketMoversGrid } from "./MarketMoversGrid";
 
@@ -147,26 +147,16 @@ test("omits the period when the response does not identify its snapshot", async 
   );
 });
 
-test("retries a failed market request", async () => {
-  const loadMovers = vi
-    .fn()
-    .mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({
-      fetchedAt: "2026-09-20T12:00:00.000Z",
-      items: [],
-      periodDays: 1,
-      query: {},
-      stale: false,
-    });
+test("shows a failed market request without a retry button", async () => {
+  const loadMovers = vi.fn().mockRejectedValue(new Error("offline"));
 
   render(<MarketMoversGrid loadMovers={loadMovers} title="Category" />);
 
-  fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
-
-  await waitFor(() => expect(loadMovers).toHaveBeenCalledTimes(2));
-  await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Market movers are temporarily unavailable.",
   );
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(loadMovers).toHaveBeenCalledTimes(1);
 });
 
 test("shows missing price history without treating it as a failed request", async () => {

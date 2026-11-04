@@ -157,6 +157,14 @@
   }
 }
 
+.worth-grading-view__profit-value > .worth-grading-view__net-proceeds-label {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-paragraph-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-normal);
+  line-height: var(--font-leading-snug);
+}
+
 .worth-grading-view__details-toggle {
   align-items: center;
   background: transparent;
@@ -391,7 +399,7 @@
   font-family: var(--font-family-price);
   font-size: var(--font-size-paragraph-lg);
   font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: var(--font-tracking-price);
   line-height: var(--font-leading-tight);
   overflow-wrap: anywhere;

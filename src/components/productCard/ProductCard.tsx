@@ -4,6 +4,7 @@ import "./ProductCard.scss";
 type ProductCardProps = {
   as?: "article" | "div";
   children: ReactNode;
+  overlay?: ReactNode;
   className?: string;
   surfaceClassName?: string;
 };
@@ -11,6 +12,7 @@ type ProductCardProps = {
 export function ProductCard({
   as: Root = "div",
   children,
+  overlay,
   className,
   surfaceClassName,
 }: ProductCardProps) {
@@ -23,6 +25,7 @@ export function ProductCard({
       >
         {children}
       </div>
+      {overlay}
     </Root>
   );
 }

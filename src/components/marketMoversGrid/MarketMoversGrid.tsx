@@ -138,7 +138,6 @@ export function MarketMoversGrid({
     items: CardCategoryGridItem[];
     loading: boolean;
   }>({ error: null, items: [], loading: true });
-  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,12 +172,7 @@ export function MarketMoversGrid({
       });
 
     return () => controller.abort();
-  }, [changeLabel, loadMovers, requestVersion, showMarketLabel, waitForImages]);
-
-  function retry() {
-    setResult({ error: null, items: [], loading: true });
-    setRequestVersion((current) => current + 1);
-  }
+  }, [changeLabel, loadMovers, showMarketLabel, waitForImages]);
 
   return (
     <CardCategoryGrid
@@ -191,7 +185,6 @@ export function MarketMoversGrid({
       error={result.error}
       items={result.items}
       loading={result.loading}
-      onRetry={result.error ? retry : undefined}
       subtitle={subtitle}
       title={title}
     />

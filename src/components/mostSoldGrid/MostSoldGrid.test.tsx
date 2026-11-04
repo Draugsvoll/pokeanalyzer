@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { MostSoldGrid } from "./MostSoldGrid";
 
@@ -44,6 +44,7 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
       card: {
         name: string;
         pokeTrace: {
+          prices?: Record<string, unknown>;
           marketPriceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
         };
         set: { name: string };
@@ -64,7 +65,12 @@ vi.mock("../cardCategoryGrid/CardCategoryGrid", () => ({
       {!loading && !error && items.length === 0 && <span>{emptyMessage}</span>}
       {onRetry && <button onClick={onRetry}>Try again</button>}
       {items.map((item) => (
-        <span key={item.card.name} title={item.marketDisplay?.priceLabel}>
+        <span
+          key={item.card.name}
+          title={item.marketDisplay?.priceLabel}
+          data-prices={JSON.stringify(item.card.pokeTrace.prices)}
+          data-market-override={Boolean(item.marketDisplay)}
+        >
           {item.card.name} {item.card.set.name} {item.marketDisplay?.price}{" "}
           {item.marketDisplay?.marketLabel} {item.marketDisplay?.condition}{" "}
           {item.marketDisplay?.source}{" "}
@@ -95,29 +101,47 @@ test("renders the current price without a visible sales label", async () => {
   ).toBeVisible();
 });
 
-test("retries a failed most-sold request", async () => {
-  const loadCards = vi
-    .fn()
-    .mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({
-      comparisonSnapshotDate: "2026-09-21",
-      condition: "ALL",
-      currentSnapshotDate: "2026-09-22",
-      fetchedAt: "2026-09-22T12:00:00.000Z",
-      items: [],
-      periodDays: 1,
-      source: "tcgplayer",
-      status: "ready",
-    });
+test("uses standard TCG pricing without an override for the eBay ranking", async () => {
+  const tcgPrices = { NEAR_MINT: { avg: 200 } };
+  const loadCards = vi.fn().mockResolvedValue({
+    condition: "ALL",
+    source: "ebay",
+    status: "ready",
+    items: [
+      {
+        cardId: "ebay-card",
+        name: "Ebay ranked card",
+        currency: "USD",
+        currentPrice: 120,
+        newSales: 20,
+        prices: { NEAR_MINT: { avg: 120 } },
+        tcgPrices,
+        priceSnapshots: { "1d": null, "7d": 180, "30d": null },
+      },
+    ],
+  });
 
   render(<MostSoldGrid loadCards={loadCards} />);
 
-  fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+  const card = await screen.findByText(/Ebay ranked card/);
+  expect(card).toHaveAttribute("data-market-override", "false");
+  expect(JSON.parse(card.getAttribute("data-prices")!)).toEqual({
+    ebay: { NEAR_MINT: { avg: 120 } },
+    tcgplayer: tcgPrices,
+  });
+  expect(card).toHaveTextContent("180");
+});
 
-  await waitFor(() => expect(loadCards).toHaveBeenCalledTimes(2));
-  await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
+test("shows a failed most-sold request without a retry button", async () => {
+  const loadCards = vi.fn().mockRejectedValue(new Error("offline"));
+
+  render(<MostSoldGrid loadCards={loadCards} />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Most-sold cards are temporarily unavailable.",
   );
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(loadCards).toHaveBeenCalledTimes(1);
 });
 
 test.each([

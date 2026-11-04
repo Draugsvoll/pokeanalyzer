@@ -125,15 +125,27 @@ are unchanged when `useCachedOneDayComparison` is false.
 The `mostSold` query compares the combined `saleCount` totals across the selected
 conditions for one source and period. A negative combined difference becomes
 zero. These are changes in upstream reported sales-window counts, not locally
-calculated lifetime sales. The configured TCGPlayer and eBay best-seller feeds
-use the latest three distinct snapshot dates available for each source, require
-the combined total to increase between each snapshot, and rank by the increase
-from the oldest snapshot to the newest. All three dates must be within the last
-10 UTC calendar days (inclusive of the date 10 days ago); future dates are
-excluded. Fewer than three qualifying dates produces `insufficient_history`.
+calculated lifetime sales. The configured TCGPlayer best-seller feed uses every
+stored condition. The eBay feed uses Near Mint only, requires a Near Mint price
+of at least $20, and requires the current Near Mint `saleCount` to be at least 150. Both feeds use the latest three distinct snapshot dates available for that
+source, require the measured total to increase between each snapshot, and rank
+by the increase from the oldest snapshot to the newest. All three dates must be
+within the last 10 UTC calendar days (inclusive of the date 10 days ago); future
+dates are excluded. Fewer than three qualifying dates produces
+`insufficient_history`.
 Every ranked card must have comparable sales counts on all three selected dates.
 The returned comparison dates and period reflect the actual interval, and the
-frontend shows those dates in the sales tooltip instead of calling it daily.
+frontend shows those dates in the sales tooltip. The search grids are titled
+"TCG high volume this week" and "Ebay high volume this week".
+
+The `gradingOpportunities` category compares the standard TCGPlayer Near Mint
+`avg` with the eBay PSA 10 `median7d`. The Near Mint price used in calculations
+is the same price displayed on the card. Cards missing either positive price
+are excluded, with no PSA 10 fallback. A card qualifies when both sale counts
+are at least 75, both prices were updated within the last 30 days, and the PSA 10
+median is at least $500 higher. The top 12 are ranked by the PSA 10 seven-day
+median divided by the TCGPlayer Near Mint average. The
+search grid is titled "Grading Opportunities".
 
 The backend serves the stored payload from `GET /api/market-categories`.
 Homepage and Explore cache the complete response in browser storage for 24

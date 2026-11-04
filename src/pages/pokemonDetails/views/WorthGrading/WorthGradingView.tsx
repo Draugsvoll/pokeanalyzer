@@ -279,7 +279,9 @@ function RawSaleCard({ rawSale }: { rawSale: RawSaleToday }) {
           >
             {formatCurrency(rawSale.net_proceeds_usd)}
           </strong>
-          <small>Net proceeds</small>
+          <small className="worth-grading-view__net-proceeds-label">
+            Net proceeds
+          </small>
         </div>
       </div>
       <div className="worth-grading-view__scenario-breakdown">

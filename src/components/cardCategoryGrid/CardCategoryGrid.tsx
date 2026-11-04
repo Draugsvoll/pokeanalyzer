@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { RefreshCw } from "lucide-react";
 import type { PokemonCard } from "../../types/pokemon";
 import {
   PokemonCardView,
@@ -10,10 +9,12 @@ import "./CardCategoryGrid.scss";
 
 export type CardCategoryGridItem = {
   card: PokemonCard;
+  badge?: ReactNode;
   marketDisplay?: PokemonCardViewProps["marketDisplay"];
 };
 
 type CardCategoryGridProps = {
+  defaultExpanded?: boolean;
   controls?: ReactNode;
   emptyMessage?: ReactNode;
   error?: ReactNode;
@@ -21,7 +22,6 @@ type CardCategoryGridProps = {
   items: CardCategoryGridItem[];
   loading?: boolean;
   minimized?: boolean;
-  onRetry?: () => void;
   revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: ReactNode;
@@ -29,6 +29,7 @@ type CardCategoryGridProps = {
 };
 
 export function CardCategoryGrid({
+  defaultExpanded = false,
   controls,
   emptyMessage = "No cards are available in this category yet.",
   error,
@@ -36,7 +37,6 @@ export function CardCategoryGrid({
   items,
   loading = false,
   minimized = false,
-  onRetry,
   revealOnScroll = true,
   sorting = false,
   subtitle,
@@ -45,6 +45,7 @@ export function CardCategoryGrid({
   return (
     <section className="card-category-grid ui-render-fade">
       <GridView
+        defaultExpanded={defaultExpanded}
         minimized={minimized}
         revealOnScroll={revealOnScroll}
         sorting={sorting}
@@ -72,27 +73,18 @@ export function CardCategoryGrid({
             data-grid-full-width
           >
             <p>{error}</p>
-            {onRetry && (
-              <button
-                className="card-category-grid__retry"
-                onClick={onRetry}
-                type="button"
-              >
-                <RefreshCw aria-hidden="true" />
-                Try again
-              </button>
-            )}
           </div>
         ) : items.length === 0 && emptyMessage ? (
           <p className="card-category-grid__state" data-grid-full-width>
             {emptyMessage}
           </p>
         ) : items.length > 0 ? (
-          items.map(({ card, marketDisplay }) => (
+          items.map(({ card, marketDisplay, badge }) => (
             <PokemonCardView
               card={card}
               key={card.id}
               marketDisplay={marketDisplay}
+              badge={badge}
             />
           ))
         ) : null}

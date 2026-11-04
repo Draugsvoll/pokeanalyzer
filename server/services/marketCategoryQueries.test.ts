@@ -517,6 +517,11 @@ test("ranks new sales with configurable source, condition, and period", async ()
     ],
   });
 
+  await database.execute({
+    sql: "UPDATE poketrace_cards SET raw_json = ? WHERE id = 'a'",
+    args: [JSON.stringify({ prices: { tcgplayer: { NEAR_MINT: { avg: 55 } } } })],
+  });
+
   const allTcgConditions = await findMostSold(database);
   const allEbayConditions = await findMostSold(database, { source: "ebay" });
   const nearMintOnly = await findMostSold(database, {
@@ -537,6 +542,15 @@ test("ranks new sales with configurable source, condition, and period", async ()
     "30d": null,
   });
   assert.equal(allEbayConditions.items[0]?.priceSnapshots, undefined);
+  assert.deepEqual(allEbayConditions.items[1]?.priceSnapshots, {
+    "1d": null,
+    "7d": 22,
+    "30d": null,
+  });
+  assert.equal(
+    (allEbayConditions.items[0]?.tcgPrices?.NEAR_MINT as { avg: number }).avg,
+    55,
+  );
   assert.deepEqual(
     allEbayConditions.items.map((item) => [item.name, item.newSales]),
     [
@@ -677,6 +691,62 @@ test("requires increasing sales across all three snapshots for both sources", as
   assert.deepEqual(
     ebay.items.map((item) => [item.name, item.newSales]),
     [["Alpha", 5]],
+  );
+  database.close();
+});
+
+test("eBay Near Mint ranking requires the current sale count", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-11-01T12:00:00Z"),
+  });
+  const database = await createDatabase();
+  const cards = [
+    ["qualified", "Qualified", 148, 149, 150, 30],
+    ["short", "Short", 100, 120, 149, 40],
+    ["cheap", "Cheap High Volume", 200, 220, 240, 19.99],
+    ["flat", "Flat", 400, 400, 400, 50],
+  ] as const;
+  await database.batch(
+    cards.flatMap(([id, name, oldest, middle, current, price]) => [
+      {
+        sql: `INSERT INTO poketrace_cards (id, name, raw_json)
+          VALUES (?, ?, '{}')
+          ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
+        args: [id, name],
+      },
+      ...[
+        ["2026-10-30", oldest],
+        ["2026-10-31", middle],
+        ["2026-11-01", current],
+      ].map(([recordedAt, saleCount]) => ({
+        sql: `INSERT INTO poketrace_market_snapshots
+          (card_id, recorded_at, currency, ebay) VALUES (?, ?, 'USD', ?)`,
+        args: [
+          id,
+          recordedAt,
+          JSON.stringify({
+            NEAR_MINT: { avg: price, saleCount },
+            LIGHTLY_PLAYED: { avg: 5, saleCount: 1000 },
+          }),
+        ],
+      })),
+    ]),
+    "write",
+  );
+
+  const result = await findMostSold(database, {
+    condition: "NEAR_MINT",
+    minimumPrice: 20,
+    minimumSaleCount: 150,
+    requireThreeSnapshotIncrease: true,
+    source: "ebay",
+  });
+
+  assert.equal(result.status, "ready");
+  assert.deepEqual(
+    result.items.map((item) => [item.name, item.newSales, item.currentPrice]),
+    [["Qualified", 2, 30]],
   );
   database.close();
 });
@@ -910,6 +980,10 @@ test("rejects unsafe or unsupported parameters", () => {
   assert.throws(
     () => normalizeMostSoldOptions({ periodDays: 0 }),
     /periodDays/,
+  );
+  assert.throws(
+    () => normalizeMostSoldOptions({ minimumSaleCount: -1 }),
+    /minimumSaleCount/,
   );
   assert.throws(
     () =>

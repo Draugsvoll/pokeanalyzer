@@ -3,10 +3,14 @@ import type {
   MarketMoverItem,
   MarketMoversResponse,
 } from "../../shared/marketMovers";
+import {
+  parsePokeTraceMarketComparisons,
+  type PokeTraceMarketComparisons,
+} from "../../shared/pokeTraceMarketComparisons";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const MARKET_CATEGORIES_URL = `${API_URL}/api/market-categories`;
-const MARKET_CATEGORIES_CACHE_KEY = "pokelyzer:market-categories:v1";
+const MARKET_CATEGORIES_CACHE_KEY = "pokelyzer:market-categories:v6";
 const MARKET_CATEGORIES_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
 type JsonRecord = Record<string, unknown>;
@@ -32,6 +36,7 @@ export type MostSoldItem = {
   newSales: number;
   priceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
   prices: Record<string, unknown>;
+  tcgPrices?: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
   variant: string | null;
@@ -254,6 +259,7 @@ function parseMostSoldCategory(
         newSales: finiteNumber(item.newSales, "newSales"),
         ...(priceSnapshots && { priceSnapshots }),
         prices: item.prices,
+        ...(isRecord(item.tcgPrices) && { tcgPrices: item.tcgPrices }),
         rarity: nullableText(item.rarity),
         setName: nullableText(item.setName),
         variant: nullableText(item.variant),
@@ -404,4 +410,85 @@ export function mostSoldEbayCards(signal?: AbortSignal) {
     (payload) => parseMostSoldCategory(payload, "most-sold-ebay"),
     signal,
   );
+}
+
+export type GradingOpportunityItem = {
+  tcgPrices?: Record<string, unknown>;
+  marketComparisons?: PokeTraceMarketComparisons;
+  cardId: string;
+  cardNumber: string | null;
+  currency: string;
+  image: string | null;
+  multiplier: number;
+  name: string;
+  nearMintPrice: number;
+  nearMintSales: number;
+  priceIncrease: number;
+  psaMedian: "7d" | "30d";
+  psaPrice: number;
+  psaSales: number;
+  rarity: string | null;
+  setName: string | null;
+  variant: string | null;
+};
+
+export type GradingOpportunitiesResponse = {
+  fetchedAt: string;
+  items: GradingOpportunityItem[];
+  status: MarketCategoryStatus;
+};
+
+function medianWindow(value: unknown, field: string): "7d" | "30d" {
+  if (value === "7d" || value === "30d") return value;
+  throw new Error(`Invalid grading opportunity ${field}`);
+}
+
+function parseGradingOpportunity(value: unknown): GradingOpportunityItem {
+  if (!isRecord(value)) {
+    throw new Error("Invalid grading opportunity");
+  }
+  const currency = nullableText(value.currency) ?? "USD";
+  if (currency !== "USD" && currency !== "EUR") {
+    throw new Error("Invalid grading opportunity currency");
+  }
+  return {
+    ...(isRecord(value.tcgPrices) && { tcgPrices: value.tcgPrices }),
+    marketComparisons: parsePokeTraceMarketComparisons(value.marketComparisons),
+    cardId: text(value.cardId, "cardId"),
+    cardNumber: nullableText(value.cardNumber),
+    currency,
+    image: nullableText(value.image),
+    multiplier: finiteNumber(value.multiplier, "multiplier"),
+    name: text(value.name, "name"),
+    nearMintPrice: finiteNumber(value.nearMintPrice, "nearMintPrice"),
+    nearMintSales: finiteNumber(value.nearMintSales, "nearMintSales"),
+    priceIncrease: finiteNumber(value.priceIncrease, "priceIncrease"),
+    psaMedian: medianWindow(value.psaMedian, "psaMedian"),
+    psaPrice: finiteNumber(value.psaPrice, "psaPrice"),
+    psaSales: finiteNumber(value.psaSales, "psaSales"),
+    rarity: nullableText(value.rarity),
+    setName: nullableText(value.setName),
+    variant: nullableText(value.variant),
+  };
+}
+
+function parseGradingOpportunities(
+  payload: MarketCategoriesPayload,
+): GradingOpportunitiesResponse {
+  const category = findCategory(payload, "grading-opportunities");
+  if (
+    !Array.isArray(category.items) ||
+    (category.status !== "ready" && category.status !== "insufficient_history")
+  ) {
+    throw new Error("Invalid market category: grading-opportunities");
+  }
+  return {
+    fetchedAt: payload.generatedAt,
+    items: category.items.map(parseGradingOpportunity),
+    status: category.status,
+  };
+}
+
+export function gradingOpportunities(signal?: AbortSignal) {
+  return loadCategory(parseGradingOpportunities, signal);
 }

@@ -7,10 +7,13 @@
   width: 100%;
   // Keep dropdowns above the following grid header's expanded click target.
   z-index: var(--dropdown-z-index);
-
   &__eyebrow {
     margin: 0;
     margin-bottom: 0.3rem;
+
+    > .app-badge {
+      font-size: 10px;
+    }
   }
 
   &__title {

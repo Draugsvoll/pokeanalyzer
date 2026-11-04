@@ -15,6 +15,15 @@ vi.mock("../../components/mostSoldGrid/MostSoldGrid", () => ({
   MostSoldGrid: ({ title }: { title: string }) => <section>{title}</section>,
 }));
 
+vi.mock(
+  "../../components/gradingOpportunitiesGrid/GradingOpportunitiesGrid",
+  () => ({
+    GradingOpportunitiesGrid: ({ title }: { title: string }) => (
+      <section>{title}</section>
+    ),
+  }),
+);
+
 vi.mock("../../components/marketMoversGrid/MarketMoversGrid", () => ({
   MarketMoversGrid: ({ title }: { title: string }) => (
     <section>{title}</section>
@@ -29,7 +38,9 @@ test("uses the shared search experience without replacing market sections", () =
   );
 
   expect(screen.getByText("Shared singles search")).toBeInTheDocument();
-  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
+  expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
+  expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
+  expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 
@@ -41,7 +52,9 @@ test("keeps market sections visible when initialized in sealed mode", () => {
   );
 
   expect(screen.getByText("Shared sealed search")).toBeInTheDocument();
-  expect(screen.getByText("TCG Most Sold Daily")).toBeInTheDocument();
+  expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
+  expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
+  expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Losers")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });

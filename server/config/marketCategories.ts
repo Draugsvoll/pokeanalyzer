@@ -1,3 +1,4 @@
+import type { GradingOpportunitiesOptions } from "../services/gradingOpportunities.js";
 import type {
   MostSoldOptions,
   PriceMoversOptions,
@@ -17,8 +18,17 @@ type MostSoldCategoryDefinition = {
   title: string;
 };
 
+type GradingOpportunitiesCategoryDefinition = {
+  id: string;
+  parameters: Partial<GradingOpportunitiesOptions>;
+  query: "gradingOpportunities";
+  title: string;
+};
+
 export type MarketCategoryDefinition =
-  MostSoldCategoryDefinition | PriceMoversCategoryDefinition;
+  | GradingOpportunitiesCategoryDefinition
+  | MostSoldCategoryDefinition
+  | PriceMoversCategoryDefinition;
 
 // Add or duplicate entries here to export more categories in the same JSON file.
 export const MARKET_CATEGORY_DEFINITIONS = [
@@ -71,19 +81,33 @@ export const MARKET_CATEGORY_DEFINITIONS = [
       source: "tcgplayer",
     },
     query: "mostSold",
-    title: "Most Sold on TCGPlayer",
+    title: "TCG high volume this week",
   },
   {
     id: "most-sold-ebay",
     parameters: {
-      condition: "ALL",
+      condition: "NEAR_MINT",
       limit: 12,
       minimumPrice: 20,
       minimumNewSales: 1,
+      minimumSaleCount: 150,
       requireThreeSnapshotIncrease: true,
       source: "ebay",
     },
     query: "mostSold",
-    title: "Most Sold on eBay",
+    title: "Ebay high volume this week",
+  },
+  {
+    id: "grading-opportunities",
+    parameters: {
+      limit: 12,
+      maximumUpdateAgeDays: 30,
+      minimumNearMintPrice: 0,
+      minimumNearMintSales: 75,
+      minimumPsaPriceIncrease: 500,
+      minimumPsaSales: 75,
+    },
+    query: "gradingOpportunities",
+    title: "Grading Opportunities",
   },
 ] satisfies MarketCategoryDefinition[];

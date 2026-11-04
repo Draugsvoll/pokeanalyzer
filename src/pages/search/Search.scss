@@ -1,8 +1,16 @@
 .search-page {
   align-content: start;
   display: grid;
-  gap: var(--space-8);
+  gap: 0;
   min-height: calc(100vh - var(--header-height));
   padding-bottom: var(--space-6);
   width: 100%;
+
+  > * + * {
+    margin-top: var(--space-8);
+  }
+
+  > .database-preview + * {
+    margin-top: var(--search-grid-gap);
+  }
 }

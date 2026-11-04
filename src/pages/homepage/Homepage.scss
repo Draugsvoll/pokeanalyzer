@@ -14,11 +14,11 @@
   }
 
   .welcome-view + &__features {
-    margin-top: var(--space-7);
+    margin-top: var(--search-grid-gap);
   }
 
   .welcome-view + .card-category-grid {
-    margin-top: var(--space-6);
+    margin-top: var(--search-grid-gap);
   }
 
   &__features + .card-category-grid {
@@ -34,10 +34,6 @@
   }
 
   @media (max-width: 40rem) {
-    .welcome-view + .card-category-grid {
-      margin-top: var(--space-7);
-    }
-
     .homepage__features + .card-category-grid {
       margin-top: var(--space-8);
     }

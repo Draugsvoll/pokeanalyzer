@@ -375,7 +375,9 @@ function GradedEbayPrices({
                 <span>
                   {label.grader} {label.score}
                 </span>
-                <strong>{formatPrice(price.avg, currency)}</strong>
+                <strong>
+                  {formatPrice(price.median7d ?? price.avg, currency)}
+                </strong>
                 <small>{formatSalesLabel(price)}</small>
               </div>
             );

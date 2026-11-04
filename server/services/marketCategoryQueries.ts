@@ -63,6 +63,7 @@ export type MostSoldOptions = {
   limit: number;
   minimumNewSales: number;
   minimumPrice: number;
+  minimumSaleCount: number;
   periodDays: number;
   requireThreeSnapshotIncrease: boolean;
   source: MarketSource;
@@ -78,6 +79,7 @@ export type MostSoldItem = {
   newSales: number;
   priceSnapshots?: Record<"1d" | "7d" | "30d", number | null>;
   prices: Record<string, unknown>;
+  tcgPrices?: Record<string, unknown>;
   rarity: string | null;
   setName: string | null;
   variant: string | null;
@@ -127,6 +129,7 @@ const DEFAULT_MOST_SOLD_OPTIONS: MostSoldOptions = {
   limit: 10,
   minimumNewSales: 1,
   minimumPrice: 0,
+  minimumSaleCount: 0,
   periodDays: 1,
   requireThreeSnapshotIncrease: false,
   source: "tcgplayer",
@@ -242,6 +245,12 @@ export function normalizeMostSoldOptions(
       1_000_000,
     ),
     minimumPrice: finiteNumber(merged.minimumPrice, "minimumPrice", 0),
+    minimumSaleCount: integer(
+      merged.minimumSaleCount,
+      "minimumSaleCount",
+      0,
+      1_000_000,
+    ),
     periodDays: integer(merged.periodDays, "periodDays", 1, 365),
     requireThreeSnapshotIncrease: merged.requireThreeSnapshotIncrease,
     source: merged.source,
@@ -730,6 +739,7 @@ export async function findMostSold(
           CAST(
             json_extract(current.${column}, '$.${priceCondition}.avg') AS REAL
           ) AS current_price,
+          ${sales.current} AS sale_count,
           ${sales.difference} AS new_sales
         FROM poketrace_market_snapshots AS current
         INNER JOIN poketrace_market_snapshots AS previous
@@ -750,11 +760,14 @@ export async function findMostSold(
         cards.tcg_market_comparisons,
         selected.currency,
         selected.prices,
+        json_extract(cards.raw_json, '$.prices.tcgplayer') AS tcg_prices,
         selected.current_price,
+        selected.sale_count,
         selected.new_sales
       FROM sales_by_card AS selected
       INNER JOIN poketrace_cards AS cards ON cards.id = selected.card_id
       WHERE selected.current_price >= ?
+        AND selected.sale_count >= ?
         AND selected.new_sales >= ?
       ORDER BY selected.new_sales DESC, cards.id
       LIMIT ?
@@ -764,6 +777,7 @@ export async function findMostSold(
       ...(middleSnapshotDate ? [middleSnapshotDate] : []),
       currentSnapshotDate,
       parameters.minimumPrice,
+      parameters.minimumSaleCount,
       parameters.minimumNewSales,
       parameters.limit,
     ],
@@ -774,7 +788,7 @@ export async function findMostSold(
     currentSnapshotDate,
     items: result.rows.map((row) => {
       const comparisons =
-        parameters.source === "tcgplayer" && priceCondition === "NEAR_MINT"
+        parameters.source === "ebay" || priceCondition === "NEAR_MINT"
           ? parsePokeTraceMarketComparisons(row.tcg_market_comparisons)
           : undefined;
       return {
@@ -793,6 +807,11 @@ export async function findMostSold(
           },
         }),
         prices: JSON.parse(String(row.prices)) as Record<string, unknown>,
+        ...(parameters.source === "ebay" && {
+          tcgPrices: row.tcg_prices
+            ? (JSON.parse(String(row.tcg_prices)) as Record<string, unknown>)
+            : {},
+        }),
         rarity: optionalText(row.rarity),
         setName: optionalText(row.set_name),
         variant: optionalText(row.variant),

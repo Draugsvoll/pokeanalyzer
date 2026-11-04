@@ -487,6 +487,10 @@
     gap: var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
+    .marketplace-listings__price {
+      margin-top: 0.27rem;
+    }
+
     .marketplace-listings__price-summary dd {
       font-size: 16px;
     }
@@ -705,7 +709,7 @@
 
     h3 {
       color: var(--font-color-primary);
-      font-size: 1rem;
+      font-size: 1.01rem;
       font-weight: var(--font-weight-regular);
       line-height: 1.35;
       margin: 0;
@@ -783,7 +787,6 @@
     flex: 0 0 auto;
     gap: 0.25rem;
     text-align: right;
-    margin-top: 0.33rem;
   }
 
   &__result--expanded &__price {

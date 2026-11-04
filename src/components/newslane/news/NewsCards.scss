@@ -7,7 +7,7 @@
 }
 
 .news-card-grid {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -88,6 +88,12 @@
   margin: 0;
   max-width: 62rem;
   padding: 0;
+}
+
+.news-card__source {
+  --app-link-color: var(--news-accent);
+
+  margin-top: var(--space-4);
 }
 
 .news-card__list {

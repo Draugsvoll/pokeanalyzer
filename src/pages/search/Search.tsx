@@ -1,4 +1,5 @@
 import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
+import { GradingOpportunitiesGrid } from "../../components/gradingOpportunitiesGrid/GradingOpportunitiesGrid";
 import { MarketMoversGrid } from "../../components/marketMoversGrid/MarketMoversGrid";
 import { MostSoldGrid } from "../../components/mostSoldGrid/MostSoldGrid";
 import {
@@ -17,12 +18,13 @@ export default function Search({
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName initialProductType={initialProductType} />
-      <MostSoldGrid minimized title="TCG Most Sold Daily" />
+      <MostSoldGrid minimized title="TCG high volume this week" />
       <MostSoldGrid
         minimized
         loadCards={mostSoldEbayCards}
-        title="Ebay Most Sold Daily"
+        title="Ebay high volume this week"
       />
+      <GradingOpportunitiesGrid minimized title="Grading Opportunities" />
       <MarketMoversGrid
         minimized
         changeLabel="Daily change in the TCGPlayer Near Mint price"

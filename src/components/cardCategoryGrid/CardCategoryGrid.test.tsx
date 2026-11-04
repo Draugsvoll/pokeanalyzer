@@ -35,14 +35,11 @@ test.each([undefined, false])(
   },
 );
 
-test("offers a retry action when a category request fails", () => {
-  const onRetry = vi.fn();
-
+test("shows a failed category without a retry button", () => {
   render(
     <CardCategoryGrid
       error="Market data is temporarily unavailable."
       items={[]}
-      onRetry={onRetry}
       title="Daily movers"
     />,
   );
@@ -50,6 +47,5 @@ test("offers a retry action when a category request fails", () => {
   expect(screen.getByRole("alert")).toHaveTextContent(
     "Market data is temporarily unavailable.",
   );
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  expect(onRetry).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
 });

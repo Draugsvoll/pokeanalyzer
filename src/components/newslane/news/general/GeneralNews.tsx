@@ -1,4 +1,5 @@
 import React from "react";
+import { ExternalLink } from "lucide-react";
 import type { GeneralNewsPayload } from "../../../../types/news";
 import { Badge } from "../../../ui/Badge";
 import { getNewsAccentStyle, getNewsLabelAccent } from "../newsStyles";
@@ -45,6 +46,17 @@ export const GeneralNews: React.FC<GeneralNewsProps> = ({ payload }) => {
                         <li key={`${point}-${pointIndex}`}>{point}</li>
                       ))}
                     </ul>
+                  )}
+                  {item.url?.trim() && (
+                    <a
+                      className="app-link news-card__source"
+                      href={item.url.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View source
+                      <ExternalLink aria-hidden="true" />
+                    </a>
                   )}
                 </div>
               </article>

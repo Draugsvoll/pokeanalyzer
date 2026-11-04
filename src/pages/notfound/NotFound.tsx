@@ -15,7 +15,7 @@ const NotFound = () => {
         <MapPinOff />
       </span>
       <span className="app-subheader">404 · Page not found</span>
-      <h1 id="not-found-title">This page isn&apos;t here.</h1>
+      <h1 id="not-found-title">Page not found.</h1>
       <p>
         The address may be outdated, or the page may have moved somewhere else.
       </p>

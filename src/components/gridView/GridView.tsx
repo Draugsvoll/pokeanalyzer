@@ -5,6 +5,7 @@ import "./GridView.scss";
 
 type GridViewProps = {
   children: React.ReactNode;
+  defaultExpanded?: boolean;
   minimized?: boolean;
   revealOnScroll?: boolean;
   sorting?: boolean;
@@ -14,6 +15,7 @@ type GridViewProps = {
 
 export function GridView({
   children,
+  defaultExpanded = false,
   minimized = false,
   revealOnScroll = true,
   sorting = false,
@@ -22,7 +24,7 @@ export function GridView({
 }: GridViewProps) {
   const revealRef = useScrollReveal<HTMLDivElement>();
   const contentId = useId();
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(defaultExpanded);
   const gridRef = useRef<HTMLDivElement>(null);
   const [hasMoreRows, setHasMoreRows] = useState(false);
   const canMinimize = minimized && Boolean(title || subtitle);

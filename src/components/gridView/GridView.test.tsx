@@ -90,6 +90,30 @@ test("minimized categories keep one responsive row and toggle to the full grid",
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
+test("categories can start expanded and still collapse to one row", () => {
+  mockGridLayout(2);
+  const { container } = render(
+    <GridView
+      minimized
+      defaultExpanded
+      title="Grading Opportunities"
+      revealOnScroll={false}
+    >
+      {Array.from({ length: 4 }, (_, index) => (
+        <article key={index}>Card {index + 1}</article>
+      ))}
+    </GridView>,
+  );
+  const toggle = screen.getByRole("button", {
+    name: "Show less of Grading Opportunities",
+  });
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(container.querySelectorAll("[data-grid-overflow]")).toHaveLength(0);
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(container.querySelectorAll("[data-grid-overflow]")).toHaveLength(2);
+});
+
 test("minimized loading and error states remain visible and cards are measured when loaded", () => {
   mockGridLayout(1);
   const { rerender } = render(

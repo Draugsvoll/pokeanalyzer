@@ -261,7 +261,7 @@ function EbaySectionForAccount({
           }
           actionLoading={loading && !headerError}
           actionLoadingLabel="Searching Ebay..."
-          actionLoadingMessage="Fetching Ebay listings and sales..."
+          actionLoadingMessage="Loading Ebay listings and sales..."
           errorMessage={headerError}
           actionDisabled={
             loading ||

@@ -1,5 +1,5 @@
 import { AssetSaveActions } from "../assetSaveActions/AssetSaveActions";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { PortfolioItemCard } from "../portfolioItemCard/PortfolioItemCard";
 import { PriceChange } from "../priceChange/PriceChange";
@@ -30,6 +30,7 @@ import "./PokemonCardView.scss";
 
 export type PokemonCardViewProps = {
   card: PokemonCardType;
+  badge?: ReactNode;
   comparisonPeriod?: PriceChangePeriod;
   comparisonPriceSnapshot?: PortfolioPriceSnapshot | null;
   marketDisplay?: {
@@ -63,6 +64,7 @@ export function PokemonCardView({
   comparisonPeriod,
   comparisonPriceSnapshot,
   marketDisplay,
+  badge,
   onPortfolioChanged,
   priceChangeLabel,
 }: PokemonCardViewProps) {
@@ -138,6 +140,7 @@ export function PokemonCardView({
   return (
     <ProductCard
       className="pokemon-card-view"
+      overlay={badge}
       surfaceClassName="pokemon-card-view__card"
     >
       <button

@@ -3,6 +3,7 @@ import {
   MARKET_CATEGORY_DEFINITIONS,
   type MarketCategoryDefinition,
 } from "../config/marketCategories.js";
+import { findGradingOpportunities } from "./gradingOpportunities.js";
 import { findMostSold, findPriceMovers } from "./marketCategoryQueries.js";
 
 const MARKET_CATEGORIES_ROW_ID = "current";
@@ -29,7 +30,9 @@ export async function generateMarketCategories(
     const result =
       definition.query === "priceMovers"
         ? await findPriceMovers(database, definition.parameters)
-        : await findMostSold(database, definition.parameters);
+        : definition.query === "mostSold"
+          ? await findMostSold(database, definition.parameters)
+          : await findGradingOpportunities(database, definition.parameters);
     categories.push({
       id: definition.id,
       query: definition.query,

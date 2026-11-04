@@ -26,7 +26,7 @@
 .embedded-card-search__content {
   @include shell.wide-shell;
 
-  margin: 30vh auto 3rem;
+  margin: 25vh auto 3rem;
 
   .database-search-control,
   .database-search-bar {
@@ -47,6 +47,6 @@
 
 @media (max-width: 40rem) {
   .embedded-card-search__content {
-    margin-top: max(1rem, calc(50dvh - 7rem));
+    margin-top: max(1rem, calc(45dvh - 7rem));
   }
 }

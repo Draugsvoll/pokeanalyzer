@@ -130,9 +130,10 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1230px;
-  --shell-wide-max-width: 1490px;
+  --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;
+  --search-grid-gap: var(--space-5);
   --search-height: 49px;
   --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
@@ -165,16 +166,16 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 12px;
-  --card-pad: 9px;
+  --card-gap: 11px;
+  --card-pad: 10px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
-  --font-size-grid-title: 21px;
+  --font-size-grid-title: 19px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
-  --font-size-card-title: 16px;
-  --font-size-card-meta: 0.86rem;
+  --font-size-card-title: 17px;
+  --font-size-card-meta: 0.87rem;
 
   --hover-accent-bg: color-mix(
     in srgb,
@@ -241,11 +242,7 @@
   --font-color-primary: var(--text);
   --font-color-body: var(--text);
   --font-color-secondary: var(--secondary);
-  --font-color-secondary-strong: color-mix(
-    in srgb,
-    var(--font-color-primary) 22%,
-    var(--font-color-secondary)
-  );
+  --font-color-secondary-strong: #d8dde4;
   --font-color-muted: var(--muted);
   --font-color-metadata: color-mix(
     in srgb,
@@ -280,13 +277,13 @@
   --font-size-label: 11px;
   --font-size-value: 14px;
   --font-size-caption: 12px;
-  --font-size-badge: 10px;
+  --font-size-badge: 11px;
   --font-size-overline: 11px;
   --font-size-nav: 13px;
   --font-size-button: 13px;
   --font-size-logo: 15px;
   --font-size-price: 16px;
-  --font-size-price-sm: 18px;
+  --font-size-price-sm: 19px;
   --font-size-price-value-ebay: 18px;
   --font-size-price-md: 21px;
   --font-size-price-lg: 30px;

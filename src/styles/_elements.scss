@@ -274,7 +274,7 @@ input[type="radio"] {
   display: flex;
   gap: var(--space-3);
   justify-content: space-between;
-  padding-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
 }
 
 .grid-header__subtitle {
@@ -545,6 +545,7 @@ input[type="radio"] {
 .feature-analysis-summary-text {
   margin: var(--space-2) 0 0;
   max-width: var(--summary-max-width);
+  font-weight: var(--font-weight-regular);
 }
 
 .feature-analysis-card-header {
@@ -878,6 +879,10 @@ input[type="radio"] {
   background: color-mix(in srgb, var(--app-badge-accent) 5%, transparent);
   border-color: color-mix(in srgb, var(--app-badge-accent) 26%, transparent);
   color: color-mix(in srgb, var(--app-badge-accent) 78%, white);
+}
+
+.app-badge-small {
+  font-size: 20px;
 }
 
 .app-badge--sm {
