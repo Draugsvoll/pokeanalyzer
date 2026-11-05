@@ -246,7 +246,7 @@ function TcgExplorerForAccount({
                 : "1 Market credit"
           }
           actionLoading={loading && !headerError}
-          actionLoadingLabel="Loading..."
+          actionLoadingLabel="Loading listings and sales..."
           actionLoadingMessage="Loading listings and sales..."
           actionDisabled={
             loading ||
@@ -273,8 +273,7 @@ function TcgExplorerForAccount({
               />
             ) : undefined
           }
-        >
-        </CardFeatureHeader>
+        ></CardFeatureHeader>
       )}
       {hasResults && displayedData && (
         <div className="tcg-explorer__results default-container">

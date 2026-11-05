@@ -13,8 +13,13 @@ import {
 import {
   loadMarketPriceHistory,
   PokeTracePriceHistoryUnavailableError,
+  PokeTracePriceHistoryTierUnavailableError,
   type MarketPriceHistory,
 } from "../../services/pokeTraceMarketPriceHistory.js";
+import {
+  isMarketHistoryTier,
+  type MarketHistoryTier,
+} from "../../../shared/pokeTraceHistoryTiers.js";
 import {
   MARKET_MOVER_DIRECTIONS,
   POKETRACE_GAMES,
@@ -467,14 +472,19 @@ export function createPokeTracePriceHistoryHandler(
 }
 
 type MarketPriceHistoryHandlerDependencies = {
-  loadHistory: (cardId: string) => Promise<MarketPriceHistory | null>;
+  loadHistory: (
+    cardId: string,
+    tier: MarketHistoryTier,
+  ) => Promise<MarketPriceHistory | null>;
   reportError: (context: string, error: unknown) => void;
 };
 
 export function createMarketPriceHistoryHandler(
   dependencies: Partial<MarketPriceHistoryHandlerDependencies> = {},
 ): RequestHandler {
-  const loadHistory = dependencies.loadHistory ?? loadMarketPriceHistory;
+  const loadHistory =
+    dependencies.loadHistory ??
+    ((cardId, tier) => loadMarketPriceHistory(cardId, { tier }));
   const reportError = dependencies.reportError ?? logError;
 
   return async (req, res) => {
@@ -486,14 +496,23 @@ export function createMarketPriceHistoryHandler(
       return;
     }
 
+    const tier = req.query.tier ?? "NEAR_MINT";
+    if (!isMarketHistoryTier(tier)) {
+      res.status(400).json({ error: "Invalid price history tier" });
+      return;
+    }
     try {
-      const history = await loadHistory(cardId);
+      const history = await loadHistory(cardId, tier);
       if (!history) {
         res.status(404).json({ error: "Card not found" });
         return;
       }
       res.json(history);
     } catch (error) {
+      if (error instanceof PokeTracePriceHistoryTierUnavailableError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
       reportError("Failed to fetch marketplace price history", error);
       const unavailable =
         error instanceof PokeTracePriceHistoryUnavailableError;

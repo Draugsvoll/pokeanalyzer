@@ -15,7 +15,7 @@ type HistoryPoint = Omit<PokeTracePriceHistoryPoint, "avg" | "source"> & {
 export type PokeTraceSealedMarketPriceHistory = {
   productId: string;
   condition: "UNOPENED";
-  period: "90d";
+  period: "90d" | "all";
   currency: "USD";
   fetchedAt: string;
   stale: boolean;
@@ -90,7 +90,7 @@ function parseStoredHistory(
     const history = parsed as Record<string, unknown>;
     if (
       history.condition !== "UNOPENED" ||
-      history.period !== "90d" ||
+      (history.period !== "90d" && history.period !== "all") ||
       history.currency !== "USD" ||
       typeof history.fetchedAt !== "string" ||
       !history.series ||
@@ -112,7 +112,7 @@ function parseStoredHistory(
 
     return {
       condition: "UNOPENED",
-      period: "90d",
+      period: history.period,
       currency: "USD",
       fetchedAt: history.fetchedAt,
       series,
@@ -183,6 +183,7 @@ export async function loadPokeTraceSealedMarketPriceHistory(
       : Number.NaN;
   if (
     cached &&
+    cached.period === "all" &&
     Number.isFinite(fetchedAt) &&
     now() - fetchedAt < CACHE_TTL_MS
   ) {
@@ -209,7 +210,7 @@ export async function loadPokeTraceSealedMarketPriceHistory(
       const refreshedAt = new Date(now()).toISOString();
       const history: StoredSealedMarketPriceHistory = {
         condition: "UNOPENED",
-        period: "90d",
+        period: "all",
         currency: "USD",
         fetchedAt: refreshedAt,
         series: groupSeries(response.data),

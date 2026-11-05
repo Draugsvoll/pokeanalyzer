@@ -663,7 +663,10 @@ function PokemonDetailsForCard() {
       content={
         <div className="card-view__market-content">
           {cardLoadFailed && (
-            <div className="card-view__data-error" role="alert">
+            <div
+              className="card-view__data-error default-container"
+              role="alert"
+            >
               <span>Card details couldn’t be refreshed.</span>
               <Button
                 fill="ghost"
@@ -907,7 +910,10 @@ function PokemonDetailsForCard() {
           })}
         </div>
 
-        <div className="card-view__marketplace-panel" hidden={selectedPanel !== "tcg"}>
+        <div
+          className="card-view__marketplace-panel"
+          hidden={selectedPanel !== "tcg"}
+        >
           <TcgExplorerSection
             key={card.id}
             cardId={card.id}
@@ -921,7 +927,10 @@ function PokemonDetailsForCard() {
           />
         </div>
         {/* Tab changes preserve eBay's independent request and results. */}
-        <div className="card-view__ebay-panel card-view__marketplace-panel" hidden={!showEbay}>
+        <div
+          className="card-view__ebay-panel card-view__marketplace-panel"
+          hidden={!showEbay}
+        >
           <EbaySection
             onLoadingChange={setEbayLoading}
             key={card.id}

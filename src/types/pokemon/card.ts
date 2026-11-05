@@ -1,4 +1,8 @@
 import type { TcgSnapshot } from "../../../shared/tcgExplorer";
+import type {
+  GradedHistoryTier,
+  MarketHistoryTier,
+} from "../../../shared/pokeTraceHistoryTiers";
 import type { CardPriceHistoryResponse } from "../../../shared/pokeTracePriceHistory";
 import type { CardSet } from "./set";
 import type {
@@ -21,8 +25,8 @@ export type PokeTraceMarketHistoryPoint = {
 
 export type PokeTraceMarketHistory = {
   cardId: string;
-  condition: "NEAR_MINT";
-  period: "90d";
+  condition: MarketHistoryTier;
+  period: "90d" | "all";
   currency: string;
   fetchedAt: string;
   stale: boolean;
@@ -50,6 +54,7 @@ export type PokemonCard = {
     currency: string;
     marketplaceUrls: Record<string, unknown>;
     prices: Record<string, unknown>;
+    gradedOptions?: GradedHistoryTier[];
     variant?: string;
     variants?: Array<{
       id: string;

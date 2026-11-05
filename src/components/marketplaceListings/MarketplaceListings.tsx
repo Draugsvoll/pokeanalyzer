@@ -264,7 +264,7 @@ export function MarketplaceResultPanel({
                 {" "}
                 ·{" "}
                 <span
-                  className="marketplace-listings__result-count ui-render-fade"
+                  className="marketplace-listings__result-count ui-render-fade ui-render-fade--counter"
                   key={count}
                 >
                   {count}
@@ -287,7 +287,10 @@ export function MarketplaceResultPanel({
                       ? "Median"
                       : "Low"}
                 </dt>
-                <dd className="ui-render-fade" key={summary[metric]}>
+                <dd
+                  className="ui-render-fade ui-render-fade--counter"
+                  key={summary[metric]}
+                >
                   {summary[metric]}
                 </dd>
               </div>
@@ -308,7 +311,7 @@ export function MarketplaceResultPanel({
         state
       )}
       <div
-        className="marketplace-listings__results"
+        className="marketplace-listings__results app-scrollbar"
         key={resultsKey}
         ref={resultsRef}
         onScroll={onScroll}

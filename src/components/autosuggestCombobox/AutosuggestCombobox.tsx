@@ -192,7 +192,7 @@ export function AutosuggestCombobox({
       {menuOpen && (
         <div
           aria-label={menuLabel}
-          className="ui-select-dropdown__menu ui-autosuggest__menu"
+          className="ui-select-dropdown__menu ui-autosuggest__menu app-scrollbar"
           id={listboxId}
           role="listbox"
         >

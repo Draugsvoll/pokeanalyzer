@@ -15,6 +15,7 @@ import {
   selectUnambiguousVariants,
 } from "./pokeTraceRoutes.js";
 import { requestFromTestServer } from "./httpTestServer.js";
+import { PokeTracePriceHistoryTierUnavailableError } from "../../services/pokeTraceMarketPriceHistory.js";
 
 const cardId = "019bff77-befa-771d-bab0-f5909f0a78c9";
 
@@ -655,4 +656,65 @@ test("GET /api/cards/:id/market-price-history returns available provider series"
   };
   assert.equal(history.series.tcgplayer.length, 1);
   assert.equal(history.series.ebay.length, 0);
+});
+
+test("marketplace history accepts exact graded tiers and rejects invalid or unqualified requests", async () => {
+  const app = express();
+  const requested: string[] = [];
+  app.get(
+    "/api/cards/:id/market-price-history",
+    createMarketPriceHistoryHandler({
+      loadHistory: async (requestedId, tier) => {
+        assert.equal(requestedId, cardId);
+        requested.push(tier);
+        if (tier === "PSA_9")
+          throw new PokeTracePriceHistoryTierUnavailableError(
+            "At least 15 sales are required",
+          );
+        return {
+          cardId,
+          condition: tier,
+          currency: "USD",
+          fetchedAt: "2026-11-04T12:00:00Z",
+          period: "all",
+          series: {},
+          stale: false,
+        };
+      },
+      reportError: () =>
+        assert.fail(
+          "validation errors must not be reported as upstream failures",
+        ),
+    }),
+  );
+  for (const [query, tier] of [
+    ["", "NEAR_MINT"],
+    ["?tier=BGS_9", "BGS_9"],
+    ["?tier=DAMAGED", "DAMAGED"],
+  ]) {
+    const response = await requestFromTestServer(
+      app,
+      `/api/cards/${cardId}/market-price-history${query}`,
+    );
+    assert.equal(response.status, 200);
+    assert.equal(
+      ((await response.json()) as { condition: string }).condition,
+      tier,
+    );
+  }
+  for (const query of [
+    "?tier=PSA",
+    "?tier=PSA_11",
+    "?tier=BGS_9_5",
+    "?tier=FAKE_10",
+    "?tier=PSA_10&tier=PSA_9",
+    "?tier=PSA_9",
+  ]) {
+    const response = await requestFromTestServer(
+      app,
+      `/api/cards/${cardId}/market-price-history${query}`,
+    );
+    assert.equal(response.status, 400, query);
+  }
+  assert.deepEqual(requested, ["NEAR_MINT", "BGS_9", "DAMAGED", "PSA_9"]);
 });

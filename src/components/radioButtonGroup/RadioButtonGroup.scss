@@ -7,7 +7,7 @@
   display: flex;
   gap: 0.15rem;
   height: var(--dropdown-trigger-height);
-  padding: 0.25rem;
+  padding: 0.3rem;
 }
 
 .radio-button-group__option {
@@ -34,8 +34,8 @@
   }
 
   svg {
-    height: 0.95rem;
-    width: 0.95rem;
+    height: 0.85rem;
+    width: 0.85rem;
   }
 
   input {

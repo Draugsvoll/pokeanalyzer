@@ -124,6 +124,16 @@ export async function migratePokeTraceDatabase(
     "market_price_history_fetched_at",
     "TEXT",
   );
+
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS poketrace_graded_price_history (
+      card_id TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      fetched_at TEXT NOT NULL,
+      PRIMARY KEY (card_id, tier)
+    )
+  `);
   await database.execute(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_cards_fetched_at ON poketrace_cards(fetched_at, id)",
   );

@@ -4,6 +4,52 @@
    Depends on variables from _variables.scss (loaded first in index.scss).
    ========================================================================== */
 
+/* Shared scrollbar for dropdown menus and scrollable lists. */
+.app-scrollbar {
+  --scrollbar-thumb: color-mix(
+    in srgb,
+    var(--font-color-muted) 27%,
+    transparent
+  );
+
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+
+  &:hover {
+    --scrollbar-thumb: color-mix(
+      in srgb,
+      var(--font-color-muted) 36%,
+      transparent
+    );
+  }
+
+  &::-webkit-scrollbar {
+    width: 0.45rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-button,
+  &::-webkit-scrollbar-button:vertical:decrement,
+  &::-webkit-scrollbar-button:vertical:increment {
+    background: transparent;
+    background-image: none;
+    border: 0;
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+    border: 0.14rem solid transparent;
+    border-radius: var(--border-radius-pill);
+  }
+}
+
 /* ----- Headings ----- */
 h1,
 h2,

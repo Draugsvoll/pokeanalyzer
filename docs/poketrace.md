@@ -165,11 +165,58 @@ one day newer; the entry is `null` when none of those dates exists. The daily
 history table remains the source of truth. Existing rows without this cache
 fall back to history until their next refresh.
 
-Opening a card also requests 90 days of `NEAR_MINT` history. Available
-TCGPlayer and eBay rows are normalized into separate series and stored with one
-fetch timestamp on the card row. The cache is reused for six hours, then
+Opening a card requests the first page of all-time `NEAR_MINT` history (up to
+365 rows, without pagination). The chart always offers three local period
+controls: **3M** (90 days), **6M** (180 days), and **All** (all available returned
+history). There is no 365-day option. The All view includes the year on dates
+from previous years. Available TCGPlayer and eBay rows are normalized into
+separate series and stored with one fetch timestamp on the card row. The cache
+is reused for six hours, then
 refreshed and overwritten. If an upstream refresh fails, existing stored series
 are returned as stale instead of removing the chart.
+
+The history tier dropdown offers Near Mint, Lightly Played, Moderately
+Played, Heavily Played, and Damaged. Raw histories retain both TCGPlayer and
+eBay sources and use averages, with no minimum sales requirement. Additional raw
+conditions share the per-card/tier cache in `poketrace_graded_price_history`;
+Near Mint stays on the card row. A valid raw condition may have no history for a
+particular card.
+
+The dropdown also offers whole-number graded eBay tiers with at least
+15 sales, an available price, and a valid `lastUpdated` within the last two
+calendar months (inclusive of the cutoff date, using UTC and clamping month ends).
+Missing, invalid, or future update dates are excluded. When `gradedOptions` is
+present, the tier must also be advertised there. Older records without that
+metadata use their valid graded price keys. Half grades are excluded from history requests and dropdown
+options; their price tiles remain subject to the graded-price display rules.
+Selecting a tier requests its first all-time history page on demand, with the
+same local period filters. Graded charts render `avg`; when the upstream graded
+average is missing, the server currently substitutes `median7d` into that field.
+Selecting a grade retains the Near Mint TCGPlayer and eBay lines and adds the
+graded eBay history as a third, blue line. Raw-condition selections display only
+that condition's sources. Each card/tier pair has an independent six-hour cache
+in `poketrace_graded_price_history`; the server enforces the same eligibility
+rules before fetching or serving a graded cache. Static demo cards retain their
+embedded Near Mint history.
+
+Sealed-product charts request the first all-time page of `UNOPENED` history with
+the same 365-row limit and no pagination. Their six-hour cache stays on the
+sealed-product row. Existing 90-day caches refresh on the next history request,
+even if still within their TTL; if refresh fails, the previous data remains
+available as stale. The browser uses the same 3M, 6M, and All period controls.
+
+Before period filtering, each series excludes a single highest price point
+when it is at least five times the next-highest positive price in that same
+series. This affects chart rendering and its sold count, not stored history.
+The legend below the chart sums available counts from retained points in the
+selected period. The price axis has five horizontal grid lines and supports
+fractional intervals and decimal labels for low prices.
+
+The graded-price box below the graph hides tiers whose numeric `median3d`,
+`median7d`, and `median30d` are all equal. Grading-opportunity generation excludes
+PSA 10 prices matching the same rule before ranking and limiting results.
+Missing medians alone do not trigger this exclusion. This rule does not remove
+history dropdown options.
 
 Import and refresh share a database lock. If either job is already running, the
 other skips its run successfully. A daily quota stop preserves all completed

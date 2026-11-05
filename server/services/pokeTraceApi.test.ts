@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
   fetchPokeTraceCard,
+  fetchPokeTraceTierPriceHistory,
   fetchPokeTracePriceHistory,
   fetchPokeTracePage,
   fetchPokeTraceSealedProduct,
@@ -43,6 +44,58 @@ const sealedProduct = {
   refs: { tcgplayerId: "91601" },
   prices: { tcgplayer: { UNOPENED: { avg: 3900 } } },
 };
+
+test("fetches one page for an exact graded tier using all-time history", async () => {
+  let requests = 0;
+  globalThis.fetch = async (input) => {
+    requests += 1;
+    const url = new URL(String(input));
+    assert.equal(url.pathname, `/v1/cards/${card.id}/prices/BGS_9/history`);
+    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.searchParams.get("limit"), "365");
+    assert.equal(url.searchParams.has("cursor"), false);
+    return Response.json({
+      data: [],
+      pagination: { hasMore: true, nextCursor: "ignored" },
+    });
+  };
+  await fetchPokeTraceTierPriceHistory("test-key", card.id, "BGS_9");
+  assert.equal(requests, 1);
+  assert.throws(
+    () => fetchPokeTraceTierPriceHistory("test-key", card.id, "PSA_11"),
+    /Invalid price history tier/,
+  );
+  assert.throws(
+    () => fetchPokeTraceTierPriceHistory("test-key", card.id, "BGS_9_5"),
+    /Invalid price history tier/,
+  );
+  assert.equal(requests, 1);
+});
+
+test("requests every supported raw condition through its exact history endpoint", async () => {
+  let requestedTier = "";
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    assert.equal(
+      url.pathname,
+      `/v1/cards/${card.id}/prices/${requestedTier}/history`,
+    );
+    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.searchParams.get("limit"), "365");
+    return Response.json({ data: [], pagination: { hasMore: false } });
+  };
+  for (const tier of [
+    "MINT",
+    "NEAR_MINT",
+    "LIGHTLY_PLAYED",
+    "MODERATELY_PLAYED",
+    "HEAVILY_PLAYED",
+    "DAMAGED",
+  ] as const) {
+    requestedTier = tier;
+    await fetchPokeTraceTierPriceHistory("test-key", card.id, tier);
+  }
+});
 
 test("accepts English US singles and rejects other product lines", () => {
   assert.equal(isEnglishSingle(card), true);
@@ -148,11 +201,13 @@ test("reads one card with its complete current prices", async () => {
   assert.deepEqual(result.prices, card.prices);
 });
 
-test("requests Near Mint price history for 90 days", async () => {
+test("requests only the first page of all-time Near Mint price history", async () => {
+  let requests = 0;
   globalThis.fetch = async (input, init) => {
+    requests += 1;
     const url = new URL(String(input));
     assert.equal(url.pathname, `/v1/cards/${card.id}/prices/NEAR_MINT/history`);
-    assert.equal(url.searchParams.get("period"), "90d");
+    assert.equal(url.searchParams.get("period"), "all");
     assert.equal(url.searchParams.get("limit"), "365");
     assert.equal(
       (init?.headers as Record<string, string>)["X-API-Key"],
@@ -171,11 +226,13 @@ test("requests Near Mint price history for 90 days", async () => {
           saleCount: 12,
         },
       ],
-      pagination: { hasMore: false, nextCursor: null, count: 1 },
+      pagination: { hasMore: true, nextCursor: "next-page", count: 1 },
     });
   };
 
   const history = await fetchPokeTracePriceHistory("test-key", card.id);
+  assert.equal(requests, 1);
+  assert.equal(history.pagination.hasMore, true);
 
   assert.deepEqual(history.data[0], {
     date: "2026-09-18",
@@ -190,14 +247,16 @@ test("requests Near Mint price history for 90 days", async () => {
   });
 });
 
-test("requests unopened sealed price history for 90 days", async () => {
+test("requests only the first page of all-time unopened sealed price history", async () => {
+  let requests = 0;
   globalThis.fetch = async (input) => {
+    requests += 1;
     const url = new URL(String(input));
     assert.equal(
       url.pathname,
       `/v1/cards/${sealedProduct.id}/prices/UNOPENED/history`,
     );
-    assert.equal(url.searchParams.get("period"), "90d");
+    assert.equal(url.searchParams.get("period"), "all");
     assert.equal(url.searchParams.get("limit"), "365");
     return Response.json({
       data: [
@@ -210,7 +269,7 @@ test("requests unopened sealed price history for 90 days", async () => {
           saleCount: 8,
         },
       ],
-      pagination: { hasMore: false, nextCursor: null, count: 1 },
+      pagination: { hasMore: true, nextCursor: "ignored", count: 1 },
     });
   };
 
@@ -220,6 +279,7 @@ test("requests unopened sealed price history for 90 days", async () => {
   );
 
   assert.equal(history.data[0].avg, 150);
+  assert.equal(requests, 1);
 });
 
 test("daily quota errors are distinguishable from failed requests", async () => {

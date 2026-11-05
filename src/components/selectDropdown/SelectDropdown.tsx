@@ -102,7 +102,7 @@ export function SelectDropdown<T extends string>({
       {open && (
         <div
           id={menuId}
-          className="ui-select-dropdown__menu"
+          className="ui-select-dropdown__menu app-scrollbar"
           role="listbox"
           aria-label={ariaLabel}
         >

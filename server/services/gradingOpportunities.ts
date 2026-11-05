@@ -170,6 +170,8 @@ export async function findGradingOpportunities(
           CAST(json_extract(raw_json, '$.prices.ebay.PSA_10.saleCount') AS REAL) AS psa_sales,
           ${nearMintPrice} AS near_mint_price,
           ${psaPrice} AS psa_price,
+          ${priceValue("ebay.PSA_10.median3d")} AS psa_median_3d,
+          ${priceValue("ebay.PSA_10.median30d")} AS psa_median_30d,
           '7d' AS psa_median
         FROM poketrace_cards
         WHERE json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.saleCount') IN ('integer', 'real')
@@ -200,6 +202,7 @@ export async function findGradingOpportunities(
       FROM opportunities
       WHERE near_mint_sales >= ?
         AND psa_sales >= ?
+        AND NOT COALESCE(psa_median_3d = psa_price AND psa_price = psa_median_30d, 0)
         AND near_mint_price >= ?
         AND psa_price - near_mint_price >= ?
       ORDER BY multiplier DESC, price_increase DESC, id

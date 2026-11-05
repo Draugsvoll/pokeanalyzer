@@ -260,8 +260,8 @@ function EbaySectionForAccount({
                 : "1 Market credit"
           }
           actionLoading={loading && !headerError}
-          actionLoadingLabel="Searching Ebay..."
-          actionLoadingMessage="Loading Ebay listings and sales..."
+          actionLoadingLabel="Loading listings and sales..."
+          actionLoadingMessage="Loading listings and sales..."
           errorMessage={headerError}
           actionDisabled={
             loading ||

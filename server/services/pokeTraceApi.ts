@@ -1,3 +1,8 @@
+import {
+  isMarketHistoryTier,
+  type MarketHistoryTier,
+} from "../../shared/pokeTraceHistoryTiers.js";
+
 export type PokeTraceCard = Record<string, unknown> & {
   id: string;
   name: string;
@@ -391,10 +396,13 @@ function nullableFiniteNumber(value: unknown, field: string) {
 async function fetchPokeTracePriceHistoryForCondition(
   apiKey: string,
   id: string,
-  condition: "NEAR_MINT" | "UNOPENED",
+  condition: MarketHistoryTier | "UNOPENED",
   options?: PokeTraceRequestOptions,
 ): Promise<PokeTracePriceHistoryResponse> {
-  const params = new URLSearchParams({ period: "90d", limit: "365" });
+  const params = new URLSearchParams({
+    period: "all",
+    limit: "365",
+  });
   const response = await pokeTraceFetch(
     `https://api.poketrace.com/v1/cards/${encodeURIComponent(id)}/prices/${condition}/history?${params}`,
     apiKey,
@@ -475,6 +483,16 @@ export function fetchPokeTracePriceHistory(
     "NEAR_MINT",
     options,
   );
+}
+
+export function fetchPokeTraceTierPriceHistory(
+  apiKey: string,
+  id: string,
+  tier: MarketHistoryTier,
+  options?: PokeTraceRequestOptions,
+) {
+  if (!isMarketHistoryTier(tier)) throw new Error("Invalid price history tier");
+  return fetchPokeTracePriceHistoryForCondition(apiKey, id, tier, options);
 }
 
 export function fetchPokeTraceSealedPriceHistory(

@@ -43,6 +43,13 @@
     color: var(--font-color-primary);
   }
 
+  &:hover .grid-header__toggle-label,
+  &:focus-visible .grid-header__toggle-label {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
   &:focus-visible {
     outline: 1px solid var(--custom-color-blue);
     outline-offset: 3px;

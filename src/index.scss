@@ -90,6 +90,22 @@
   }
 }
 
+.ui-render-fade--counter {
+  transform: translateY(0);
+  transition:
+    opacity var(--animation-duration-enter) var(--animation-ease-standard),
+    transform var(--animation-duration-enter) var(--animation-ease-standard),
+    background-color var(--delay-short) ease;
+
+  @starting-style {
+    transform: translateY(2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
 .ui-scroll-reveal {
   opacity: 0;
   transform: translate3d(0, 0.9rem, 0);

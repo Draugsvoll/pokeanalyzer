@@ -186,6 +186,9 @@ export function GradingCalculator({
       ? null
       : (additionalGains / rawProceeds) * 100;
   const outcomeReady = pricedGrades.length >= 1;
+  const allGradePricesEmpty = GRADES.every(
+    (grade) => fields[grade].expectedPrice.trim() === "",
+  );
   const chanceLocked = new Set(lockedGrades);
   GRADES.forEach((grade) => {
     if (grades[grade].expectedPrice == null) chanceLocked.add(grade);
@@ -414,7 +417,6 @@ export function GradingCalculator({
       >
         <div className="grading-calculator__summary-heading">
           <h3>Outcomes</h3>
-          <p>Insert price estimates. Calculations appear below.</p>
         </div>
         <article className="grading-calculator__outcome-card grading-calculator__outcome-card--spread">
           <div className="grading-calculator__compare-gain">
@@ -438,16 +440,22 @@ export function GradingCalculator({
                 : formatSignedPercent(gradedVsRawRoi)}
             </span>
             <span>
-              Compared with selling raw
-              <InfoTooltip label="Graded vs Raw">
-                <strong>Compared with selling raw</strong>
-                <span>
-                  The additional gain or loss from grading and selling the card,
-                  rather than selling it raw, after all applicable costs and
-                  fees. Expressed in dollars and as a percentage of raw net
-                  proceeds.
-                </span>
-              </InfoTooltip>
+              {allGradePricesEmpty ? (
+                "Insert price estimates. Calculations appear below."
+              ) : (
+                <>
+                  Compared with selling raw
+                  <InfoTooltip label="Graded vs Raw">
+                    <strong>Compared with selling raw</strong>
+                    <span>
+                      The additional gain or loss from grading and selling the
+                      card, rather than selling it raw, after all applicable
+                      costs and fees. Expressed in dollars and as a percentage of
+                      raw net proceeds.
+                    </span>
+                  </InfoTooltip>
+                </>
+              )}
             </span>
           </div>
           <div className="grading-calculator__outcome-grid">

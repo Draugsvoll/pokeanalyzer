@@ -57,7 +57,7 @@ export type PokeTraceSealedMarketHistory = {
   condition: "UNOPENED";
   currency: string;
   fetchedAt: string;
-  period: "90d";
+  period: "90d" | "all";
   productId: string;
   series: Partial<
     Record<
@@ -165,7 +165,7 @@ export function isPokeTraceSealedMarketHistory(
   if (
     typeof history.productId !== "string" ||
     history.condition !== "UNOPENED" ||
-    history.period !== "90d" ||
+    (history.period !== "90d" && history.period !== "all") ||
     typeof history.currency !== "string" ||
     !history.currency.trim() ||
     typeof history.fetchedAt !== "string" ||

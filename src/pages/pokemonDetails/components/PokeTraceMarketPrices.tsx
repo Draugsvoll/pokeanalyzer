@@ -10,6 +10,14 @@ import {
 import { PriceChange } from "../../../components/priceChange/PriceChange";
 import Button from "../../../components/button/Button";
 import { RadioButtonGroup } from "../../../components/radioButtonGroup/RadioButtonGroup";
+import { SelectDropdown } from "../../../components/selectDropdown/SelectDropdown";
+import {
+  isGradedHistoryTier,
+  marketHistoryTierLabel,
+  qualifyingGradedHistoryTiers,
+  RAW_HISTORY_TIERS,
+  type MarketHistoryTier,
+} from "../../../../shared/pokeTraceHistoryTiers";
 import { formatPriceChangePeriodLong } from "../../../../shared/priceChangePeriod";
 import {
   MarketPriceHistoryChart,
@@ -24,7 +32,9 @@ import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
   avg?: number | null;
+  median3d?: number | null;
   median7d?: number | null;
+  median30d?: number | null;
   low?: number | null;
   high?: number | null;
   saleCount?: number | null;
@@ -44,7 +54,6 @@ const CONDITION_ORDER = [
 ];
 
 const CONDITION_ABBREVIATIONS: Record<string, string> = {
-  MINT: "M",
   NEAR_MINT: "NM",
   LIGHTLY_PLAYED: "LP",
   MODERATELY_PLAYED: "MP",
@@ -78,7 +87,10 @@ function formatPrice(value: number | null | undefined, currency: string) {
 
 function sortedEntries(prices: MarketplacePrices) {
   return Object.entries(prices)
-    .filter(([condition]) => CONDITION_ORDER.includes(condition))
+    .filter(
+      ([condition]) =>
+        condition !== "MINT" && CONDITION_ORDER.includes(condition),
+    )
     .sort(([left], [right]) => {
       const leftIndex = CONDITION_ORDER.indexOf(left);
       const rightIndex = CONDITION_ORDER.indexOf(right);
@@ -91,6 +103,15 @@ function gradedEntries(prices?: MarketplacePrices) {
 
   return Object.entries(prices)
     .filter(([condition]) => !CONDITION_ORDER.includes(condition))
+    .filter(
+      ([, price]) =>
+        !(
+          typeof price.median3d === "number" &&
+          Number.isFinite(price.median3d) &&
+          price.median3d === price.median7d &&
+          price.median7d === price.median30d
+        ),
+    )
     .sort(([left], [right]) =>
       conditionLabel(left).localeCompare(conditionLabel(right), "en-US", {
         numeric: true,
@@ -272,7 +293,7 @@ function MarketplaceColumn({
               </dd>
             </div>
             <div>
-              <dt>Sales</dt>
+              <dt>Sold</dt>
               <dd>{sales}</dd>
             </div>
           </dl>
@@ -407,8 +428,11 @@ function GradedEbayPrices({
   );
 }
 
-function ebayNearMintUpdatedOn(prices: Record<string, MarketplacePrices>) {
-  const lastUpdated = prices.ebay?.NEAR_MINT?.lastUpdated;
+function ebayTierUpdatedOn(
+  prices: Record<string, MarketplacePrices>,
+  tier: MarketHistoryTier,
+) {
+  const lastUpdated = prices.ebay?.[tier]?.lastUpdated;
   if (typeof lastUpdated !== "string") return undefined;
   const day = lastUpdated.slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined;
@@ -417,66 +441,172 @@ function ebayNearMintUpdatedOn(prices: Record<string, MarketplacePrices>) {
 function PriceHistory({
   cardId,
   dataPending = false,
-  demoHistory,
-  ebayUpdatedOn,
+  data,
 }: {
   cardId: string;
   dataPending?: boolean;
-  demoHistory?: MarketPriceHistoryResponse;
-  ebayUpdatedOn?: string;
+  data: NonNullable<PokemonCard["pokeTrace"]>;
 }) {
-  const [history, setHistory] = useState<MarketPriceHistoryResponse | null>(
-    null,
+  const [selectedTier, setSelectedTier] =
+    useState<MarketHistoryTier>("NEAR_MINT");
+  const [histories, setHistories] = useState<
+    Partial<Record<MarketHistoryTier, MarketPriceHistoryResponse>>
+  >({});
+  const [failedTiers, setFailedTiers] = useState<ReadonlySet<MarketHistoryTier>>(
+    () => new Set(),
   );
-  const [unavailable, setUnavailable] = useState(false);
+  const [lastHistory, setLastHistory] =
+    useState<MarketPriceHistoryResponse | null>(null);
   const isDemo = cardId === "demo";
+  const tiers: MarketHistoryTier[] = isDemo
+    ? ["NEAR_MINT"]
+    : [
+        ...RAW_HISTORY_TIERS.filter((tier) => tier !== "MINT"),
+        ...qualifyingGradedHistoryTiers(data.prices, data.gradedOptions).sort(
+          (left, right) => {
+            const [leftGrader, leftGrade] = left.split("_");
+            const [rightGrader, rightGrade] = right.split("_");
+            return (
+              leftGrader.localeCompare(rightGrader, "en-US") ||
+              Number(rightGrade) - Number(leftGrade)
+            );
+          },
+        ),
+      ];
+  const tier = tiers.includes(selectedTier) ? selectedTier : "NEAR_MINT";
+  const history = isDemo ? data.marketPriceHistory : histories[tier];
+  const historyFailed = failedTiers.has(tier);
+  const label = marketHistoryTierLabel(tier);
+  const conditionControl = (
+    <SelectDropdown<MarketHistoryTier>
+      ariaLabel="Price history condition or grade"
+      className="poketrace-market__history-period poketrace-market__history-tier"
+      compact
+      options={tiers.map((value) => ({
+        value,
+        label: marketHistoryTierLabel(value),
+      }))}
+      value={tier}
+      onChange={(value) => {
+        if (histories[value]) setLastHistory(histories[value]);
+        setFailedTiers(new Set());
+        setSelectedTier(value);
+      }}
+    />
+  );
 
   useEffect(() => {
-    if (!cardId || isDemo) return;
+    if (!cardId || isDemo || history !== undefined || historyFailed) return;
 
     const controller = new AbortController();
-    void fetchMarketPriceHistory(cardId, controller.signal)
-      .then(setHistory)
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setUnavailable(true);
+    void fetchMarketPriceHistory(cardId, controller.signal, tier)
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          if (result.cardId !== cardId || result.condition !== tier) {
+            throw new Error("Price history does not match this card and tier");
+          }
+          setHistories((previous) => ({ ...previous, [tier]: result }));
+          setLastHistory(result);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setFailedTiers((previous) => new Set(previous).add(tier));
+        }
       });
 
     return () => controller.abort();
-  }, [cardId, isDemo]);
+  }, [cardId, isDemo, tier, history, historyFailed]);
 
-  if (dataPending) return <MarketPriceHistoryLoading />;
-  if (isDemo)
-    return demoHistory ? (
-      <MarketPriceHistoryChart
-        ebayUpdatedOn={ebayUpdatedOn}
-        history={demoHistory}
-      />
-    ) : null;
-  if (!cardId) return <MarketPriceHistoryLoading />;
-  if (!history && !unavailable) return <MarketPriceHistoryLoading />;
-  if (history)
+  const nearMintHistory = histories.NEAR_MINT;
+  const nearMintFailed = failedTiers.has("NEAR_MINT");
+  const needsNearMint = !isDemo && isGradedHistoryTier(tier);
+  useEffect(() => {
+    if (
+      !cardId ||
+      !needsNearMint ||
+      nearMintHistory !== undefined ||
+      nearMintFailed
+    )
+      return;
+
+    const controller = new AbortController();
+    void fetchMarketPriceHistory(cardId, controller.signal, "NEAR_MINT")
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        if (result.cardId !== cardId || result.condition !== "NEAR_MINT") {
+          throw new Error("Price history does not match this card and tier");
+        }
+        setHistories((previous) => ({ ...previous, NEAR_MINT: result }));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setFailedTiers((previous) => new Set(previous).add("NEAR_MINT"));
+        }
+      });
+
+    return () => controller.abort();
+  }, [cardId, needsNearMint, nearMintHistory, nearMintFailed]);
+
+  const loading =
+    dataPending ||
+    !cardId ||
+    (!isDemo && history === undefined && !historyFailed) ||
+    (needsNearMint && nearMintHistory === undefined && !nearMintFailed);
+  const displayedHistory = history ?? (loading ? lastHistory : null);
+  const displayedTier = displayedHistory?.condition ?? tier;
+  const displayingGrade = isGradedHistoryTier(displayedTier);
+  const rawTier = displayingGrade ? "NEAR_MINT" : displayedTier;
+  const rawHistory = displayingGrade ? nearMintHistory : displayedHistory;
+
+  if (loading && !displayedHistory) {
     return (
-      <MarketPriceHistoryChart
-        ebayUpdatedOn={ebayUpdatedOn}
-        history={history}
+      <MarketPriceHistoryLoading
+        conditionControl={conditionControl}
+        conditionLabel={label}
       />
     );
+  }
+  if (isDemo && !history) return null;
   return (
-    <section className="poketrace-market__history default-container-inner">
-      <header className="poketrace-market__history-header">
-        <div className="poketrace-market__history-title">
-          <h3>Price history</h3>
-          <span>Near Mint · 90 days</span>
-        </div>
-      </header>
-      <MarketDataUnavailable
-        className="poketrace-market__history-unavailable"
-        description="Historical prices are not available for this card yet."
-        title="No price history"
-      />
-    </section>
+    <MarketPriceHistoryChart
+      conditionControl={conditionControl}
+      conditionLabel={marketHistoryTierLabel(rawTier)}
+      ebayUpdatedOn={ebayTierUpdatedOn(
+        data.prices as Record<string, MarketplacePrices>,
+        rawTier,
+      )}
+      gradedHistory={
+        displayingGrade && displayedHistory
+          ? {
+              label: marketHistoryTierLabel(displayedTier),
+              points: displayedHistory.series.ebay ?? [],
+              stale: displayedHistory.stale,
+              updatedOn: ebayTierUpdatedOn(
+                data.prices as Record<string, MarketplacePrices>,
+                displayedTier,
+              ),
+            }
+          : undefined
+      }
+      history={
+        rawHistory ?? {
+          currency: data.currency,
+          series: {},
+          stale: false,
+        }
+      }
+      loading={loading}
+      gradeLoading={
+        !dataPending &&
+        !isDemo &&
+        history === undefined &&
+        !historyFailed &&
+        !!lastHistory &&
+        lastHistory.condition !== tier &&
+        isGradedHistoryTier(tier)
+      }
+    />
   );
 }
 
@@ -547,8 +677,7 @@ export function PokeTraceMarketPrices({
       <PriceHistory
         cardId={cardId}
         dataPending={dataPending}
-        demoHistory={data.marketPriceHistory}
-        ebayUpdatedOn={ebayNearMintUpdatedOn(prices)}
+        data={data}
         key={cardId}
       />
 

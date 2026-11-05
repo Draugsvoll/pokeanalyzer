@@ -212,6 +212,49 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
   database.close();
 });
 
+test("excludes identical PSA medians before ranking and limiting, while retaining missing or unequal medians", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-11-01T12:00:00Z"),
+  });
+  const database = await createDatabase();
+  t.after(() => database.close());
+  const raw = tier(25, 25, 100);
+  const cases = [
+    {
+      id: "identical",
+      price: { ...tier(50_000, 50_000, 100), median3d: 50_000 },
+    },
+    {
+      id: "different-3d",
+      price: { ...tier(1_000, 1_000, 100), median3d: 900 },
+    },
+    {
+      id: "different-30d",
+      price: { ...tier(1_000, 900, 100), median3d: 1_000 },
+    },
+    { id: "missing-3d", price: tier(1_000, 1_000, 100) },
+    { id: "null-3d", price: { ...tier(1_000, 1_000, 100), median3d: null } },
+    { id: "null-30d", price: { ...tier(1_000, null, 100), median3d: 1_000 } },
+  ];
+  for (const { id, price } of cases) {
+    await insertCard(database, id, id, raw, price);
+  }
+  const result = await findGradingOpportunities(database);
+  assert.deepEqual(
+    result.items.map(({ cardId }) => cardId).sort(),
+    cases
+      .slice(1)
+      .map(({ id }) => id)
+      .sort(),
+  );
+  const limited = await findGradingOpportunities(database, { limit: 1 });
+  assert.deepEqual(
+    limited.items.map(({ cardId }) => cardId),
+    ["different-30d"],
+  );
+});
+
 test("rejects unsafe grading opportunity parameters", () => {
   assert.throws(
     () => normalizeGradingOpportunitiesOptions({ minimumNearMintPrice: -1 }),

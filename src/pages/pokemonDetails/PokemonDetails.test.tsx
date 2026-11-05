@@ -1026,7 +1026,12 @@ test("opens the Ebay tab in the shared feature layout without an automatic reque
   const primary = title.closest(".details-page__primary")!;
   const ebay = screen.getByRole("region", { name: "Ebay sales and listings" });
   const ai = screen.getByRole("region", { name: "Card insights" });
-  expect(primary.nextElementSibling).toBe(ai);
+  const calculator = screen
+    .getByText("Grading calculator", { selector: "h3" })
+    .closest("section")!;
+  expect(primary.nextElementSibling).toBe(calculator);
+  expect(calculator.nextElementSibling).toBe(ai);
+  expect(calculator).not.toBeVisible();
   expect(ai).toContainElement(ebay);
   expect(
     within(ai).getByRole("button", { name: "Available on Ebay" }),
@@ -1096,7 +1101,7 @@ test("runs Ebay and AI simultaneously and updates only their respective credits"
   expect(mocks.askGrok).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Available on Ebay" }));
   expect(
-    screen.getByRole("button", { name: "Searching Ebay..." }),
+    screen.getByRole("button", { name: "Loading listings and sales..." }),
   ).toBeDisabled();
   const ebayTab = screen.getByRole("button", { name: "Available on Ebay" });
   expect(ebayTab).toBeEnabled();

@@ -1,8 +1,15 @@
 import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 import {
+  fetchPokeTraceTierPriceHistory,
   fetchPokeTracePriceHistory,
   type PokeTracePriceHistoryPoint,
 } from "./pokeTraceApi.js";
+import {
+  isGradedHistoryTier,
+  isMarketHistoryTier,
+  qualifyingGradedHistoryTiers,
+  type MarketHistoryTier,
+} from "../../shared/pokeTraceHistoryTiers.js";
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MARKET_SOURCES = ["tcgplayer", "ebay"] as const;
@@ -15,8 +22,8 @@ export type MarketPriceHistoryPoint = Omit<
 
 export type MarketPriceHistory = {
   cardId: string;
-  condition: "NEAR_MINT";
-  period: "90d";
+  condition: MarketHistoryTier;
+  period: "90d" | "all";
   currency: string;
   fetchedAt: string;
   stale: boolean;
@@ -27,6 +34,7 @@ type StoredMarketPriceHistory = Omit<MarketPriceHistory, "cardId" | "stale">;
 type HistoryDatabase = Pick<typeof pokeTraceDb, "execute">;
 
 type HistoryDependencies = {
+  tier?: MarketHistoryTier;
   database?: HistoryDatabase;
   ready?: Promise<unknown>;
   apiKey?: string;
@@ -35,6 +43,7 @@ type HistoryDependencies = {
 };
 
 export class PokeTracePriceHistoryUnavailableError extends Error {}
+export class PokeTracePriceHistoryTierUnavailableError extends Error {}
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -76,7 +85,10 @@ function parsePoint(value: unknown): MarketPriceHistoryPoint | null {
   };
 }
 
-function parseStoredHistory(value: unknown): StoredMarketPriceHistory | null {
+function parseStoredHistory(
+  value: unknown,
+  tier: MarketHistoryTier,
+): StoredMarketPriceHistory | null {
   if (typeof value !== "string" || !value) return null;
   try {
     const parsed: unknown = JSON.parse(value);
@@ -85,8 +97,8 @@ function parseStoredHistory(value: unknown): StoredMarketPriceHistory | null {
     }
     const history = parsed as Record<string, unknown>;
     if (
-      history.condition !== "NEAR_MINT" ||
-      history.period !== "90d" ||
+      history.condition !== tier ||
+      (history.period !== "90d" && history.period !== "all") ||
       typeof history.currency !== "string" ||
       typeof history.fetchedAt !== "string" ||
       !history.series ||
@@ -107,8 +119,8 @@ function parseStoredHistory(value: unknown): StoredMarketPriceHistory | null {
     }
 
     return {
-      condition: "NEAR_MINT",
-      period: "90d",
+      condition: tier,
+      period: history.period,
       currency: history.currency,
       fetchedAt: history.fetchedAt,
       series,
@@ -130,14 +142,20 @@ function currencyFromRawCard(value: unknown) {
   }
 }
 
-function groupSeries(points: PokeTracePriceHistoryPoint[]) {
+function groupSeries(
+  points: PokeTracePriceHistoryPoint[],
+  tier: MarketHistoryTier,
+) {
   const series: MarketPriceHistory["series"] = {};
+  const graded = isGradedHistoryTier(tier);
   for (const point of points) {
     const source = point.source.toLowerCase();
-    if (!isSource(source) || !isFiniteNumber(point.avg)) continue;
+    if (graded && source !== "ebay") continue;
+    const avg = point.avg ?? (graded ? point.median7d : null);
+    if (!isSource(source) || !isFiniteNumber(avg)) continue;
     (series[source] ??= []).push({
       date: point.date,
-      avg: point.avg,
+      avg,
       median7d: point.median7d,
       median30d: point.median30d,
       low: point.low,
@@ -161,6 +179,12 @@ export async function loadMarketPriceHistory(
   cardId: string,
   dependencies: HistoryDependencies = {},
 ): Promise<MarketPriceHistory | null> {
+  const tier = dependencies.tier ?? "NEAR_MINT";
+  if (!isMarketHistoryTier(tier)) {
+    throw new PokeTracePriceHistoryTierUnavailableError(
+      "Invalid price history tier",
+    );
+  }
   const database = dependencies.database ?? pokeTraceDb;
   await (dependencies.ready ?? ensurePokeTraceReady());
   const now = dependencies.now ?? Date.now;
@@ -175,20 +199,46 @@ export async function loadMarketPriceHistory(
   const row = result.rows[0];
   if (!row) return null;
 
-  const cached = parseStoredHistory(row.market_price_history);
+  let cachedPayload = row.market_price_history;
+  let cachedFetchedAt = row.market_price_history_fetched_at;
+  if (tier !== "NEAR_MINT") {
+    if (isGradedHistoryTier(tier)) {
+      const card = JSON.parse(String(row.raw_json));
+      if (
+        !qualifyingGradedHistoryTiers(
+          card.prices,
+          card.gradedOptions,
+          now(),
+        ).includes(tier)
+      ) {
+        throw new PokeTracePriceHistoryTierUnavailableError(
+          "This whole grade requires an available price, at least 15 sales, and an update within two months",
+        );
+      }
+    }
+    const saved = await database.execute({
+      sql: "SELECT payload_json, fetched_at FROM poketrace_graded_price_history WHERE card_id = ? AND tier = ?",
+      args: [cardId, tier],
+    });
+    cachedPayload = saved.rows[0]?.payload_json ?? null;
+    cachedFetchedAt = saved.rows[0]?.fetched_at ?? null;
+  }
+  const cached = parseStoredHistory(cachedPayload, tier);
   const fetchedAt =
-    typeof row.market_price_history_fetched_at === "string"
-      ? Date.parse(row.market_price_history_fetched_at)
+    typeof cachedFetchedAt === "string"
+      ? Date.parse(cachedFetchedAt)
       : Number.NaN;
   if (
     cached &&
+    cached.period === "all" &&
     Number.isFinite(fetchedAt) &&
     now() - fetchedAt < CACHE_TTL_MS
   ) {
     return { cardId, ...cached, stale: false };
   }
 
-  const existing = activeHistoryFetches.get(cardId);
+  const cacheKey = `${cardId}:${tier}`;
+  const existing = activeHistoryFetches.get(cacheKey);
   if (existing && !dependencies.fetchHistory && !dependencies.database) {
     return existing;
   }
@@ -203,25 +253,37 @@ export async function loadMarketPriceHistory(
     }
 
     try {
-      const response = await (
-        dependencies.fetchHistory ?? fetchPokeTracePriceHistory
-      )(apiKey, cardId);
+      const response = dependencies.fetchHistory
+        ? await dependencies.fetchHistory(apiKey, cardId)
+        : await fetchPokeTraceTierPriceHistory(apiKey, cardId, tier);
       const refreshedAt = new Date(now()).toISOString();
       const history: StoredMarketPriceHistory = {
-        condition: "NEAR_MINT",
-        period: "90d",
+        condition: tier,
+        period: "all",
         currency: currencyFromRawCard(row.raw_json),
         fetchedAt: refreshedAt,
-        series: groupSeries(response.data),
+        series: groupSeries(response.data, tier),
       };
-      await database.execute({
-        sql: `
+      await database.execute(
+        tier === "NEAR_MINT"
+          ? {
+              sql: `
           UPDATE poketrace_cards
           SET market_price_history = ?, market_price_history_fetched_at = ?
           WHERE id = ?
         `,
-        args: [JSON.stringify(history), refreshedAt, cardId],
-      });
+              args: [JSON.stringify(history), refreshedAt, cardId],
+            }
+          : {
+              sql: `
+          INSERT INTO poketrace_graded_price_history (card_id, tier, payload_json, fetched_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(card_id, tier) DO UPDATE SET
+            payload_json = excluded.payload_json, fetched_at = excluded.fetched_at
+        `,
+              args: [cardId, tier, JSON.stringify(history), refreshedAt],
+            },
+      );
       return { cardId, ...history, stale: false };
     } catch (error) {
       if (cached) return { cardId, ...cached, stale: true };
@@ -230,13 +292,13 @@ export async function loadMarketPriceHistory(
   })();
 
   if (!dependencies.fetchHistory && !dependencies.database) {
-    activeHistoryFetches.set(cardId, refresh);
+    activeHistoryFetches.set(cacheKey, refresh);
   }
   try {
     return await refresh;
   } finally {
-    if (activeHistoryFetches.get(cardId) === refresh) {
-      activeHistoryFetches.delete(cardId);
+    if (activeHistoryFetches.get(cacheKey) === refresh) {
+      activeHistoryFetches.delete(cacheKey);
     }
   }
 }

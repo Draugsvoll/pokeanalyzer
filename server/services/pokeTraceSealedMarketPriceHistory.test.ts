@@ -73,6 +73,7 @@ function apiHistory() {
 async function saveCachedHistory(
   database: Awaited<ReturnType<typeof createDatabase>>,
   fetchedAt: string,
+  period: "90d" | "all" = "all",
 ) {
   await database.execute({
     sql: `
@@ -83,7 +84,7 @@ async function saveCachedHistory(
     args: [
       JSON.stringify({
         condition: "UNOPENED",
-        period: "90d",
+        period,
         currency: "USD",
         fetchedAt,
         series: cachedSeries,
@@ -114,6 +115,7 @@ test("sealed graph history stores the unopened API response", async () => {
 
     assert.equal(requests, 1);
     assert.equal(history?.condition, "UNOPENED");
+    assert.equal(history?.period, "all");
     assert.equal(history?.stale, false);
     assert.equal(history?.fetchedAt, "2026-10-05T12:00:00.000Z");
     assert.equal(history?.series.tcgplayer?.[0].avg, 155);
@@ -132,6 +134,10 @@ test("sealed graph history stores the unopened API response", async () => {
       "2026-10-05T12:00:00.000Z",
     );
     assert.match(String(saved.rows[0].market_price_history), /"UNOPENED"/);
+    assert.equal(
+      JSON.parse(String(saved.rows[0].market_price_history)).period,
+      "all",
+    );
   } finally {
     database.close();
   }
@@ -157,6 +163,72 @@ test("sealed graph history returns a cache younger than six hours", async () => 
     assert.equal(requests, 0);
     assert.equal(history?.stale, false);
     assert.equal(history?.series.tcgplayer?.[0].avg, 150);
+  } finally {
+    database.close();
+  }
+});
+
+test("sealed graph history refreshes a fresh legacy 90-day cache and retains older returned history", async () => {
+  const database = await createDatabase();
+  await saveCachedHistory(database, "2026-10-05T06:00:01.000Z", "90d");
+  try {
+    const history = await loadPokeTraceSealedMarketPriceHistory(productId, {
+      apiKey: "test-key",
+      database,
+      ready: Promise.resolve(),
+      now: () => now,
+      fetchHistory: async () => {
+        const response = apiHistory();
+        response.data.unshift({
+          ...response.data[0],
+          date: "2025-10-05",
+          avg: 100,
+        });
+        return response;
+      },
+    });
+    assert.equal(history?.period, "all");
+    assert.equal(history?.stale, false);
+    assert.equal(history?.series.tcgplayer?.[0].date, "2025-10-05");
+    const row = await database.execute(
+      "SELECT market_price_history FROM poketrace_sealed_products",
+    );
+    assert.equal(
+      JSON.parse(String(row.rows[0].market_price_history)).period,
+      "all",
+    );
+  } finally {
+    database.close();
+  }
+});
+
+test("sealed graph history serves a fresh legacy cache as stale if its all-time refresh fails", async () => {
+  const database = await createDatabase();
+  await saveCachedHistory(database, "2026-10-05T06:00:01.000Z", "90d");
+  try {
+    const history = await loadPokeTraceSealedMarketPriceHistory(productId, {
+      apiKey: "test-key",
+      database,
+      ready: Promise.resolve(),
+      now: () => now,
+      fetchHistory: async () => {
+        throw new Error("upstream unavailable");
+      },
+    });
+    assert.equal(history?.period, "90d");
+    assert.equal(history?.stale, true);
+    assert.equal(history?.series.tcgplayer?.[0].avg, 150);
+    const row = await database.execute(
+      "SELECT market_price_history, market_price_history_fetched_at FROM poketrace_sealed_products",
+    );
+    assert.equal(
+      JSON.parse(String(row.rows[0].market_price_history)).period,
+      "90d",
+    );
+    assert.equal(
+      row.rows[0].market_price_history_fetched_at,
+      "2026-10-05T06:00:01.000Z",
+    );
   } finally {
     database.close();
   }

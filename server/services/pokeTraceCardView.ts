@@ -1,5 +1,6 @@
 import { isTcgSnapshot } from "../../shared/tcgExplorer.js";
 import type { PokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
+import { isGradedHistoryTier } from "../../shared/pokeTraceHistoryTiers.js";
 import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketComparisons.js";
 
 type JsonRecord = Record<string, unknown>;
@@ -55,6 +56,9 @@ export function toPokemonCard(
       currency: text(raw.currency) ?? "USD",
       marketplaceUrls: urls ?? {},
       prices,
+      ...(Array.isArray(raw.gradedOptions) && {
+        gradedOptions: raw.gradedOptions.filter(isGradedHistoryTier),
+      }),
       variant: text(raw.variant),
       variants,
       lastUpdated: updatedAt,

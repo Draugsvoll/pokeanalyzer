@@ -43,6 +43,7 @@ test("PokeTrace deployment migrations are complete and idempotent", async () => 
         "poketrace_cards",
         "poketrace_catalog_payloads",
         "poketrace_filter_options",
+        "poketrace_graded_price_history",
         "poketrace_import_progress",
         "poketrace_job_locks",
         "poketrace_market_categories",

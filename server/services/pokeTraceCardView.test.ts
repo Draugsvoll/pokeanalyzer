@@ -2,6 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { toPokemonCard } from "./pokeTraceCardView.js";
 
+test("preserves advertised graded history options and filters invalid tiers", () => {
+  const card = toPokemonCard({
+    id: "card-1",
+    name: "Pikachu",
+    gradedOptions: ["PSA_10", "BGS_9_5", "FAKE_10", "PSA_11", null],
+  });
+  assert.deepEqual(card.pokeTrace.gradedOptions, ["PSA_10", "BGS_9_5"]);
+  assert.equal(
+    toPokemonCard({ id: "card-2", name: "Pikachu" }).pokeTrace.gradedOptions,
+    undefined,
+  );
+});
+
 test("legacy eBay results are exposed separately from AI responses", () => {
   const ebay = {
     timestamp: "2026-10-20",

@@ -131,6 +131,7 @@ function SealedMarketplacePrice({
   url?: string;
 }) {
   const sourceClass = label === "Ebay" ? "ebay" : "tcgplayer";
+  const linkLabel = label === "Ebay" ? "View on Ebay" : "View on TCG";
   return (
     <article className="poketrace-market__marketplace default-container-inner">
       <div className="poketrace-market__source-heading">
@@ -164,13 +165,13 @@ function SealedMarketplacePrice({
                 </div>
                 {url && (
                   <a
-                    aria-label={`Buy on ${label}`}
+                    aria-label={linkLabel}
                     className={`poketrace-market__market-link poketrace-market__market-link--${sourceClass}`}
                     href={url}
                     rel="noreferrer"
                     target="_blank"
                   >
-                    Buy <ExternalLink aria-hidden="true" />
+                    {linkLabel} <ExternalLink aria-hidden="true" />
                   </a>
                 )}
               </div>
@@ -218,11 +219,17 @@ function SealedPriceHistory({
   loading: boolean;
 }) {
   if (loading) {
-    return <MarketPriceHistoryLoading conditionLabel="Unopened" />;
+    return (
+      <MarketPriceHistoryLoading
+        conditionLabel="Unopened"
+        conditionControl={false}
+      />
+    );
   }
   return (
     <MarketPriceHistoryChart
       conditionLabel="Unopened"
+      conditionControl={false}
       emptyDescription="Historical prices are not available for this sealed product yet."
       history={history ?? { currency, series: {}, stale: false }}
     />

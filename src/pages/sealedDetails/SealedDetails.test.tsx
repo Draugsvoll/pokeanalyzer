@@ -10,7 +10,7 @@ import type {
   PokeTraceSealedDetails,
   PokeTraceSealedMarketHistory,
 } from "../../../shared/pokeTraceSealed";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   fetchSealedMarketPriceHistory,
   fetchSealedProduct,
@@ -136,15 +136,18 @@ test("late product and price-history responses cannot replace the next product",
 });
 
 beforeEach(() => {
+  vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
   vi.mocked(fetchSealedMarketPriceHistory).mockReset();
   vi.mocked(fetchSealedProduct).mockReset();
 });
+
+afterEach(() => vi.useRealTimers());
 
 test("renders stored sealed details with live graph data", async () => {
   vi.mocked(fetchSealedMarketPriceHistory).mockResolvedValue({
     productId,
     condition: "UNOPENED",
-    period: "90d",
+    period: "all",
     currency: "USD",
     fetchedAt: "2026-10-05T12:00:00.000Z",
     stale: false,
@@ -265,7 +268,7 @@ test("renders stored sealed details with live graph data", async () => {
     );
   });
   expect(screen.getAllByText("Unopened")).toHaveLength(2);
-  expect(screen.getByText("Unopened · 90 days")).toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "3M" })).toBeChecked();
   expect(screen.getByText("$150.00")).toBeInTheDocument();
   expect(
     screen.getByLabelText(
@@ -281,7 +284,7 @@ test("renders stored sealed details with live graph data", async () => {
   expect(screen.getByText("$142.00")).toBeInTheDocument();
   expect(screen.getByText("8+")).toBeInTheDocument();
   expect(screen.getByText("12")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /tcgplayer/i })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "View on TCG" })).toHaveAttribute(
     "href",
     "https://www.tcgplayer.com/product/123",
   );

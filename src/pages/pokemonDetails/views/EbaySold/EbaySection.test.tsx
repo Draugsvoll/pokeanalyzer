@@ -437,7 +437,7 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
   expect(screen.getByText("Available on Ebay")).toBeVisible();
   expect(screen.queryByText("10 Market credits")).not.toBeInTheDocument();
   const pendingAction = screen.getByRole("button", {
-    name: "Searching Ebay...",
+    name: "Loading listings and sales...",
   });
   expect(pendingAction).toBeDisabled();
   expect(pendingAction).toHaveAttribute("aria-busy", "true");

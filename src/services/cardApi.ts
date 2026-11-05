@@ -1,4 +1,8 @@
 import type { PokemonCard } from "../types/pokemon";
+import {
+  isMarketHistoryTier,
+  type MarketHistoryTier,
+} from "../../shared/pokeTraceHistoryTiers";
 
 import type {
   PokeTraceMarketHistory,
@@ -83,8 +87,8 @@ function parseMarketPriceHistoryResponse(
   if (
     !isRecord(value) ||
     typeof value.cardId !== "string" ||
-    value.condition !== "NEAR_MINT" ||
-    value.period !== "90d" ||
+    !isMarketHistoryTier(value.condition) ||
+    (value.period !== "90d" && value.period !== "all") ||
     typeof value.currency !== "string" ||
     typeof value.fetchedAt !== "string" ||
     typeof value.stale !== "boolean" ||
@@ -131,8 +135,8 @@ function parseMarketPriceHistoryResponse(
 
   return {
     cardId: value.cardId,
-    condition: "NEAR_MINT",
-    period: "90d",
+    condition: value.condition,
+    period: value.period,
     currency: value.currency,
     fetchedAt: value.fetchedAt,
     stale: value.stale,
@@ -202,15 +206,22 @@ export async function fetchCardPriceHistory(
 export async function fetchMarketPriceHistory(
   cardId: string,
   signal?: AbortSignal,
+  tier: MarketHistoryTier = "NEAR_MINT",
 ) {
+  const query = tier === "NEAR_MINT" ? "" : `?tier=${encodeURIComponent(tier)}`;
   const value = await cardRequest(
-    `${API_URL}/api/cards/${encodeURIComponent(cardId)}/market-price-history`,
+    `${API_URL}/api/cards/${encodeURIComponent(cardId)}/market-price-history${query}`,
     signal,
   );
   const history = parseMarketPriceHistoryResponse(value);
   if (history.cardId !== cardId) {
     throw new Error(
       "Marketplace price-history response belongs to another card",
+    );
+  }
+  if (history.condition !== tier) {
+    throw new Error(
+      "Marketplace price-history response belongs to another tier",
     );
   }
   return history;

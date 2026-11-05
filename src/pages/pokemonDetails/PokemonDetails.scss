@@ -119,6 +119,8 @@
     gap: 0.75rem;
     justify-content: flex-start;
     margin-bottom: 0.75rem;
+    background: var(--bg2);
+    flex-direction: column;
   }
 
   /* Image + info row; shell stays column so search can sit under both */
