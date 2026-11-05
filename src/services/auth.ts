@@ -13,6 +13,38 @@ import { auth, db } from "../firebase";
 import { initializeFreeSubscription } from "../subscriptions/subscriptionApi";
 import { initializeEbaySignupCredits } from "../ebay/ebayCreditsApi";
 import { logClientError } from "../utils/logClientError";
+import { getUserProfileSessionKey } from "../utils/cache";
+
+export async function deleteAccount(user: Pick<User, "uid" | "getIdToken">) {
+  if (auth.currentUser?.uid !== user.uid) {
+    throw new Error("The authenticated account changed; please try again.");
+  }
+  const token = await user.getIdToken();
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/account/me`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      error.message || "We couldn't delete your account. Please try again.",
+    );
+  }
+
+  try {
+    if (auth.currentUser?.uid === user.uid) await signOut(auth);
+  } catch (error) {
+    logClientError("Failed to sign out the deleted account locally", error);
+  }
+  try {
+    sessionStorage.removeItem(getUserProfileSessionKey(user.uid));
+  } catch (error) {
+    logClientError(
+      "Failed to clear the deleted account's local session",
+      error,
+    );
+  }
+}
 
 async function initializeSignupCredits(user: User) {
   try {

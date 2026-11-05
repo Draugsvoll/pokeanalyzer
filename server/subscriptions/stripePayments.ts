@@ -59,6 +59,26 @@ function getStripe() {
   return new Stripe(secretKey);
 }
 
+export async function hasUncancelledStripeSubscription(
+  customer: string,
+  subscriptions = getStripe().subscriptions,
+) {
+  for await (const subscription of subscriptions.list({
+    customer,
+    status: "all",
+    limit: 100,
+  })) {
+    if (
+      subscription.status !== "canceled" &&
+      subscription.status !== "incomplete_expired" &&
+      !subscription.cancel_at_period_end &&
+      !subscription.cancel_at
+    )
+      return true;
+  }
+  return false;
+}
+
 function getRequiredEnv(name: string) {
   const value = process.env[name]?.trim();
   if (!value)

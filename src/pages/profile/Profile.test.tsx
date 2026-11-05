@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
@@ -20,6 +26,13 @@ const mocks = vi.hoisted(() => ({
   subscription: null as UserSubscription | null,
   updatingSubscription: false,
   unlimitedEbay: false,
+  deleteAccount: vi.fn(),
+  showNotification: vi.fn(),
+}));
+
+vi.mock("../../services/auth", () => ({ deleteAccount: mocks.deleteAccount }));
+vi.mock("../../context/notificationContextValue", () => ({
+  useNotification: () => ({ showNotification: mocks.showNotification }),
 }));
 
 vi.mock("../../firebase", () => ({ db: {} }));
@@ -129,6 +142,120 @@ beforeEach(() => {
   mocks.subscription = subscription();
   mocks.updatingSubscription = false;
   mocks.unlimitedEbay = false;
+  mocks.deleteAccount.mockReset();
+  mocks.showNotification.mockReset();
+});
+
+test("deletion requires confirmation and can be canceled without a request", async () => {
+  renderProfile();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Delete account" }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "Delete your account?" });
+  expect(mocks.deleteAccount).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(mocks.deleteAccount).not.toHaveBeenCalled();
+});
+
+test("uncancelled paid memberships see the cancellation message on the first click", async () => {
+  mocks.subscription = subscription({ planId: "pro", planName: "Pro" });
+  renderProfile();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Delete account" }),
+  );
+  const dialog = screen.getByRole("dialog");
+  expect(dialog).toHaveTextContent(
+    "Cancel your subscription before deleting your account.",
+  );
+  expect(
+    within(dialog).queryByRole("button", { name: "Delete account" }),
+  ).not.toBeInTheDocument();
+  expect(mocks.deleteAccount).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test.each([
+  { planId: "pro" as const, cancelAtPeriodEnd: true },
+  { planId: "pro" as const, status: "canceled" as const },
+  { planId: "pro" as const, status: "expired" as const },
+])(
+  "already-cancelled memberships still receive deletion confirmation (%j)",
+  async (membership) => {
+    mocks.subscription = subscription(membership);
+    renderProfile();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Delete account" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("You will permanently lose access");
+    expect(
+      within(dialog).getByRole("button", { name: "Delete account" }),
+    ).toBeEnabled();
+    expect(mocks.deleteAccount).not.toHaveBeenCalled();
+  },
+);
+
+test("deletion shows loading, prevents duplicate requests, and reports success", async () => {
+  let finish!: () => void;
+  mocks.deleteAccount.mockReturnValue(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  renderProfile();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Delete account" }),
+  );
+  const dialog = screen.getByRole("dialog");
+  const confirm = within(dialog).getByRole("button", {
+    name: "Delete account",
+  });
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  expect(confirm).toHaveTextContent("Deleting account...");
+  expect(confirm).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(dialog).toBeInTheDocument();
+  expect(mocks.deleteAccount).toHaveBeenCalledExactlyOnceWith(mocks.authUser);
+  finish();
+  await waitFor(() =>
+    expect(mocks.showNotification).toHaveBeenCalledWith(
+      "Your account has been deleted.",
+      "success",
+    ),
+  );
+});
+
+test("deletion errors preserve the account and allow another attempt", async () => {
+  mocks.deleteAccount.mockRejectedValueOnce(
+    new Error("Cancel your subscription before deleting your account."),
+  );
+  renderProfile();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Delete account" }),
+  );
+  const dialog = screen.getByRole("dialog");
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Delete account" }),
+  );
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+    "Cancel your subscription",
+  );
+  expect(screen.getByRole("heading", { name: "Collector" })).toBeVisible();
+  expect(mocks.showNotification).not.toHaveBeenCalled();
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Delete account" }),
+  );
+  await waitFor(() =>
+    expect(mocks.showNotification).toHaveBeenCalledWith(
+      "Your account has been deleted.",
+      "success",
+    ),
+  );
+  expect(mocks.deleteAccount).toHaveBeenCalledTimes(2);
 });
 
 test("keeps the current plan disabled and starts checkout for an upgrade", async () => {
@@ -151,7 +278,9 @@ test("shows no included credits or credit renewal date for Free", async () => {
   });
   renderProfile();
 
-  expect(await screen.findByText("No monthly credits included.")).toBeVisible();
+  expect(
+    await screen.findByText("See plans below for more credits and features."),
+  ).toBeVisible();
   expect(
     screen.getByText(
       "You can browse cards, explore prices, and manage a small collection.",
@@ -201,7 +330,10 @@ test("uses the billing portal when an active subscriber changes plans", async ()
     await screen.findByRole("button", { name: "Current plan" }),
   ).toBeDisabled();
   expect(
-    screen.getByText("20 AI credits every month.", { selector: "p" }),
+    screen.getByText(
+      "To cancel your membership, switch to the Free plan below.",
+      { selector: "p" },
+    ),
   ).toBeVisible();
   expect(
     screen.queryByText(
@@ -245,7 +377,7 @@ test("disables a scheduled downgrade and shows its effective date", async () => 
 test("shows unlimited eBay searches without a numeric allowance for Pro", async () => {
   mocks.unlimitedEbay = true;
   renderProfile();
-  const balance = await screen.findByLabelText("Unlimited eBay & TCGplayer searches");
-  expect(balance).toHaveTextContent("Included with Pro");
+  const balance = await screen.findByLabelText("Unlimited Market credits");
+  expect(balance).toHaveTextContent("Unlimited monthly");
   expect(balance).not.toHaveTextContent("renewed monthly");
 });

@@ -165,7 +165,7 @@ export const Header: React.FC = () => {
                 to="/profile"
                 className="header__credits"
                 title="View AI and Market credits"
-                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited eBay & TCGplayer searches" : ebayCredits ? `${ebayCredits.creditsRemaining} Market credits remaining` : "Market credit balance unavailable"}. View credits`}
+                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited Market credits" : ebayCredits ? `${ebayCredits.creditsRemaining} Market credits remaining` : "Market credit balance unavailable"}. View credits`}
               >
                 <span className="header__credits-balance">
                   <strong>{creditsRemaining}</strong> AI{" "}
@@ -175,18 +175,19 @@ export const Header: React.FC = () => {
                   className="header__credits-separator"
                   aria-hidden="true"
                 />
-                <span className="header__credits-balance">
+                <span
+                  className={`header__credits-balance${ebayCredits?.unlimited ? " header__credits-balance--unlimited" : ""}`}
+                >
                   <strong>
                     {ebayCredits?.unlimited
-                      ? "Unlimited"
+                      ? "∞"
                       : (ebayCredits?.creditsRemaining ?? "—")}
                   </strong>{" "}
                   Market{" "}
-                  {ebayCredits?.unlimited
-                    ? "searches"
-                    : ebayCredits?.creditsRemaining === 1
-                      ? "credit"
-                      : "credits"}
+                  {!ebayCredits?.unlimited &&
+                  ebayCredits?.creditsRemaining === 1
+                    ? "credit"
+                    : "credits"}
                 </span>
               </Link>
               <AccountDropdown

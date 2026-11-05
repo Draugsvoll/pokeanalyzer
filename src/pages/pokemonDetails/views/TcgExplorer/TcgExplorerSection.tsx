@@ -238,13 +238,7 @@ function TcgExplorerForAccount({
           color="orange"
           icon={CircleDollarSign}
           label="Available on TCG"
-          actionLabel={
-            noCredits
-              ? "Add credits"
-              : credits?.unlimited
-                ? "Search TCGplayer"
-                : "1 Market credit"
-          }
+          actionLabel={noCredits ? "Add credits" : "1 Market credit"}
           actionLoading={loading && !headerError}
           actionLoadingLabel="Loading listings and sales..."
           actionLoadingMessage="Loading listings and sales..."

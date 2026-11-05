@@ -272,6 +272,18 @@
     font-size: inherit;
     font-weight: 600;
   }
+
+  &--unlimited {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.3rem;
+
+    strong {
+      font-size: 1.5em;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .header__credits-separator {

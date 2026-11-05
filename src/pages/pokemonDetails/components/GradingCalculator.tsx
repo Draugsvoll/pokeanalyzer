@@ -132,7 +132,9 @@ export function GradingCalculator({
       let changed = false;
       const next = { ...current };
       for (const grade of GRADES) {
-        if (current[grade].expectedPrice !== gradePriceSeed(previousPrices, grade)) {
+        if (
+          current[grade].expectedPrice !== gradePriceSeed(previousPrices, grade)
+        ) {
           continue;
         }
         const nextValue = gradePriceSeed(prices, grade);
@@ -441,7 +443,7 @@ export function GradingCalculator({
             </span>
             <span>
               {allGradePricesEmpty ? (
-                "Insert price estimates. Calculations appear below."
+                "Insert price estimates. See calculations below."
               ) : (
                 <>
                   Compared with selling raw
@@ -450,8 +452,8 @@ export function GradingCalculator({
                     <span>
                       The additional gain or loss from grading and selling the
                       card, rather than selling it raw, after all applicable
-                      costs and fees. Expressed in dollars and as a percentage of
-                      raw net proceeds.
+                      costs and fees. Expressed in dollars and as a percentage
+                      of raw net proceeds.
                     </span>
                   </InfoTooltip>
                 </>

@@ -74,9 +74,7 @@ describe("Header", () => {
     const labels = within(navigation)
       .getAllByRole("link")
       .map((link) => link.textContent);
-    expect(labels.indexOf("Grading")).toBeLessThan(
-      labels.indexOf("Portfolio"),
-    );
+    expect(labels.indexOf("Grading")).toBeLessThan(labels.indexOf("Portfolio"));
     expect(
       within(navigation).getByRole("link", { name: "Create account" }),
     ).toBeVisible();
@@ -114,6 +112,6 @@ test("shows unlimited eBay access in the signed-in credit display", () => {
   mocks.unlimitedEbay = true;
   renderHeader();
   expect(
-    screen.getByRole("link", { name: /Unlimited eBay & TCGplayer searches/ }),
+    screen.getByRole("link", { name: /Unlimited Market credits/ }),
   ).toBeVisible();
 });

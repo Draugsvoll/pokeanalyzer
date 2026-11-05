@@ -67,7 +67,7 @@
   &__status-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
+    gap: var(--space-3);
     justify-content: center;
     margin-top: var(--space-5);
   }
@@ -283,7 +283,7 @@
 
     p {
       color: var(--font-color-muted);
-      font-size: var(--font-size-paragraph-sm);
+      font-size: var(--font-size-caption);
     }
   }
 
@@ -384,11 +384,16 @@
       font-size: calc(var(--font-size-h3) + 2px);
       letter-spacing: var(--font-tracking-price);
       line-height: 1;
+
+      &.profile__credit-unlimited {
+        font-size: var(--font-size-price-lg);
+        transform: translateY(3px);
+      }
     }
 
     .profile__credit-allowance {
       color: var(--font-color-muted);
-      font-size: var(--font-size-paragraph-sm);
+      font-size: var(--font-size-caption);
       margin-left: auto;
       white-space: nowrap;
     }
@@ -425,7 +430,6 @@
 
     h2 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-h3);
       letter-spacing: var(--font-tracking-tight);
       margin-top: var(--space-1);
     }
@@ -436,6 +440,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 0.85rem;
+    justify-content: center;
 
     small {
       background: color-mix(in srgb, var(--custom-color-blue) 8%, transparent);
@@ -466,6 +471,51 @@
     display: flex;
     justify-content: flex-end;
     margin-top: 1rem;
+  }
+
+  &__delete-account {
+    display: flex;
+    justify-content: center;
+    margin: var(--space-4);
+  }
+
+  &__delete-overlay {
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    overflow-y: auto;
+    padding: var(--space-4);
+    position: fixed;
+    z-index: 2000;
+  }
+
+  &__delete-dialog {
+    .app-btn--secondary {
+      background: var(--surface5);
+
+      &:hover:not(:disabled) {
+        background: var(--surface5);
+      }
+    }
+
+    max-width: 30rem;
+    padding: var(--space-7);
+    width: 100%;
+
+    h2 {
+      font-size: var(--font-size-h3);
+    }
+
+    p {
+      color: var(--font-color-secondary);
+      margin-top: var(--space-3);
+    }
+
+    [role="alert"] {
+      color: var(--custom-color-red);
+    }
   }
 
   @media (max-width: 60rem) {

@@ -28,6 +28,7 @@ import type {
 } from "../../subscriptions/types";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 import {
   PricingBar,
   type PricingBarAction,
@@ -370,11 +371,9 @@ export default function Profile() {
                       : (subscription?.planName ?? "No membership")}
                   </h3>
                   <p>
-                    {subscription
-                      ? membershipCreditsTotal > 0
-                        ? `${membershipCreditsTotal} AI credits every month.`
-                        : "No monthly credits included."
-                      : "No active plan found."}
+                    {subscription?.planId === "free"
+                      ? "See plans below for more credits and features."
+                      : "To cancel your membership, switch to the Free plan below."}
                   </p>
                 </div>
               </div>
@@ -456,9 +455,7 @@ export default function Profile() {
                     loading: loadingSubscription,
                   },
                   {
-                    label: ebayCredits?.unlimited
-                      ? "eBay & TCGplayer searches"
-                      : "Market credits",
+                    label: "Market credits",
                     unlimited: ebayCredits?.unlimited,
                     remaining: ebayCredits?.creditsRemaining,
                     allowance: ebayCredits?.membershipCreditsTotal,
@@ -481,19 +478,23 @@ export default function Profile() {
                         className="profile__credit-value"
                         aria-label={
                           unlimited
-                            ? "Unlimited eBay & TCGplayer searches"
+                            ? "Unlimited Market credits"
                             : remaining == null || allowance == null
                               ? `${label}: balance unavailable`
                               : `${label}: ${remaining} remaining, ${allowance} per month`
                         }
                       >
-                        <strong>
-                          {unlimited ? "Unlimited" : (remaining ?? "—")}
+                        <strong
+                          className={
+                            unlimited ? "profile__credit-unlimited" : undefined
+                          }
+                        >
+                          {unlimited ? "∞" : (remaining ?? "—")}
                         </strong>
                         <span className="profile__credit-label">{label}</span>
                         <span className="profile__credit-allowance">
                           {unlimited
-                            ? "Included with Pro"
+                            ? "Unlimited monthly"
                             : `${allowance ?? "—"} renewed monthly`}
                         </span>
                       </span>
@@ -520,7 +521,7 @@ export default function Profile() {
 
             <header className="profile__pricing-heading">
               <span className="profile__eyebrow">Plans and credits</span>
-              <h2>Choose your membership</h2>
+              <h2>Manage your membership</h2>
             </header>
 
             <PricingBar
@@ -546,6 +547,17 @@ export default function Profile() {
               )}
           </div>
         </section>
+        <DeleteAccountSection
+          user={authUser}
+          disabled={loadingSubscription || updatingSubscription}
+          requiresCancellation={Boolean(
+            subscription &&
+            subscription.planId !== "free" &&
+            subscription.status !== "canceled" &&
+            subscription.status !== "expired" &&
+            !subscription.cancelAtPeriodEnd,
+          )}
+        />
       </div>
     </div>
   );

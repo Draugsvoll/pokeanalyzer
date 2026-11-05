@@ -6,7 +6,7 @@ test.each([7, 8, 9, 10])(
   "shows the estimate prompt in the comparison label only while all PSA inputs are empty (PSA %s)",
   (grade) => {
     const { container } = render(<GradingCalculator />);
-    const prompt = "Insert price estimates. Calculations appear below.";
+    const prompt = "Insert price estimates. See calculations below.";
     const comparison = container.querySelector(
       ".grading-calculator__compare-gain",
     )!;

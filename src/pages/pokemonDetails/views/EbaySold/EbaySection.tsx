@@ -252,13 +252,7 @@ function EbaySectionForAccount({
           color="teal"
           icon={Gavel}
           label="Available on Ebay"
-          actionLabel={
-            noCredits
-              ? "Add credits"
-              : credits?.unlimited
-                ? "Search Ebay"
-                : "1 Market credit"
-          }
+          actionLabel={noCredits ? "Add credits" : "1 Market credit"}
           actionLoading={loading && !headerError}
           actionLoadingLabel="Loading listings and sales..."
           actionLoadingMessage="Loading listings and sales..."

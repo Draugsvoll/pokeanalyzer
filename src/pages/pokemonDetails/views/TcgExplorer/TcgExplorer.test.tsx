@@ -167,13 +167,15 @@ test("unlimited users can search without a numeric balance", async () => {
   mocks.remaining = 0;
   mocks.unlimited = true;
   render(view());
-  fireEvent.click(screen.getByRole("button", { name: "Search TCGplayer" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
   await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
 });
 test("unverified accounts cannot start a search", () => {
   mocks.user = { uid: "user", emailVerified: false };
   render(view());
-  expect(screen.getByRole("button", { name: "1 Market credit" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "1 Market credit" }),
+  ).toBeDisabled();
   expect(mocks.fetch).not.toHaveBeenCalled();
 });
 test("changing cards cancels old work and prevents stale results", async () => {
@@ -382,7 +384,9 @@ test("a failed second side preserves results and restores the retry header", asy
   render(view());
   fireEvent.click(screen.getByRole("button", { name: /1 Market credit/ }));
   await screen.findByRole("article");
-  expect(screen.getByRole("button", { name: /1 Market credit/ })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /1 Market credit/ }),
+  ).toBeInTheDocument();
   expect(screen.getByText(/couldn't load TCG listings/)).toBeInTheDocument();
   expect(screen.getByRole("radio", { name: "Listed" })).toBeDisabled();
 });
@@ -480,7 +484,9 @@ test("keeps item expansion attached to the original row after sorting and filter
     );
     const rows = () => Array.from(container.querySelectorAll("article"));
     const expandedRow = rows()[1];
-    const results = container.querySelector<HTMLDivElement>(".marketplace-listings__results")!;
+    const results = container.querySelector<HTMLDivElement>(
+      ".marketplace-listings__results",
+    )!;
     results.scrollTop = 300;
     fireEvent.click(
       within(expandedRow).getByRole("button", { name: "Expand listing title" }),
