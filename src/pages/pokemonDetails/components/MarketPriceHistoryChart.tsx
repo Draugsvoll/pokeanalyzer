@@ -64,12 +64,13 @@ function formatPrice(value: number, currency: string) {
 }
 
 function formatAxisPrice(value: number, currency: string, step: number) {
-  const fractionDigits =
-    step < 1 ? Math.max(2, Math.min(20, -Math.floor(Math.log10(step)))) : 0;
+  const fractionDigits = Number.isInteger(step)
+    ? 0
+    : Math.max(2, Math.min(20, 1 - Math.floor(Math.log10(step))));
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    minimumFractionDigits: fractionDigits,
+    minimumFractionDigits: Math.min(2, fractionDigits),
     maximumFractionDigits: fractionDigits,
   }).format(value);
 }
@@ -92,7 +93,7 @@ function priceAxis(min: number, max: number) {
   const roughStep = (max - min) / intervals || (max < 1 ? 0.01 : 1);
   const magnitude = 10 ** Math.floor(Math.log10(roughStep));
   let step = magnitude;
-  for (const factor of [1, 2, 5, 10, 20]) {
+  for (const factor of [1, 1.5, 2, 5, 10, 20]) {
     step = factor * magnitude;
     if (Math.floor(min / step) * step + intervals * step >= max) break;
   }

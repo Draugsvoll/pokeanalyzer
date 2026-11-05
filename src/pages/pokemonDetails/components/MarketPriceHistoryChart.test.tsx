@@ -229,6 +229,30 @@ test.each([
   },
 );
 
+test.each([
+  [3, 45, ["$60", "$45", "$30", "$15", "$0"]],
+  [0.3, 4.5, ["$6.00", "$4.50", "$3.00", "$1.50", "$0.00"]],
+  [0.03, 0.45, ["$0.60", "$0.45", "$0.30", "$0.15", "$0.00"]],
+] as const)(
+  "allows tighter 1.5-based intervals for prices %s–%s",
+  (low, high, expectedLabels) => {
+    render(
+      <MarketPriceHistoryChart
+        history={history({
+          tcgplayer: [point(daysAgo(0), low)],
+          ebay: [point(daysAgo(0), high)],
+        })}
+      />,
+    );
+    const labels = [
+      ...document.querySelectorAll(
+        ".poketrace-market__history-axis-label:not(.poketrace-market__history-date-label)",
+      ),
+    ].map((label) => label.textContent);
+    expect(labels).toEqual(expectedLabels);
+  },
+);
+
 test("does not add price-range padding before rounding the axis", () => {
   render(
     <MarketPriceHistoryChart
