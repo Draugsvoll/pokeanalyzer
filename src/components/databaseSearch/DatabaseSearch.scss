@@ -22,13 +22,15 @@
    * Slightly lifted surface so it doesn’t melt into card --bg2.
    */
   &--embedded {
-    --search-grid-gap: 0px;
-
     margin: 0;
     max-width: none;
     min-height: 0;
     padding: 0;
     text-align: left;
+
+    .search-results-toolbar {
+      margin-top: 0.5rem;
+    }
 
     .database-search-filter-toolbar {
       --dropdown-trigger-bg: var(--search-surface);

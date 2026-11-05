@@ -516,6 +516,7 @@ function PokemonDetailsForCard() {
                   <PokeTraceMarketPrices
                     cardId=""
                     data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
+                    pricingHref={authUser ? "/profile" : "#membership-pricing"}
                     variantLoading
                   />
                 </div>
@@ -684,6 +685,16 @@ function PokemonDetailsForCard() {
             dataPending={refreshingCard}
             dataRequestFailed={cardLoadFailed}
             gradingCalculatorOpen={gradingCalculatorOpen}
+            pricingHref={authUser ? "/profile" : "#membership-pricing"}
+            hasMarketHistoryAccess={
+              isDemo ||
+              (!!authUser &&
+                !loadingSubscription &&
+                (subscription?.planId === "basic" ||
+                  subscription?.planId === "pro") &&
+                (subscription.status === "active" ||
+                  subscription.status === "trialing"))
+            }
             onToggleGradingCalculator={() =>
               setGradingCalculatorOpen((open) => !open)
             }
@@ -994,10 +1005,11 @@ function PokemonDetailsForCard() {
         <SetTopCardsGrid setName={card.set?.name} />
       </div>
 
-      {isDemo && (
+      {(isDemo || (!authLoading && !authUser)) && (
         <section
           aria-labelledby="demo-pricing-title"
           className="card-view__demo-pricing"
+          id="membership-pricing"
         >
           <header className="card-view__demo-pricing-heading">
             <span>Pricing</span>

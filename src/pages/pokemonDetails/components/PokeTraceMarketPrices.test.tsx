@@ -27,17 +27,32 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-test("renders both demo marketplace changes from embedded snapshots without fetching", () => {
+test("uses normal prices and live history even when embedded demo snapshots are present", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue({
+    cardId,
+    days: 9,
+    snapshots: [],
+  });
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
   const { container } = render(
     <PokeTraceMarketPrices
-      cardId="demo"
+      hasMarketHistoryAccess
+      cardId={cardId}
       data={demoCard.pokeTrace as PokemonCard["pokeTrace"]}
     />,
   );
-  const changes = container.querySelectorAll(
-    ".poketrace-market__price-summary .app-price-change",
+  await waitFor(() =>
+    expect(fetchMarketPriceHistory).toHaveBeenCalledWith(
+      cardId,
+      expect.any(AbortSignal),
+      "NEAR_MINT",
+    ),
   );
-  expect(changes).toHaveLength(2);
+  expect(fetchCardPriceHistory).toHaveBeenCalledWith(
+    cardId,
+    9,
+    expect.any(AbortSignal),
+  );
   const headlines = container.querySelectorAll(
     ".poketrace-market__price-summary > strong",
   );
@@ -45,21 +60,12 @@ test("renders both demo marketplace changes from embedded snapshots without fetc
     style: "currency",
     currency: "USD",
   });
-  const prices = demoCard.pokeTrace.prices;
-  expect(headlines).toHaveLength(2);
   expect(headlines[0]).toHaveTextContent(
-    money.format(prices.tcgplayer.NEAR_MINT.avg),
+    money.format(demoCard.pokeTrace.prices.tcgplayer.NEAR_MINT.avg),
   );
   expect(headlines[1]).toHaveTextContent(
-    money.format(prices.ebay.NEAR_MINT.median7d ?? prices.ebay.NEAR_MINT.avg),
+    money.format(demoCard.pokeTrace.prices.ebay.NEAR_MINT.avg),
   );
-  for (const change of changes) {
-    expect(change).not.toHaveClass("app-price-change--unavailable");
-    expect(change.textContent).toContain("%");
-  }
-  expect(changes[1]).toHaveTextContent("7.4%");
-  expect(fetchCardPriceHistory).not.toHaveBeenCalled();
-  expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
 });
 
 const cardId = "019bff77-befa-771d-bab0-f5909f0a78c9";
@@ -124,6 +130,7 @@ test("hides Mint in marketplace tabs without treating it as a grade", async () =
   vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
   render(
     <PokeTraceMarketPrices
+      hasMarketHistoryAccess
       cardId={cardId}
       data={{
         ...liveData,
@@ -177,7 +184,11 @@ test("hides grades with three identical numeric medians without hiding raw price
     },
   };
   const { container } = render(
-    <PokeTraceMarketPrices cardId={cardId} data={data} />,
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={data}
+    />,
   );
   const graded = within(screen.getByRole("region", { name: "Graded" }));
   expect(graded.queryByText("PSA 10")).not.toBeInTheDocument();
@@ -214,7 +225,13 @@ test("omits stale or undated graded options while retaining the two-month bounda
       },
     },
   };
-  render(<PokeTraceMarketPrices cardId={cardId} data={data} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={data}
+    />,
+  );
   await screen.findByRole("img");
   fireEvent.click(
     screen.getByRole("button", { name: "Price history condition or grade" }),
@@ -258,7 +275,13 @@ test("offers qualifying exact grades, fetches on selection, and reuses each tier
       },
     },
   };
-  render(<PokeTraceMarketPrices cardId={cardId} data={data} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={data}
+    />,
+  );
   await screen.findByRole("img", { name: /Ebay Near Mint price history/ });
   expect(fetchMarketPriceHistory).toHaveBeenCalledTimes(1);
 
@@ -355,7 +378,13 @@ test.each(["Lightly Played", "Moderately Played", "Heavily Played", "Damaged"])(
         return result;
       },
     );
-    render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+    render(
+      <PokeTraceMarketPrices
+        hasMarketHistoryAccess
+        cardId={cardId}
+        data={liveData}
+      />,
+    );
     await screen.findByRole("img", { name: /Near Mint/ });
 
     for (const grade of ["PSA 10", "BGS 9", "PSA 10"]) {
@@ -406,7 +435,13 @@ test("loads Near Mint alongside a grade selected before the initial history fini
       return result;
     },
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   const initialSignal = vi.mocked(fetchMarketPriceHistory).mock.calls[0][1]!;
   selectTier("PSA 10");
   await screen.findByRole("img", { name: /TCGPlayer and Ebay and PSA 10/ });
@@ -439,7 +474,13 @@ test("fetches raw conditions without a graded sales threshold and displays both 
       };
     },
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   await screen.findByRole("img");
   selectTier("Lightly Played");
   const chart = await screen.findByRole("img", {
@@ -486,7 +527,13 @@ test("ignores a response from an abandoned grade and allows switching after an e
       return history(tier);
     },
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   await screen.findByRole("img");
   selectTier("PSA 10");
   const psaSignal = vi.mocked(fetchMarketPriceHistory).mock.calls.at(-1)![1]!;
@@ -537,7 +584,13 @@ test.each([
         return history(requested);
       },
     );
-    render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+    render(
+      <PokeTraceMarketPrices
+        hasMarketHistoryAccess
+        cardId={cardId}
+        data={liveData}
+      />,
+    );
     await screen.findByRole("img");
     selectTier(label);
     await waitFor(() =>
@@ -576,7 +629,13 @@ test("retries failed Near Mint comparison data when selecting a grade", async ()
       return result;
     },
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   await screen.findByText("No price history");
   expect(fetchMarketPriceHistory).toHaveBeenCalledTimes(1);
   selectTier("PSA 10");
@@ -597,7 +656,13 @@ test("keeps successful empty history responses cached", async () => {
       ...(tier === "DAMAGED" ? { series: {} } : {}),
     }),
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   await screen.findByRole("img");
   selectTier("Damaged");
   await screen.findByText("No price history");
@@ -633,7 +698,13 @@ test("keeps the same graph and period visible under a spinner until the selected
       return previous;
     },
   );
-  render(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
   const chart = await screen.findByRole("img");
   fireEvent.click(screen.getByRole("radio", { name: "6M" }));
   const line = document.querySelector(".poketrace-market__history-line--ebay")!;
@@ -706,7 +777,11 @@ test("grade overlay is absent on initial page loading, raw-condition switches, a
     },
   );
   const { container, rerender } = render(
-    <PokeTraceMarketPrices cardId={cardId} data={liveData} />,
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
   );
   expect(
     container.querySelector(".poketrace-market__history--grade-loading"),
@@ -727,7 +802,12 @@ test("grade overlay is absent on initial page loading, raw-condition switches, a
     container.querySelector(".poketrace-market__history--grade-loading"),
   ).not.toBeNull();
   rerender(
-    <PokeTraceMarketPrices cardId={cardId} data={liveData} dataPending />,
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+      dataPending
+    />,
   );
   expect(
     container.querySelector(".poketrace-market__history--grade-loading"),
@@ -760,7 +840,11 @@ test("retains the most recently displayed cached tier during another fetch, and 
     },
   );
   const { rerender } = render(
-    <PokeTraceMarketPrices cardId={cardId} data={liveData} />,
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
   );
   await screen.findByRole("img");
   selectTier("PSA 10");
@@ -771,7 +855,13 @@ test("retains the most recently displayed cached tier during another fetch, and 
     "aria-label",
     expect.stringContaining("Near Mint"),
   );
-  rerender(<PokeTraceMarketPrices cardId={nextId} data={liveData} />);
+  rerender(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={nextId}
+      data={liveData}
+    />,
+  );
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   await act(async () => {
     resolveAbandoned(history("BGS_9"));
@@ -787,4 +877,85 @@ test("retains the most recently displayed cached tier during another fetch, and 
   expect(
     screen.queryByRole("status", { name: "Loading marketplace price history" }),
   ).not.toBeInTheDocument();
+});
+
+test("renders mock previews with disabled controls and overlays limited to their data areas", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue({
+    cardId,
+    days: 9,
+    snapshots: [],
+  });
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
+  const onToggleGradingCalculator = vi.fn();
+  render(
+    <PokeTraceMarketPrices
+      cardId={cardId}
+      data={liveData}
+      onToggleGradingCalculator={onToggleGradingCalculator}
+    />,
+  );
+  expect(
+    screen.getAllByText("Available with Basic or Pro membership."),
+  ).toHaveLength(2);
+  expect(
+    screen.getByRole("button", {
+      name: "Price history condition or grade",
+    }),
+  ).toBeDisabled();
+  expect(screen.queryByText("$500.00")).not.toBeInTheDocument();
+  expect(screen.getByText("$320.00")).toBeInTheDocument();
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-body > .poketrace-market__locked-overlay",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    document.querySelector(
+      ".poketrace-market__graded-body > .poketrace-market__locked-overlay",
+    ),
+  ).toBeInTheDocument();
+  for (const radio of document.querySelectorAll(
+    '.poketrace-market__access-content input[type="radio"], .poketrace-market__graded-controls input[type="radio"]',
+  )) {
+    expect(radio).toBeDisabled();
+  }
+  const calculator = screen.getByRole("button", { name: "Grading Calculator" });
+  expect(calculator).toBeEnabled();
+  fireEvent.click(calculator);
+  expect(onToggleGradingCalculator).toHaveBeenCalledTimes(1);
+  expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
+  expect(fetchCardPriceHistory).toHaveBeenCalledTimes(1);
+  expect(
+    document.querySelector(".poketrace-market__history-chart"),
+  ).toBeInTheDocument();
+});
+
+test("locks previously visible data when access is removed", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue({
+    cardId,
+    days: 9,
+    snapshots: [],
+  });
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
+  const { rerender } = render(
+    <PokeTraceMarketPrices
+      cardId={cardId}
+      data={liveData}
+      hasMarketHistoryAccess
+    />,
+  );
+  await waitFor(() => expect(fetchMarketPriceHistory).toHaveBeenCalledTimes(1));
+  vi.mocked(fetchMarketPriceHistory).mockClear();
+  vi.mocked(fetchCardPriceHistory).mockClear();
+  rerender(<PokeTraceMarketPrices cardId={cardId} data={liveData} />);
+  expect(
+    screen.getAllByText("Available with Basic or Pro membership."),
+  ).toHaveLength(2);
+  expect(
+    screen.getByRole("button", {
+      name: "Price history condition or grade",
+    }),
+  ).toBeDisabled();
+  expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
+  expect(fetchCardPriceHistory).not.toHaveBeenCalled();
 });

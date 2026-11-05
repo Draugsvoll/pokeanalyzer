@@ -269,7 +269,9 @@ test("renders stored sealed details with live graph data", async () => {
   });
   expect(screen.getAllByText("Unopened")).toHaveLength(2);
   expect(screen.getByRole("radio", { name: "3M" })).toBeChecked();
-  expect(screen.getByText("$150.00")).toBeInTheDocument();
+  expect(
+    screen.getByText("$150.00", { selector: "strong" }),
+  ).toBeInTheDocument();
   expect(
     screen.getByLabelText(
       "Price increased by 7.1%. 7-day TCGPlayer unopened price change",

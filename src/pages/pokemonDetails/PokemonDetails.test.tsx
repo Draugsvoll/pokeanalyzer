@@ -40,7 +40,7 @@ const subscription = {
   membershipCreditsRemaining: 10,
   membershipCreditsTotal: 10,
   membershipCreditsUsed: 0,
-  planId: "free" as const,
+  planId: "free" as "free" | "basic" | "pro",
   planName: "Free",
   status: "active" as const,
 };
@@ -166,7 +166,10 @@ vi.mock("./components/CardFeatureHeader", async (importOriginal) => {
     CardFeatureHeader: (
       props: Parameters<typeof actual.CardFeatureHeader>[0],
     ) => {
-      if (props.label === "Available on Ebay" || props.label === "Available on TCG")
+      if (
+        props.label === "Available on Ebay" ||
+        props.label === "Available on TCG"
+      )
         return <actual.CardFeatureHeader {...props} />;
       const {
         actionLabel,
@@ -288,6 +291,7 @@ function TestRoutes() {
 }
 
 beforeEach(() => {
+  subscription.planId = "free";
   mocks.authLoading = false;
   mocks.authUser = { uid: "user-1" };
   mocks.creditsRemaining = 10;
@@ -809,8 +813,8 @@ test("keeps navigation details visible while the complete card loads", async () 
     screen.getByRole("status", { name: "Loading Ebay prices" }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("status", { name: "Loading graded prices" }),
-  ).toBeInTheDocument();
+    screen.getAllByText("Available with Basic or Pro membership."),
+  ).toHaveLength(2);
   expect(screen.queryAllByText("No price data")).toHaveLength(0);
   expect(screen.queryByText("No graded prices")).not.toBeInTheDocument();
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
@@ -824,7 +828,9 @@ test("keeps navigation details visible while the complete card loads", async () 
     screen.queryByRole("status", { name: "Loading market data" }),
   ).not.toBeInTheDocument();
   expect(screen.getAllByText("No price data")).toHaveLength(2);
-  expect(screen.getByText("No graded prices")).toBeInTheDocument();
+  expect(
+    screen.getAllByText("Available with Basic or Pro membership."),
+  ).toHaveLength(2);
 });
 
 test("keeps navigation data and offers retry when complete card loading fails", async () => {
@@ -1053,15 +1059,15 @@ test("TCG tab is independent of eBay and analysis and does not automatically sea
   );
   await screen.findByRole("heading", { name: "Pikachu", level: 1 });
   fireEvent.click(screen.getByRole("button", { name: "Available on TCG" }));
-  expect(screen.getByRole("button", { name: "Available on TCG" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  expect(screen.getByRole("region", { name: "Available on TCG" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Available on Ebay" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  expect(
+    screen.getByRole("button", { name: "Available on TCG" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    screen.getByRole("region", { name: "Available on TCG" }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Available on Ebay" }),
+  ).toHaveAttribute("aria-pressed", "false");
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Available on Ebay" }));
   expect(
@@ -1204,4 +1210,128 @@ test("Market credit rejection stays local while AI actions remain available", as
   ).toBeEnabled();
   expect(mocks.refreshEbayCredits).toHaveBeenCalledTimes(1);
   expect(mocks.refreshSubscription).not.toHaveBeenCalled();
+});
+
+test.each(["basic", "pro"] as const)(
+  "allows price history for an active %s member",
+  async (planId) => {
+    subscription.planId = planId;
+    render(
+      <MemoryRouter initialEntries={["/card/card-a"]}>
+        <TestRoutes />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(mocks.fetchMarketPriceHistory).toHaveBeenCalled(),
+    );
+    expect(
+      screen.queryByText("Available with Basic or Pro membership."),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test("renders mock history beneath locked content for a Free member", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await waitFor(() =>
+    expect(
+      screen.getAllByText("Available with Basic or Pro membership."),
+    ).toHaveLength(2),
+  );
+  expect(mocks.fetchMarketPriceHistory).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocks.fetchCardPriceHistory).toHaveBeenCalled());
+});
+
+test("shows membership pricing at the bottom of a regular card when logged out", async () => {
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("heading", { name: "Compare plans" }),
+  ).toBeVisible();
+  for (const link of screen.getAllByRole("link", { name: "View pricing" })) {
+    expect(link).toHaveAttribute("href", "#membership-pricing");
+  }
+  expect(document.getElementById("membership-pricing")).toContainElement(
+    screen.getByRole("heading", { name: "Compare plans" }),
+  );
+  expect(screen.getByRole("button", { name: "Get started" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Choose Basic" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Choose Pro" })).toBeEnabled();
+});
+
+test("does not show membership pricing on a regular card when logged in", async () => {
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "Pikachu", level: 1 });
+  for (const link of screen.getAllByRole("link", { name: "View pricing" })) {
+    expect(link).toHaveAttribute("href", "/profile");
+  }
+  expect(
+    screen.queryByRole("heading", { name: "Compare plans" }),
+  ).not.toBeInTheDocument();
+});
+
+test("keeps logged-out pricing links on the card page while card data loads", async () => {
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  mocks.fetchCardById.mockReturnValue(new Promise<PokemonCard>(() => {}));
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  for (const link of await screen.findAllByRole("link", {
+    name: "View pricing",
+  })) {
+    expect(link).toHaveAttribute("href", "#membership-pricing");
+  }
+});
+
+test("unlocks demo market history and graded prices without login or membership", async () => {
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  const liveId = "019bff9a-8592-77ae-8865-c500279b7630";
+  const demo = buildCard(liveId, "Charizard");
+  demo.pokeTrace!.prices = { ebay: { PSA_10: { avg: 100, saleCount: 20 } } };
+  mocks.fetchCardById.mockResolvedValue(demo);
+  render(
+    <MemoryRouter initialEntries={["/card/demo"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "Compare plans" });
+  expect(
+    screen.queryByText("Available with Basic or Pro membership."),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Price history condition or grade" }),
+  ).toBeEnabled();
+  await waitFor(() =>
+    expect(mocks.fetchMarketPriceHistory).toHaveBeenCalledWith(
+      liveId,
+      expect.any(AbortSignal),
+      "NEAR_MINT",
+    ),
+  );
+  expect(mocks.fetchCardPriceHistory).toHaveBeenCalledWith(
+    liveId,
+    9,
+    expect.any(AbortSignal),
+  );
+  for (const radio of within(
+    screen.getByRole("radiogroup", { name: "Grading company" }),
+  ).getAllByRole("radio")) {
+    expect(radio).toBeEnabled();
+  }
 });

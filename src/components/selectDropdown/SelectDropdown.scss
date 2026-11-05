@@ -113,6 +113,8 @@
   }
 
   &__option {
+    flex-shrink: 0;
+    height: 34px;
     background: transparent;
     border: 0;
     border-radius: calc(var(--dropdown-option-radius) - 0.1rem);
@@ -122,7 +124,6 @@
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--font-tracking-normal);
-    line-height: 1.2;
     padding: 0.52rem 0.6rem;
     text-align: left;
     transition:
@@ -131,7 +132,8 @@
     white-space: nowrap;
 
     &:hover,
-    &:focus-visible {
+    &:focus-visible,
+    &.is-active {
       background: var(--bg-input-strong);
       color: var(--font-color-primary);
       outline: none;
@@ -153,10 +155,5 @@
 
   &--compact &__menu {
     min-width: 100%;
-  }
-
-  &--compact &__option {
-    font-size: var(--font-size-caption);
-    padding: 0.46rem 0.55rem;
   }
 }

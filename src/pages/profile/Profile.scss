@@ -5,8 +5,7 @@
   padding: 2rem 0 0rem;
   width: 100%;
 
-  &--status,
-  &--guest {
+  &--status {
     align-items: center;
     display: flex;
     justify-content: center;
@@ -18,7 +17,6 @@
     display: block;
   }
 
-  &__guest-state,
   &__status-card {
     align-items: center;
     display: flex;
@@ -37,6 +35,38 @@
       line-height: var(--font-leading-relaxed);
       margin-top: var(--space-2);
       max-width: 28rem;
+    }
+  }
+
+  &--guest {
+    max-width: none;
+    padding: 0;
+  }
+
+  &__guest-state {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 18rem;
+    text-align: center;
+
+    h1 {
+      color: var(--font-color-primary);
+      font-size: var(--font-size-h3);
+      letter-spacing: var(--font-tracking-tight);
+      margin: 0;
+    }
+
+    p {
+      color: var(--font-color-muted);
+      font-size: var(--font-size-paragraph);
+      line-height: var(--font-leading-relaxed);
+      margin: var(--space-2) 0 0;
+    }
+
+    .profile__status-actions {
+      gap: var(--space-2);
     }
   }
 

@@ -1,5 +1,11 @@
-import { useEffect, useId, useState } from "react";
-import { Calculator, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import {
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  LockKeyhole,
+} from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
   fetchCardPriceHistory,
@@ -143,7 +149,6 @@ function MarketplaceColumn({
   dataRequestFailed = false,
   prices,
   priceHistory,
-  preferMedian = false,
   source,
   url,
 }: {
@@ -152,7 +157,6 @@ function MarketplaceColumn({
   dataRequestFailed?: boolean;
   prices: MarketplacePrices;
   priceHistory: CardPriceHistoryResponse | null;
-  preferMedian?: boolean;
   source: string;
   url?: string;
 }) {
@@ -177,9 +181,7 @@ function MarketplaceColumn({
   const showLoader = source.toLowerCase() === "ebay" && dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !showLoader;
-  const displayedPrice = preferMedian
-    ? (price.median7d ?? price.avg)
-    : price.avg;
+  const displayedPrice = price.avg;
   const priceChange =
     source.toLowerCase() === "ebay"
       ? resolveEbaySevenDayAverageChange(displayedPrice, price.avg7d)
@@ -188,7 +190,7 @@ function MarketplaceColumn({
           source,
           condition,
           displayedPrice,
-          preferMedian ? "median7d" : "avg",
+          "avg",
         );
   const priceChangeTitle = `${formatPriceChangePeriodLong("7d")} ${sourceLabel(source)} ${conditionLabel(condition)} price change`;
 
@@ -308,6 +310,8 @@ function GradedEbayPrices({
   dataPending = false,
   dataRequestFailed = false,
   entries,
+  locked = false,
+  pricingHref,
   gradingCalculatorOpen = false,
   onToggleGradingCalculator,
 }: {
@@ -315,6 +319,8 @@ function GradedEbayPrices({
   dataPending?: boolean;
   dataRequestFailed?: boolean;
   entries: Array<[string, TierPrice]>;
+  locked?: boolean;
+  pricingHref: string;
   gradingCalculatorOpen?: boolean;
   onToggleGradingCalculator?: () => void;
 }) {
@@ -342,31 +348,45 @@ function GradedEbayPrices({
       aria-labelledby="poketrace-graded-title"
       className="poketrace-market__graded default-container-inner"
     >
-      <header className="poketrace-market__graded-header">
-        <h3 id="poketrace-graded-title">Graded</h3>
-        {graders.length > 0 && (
-          <RadioButtonGroup
-            ariaLabel="Grading company"
-            className="poketrace-market__grader-tabs"
-            onChange={setSelectedGrader}
-            options={graders.map((grader) => ({
-              value: grader,
-              label: (
-                <>
-                  {grader}
-                  <span
-                    className="poketrace-market__grader-count"
-                    title={`${groups.get(grader)?.length ?? 0} graded prices`}
-                  >
-                    {groups.get(grader)?.length ?? 0}
-                  </span>
-                </>
-              ),
-            }))}
-            value={activeGrader}
-          />
-        )}
-      </header>
+      <fieldset className="poketrace-market__graded-controls" disabled={locked}>
+        <header className="poketrace-market__graded-header">
+          <h3 id="poketrace-graded-title">Graded</h3>
+          {graders.length > 0 && (
+            <RadioButtonGroup
+              ariaLabel="Grading company"
+              className="poketrace-market__grader-tabs"
+              onChange={setSelectedGrader}
+              options={(locked
+                ? ([
+                    ["ACE", 3],
+                    ["BGS", 8],
+                    ["CGC", 6],
+                    ["PSA", 10],
+                    ["TAG", 4],
+                  ] as const)
+                : graders.map(
+                    (grader) =>
+                      [grader, groups.get(grader)?.length ?? 0] as const,
+                  )
+              ).map(([grader, count]) => ({
+                value: grader,
+                label: (
+                  <>
+                    {grader}
+                    <span
+                      className="poketrace-market__grader-count"
+                      title={`${count} graded prices`}
+                    >
+                      {count}
+                    </span>
+                  </>
+                ),
+              }))}
+              value={activeGrader}
+            />
+          )}
+        </header>
+      </fieldset>
       {showLoader && (
         <div
           aria-label="Loading graded prices"
@@ -384,25 +404,29 @@ function GradedEbayPrices({
         />
       )}
       {showPrices && (
-        <div
-          className="poketrace-market__graded-grid ui-render-fade"
-          key={activeGrader}
-        >
-          {visibleEntries.map(([grade, price]) => {
-            const label = gradeLabel(grade);
+        <div className="poketrace-market__graded-body">
+          <div
+            className="poketrace-market__graded-grid ui-render-fade"
+            key={activeGrader}
+            aria-hidden={locked || undefined}
+          >
+            {visibleEntries.map(([grade, price]) => {
+              const label = gradeLabel(grade);
 
-            return (
-              <div className="poketrace-market__graded-price" key={grade}>
-                <span>
-                  {label.grader} {label.score}
-                </span>
-                <strong>
-                  {formatPrice(price.median7d ?? price.avg, currency)}
-                </strong>
-                <small>{formatSalesLabel(price)}</small>
-              </div>
-            );
-          })}
+              return (
+                <div className="poketrace-market__graded-price" key={grade}>
+                  <span>
+                    {label.grader} {label.score}
+                  </span>
+                  <strong>
+                    {formatPrice(price.median7d ?? price.avg, currency)}
+                  </strong>
+                  <small>{formatSalesLabel(price)}</small>
+                </div>
+              );
+            })}
+          </div>
+          {locked && <LockedContentOverlay pricingHref={pricingHref} />}
         </div>
       )}
       {onToggleGradingCalculator && (
@@ -452,29 +476,26 @@ function PriceHistory({
   const [histories, setHistories] = useState<
     Partial<Record<MarketHistoryTier, MarketPriceHistoryResponse>>
   >({});
-  const [failedTiers, setFailedTiers] = useState<ReadonlySet<MarketHistoryTier>>(
-    () => new Set(),
-  );
+  const [failedTiers, setFailedTiers] = useState<
+    ReadonlySet<MarketHistoryTier>
+  >(() => new Set());
   const [lastHistory, setLastHistory] =
     useState<MarketPriceHistoryResponse | null>(null);
-  const isDemo = cardId === "demo";
-  const tiers: MarketHistoryTier[] = isDemo
-    ? ["NEAR_MINT"]
-    : [
-        ...RAW_HISTORY_TIERS.filter((tier) => tier !== "MINT"),
-        ...qualifyingGradedHistoryTiers(data.prices, data.gradedOptions).sort(
-          (left, right) => {
-            const [leftGrader, leftGrade] = left.split("_");
-            const [rightGrader, rightGrade] = right.split("_");
-            return (
-              leftGrader.localeCompare(rightGrader, "en-US") ||
-              Number(rightGrade) - Number(leftGrade)
-            );
-          },
-        ),
-      ];
+  const tiers: MarketHistoryTier[] = [
+    ...RAW_HISTORY_TIERS.filter((tier) => tier !== "MINT"),
+    ...qualifyingGradedHistoryTiers(data.prices, data.gradedOptions).sort(
+      (left, right) => {
+        const [leftGrader, leftGrade] = left.split("_");
+        const [rightGrader, rightGrade] = right.split("_");
+        return (
+          leftGrader.localeCompare(rightGrader, "en-US") ||
+          Number(rightGrade) - Number(leftGrade)
+        );
+      },
+    ),
+  ];
   const tier = tiers.includes(selectedTier) ? selectedTier : "NEAR_MINT";
-  const history = isDemo ? data.marketPriceHistory : histories[tier];
+  const history = histories[tier];
   const historyFailed = failedTiers.has(tier);
   const label = marketHistoryTierLabel(tier);
   const conditionControl = (
@@ -496,7 +517,7 @@ function PriceHistory({
   );
 
   useEffect(() => {
-    if (!cardId || isDemo || history !== undefined || historyFailed) return;
+    if (!cardId || history !== undefined || historyFailed) return;
 
     const controller = new AbortController();
     void fetchMarketPriceHistory(cardId, controller.signal, tier)
@@ -516,11 +537,11 @@ function PriceHistory({
       });
 
     return () => controller.abort();
-  }, [cardId, isDemo, tier, history, historyFailed]);
+  }, [cardId, tier, history, historyFailed]);
 
   const nearMintHistory = histories.NEAR_MINT;
   const nearMintFailed = failedTiers.has("NEAR_MINT");
-  const needsNearMint = !isDemo && isGradedHistoryTier(tier);
+  const needsNearMint = isGradedHistoryTier(tier);
   useEffect(() => {
     if (
       !cardId ||
@@ -551,7 +572,7 @@ function PriceHistory({
   const loading =
     dataPending ||
     !cardId ||
-    (!isDemo && history === undefined && !historyFailed) ||
+    (history === undefined && !historyFailed) ||
     (needsNearMint && nearMintHistory === undefined && !nearMintFailed);
   const displayedHistory = history ?? (loading ? lastHistory : null);
   const displayedTier = displayedHistory?.condition ?? tier;
@@ -567,7 +588,6 @@ function PriceHistory({
       />
     );
   }
-  if (isDemo && !history) return null;
   return (
     <MarketPriceHistoryChart
       conditionControl={conditionControl}
@@ -599,7 +619,6 @@ function PriceHistory({
       loading={loading}
       gradeLoading={
         !dataPending &&
-        !isDemo &&
         history === undefined &&
         !historyFailed &&
         !!lastHistory &&
@@ -610,12 +629,100 @@ function PriceHistory({
   );
 }
 
+const LOCKED_GRADED_PRICES: Array<[string, TierPrice]> = [
+  ["PSA_1", { avg: 12, saleCount: 8 }],
+  ["PSA_2", { avg: 18, saleCount: 12 }],
+  ["PSA_3", { avg: 25, saleCount: 16 }],
+  ["PSA_4", { avg: 30, saleCount: 20 }],
+  ["PSA_5", { avg: 38, saleCount: 22 }],
+  ["PSA_6", { avg: 45, saleCount: 24 }],
+  ["PSA_7", { avg: 65, saleCount: 32 }],
+  ["PSA_8", { avg: 95, saleCount: 48 }],
+  ["PSA_9", { avg: 150, saleCount: 76 }],
+  ["PSA_10", { avg: 320, saleCount: 54 }],
+];
+
+function LockedContentOverlay({ pricingHref }: { pricingHref: string }) {
+  return (
+    <div className="poketrace-market__locked-overlay">
+      <span className="poketrace-market__locked-icon">
+        <LockKeyhole aria-hidden="true" size={18} />
+      </span>
+      <p>Available with Basic or Pro membership.</p>
+      <a href={pricingHref}>View pricing</a>
+    </div>
+  );
+}
+
+function LockedPriceHistory({
+  currency,
+  pricingHref,
+}: {
+  currency: string;
+  pricingHref: string;
+}) {
+  const today = new Date();
+  const points = (offset: number) =>
+    Array.from({ length: 91 }, (_, index) => {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() - 90 + index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        avg: 35 + offset + index * 0.15 + Math.sin(index / 7 + offset) * 4,
+        median7d: null,
+        median30d: null,
+        low: null,
+        high: null,
+        saleCount: 5,
+        approxSaleCount: null,
+      };
+    });
+  return (
+    <MarketPriceHistoryChart
+      conditionControl={
+        <SelectDropdown
+          ariaLabel="Price history condition or grade"
+          className="poketrace-market__history-period poketrace-market__history-tier"
+          compact
+          options={[{ value: "NEAR_MINT", label: "Near Mint" }]}
+          value="NEAR_MINT"
+          onChange={() => {}}
+        />
+      }
+      history={{
+        currency,
+        series: { tcgplayer: points(0), ebay: points(5) },
+        stale: false,
+      }}
+      chartOverlay={<LockedContentOverlay pricingHref={pricingHref} />}
+    />
+  );
+}
+
+function MarketContent({
+  locked,
+  children,
+}: {
+  locked: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="poketrace-market__access">
+      <fieldset className="poketrace-market__access-content" disabled={locked}>
+        {children}
+      </fieldset>
+    </div>
+  );
+}
+
 export function PokeTraceMarketPrices({
   cardId,
   data,
   dataPending = false,
   dataRequestFailed = false,
   gradingCalculatorOpen = false,
+  hasMarketHistoryAccess = false,
+  pricingHref = "#membership-pricing",
   onToggleGradingCalculator,
   variantLoading = false,
 }: {
@@ -624,6 +731,8 @@ export function PokeTraceMarketPrices({
   dataPending?: boolean;
   dataRequestFailed?: boolean;
   gradingCalculatorOpen?: boolean;
+  hasMarketHistoryAccess?: boolean;
+  pricingHref?: string;
   onToggleGradingCalculator?: () => void;
   variantLoading?: boolean;
 }) {
@@ -636,7 +745,7 @@ export function PokeTraceMarketPrices({
 
   useEffect(() => {
     setPriceHistory(null);
-    if (!cardId || cardId === "demo") return;
+    if (!cardId) return;
 
     const controller = new AbortController();
     void fetchCardPriceHistory(cardId, 9, controller.signal)
@@ -664,28 +773,37 @@ export function PokeTraceMarketPrices({
             dataRequestFailed={dataRequestFailed}
             key={source}
             prices={prices[source] ?? {}}
-            preferMedian={cardId === "demo" && source === "ebay"}
-            priceHistory={
-              cardId === "demo" ? (data.priceHistory ?? null) : priceHistory
-            }
+            priceHistory={priceHistory}
             source={source}
             url={typeof urls[source] === "string" ? urls[source] : undefined}
           />
         ))}
       </div>
 
-      <PriceHistory
-        cardId={cardId}
-        dataPending={dataPending}
-        data={data}
-        key={cardId}
-      />
-
+      <MarketContent locked={!hasMarketHistoryAccess}>
+        {hasMarketHistoryAccess ? (
+          <PriceHistory
+            cardId={cardId}
+            dataPending={dataPending}
+            data={data}
+            key={cardId}
+          />
+        ) : (
+          <LockedPriceHistory
+            currency={data.currency}
+            pricingHref={pricingHref}
+          />
+        )}
+      </MarketContent>
       <GradedEbayPrices
         currency={data.currency}
-        dataPending={dataPending}
-        dataRequestFailed={dataRequestFailed}
-        entries={ebayGradedEntries}
+        dataPending={hasMarketHistoryAccess && dataPending}
+        dataRequestFailed={hasMarketHistoryAccess && dataRequestFailed}
+        entries={
+          hasMarketHistoryAccess ? ebayGradedEntries : LOCKED_GRADED_PRICES
+        }
+        locked={!hasMarketHistoryAccess}
+        pricingHref={pricingHref}
         gradingCalculatorOpen={gradingCalculatorOpen}
         onToggleGradingCalculator={onToggleGradingCalculator}
       />

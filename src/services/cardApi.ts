@@ -162,12 +162,31 @@ async function cardRequest(url: string, signal?: AbortSignal) {
   return response.json() as Promise<unknown>;
 }
 
-export async function fetchCardById(cardId: string, signal?: AbortSignal) {
-  const url =
-    cardId === "demo"
-      ? `${import.meta.env.BASE_URL}demo-card.json`
-      : `${API_URL}/api/cards/${encodeURIComponent(cardId)}`;
-  const value = await cardRequest(url, signal);
+export async function fetchCardById(
+  cardId: string,
+  signal?: AbortSignal,
+): Promise<PokemonCard> {
+  if (cardId === "demo") {
+    const [liveCard, demoValue] = await Promise.all([
+      fetchCardById("019bff9a-8592-77ae-8865-c500279b7630", signal),
+      cardRequest(`${import.meta.env.BASE_URL}demo-card.json`, signal),
+    ]);
+    const demo = normalizeCardResponse(demoValue, "demo");
+    return {
+      ...liveCard,
+      grok: demo.grok,
+      ebay: demo.ebay,
+      tcg_listings: demo.tcg_listings,
+    };
+  }
+  const value = await cardRequest(
+    `${API_URL}/api/cards/${encodeURIComponent(cardId)}`,
+    signal,
+  );
+  return normalizeCardResponse(value, cardId);
+}
+
+function normalizeCardResponse(value: unknown, cardId: string): PokemonCard {
   if (!isRecord(value) || value.id !== cardId) {
     throw new Error("Invalid card response");
   }

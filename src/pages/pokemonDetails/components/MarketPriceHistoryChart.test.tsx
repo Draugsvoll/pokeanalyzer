@@ -78,11 +78,11 @@ test("renders available TCGPlayer and Ebay history together", () => {
 });
 
 test.each(["tcgplayer", "ebay", "graded"] as const)(
-  "excludes a single 5x outlier only within the %s history",
+  "excludes a single 4x outlier only within the %s history",
   (source) => {
     const points = [
       { ...point(daysAgo(2), 100), saleCount: 1 },
-      { ...point(daysAgo(1), 500), saleCount: 50 },
+      { ...point(daysAgo(1), 400), saleCount: 50 },
       { ...point(daysAgo(0), 90), saleCount: 2 },
     ];
     render(
@@ -103,7 +103,7 @@ test.each(["tcgplayer", "ebay", "graded"] as const)(
       ) as HTMLElement,
     );
     expect(legend.getByText("3 sold")).toBeVisible();
-    expect(screen.queryByText("$500")).not.toBeInTheDocument();
+    expect(screen.queryByText("$400")).not.toBeInTheDocument();
     const chart = screen.getByRole("img");
     chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
     fireEvent.pointerMove(chart, { clientX: 790 });
@@ -120,10 +120,10 @@ test.each(["tcgplayer", "ebay", "graded"] as const)(
 );
 
 test.each([
-  [499, 3],
-  [500, 2],
-  [501, 2],
-])("applies the 5x threshold to a highest price of %s", (highest, count) => {
+  [399, 3],
+  [400, 2],
+  [401, 2],
+])("applies the 4x threshold to a highest price of %s", (highest, count) => {
   render(
     <MarketPriceHistoryChart
       history={history({
@@ -163,13 +163,18 @@ test.each([
   [2, 8],
   [90, 120],
   [2000, 2175],
+  [26, 4050],
 ])(
-  "renders exactly five evenly spaced horizontal grid lines for prices %s–%s",
+  "renders four or five evenly spaced horizontal grid lines covering prices %s–%s",
   (low, high) => {
     render(
       <MarketPriceHistoryChart
         history={history({
-          ebay: [point(daysAgo(1), low), point(daysAgo(0), high)],
+          ebay: [
+            point(daysAgo(2), low),
+            point(daysAgo(1), high),
+            point(daysAgo(0), high),
+          ],
         })}
       />,
     );
@@ -178,7 +183,7 @@ test.each([
         ".poketrace-market__history-grid-line:not(.poketrace-market__history-grid-line--vertical)",
       ),
     ];
-    expect(lines).toHaveLength(5);
+    expect([4, 5]).toContain(lines.length);
     const positions = lines.map((line) => Number(line.getAttribute("y1")));
     for (let index = 2; index < positions.length; index++) {
       expect(positions[index] - positions[index - 1]).toBeCloseTo(
@@ -188,24 +193,24 @@ test.each([
     const labels = lines.map(
       (line) => line.parentElement!.querySelector("text")!.textContent,
     );
-    expect(new Set(labels).size).toBe(5);
+    expect(new Set(labels).size).toBe(lines.length);
     const values = labels.map((label) => Number(label!.replace(/[$,]/g, "")));
     expect(values[0]).toBeGreaterThanOrEqual(high);
-    expect(values[4]).toBeLessThanOrEqual(low);
+    expect(values.at(-1)).toBeLessThanOrEqual(low);
   },
 );
 
 test.each([
   [
-    [0.1, 0.4],
-    ["$0.50", "$0.40", "$0.30", "$0.20", "$0.10"],
+    [0.1, 0.4, 0.4],
+    ["$0.40", "$0.30", "$0.20", "$0.10"],
   ],
   [
-    [0.001, 0.004],
-    ["$0.005", "$0.004", "$0.003", "$0.002", "$0.001"],
+    [0.001, 0.004, 0.004],
+    ["$0.004", "$0.003", "$0.002", "$0.001"],
   ],
-  [[0], ["$0.04", "$0.03", "$0.02", "$0.01", "$0.00"]],
-  [[0.37], ["$0.41", "$0.40", "$0.39", "$0.38", "$0.37"]],
+  [[0], ["$0.03", "$0.02", "$0.01", "$0.00"]],
+  [[0.37], ["$0.40", "$0.39", "$0.38", "$0.37"]],
 ])(
   "uses fractional intervals and distinct decimal labels for %j",
   (prices, expectedLabels) => {
@@ -230,11 +235,16 @@ test.each([
 );
 
 test.each([
-  [3, 45, ["$60", "$45", "$30", "$15", "$0"]],
-  [0.3, 4.5, ["$6.00", "$4.50", "$3.00", "$1.50", "$0.00"]],
-  [0.03, 0.45, ["$0.60", "$0.45", "$0.30", "$0.15", "$0.00"]],
+  [3, 45, ["$45", "$30", "$15", "$0"]],
+  [0.3, 4.5, ["$4.50", "$3.00", "$1.50", "$0.00"]],
+  [0.03, 0.45, ["$0.45", "$0.30", "$0.15", "$0.00"]],
+  [0.5, 9, ["$10.00", "$7.50", "$5.00", "$2.50", "$0.00"]],
+  [0.05, 0.9, ["$1.00", "$0.75", "$0.50", "$0.25", "$0.00"]],
+  [1, 90, ["$100", "$75", "$50", "$25", "$0"]],
+  [26, 4050, ["$4,500", "$3,000", "$1,500", "$0"]],
+  [0, 5.5, ["$6.00", "$4.50", "$3.00", "$1.50", "$0.00"]],
 ] as const)(
-  "allows tighter 1.5-based intervals for prices %s–%s",
+  "allows tighter 1.5- and 2.5-based intervals for prices %s–%s",
   (low, high, expectedLabels) => {
     render(
       <MarketPriceHistoryChart
@@ -268,6 +278,58 @@ test("does not add price-range padding before rounding the axis", () => {
     ),
   ].map((label) => label.textContent);
   expect(labels).toEqual(["$4,000", "$3,000", "$2,000", "$1,000", "$0"]);
+});
+
+test("reserves space for the widest price label and releases it when the period changes", () => {
+  const prototype = SVGElement.prototype as SVGElement & {
+    getComputedTextLength?: () => number;
+  };
+  const original = Object.getOwnPropertyDescriptor(
+    prototype,
+    "getComputedTextLength",
+  );
+  Object.defineProperty(prototype, "getComputedTextLength", {
+    configurable: true,
+    value(this: SVGElement) {
+      return (this.textContent?.length ?? 0) * 10;
+    },
+  });
+  try {
+    render(
+      <MarketPriceHistoryChart
+        history={history({
+          ebay: [
+            point(daysAgo(121), 18000),
+            point(daysAgo(120), 20000),
+            point(daysAgo(0), 10),
+          ],
+        })}
+      />,
+    );
+    const gridLine = () =>
+      document.querySelector(
+        ".poketrace-market__history-grid-line:not(.poketrace-market__history-grid-line--vertical)",
+      )!;
+    expect(gridLine()).toHaveAttribute("x1", "46");
+    fireEvent.click(screen.getByRole("radio", { name: "6M" }));
+    expect(gridLine()).toHaveAttribute("x1", "86");
+    const label = screen.getByText("$20,000");
+    expect(Number(label.getAttribute("x")) - 70).toBe(8);
+    expect(
+      document.querySelector(".poketrace-market__history-date-label"),
+    ).toHaveAttribute("x", "86");
+    expect(
+      screen
+        .getByRole("img")
+        .style.getPropertyValue("--history-axis-font-size"),
+    ).toBe("12px");
+    fireEvent.click(screen.getByRole("radio", { name: "3M" }));
+    expect(gridLine()).toHaveAttribute("x1", "46");
+  } finally {
+    if (original)
+      Object.defineProperty(prototype, "getComputedTextLength", original);
+    else delete prototype.getComputedTextLength;
+  }
 });
 
 test("compares Near Mint averages with a separately counted graded average series", () => {
@@ -410,6 +472,7 @@ test("totals sales for each selected period and animates changed legend counts",
   expect(legend.getByText("10 sold")).toBeVisible();
   expect(legend.queryByText(/≈/)).not.toBeInTheDocument();
   for (const [period, tcgCount, ebayCount] of [
+    ["1M", "3 sold", "6 sold"],
     ["6M", "15 sold", "30 sold"],
     ["All", "1,115 sold", "2,230 sold"],
     ["3M", "5 sold", "10 sold"],
@@ -665,13 +728,50 @@ function daysAgo(days: number) {
     .slice(0, 10);
 }
 
+test("1M includes the 30-day boundary and filters prices and sold counts for all sources", () => {
+  const ages = [31, 30, 0];
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: ages.map((age, index) => ({
+          ...point(daysAgo(age), 100),
+          saleCount: index + 1,
+        })),
+        ebay: ages.map((age, index) => ({
+          ...point(daysAgo(age), 200),
+          saleCount: (index + 1) * 10,
+        })),
+      })}
+      gradedHistory={{
+        label: "PSA 10",
+        points: ages.map((age, index) => ({
+          ...point(daysAgo(age), 1000),
+          saleCount: (index + 1) * 100,
+        })),
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "1M" }));
+  expect(screen.getByRole("radio", { name: "1M" })).toBeChecked();
+  expect(screen.getByRole("img")).toHaveAttribute(
+    "aria-label",
+    expect.stringContaining("from Oct 5 to Nov 4"),
+  );
+  const legend = within(
+    screen.getByRole("group", { name: "Price history sources" }),
+  );
+  expect(legend.getByText("5 sold")).toBeVisible();
+  expect(legend.getByText("50 sold")).toBeVisible();
+  expect(legend.getByText("500 sold")).toBeVisible();
+});
+
 test("limits bounded periods and shows older points only in All", () => {
   render(
     <MarketPriceHistoryChart
       history={history({
         tcgplayer: [
           point(daysAgo(400), 10000),
-          point(daysAgo(250), 2500),
+          point(daysAgo(250), 3000),
           point(daysAgo(120), 500),
           point(daysAgo(30), 200),
           point(daysAgo(0), 100),
@@ -684,7 +784,7 @@ test("limits bounded periods and shows older points only in All", () => {
   const initialLine = document
     .querySelector(".poketrace-market__history-line")!
     .getAttribute("d");
-  expect(screen.getAllByRole("radio")).toHaveLength(3);
+  expect(screen.getAllByRole("radio")).toHaveLength(4);
   fireEvent.click(screen.getByRole("radio", { name: "6M" }));
   expect(chart.getAttribute("aria-label")).not.toBe(initialLabel);
   expect(
@@ -710,7 +810,7 @@ test("limits bounded periods and shows older points only in All", () => {
 });
 
 test.each([0, 60, 150, 180, 181])(
-  "always offers all three periods for %s days of history",
+  "always offers all four periods for %s days of history",
   (age) => {
     render(
       <MarketPriceHistoryChart
@@ -721,7 +821,8 @@ test.each([0, 60, 150, 180, 181])(
     );
     expect(
       screen.getAllByRole("radio").map((radio) => radio.getAttribute("value")),
-    ).toEqual(["90", "180", "all"]);
+    ).toEqual(["30", "90", "180", "all"]);
+    expect(screen.getByRole("radio", { name: "1M" })).toBeVisible();
     expect(screen.getByRole("radio", { name: "3M" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "6M" })).toBeVisible();
     fireEvent.click(screen.getByRole("radio", { name: "All" }));
@@ -755,7 +856,7 @@ test("includes previous years in axis and hover dates for All", () => {
   ).toHaveTextContent(firstDate);
 });
 
-test.each(["3M", "6M", "All"])(
+test.each(["1M", "3M", "6M", "All"])(
   "spaces date labels evenly in %s despite uneven observation dates",
   (period) => {
     render(

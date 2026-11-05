@@ -374,7 +374,7 @@
 .worth-grading-view__population-card {
   display: grid;
   gap: 1rem;
-  padding: 1rem;
+  padding: var(--default-container-inner-padding);
 }
 
 .worth-grading-view__population-total {

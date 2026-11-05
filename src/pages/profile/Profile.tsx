@@ -17,7 +17,6 @@ import {
   Crown,
   LogIn,
   LogOut,
-  UserRound,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
@@ -208,9 +207,6 @@ export default function Profile() {
           aria-labelledby="profile-guest-title"
           className="profile__guest-state default-container ui-render-fade"
         >
-          <span className="profile__status-icon" aria-hidden="true">
-            <UserRound />
-          </span>
           <h1 id="profile-guest-title">Log in to view your account</h1>
           <p>
             Your profile, credits, membership, and billing stay with your

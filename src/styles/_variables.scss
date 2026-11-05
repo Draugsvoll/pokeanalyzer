@@ -42,7 +42,7 @@
   --bg-card: #10141c;
   --bg-pokemon-card: color-mix(in srgb, var(--bg2) 45%, var(--bg));
   --bg-card-hover: #151a24;
-  --bg-input: var(--bg2);
+  --bg-input: #151c27;
   --bg-input-strong: rgba(255, 255, 255, 0.05);
   --popover-surface: #1e2227;
   /*
@@ -166,12 +166,12 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 11px;
+  --card-gap: 13px;
   --card-pad: 10px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
-  --font-size-grid-title: 19px;
+  --font-size-grid-title: 20px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
   --font-size-card-title: 17px;

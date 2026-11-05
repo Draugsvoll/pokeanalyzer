@@ -21,21 +21,45 @@ test("loads a card from the active card API", async () => {
   expect(card.name).toBe("Charizard");
 });
 
-test("loads the static demo without calling the card API", async () => {
-  const fixture = { id: "demo", name: "Charizard" };
-  const fetchMock = vi.fn().mockResolvedValue({
-    json: async () => fixture,
+test("uses live demo card data and only static feature analyses", async () => {
+  const liveId = "019bff9a-8592-77ae-8865-c500279b7630";
+  const live = {
+    id: liveId,
+    name: "Live Umbreon",
+    pokeTrace: { prices: { ebay: { NEAR_MINT: { avg: 42 } } } },
+    grok: { market_analysis: { source: "live" } },
+    ebay: { source: "live" },
+  };
+  const demo = {
+    id: "demo",
+    name: "Old name",
+    pokeTrace: { prices: { ebay: { NEAR_MINT: { avg: 1 } } } },
+    grok: { market_analysis: { source: "demo" } },
+    ebay: { source: "demo" },
+    tcg_listings: { source: "demo" },
+  };
+  const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
     ok: true,
-  });
+    json: async () => (url === "/demo-card.json" ? demo : live),
+  }));
   vi.stubGlobal("fetch", fetchMock);
-
-  const card = await fetchCardById("demo");
-
+  const controller = new AbortController();
+  const card = await fetchCardById("demo", controller.signal);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenCalledWith(
+    `http://localhost:3001/api/cards/${liveId}`,
+    expect.objectContaining({ cache: "no-store", signal: controller.signal }),
+  );
   expect(fetchMock).toHaveBeenCalledWith(
     "/demo-card.json",
-    expect.objectContaining({ cache: "no-store" }),
+    expect.objectContaining({ signal: controller.signal }),
   );
-  expect(card.id).toBe("demo");
+  expect(card.id).toBe(liveId);
+  expect(card.name).toBe(live.name);
+  expect(card.pokeTrace).toEqual(live.pokeTrace);
+  expect(card.grok).toEqual(demo.grok);
+  expect(card.ebay).toEqual(demo.ebay);
+  expect(card.tcg_listings).toEqual(demo.tcg_listings);
 });
 
 test("normalizes older demo eBay results without exposing them as AI data", async () => {
@@ -47,14 +71,17 @@ test("normalizes older demo eBay results without exposing them as AI data", asyn
   const analysis = { timestamp: "2026-10-20" };
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({
+    vi.fn().mockImplementation(async (url: string) => ({
       ok: true,
-      json: async () => ({
-        id: "demo",
-        name: "Charizard",
-        grok: { ebay_sold: ebay, market_analysis: analysis },
-      }),
-    }),
+      json: async () =>
+        url !== "/demo-card.json"
+          ? { id: "019bff9a-8592-77ae-8865-c500279b7630" }
+          : {
+              id: "demo",
+              name: "Charizard",
+              grok: { ebay_sold: ebay, market_analysis: analysis },
+            },
+    })),
   );
   const card = await fetchCardById("demo");
   expect(card.ebay).toEqual(ebay);

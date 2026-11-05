@@ -452,8 +452,8 @@ export function GradingCalculator({
                     <span>
                       The additional gain or loss from grading and selling the
                       card, rather than selling it raw, after all applicable
-                      costs and fees. Expressed in dollars and as a percentage
-                      of raw net proceeds.
+                      costs and fees. The percentage is calculated relative to
+                      raw net proceeds.
                     </span>
                   </InfoTooltip>
                 </>

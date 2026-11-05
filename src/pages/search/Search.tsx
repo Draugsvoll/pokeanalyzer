@@ -18,13 +18,13 @@ export default function Search({
   return (
     <div className="search-page">
       <DatabaseSearch autoFocusName initialProductType={initialProductType} />
+      <GradingOpportunitiesGrid minimized title="Grading Opportunities" />
       <MostSoldGrid minimized title="TCG high volume this week" />
       <MostSoldGrid
         minimized
         loadCards={mostSoldEbayCards}
         title="Ebay high volume this week"
       />
-      <GradingOpportunitiesGrid minimized title="Grading Opportunities" />
       <MarketMoversGrid
         minimized
         changeLabel="Daily change in the TCGPlayer Near Mint price"
