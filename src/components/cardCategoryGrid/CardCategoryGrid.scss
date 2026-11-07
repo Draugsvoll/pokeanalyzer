@@ -1,6 +1,11 @@
 .card-category-grid {
   min-width: 0;
   width: 100%;
+
+  .grid-header__controls .grading-opportunity-filter {
+    line-height: 1;
+    min-height: 0;
+  }
 }
 
 .card-category-grid__state {

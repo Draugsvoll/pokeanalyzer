@@ -6,8 +6,10 @@ import type { PokemonCard } from "../../types/pokemon";
 import type { PortfolioSingle } from "../../types/portfolio";
 import { PokemonCardPortfolioView, PokemonCardView } from "./PokemonCardView";
 
-vi.mock("../../context/authContextValue", () => ({
-  useAuth: () => ({ user: null }),
+const auth = vi.hoisted(() => ({ user: null as null | { uid: string } }));
+vi.mock("../../context/authContextValue", () => ({ useAuth: () => auth }));
+vi.mock("../assetSaveActions/AssetSaveActions", () => ({
+  AssetSaveActions: () => <div data-testid="save-actions" />,
 }));
 
 vi.mock("../../context/portfolioCacheContextValue", () => ({
@@ -296,4 +298,21 @@ describe("PokemonCardPortfolioView quantity dialog", () => {
     );
     await waitFor(() => expect(sylveonIncrease).toHaveFocus());
   });
+});
+
+test("read-only cards hide save actions even for signed-in demo viewers", () => {
+  auth.user = { uid: "demo-viewer" };
+  try {
+    const { rerender } = renderCard();
+    expect(screen.getByTestId("save-actions")).toBeInTheDocument();
+    rerender(
+      <MemoryRouter>
+        <PokemonCardView card={card()} readOnly />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId("save-actions")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Pikachu" })).toBeEnabled();
+  } finally {
+    auth.user = null;
+  }
 });

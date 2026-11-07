@@ -1,4 +1,5 @@
 import type { GradingOpportunitiesOptions } from "../services/gradingOpportunities.js";
+import { GRADING_OPPORTUNITY_QUALIFICATIONS } from "./gradingOpportunities.js";
 import type {
   MostSoldOptions,
   PriceMoversOptions,
@@ -100,12 +101,8 @@ export const MARKET_CATEGORY_DEFINITIONS = [
   {
     id: "grading-opportunities",
     parameters: {
+      ...GRADING_OPPORTUNITY_QUALIFICATIONS,
       limit: 12,
-      maximumUpdateAgeDays: 30,
-      minimumNearMintPrice: 0,
-      minimumNearMintSales: 75,
-      minimumPsaPriceIncrease: 500,
-      minimumPsaSales: 75,
     },
     query: "gradingOpportunities",
     title: "Grading Opportunities",

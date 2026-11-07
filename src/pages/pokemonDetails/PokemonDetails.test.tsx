@@ -477,7 +477,8 @@ test("keeps the embedded card search open while using its controls", async () =>
   fireEvent.mouseDown(clearFilters);
   fireEvent.click(clearFilters);
 
-  expect(minimumPrice).toHaveValue(null);
+  expect(minimumPrice).not.toBeInTheDocument();
+  expect(filtersButton).toHaveAttribute("aria-expanded", "false");
   expect(dialog).toBeInTheDocument();
 });
 

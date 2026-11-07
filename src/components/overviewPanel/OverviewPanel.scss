@@ -68,6 +68,21 @@
   background-color: color-mix(in srgb, white 2%, var(--bg2));
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .app-overview-metric:has(> .app-overview-metric-action)
+    > .app-overview-metric-image {
+    transition: transform var(--animation-duration-fast)
+      var(--animation-ease-standard);
+  }
+
+  .app-overview-metric:has(> .app-overview-metric-action:hover)
+    > .app-overview-metric-image,
+  .app-overview-metric:has(> .app-overview-metric-action:focus-visible)
+    > .app-overview-metric-image {
+    transform: translateY(-2px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-overview-metric:has(> .app-overview-metric-action) {
     transition: none;

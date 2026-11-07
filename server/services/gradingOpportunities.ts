@@ -1,4 +1,5 @@
 import type { Client } from "@libsql/client";
+import { GRADING_OPPORTUNITY_QUALIFICATIONS } from "../config/gradingOpportunities.js";
 import {
   parsePokeTraceMarketComparisons,
   type PokeTraceMarketComparisons,
@@ -7,7 +8,7 @@ import {
 export type GradingMedianWindow = "7d" | "30d";
 
 export type GradingOpportunitiesOptions = {
-  limit: number;
+  limit: number | null;
   maximumUpdateAgeDays: number;
   minimumNearMintPrice: number;
   minimumNearMintSales: number;
@@ -43,12 +44,8 @@ export type GradingOpportunitiesResult = {
 };
 
 const DEFAULT_OPTIONS: GradingOpportunitiesOptions = {
+  ...GRADING_OPPORTUNITY_QUALIFICATIONS,
   limit: 12,
-  maximumUpdateAgeDays: 30,
-  minimumNearMintPrice: 0,
-  minimumNearMintSales: 75,
-  minimumPsaPriceIncrease: 500,
-  minimumPsaSales: 75,
 };
 
 const DAY_MS = 86_400_000;
@@ -84,7 +81,8 @@ export function normalizeGradingOpportunitiesOptions(
 ): GradingOpportunitiesOptions {
   const merged = { ...DEFAULT_OPTIONS, ...options };
   return {
-    limit: integer(merged.limit, "limit", 1, 100),
+    limit:
+      merged.limit === null ? null : integer(merged.limit, "limit", 1, 100),
     maximumUpdateAgeDays: integer(
       merged.maximumUpdateAgeDays,
       "maximumUpdateAgeDays",
@@ -150,7 +148,7 @@ export async function findGradingOpportunities(
     new Date().getTime() - parameters.maximumUpdateAgeDays * DAY_MS,
   ).toISOString();
   const nearMintPrice = priceValue("tcgplayer.NEAR_MINT.avg");
-  const psaPrice = priceValue("ebay.PSA_10.median7d");
+  const psaPrice = priceValue("ebay.PSA_10.median30d");
 
   const result = await database.execute({
     sql: `
@@ -171,8 +169,8 @@ export async function findGradingOpportunities(
           ${nearMintPrice} AS near_mint_price,
           ${psaPrice} AS psa_price,
           ${priceValue("ebay.PSA_10.median3d")} AS psa_median_3d,
-          ${priceValue("ebay.PSA_10.median30d")} AS psa_median_30d,
-          '7d' AS psa_median
+          ${priceValue("ebay.PSA_10.median7d")} AS psa_median_7d,
+          '30d' AS psa_median
         FROM poketrace_cards
         WHERE json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.saleCount') IN ('integer', 'real')
           AND json_type(raw_json, '$.prices.ebay.PSA_10.saleCount') IN ('integer', 'real')
@@ -202,7 +200,7 @@ export async function findGradingOpportunities(
       FROM opportunities
       WHERE near_mint_sales >= ?
         AND psa_sales >= ?
-        AND NOT COALESCE(psa_median_3d = psa_price AND psa_price = psa_median_30d, 0)
+        AND NOT COALESCE(psa_median_3d = psa_median_7d AND psa_median_7d = psa_price, 0)
         AND near_mint_price >= ?
         AND psa_price - near_mint_price >= ?
       ORDER BY multiplier DESC, price_increase DESC, id
@@ -215,7 +213,7 @@ export async function findGradingOpportunities(
       parameters.minimumPsaSales,
       parameters.minimumNearMintPrice,
       parameters.minimumPsaPriceIncrease,
-      parameters.limit,
+      parameters.limit ?? -1,
     ],
   });
 

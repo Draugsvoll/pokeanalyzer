@@ -1,7 +1,7 @@
 import {
   ChartNoAxesCombined,
-  CircleDollarSign,
-  ScanSearch,
+  Calculator,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import type { CustomColors } from "../utils/customStylings";
@@ -17,26 +17,26 @@ export type InfoCard = {
 export const INFO_CARDS: InfoCard[] = [
   {
     description:
-      "Scan across different markets to summarize your card’s overall performance.",
+      "Compare sold prices and active listings side by side, with filters to narrow your research.",
     id: "market",
-    title: "Market analysis",
+    title: "Market research",
     icon: ChartNoAxesCombined,
     color: "yellow",
   },
   {
     description:
-      "Explore grading insights, collectibility, and what makes your card stand out.",
-    id: "insights",
-    title: "Grading & collector insights",
-    icon: ScanSearch,
+      "Estimate profit for individual grades or probability-weighted outcomes, including grading costs and selling fees.",
+    id: "grading",
+    title: "Grading calculator",
+    icon: Calculator,
     color: "purple",
   },
   {
     description:
-      "Browse recent sales and active listings with dedicated filters to narrow your search.",
-    id: "ebay",
-    title: "Ebay sales & listings",
-    icon: CircleDollarSign,
+      "Browse sets, track their market performance, and discover individual cards.",
+    id: "sets",
+    title: "Set explorer",
+    icon: Layers,
     color: "teal",
   },
 ];

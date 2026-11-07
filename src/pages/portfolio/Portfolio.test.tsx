@@ -6,7 +6,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { getGradingOpportunityList } from "../../services/gradingOpportunityListApi";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { PortfolioProvider } from "../../context/PortfolioCacheContext";
 import { WatchlistProvider } from "../../context/WatchlistCacheContext";
@@ -22,12 +23,17 @@ const mocks = vi.hoisted(() => ({
     user: null as null | { uid: string },
   },
   getHydratedPortfolio: vi.fn(),
+  getDemoPortfolio: vi.fn(),
   getHydratedWatchlist: vi.fn(),
   addPortfolio: vi.fn(),
   removePortfolio: vi.fn(),
   updateQuantity: vi.fn(),
   addWatchlist: vi.fn(),
   removeWatchlist: vi.fn(),
+}));
+
+vi.mock("../../services/gradingOpportunityListApi", () => ({
+  getGradingOpportunityList: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("../../context/authContextValue", () => ({
@@ -43,6 +49,7 @@ vi.mock("../../services/watchlistApi", () => ({
 
 vi.mock("../../services/portfolioApi", () => ({
   getHydratedPortfolio: mocks.getHydratedPortfolio,
+  getDemoPortfolio: mocks.getDemoPortfolio,
   getPortfolioReferences: async () => ({ entries: [] }),
   addPortfolioCard: mocks.addPortfolio,
   removePortfolioCard: mocks.removePortfolio,
@@ -76,12 +83,28 @@ vi.mock("../../components/databaseSearch/DatabaseSearch", () => ({
 }));
 
 vi.mock("../../components/pokemonCardView/PokemonCardView", () => ({
-  PokemonCardView: ({ card }: { card: PortfolioSingle }) => {
+  PokemonCardView: ({
+    card,
+    readOnly,
+    badge,
+  }: {
+    card: PortfolioSingle;
+    readOnly?: boolean;
+    badge?: React.ReactNode;
+  }) => {
     const { setWatched } = useWatchlist();
     const { savePokemonToPortfolio } = usePokemonPortfolio();
+    if (readOnly)
+      return (
+        <div>
+          Demo card: {card.name}
+          {badge}
+        </div>
+      );
     return (
       <div>
         Watchlist card: {card.name}
+        {badge}
         <button onClick={() => void setWatched(card, false)}>
           Remove watched card
         </button>
@@ -182,9 +205,11 @@ function renderPortfolio() {
 
 describe("Portfolio", () => {
   beforeEach(() => {
+    vi.mocked(getGradingOpportunityList).mockReset().mockResolvedValue(null);
     mocks.auth.loading = false;
     mocks.auth.user = null;
     mocks.getHydratedPortfolio.mockReset();
+    mocks.getDemoPortfolio.mockReset();
     mocks.getHydratedWatchlist
       .mockReset()
       .mockResolvedValue({ items: [], entries: [], missingItems: [] });
@@ -224,6 +249,146 @@ describe("Portfolio", () => {
     expect(
       screen.getByRole("button", { name: "Create account" }),
     ).toBeVisible();
+  });
+
+  test("keeps collection order with a sort placeholder until a sort is selected", async () => {
+    mocks.auth.user = { uid: "sort-placeholder-user" };
+    const low = collectionCard();
+    low.pokeTrace.prices = { tcgplayer: { NEAR_MINT: { avg: 10 } } };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [low, searchCard()],
+      entries: [
+        { id: low.id, type: "single", quantity: 2 },
+        { id: "base-2", type: "single", quantity: 1 },
+      ],
+      missingItems: [],
+    });
+    renderPortfolio();
+    const control = await screen.findByRole("button", {
+      name: "Sort collection assets",
+    });
+    expect(control).toHaveTextContent("Sort by");
+    expect(
+      screen
+        .getByText("Portfolio card: Charizard")
+        .compareDocumentPosition(
+          screen.getByText("Portfolio card: Blastoise"),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(control);
+    expect(screen.queryByRole("option", { name: "Sort by" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Unsorted" })).toBeNull();
+    fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
+    expect(control).toHaveTextContent("Price: high–low");
+    expect(
+      screen
+        .getByText("Portfolio card: Blastoise")
+        .compareDocumentPosition(
+          screen.getByText("Portfolio card: Charizard"),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("filters collection and watchlist by rarity without refetching", async () => {
+    mocks.auth.user = { uid: "rarity-user" };
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [
+        { ...collectionCard(), rarity: "Rare" },
+        { ...searchCard(), rarity: "Common" },
+      ],
+      entries: [
+        { id: "base-4", type: "single", quantity: 2 },
+        { id: "base-2", type: "single", quantity: 1 },
+      ],
+      missingItems: [],
+    });
+    mocks.getHydratedWatchlist.mockResolvedValue({
+      items: [{ ...searchCard(), rarity: "Common" }],
+      entries: [{ id: "base-2", type: "single", quantity: 1 }],
+      missingItems: [],
+    });
+    renderPortfolio();
+    const trigger = await screen.findByRole("button", {
+      name: "Filter by rarity",
+    });
+    expect(trigger).toHaveTextContent("Any rarity");
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("option", { name: /^Rare\s*\(1\)$/ }));
+    expect(screen.getByText("Portfolio card: Charizard")).toBeVisible();
+    expect(screen.queryByText("Portfolio card: Blastoise")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Watchlist" }));
+    expect(await screen.findByText("Watchlist card: Blastoise")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Filter by rarity" }),
+    ).toHaveTextContent("Any rarity");
+    fireEvent.click(screen.getByRole("button", { name: "Filter by rarity" }));
+    expect(screen.queryByRole("option", { name: /^Rare\s*\(1\)$/ })).toBeNull();
+    fireEvent.click(screen.getByRole("option", { name: /^Common\s*\(1\)$/ }));
+    expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(1);
+    expect(mocks.getHydratedWatchlist).toHaveBeenCalledTimes(1);
+  });
+
+  test("grading filter switches collection cards to the opportunity presentation and restores the normal view", async () => {
+    mocks.auth.user = { uid: "grading-user" };
+    vi.mocked(getGradingOpportunityList).mockResolvedValue({
+      schemaVersion: 2,
+      generatedAt: new Date().toISOString(),
+      items: [{ cardId: "base-4", psa10Price: 2000 }],
+    });
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [collectionCard(), searchCard()],
+      entries: [
+        { id: "base-4", type: "single", quantity: 2 },
+        { id: "base-2", type: "single", quantity: 1 },
+      ],
+      missingItems: [],
+    });
+    renderPortfolio();
+    const checkbox = await screen.findByRole("checkbox", {
+      name: "1 grading opportunity",
+    });
+    expect(screen.getByText("Portfolio card: Blastoise")).toBeVisible();
+    fireEvent.click(checkbox);
+    expect(screen.queryByText("Portfolio card: Blastoise")).toBeNull();
+    expect(screen.getByText("Watchlist card: Charizard")).toBeVisible();
+    expect(
+      screen.getByLabelText(
+        "20 times TCGPlayer Near Mint price, based on eBay PSA 10 30-day median",
+      ),
+    ).toBeVisible();
+    fireEvent.click(checkbox);
+    expect(screen.getByText("Portfolio card: Blastoise")).toBeVisible();
+    expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(1);
+  });
+
+  test("switching lists clears an active grading filter even when the new list has no matches", async () => {
+    mocks.auth.user = { uid: "grading-user" };
+    vi.mocked(getGradingOpportunityList).mockResolvedValue({
+      schemaVersion: 2,
+      generatedAt: new Date().toISOString(),
+      items: [{ cardId: "base-4", psa10Price: 2000 }],
+    });
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      items: [collectionCard()],
+      entries: [{ id: "base-4", type: "single", quantity: 1 }],
+      missingItems: [],
+    });
+    mocks.getHydratedWatchlist.mockResolvedValue({
+      items: [searchCard()],
+      entries: [{ id: "base-2", type: "single", quantity: 1 }],
+      missingItems: [],
+    });
+    renderPortfolio();
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: "1 grading opportunity" }),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Watchlist" }));
+    expect(await screen.findByText("Watchlist card: Blastoise")).toBeVisible();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Collection" }));
+    expect(
+      await screen.findByRole("checkbox", { name: "1 grading opportunity" }),
+    ).not.toBeChecked();
   });
 
   test("uses a neutral loading state while authentication resolves", () => {
@@ -1067,5 +1232,129 @@ describe("Portfolio", () => {
     expect(await screen.findByText("Your collection is empty")).toBeVisible();
     expect(mocks.getHydratedPortfolio).toHaveBeenCalledTimes(2);
     expect(mocks.getHydratedWatchlist).toHaveBeenCalledTimes(2);
+  });
+
+  test("opens a read-only demo from the logged-out portfolio without hydrating private lists", async () => {
+    mocks.auth.user = null;
+    const cards = [collectionCard(), searchCard()];
+    mocks.getDemoPortfolio.mockResolvedValue({
+      entries: [],
+      items: cards,
+      missingItems: [],
+    });
+    render(
+      <Providers>
+        <Routes>
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/demo" element={<Portfolio demo />} />
+        </Routes>
+      </Providers>,
+    );
+    const demoLink = screen.getByRole("link", {
+      name: "Explore demo portfolio",
+    });
+    expect(
+      screen.getByRole("region", { name: "Log in to view your collection" }),
+    ).not.toContainElement(demoLink);
+    fireEvent.click(demoLink);
+    expect(
+      await screen.findByRole("heading", { name: "Demo collection" }),
+    ).toBeVisible();
+    expect(screen.getByText("Demo card: Charizard")).toBeVisible();
+    expect(screen.getByText("Demo card: Blastoise")).toBeVisible();
+    expect(mocks.getHydratedPortfolio).not.toHaveBeenCalled();
+    expect(mocks.getHydratedWatchlist).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "Add singles" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("radiogroup", { name: "Saved list" }),
+    ).toBeInTheDocument();
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search your collection" }),
+      { target: { value: "Blastoise" } },
+    );
+    expect(screen.queryByText("Demo card: Charizard")).not.toBeInTheDocument();
+    expect(screen.getByText("Demo card: Blastoise")).toBeVisible();
+    expect(mocks.addPortfolio).not.toHaveBeenCalled();
+    expect(mocks.updateQuantity).not.toHaveBeenCalled();
+  });
+
+  test("demo does not replace a logged-in user's cached collection", async () => {
+    mocks.auth.user = { uid: "demo-viewer" };
+    mocks.getDemoPortfolio.mockResolvedValue({
+      entries: [],
+      items: [collectionCard()],
+      missingItems: [],
+    });
+    const { rerender } = render(
+      <Providers>
+        <Portfolio demo />
+      </Providers>,
+    );
+    await screen.findByRole("heading", { name: "Demo collection" });
+    expect(mocks.getHydratedPortfolio).not.toHaveBeenCalled();
+    mocks.getHydratedPortfolio.mockResolvedValue({
+      entries: [{ id: searchCard().id, type: "single", quantity: 1 }],
+      items: [searchCard()],
+      missingItems: [],
+    });
+    rerender(
+      <Providers>
+        <Portfolio />
+      </Providers>,
+    );
+    await screen.findByText("Portfolio card: Blastoise");
+    expect(
+      screen.queryByText("Portfolio card: Charizard"),
+    ).not.toBeInTheDocument();
+  });
+  test("demo preloads both 20-card lists and switches without loading or fetching again", async () => {
+    const collection = Array.from({ length: 20 }, (_, index) => ({
+      ...collectionCard(),
+      id: `collection-${index}`,
+      name: `Collection ${index}`,
+    }));
+    const watched = Array.from({ length: 20 }, (_, index) => ({
+      ...searchCard(),
+      id: `watched-${index}`,
+      name: `Watched ${index}`,
+    }));
+    mocks.getDemoPortfolio.mockImplementation(async (list) => ({
+      entries: [],
+      items: list === "watchlist" ? watched : collection,
+      missingItems: [],
+    }));
+    render(
+      <Providers>
+        <Portfolio demo />
+      </Providers>,
+    );
+    await screen.findByRole("heading", { name: "Demo collection" });
+    expect(screen.getAllByText(/^Demo card: Collection/)).toHaveLength(20);
+    expect(mocks.getDemoPortfolio).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/A read-only sample/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Watchlist" }));
+    expect(screen.queryByText("Loading watchlist")).not.toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Demo watchlist" });
+    expect(screen.getAllByText(/^Demo card: Watched/)).toHaveLength(20);
+    expect(
+      screen.queryByText("Demo card: Collection 0"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Collection" }));
+    expect(screen.getAllByText(/^Demo card: Collection/)).toHaveLength(20);
+    expect(mocks.getDemoPortfolio).toHaveBeenCalledTimes(2);
+    expect(mocks.getDemoPortfolio).toHaveBeenNthCalledWith(
+      1,
+      "collection",
+      expect.any(AbortSignal),
+    );
+    expect(mocks.getDemoPortfolio).toHaveBeenNthCalledWith(
+      2,
+      "watchlist",
+      expect.any(AbortSignal),
+    );
+    expect(mocks.getHydratedPortfolio).not.toHaveBeenCalled();
+    expect(mocks.getHydratedWatchlist).not.toHaveBeenCalled();
   });
 });

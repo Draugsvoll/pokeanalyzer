@@ -131,6 +131,10 @@
   align-items: end;
   display: flex;
   gap: var(--space-3);
+
+  &:has(> .grading-opportunity-filter) {
+    flex-wrap: wrap;
+  }
 }
 
 .set-category-grid__sort-control {
@@ -342,14 +346,6 @@
 .set-category-grid__sort .ui-select-dropdown__menu {
   max-height: 18rem;
   overflow-y: auto;
-}
-
-.set-category-grid__sort-control .set-category-grid__sort {
-  min-width: 13.5rem;
-
-  .ui-select-dropdown__toggle {
-    width: 100%;
-  }
 }
 
 .set-category-grid__more {

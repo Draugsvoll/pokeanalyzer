@@ -151,7 +151,7 @@ function groupSeries(
   for (const point of points) {
     const source = point.source.toLowerCase();
     if (graded && source !== "ebay") continue;
-    const avg = point.avg ?? (graded ? point.median7d : null);
+    const avg = point.avg ?? (graded ? point.median30d : null);
     if (!isSource(source) || !isFiniteNumber(avg)) continue;
     (series[source] ??= []).push({
       date: point.date,

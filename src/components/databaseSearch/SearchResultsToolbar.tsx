@@ -11,6 +11,7 @@ type SearchResultsToolbarProps = {
   onClose: () => void;
   resultCount: number;
   sortControl?: ReactNode;
+  filterControl?: ReactNode;
 };
 
 export function SearchResultsToolbar({
@@ -19,6 +20,7 @@ export function SearchResultsToolbar({
   onClose,
   resultCount,
   sortControl,
+  filterControl,
 }: SearchResultsToolbarProps) {
   return (
     <div className="search-results-toolbar">
@@ -30,6 +32,7 @@ export function SearchResultsToolbar({
         </p>
       </div>
       <div className="search-results-toolbar__actions">
+        {filterControl}
         {resultCount > 0 && sortControl && (
           <div className="search-results-sort-control">{sortControl}</div>
         )}

@@ -45,6 +45,10 @@ import {
 import { AutosuggestCombobox } from "../autosuggestCombobox/AutosuggestCombobox";
 import { CardCategoryGrid } from "../cardCategoryGrid/CardCategoryGrid";
 import { FilterInput } from "../filterInput/FilterInput";
+import { useGradingOpportunityFilter } from "../../hooks/useGradingOpportunityFilter";
+import { GradingOpportunityFilter } from "../gradingOpportunitiesGrid/GradingOpportunityFilter";
+import { GradingOpportunityBadge } from "../gradingOpportunitiesGrid/GradingOpportunityBadge";
+import { RarityFilter } from "../rarityFilter/RarityFilter";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
 import { PriceChangePeriodSelector } from "../priceChangePeriodSelector/PriceChangePeriodSelector";
 import { PriceChange } from "../priceChange/PriceChange";
@@ -358,6 +362,7 @@ export function SetCategoryGrid() {
   const [salesLeaders, setSalesLeaders] =
     useState<PokeTraceSetSalesLeaders | null>(null);
   const [cardFilter, setCardFilter] = useState("");
+  const [rarity, setRarity] = useState("");
   const [sort, setSort] = useState<PokeTraceCardSort>(
     POKETRACE_DEFAULT_CARD_SORT,
   );
@@ -366,6 +371,12 @@ export function SetCategoryGrid() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
+  const {
+    available: gradingAvailable,
+    active: gradingActive,
+    setEnabled: setGradingEnabled,
+    multiplier: gradingMultiplier,
+  } = useGradingOpportunityFilter(!loading && cards.length > 0);
 
   useEffect(
     () => () => {
@@ -383,8 +394,14 @@ export function SetCategoryGrid() {
     [appliedCardScope, cards],
   );
   const filteredCards = useMemo(
-    () => scopedCards.filter((card) => cardMatchesFilter(card, cardFilter)),
-    [cardFilter, scopedCards],
+    () =>
+      scopedCards.filter(
+        (card) =>
+          cardMatchesFilter(card, cardFilter) &&
+          (!rarity || card.rarity?.trim() === rarity) &&
+          (!gradingActive || gradingMultiplier(card) !== null),
+      ),
+    [cardFilter, scopedCards, rarity, gradingActive, gradingMultiplier],
   );
   const sortedCards = useMemo(
     () =>
@@ -487,6 +504,7 @@ export function SetCategoryGrid() {
     setIsSorting(false);
     setInvalid(false);
     setError(null);
+    setRarity("");
     setCardScope(DEFAULT_CARD_SCOPE);
     setAppliedCardScope(DEFAULT_CARD_SCOPE);
 
@@ -598,6 +616,7 @@ export function SetCategoryGrid() {
 
   function handleCardScopeChange(nextScope: SetCardScope) {
     if (nextScope === cardScope || isUpdatingResults) return;
+    setGradingEnabled(false);
     setCardScope(nextScope);
     startScopeTransition(() => {
       setAppliedCardScope(nextScope);
@@ -709,6 +728,7 @@ export function SetCategoryGrid() {
   }
 
   function handleFeaturedFilter(value: string) {
+    setRarity("");
     handleCardFilterChange(value);
     requestAnimationFrame(() => {
       cardFilterInputRef.current?.focus();
@@ -731,11 +751,32 @@ export function SetCategoryGrid() {
         value={cardFilter}
       />
       <div className="set-category-grid__result-control-group">
+        {gradingAvailable && (
+          <GradingOpportunityFilter
+            checked={gradingActive}
+            count={
+              filteredCards.filter((card) => gradingMultiplier(card) !== null)
+                .length
+            }
+            onChange={(checked) => {
+              setGradingEnabled(checked);
+              setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+            }}
+          />
+        )}
         <PriceChangePeriodSelector
           className="set-category-grid__timeframe"
           disabled={isUpdatingResults}
           onChange={setChangePeriod}
           value={changePeriod}
+        />
+        <RarityFilter
+          rarities={cards.map((card) => card.rarity)}
+          value={rarity}
+          onChange={(value) => {
+            setRarity(value);
+            setVisibleCount(POKETRACE_SEARCH_PAGE_SIZE);
+          }}
         />
         <div className="set-category-grid__sort-control">
           <PokeTraceSortDropdown
@@ -835,12 +876,15 @@ export function SetCategoryGrid() {
           )}
 
           <CardCategoryGrid
+            allowGradingFilter={false}
             emptyMessage={
-              activeSetName
-                ? cardFilter.trim()
-                  ? "No cards match this filter."
-                  : `No cards were found in ${activeSetName}.`
-                : null
+              gradingActive
+                ? "No cards match the grading criteria in this set."
+                : activeSetName
+                  ? cardFilter.trim()
+                    ? "No cards match this filter."
+                    : `No cards were found in ${activeSetName}.`
+                  : null
             }
             error={error}
             footer={footer}
@@ -856,6 +900,11 @@ export function SetCategoryGrid() {
                 POKETRACE_RAW_CONDITION_LABELS[DEFAULT_CONDITION];
               return {
                 card,
+                badge: gradingActive ? (
+                  <GradingOpportunityBadge
+                    multiplier={gradingMultiplier(card)!}
+                  />
+                ) : undefined,
                 marketDisplay: {
                   condition: DEFAULT_CONDITION,
                   changeLabel: `${formatPriceChangePeriodLong(changePeriod)} TCGplayer ${conditionLabel} change`,

@@ -6,6 +6,7 @@ import "./GridView.scss";
 type GridViewProps = {
   children: React.ReactNode;
   defaultExpanded?: boolean;
+  headerControls?: React.ReactNode;
   minimized?: boolean;
   revealOnScroll?: boolean;
   sorting?: boolean;
@@ -16,6 +17,7 @@ type GridViewProps = {
 export function GridView({
   children,
   defaultExpanded = false,
+  headerControls,
   minimized = false,
   revealOnScroll = true,
   sorting = false,
@@ -71,13 +73,16 @@ export function GridView({
       className={`grid-view${revealOnScroll ? " ui-scroll-reveal" : ""}`}
       ref={revealOnScroll ? revealRef : undefined}
     >
-      {(title || subtitle) && (
+      {(title || subtitle || headerControls) && (
         <header
-          className={`grid-header${toggleable ? " grid-header--minimized" : ""}`}
+          className={`grid-header${toggleable ? " grid-header--minimized" : ""}${headerControls ? " grid-header--with-controls" : ""}`}
         >
           {title && <h3>{title}</h3>}
           {subtitle && (
             <small className="grid-header__subtitle">{subtitle}</small>
+          )}
+          {headerControls && (
+            <div className="grid-header__controls">{headerControls}</div>
           )}
           {toggleable && (
             <button

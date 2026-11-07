@@ -29,6 +29,7 @@ import {
 import "./PokemonCardView.scss";
 
 export type PokemonCardViewProps = {
+  readOnly?: boolean;
   card: PokemonCardType;
   badge?: ReactNode;
   comparisonPeriod?: PriceChangePeriod;
@@ -60,6 +61,7 @@ function getVariantBadgeAccent(variant?: string) {
 }
 
 export function PokemonCardView({
+  readOnly = false,
   card,
   comparisonPeriod,
   comparisonPriceSnapshot,
@@ -152,7 +154,7 @@ export function PokemonCardView({
           .join(" · ")}
         type="button"
       />
-      {authUser && (
+      {authUser && !readOnly && (
         <AssetSaveActions
           key={card.id}
           item={{ ...card, type: "single" }}

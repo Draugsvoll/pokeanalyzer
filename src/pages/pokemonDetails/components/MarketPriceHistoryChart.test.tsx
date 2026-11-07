@@ -112,10 +112,7 @@ test.each(["tcgplayer", "ebay", "graded"] as const)(
         `.poketrace-market__history-tooltip-row--${source} strong`,
       ),
     ).toHaveTextContent("$90.00");
-    for (const period of ["6M", "All", "3M"]) {
-      fireEvent.click(screen.getByRole("radio", { name: period }));
-      expect(legend.getByText("3 sold")).toBeVisible();
-    }
+    expect(screen.getByRole("radio", { name: "1M" })).toBeChecked();
   },
 );
 
@@ -332,7 +329,45 @@ test("reserves space for the widest price label and releases it when the period 
   }
 });
 
-test("compares Near Mint averages with a separately counted graded average series", () => {
+test("uses 30-day medians for graded history while raw history keeps averages", () => {
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [{ ...point(daysAgo(1), 20, 15), median30d: 12 }],
+        ebay: [{ ...point(daysAgo(1), 25, 18), median30d: 14 }],
+      })}
+      gradedHistory={{
+        label: "PSA 10",
+        points: [
+          { ...point(daysAgo(1), 600, 450), median30d: 500 },
+          point(daysAgo(0), 550, 400),
+        ],
+      }}
+    />,
+  );
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  fireEvent.pointerMove(chart, { clientX: 46 });
+  for (const [source, price] of [
+    ["tcgplayer", "$20.00"],
+    ["ebay", "$25.00"],
+    ["graded", "$500"],
+  ]) {
+    expect(
+      document.querySelector(
+        `.poketrace-market__history-tooltip-row--${source} strong`,
+      ),
+    ).toHaveTextContent(price);
+  }
+  fireEvent.pointerMove(chart, { clientX: 790 });
+  expect(
+    document.querySelector(
+      ".poketrace-market__history-tooltip-row--graded strong",
+    ),
+  ).toHaveTextContent("$550");
+});
+
+test("compares Near Mint averages with a separately counted graded series", () => {
   render(
     <MarketPriceHistoryChart
       history={history({
@@ -428,12 +463,12 @@ test("applies separate update cutoffs to Near Mint and graded Ebay history", () 
     document.querySelector(
       ".poketrace-market__history-tooltip-row--graded strong",
     ),
-  ).toHaveTextContent("No data");
+  ).toHaveTextContent("—");
   expect(
     document.querySelector(
       ".poketrace-market__history-tooltip-row--ebay strong",
     ),
-  ).toHaveTextContent("No data");
+  ).toHaveTextContent("—");
   expect(
     document.querySelector(
       ".poketrace-market__history-tooltip-row--tcgplayer strong",
@@ -477,7 +512,9 @@ test("totals sales for each selected period and animates changed legend counts",
     ["All", "1,115 sold", "2,230 sold"],
     ["3M", "5 sold", "10 sold"],
   ]) {
-    fireEvent.click(screen.getByRole("radio", { name: period }));
+    fireEvent.click(
+      screen.getByRole("radio", { name: new RegExp(`^${period}$`, "i") }),
+    );
     expect(legend.getByText(tcgCount)).toBeVisible();
     expect(legend.getByText(ebayCount)).toBeVisible();
   }
@@ -714,7 +751,7 @@ test("stops the Ebay line at the price update date", () => {
     document.querySelector(
       ".poketrace-market__history-tooltip-row--ebay strong",
     ),
-  ).toHaveTextContent("No data");
+  ).toHaveTextContent("—");
   expect(screen.queryByText("$55.00")).not.toBeInTheDocument();
   expect(
     document.querySelector(".poketrace-market__history-line--ebay"),
@@ -802,33 +839,59 @@ test("limits bounded periods and shows older points only in All", () => {
     `TCGPlayer Near Mint price history from ${format(daysAgo(120))} to ${format(daysAgo(0))}`,
   );
   expect(screen.queryByText("$10,000")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("radio", { name: "All" }));
+  fireEvent.click(screen.getByRole("radio", { name: /^all$/i }));
   expect(chart).toHaveAttribute(
     "aria-label",
     `TCGPlayer Near Mint price history from ${format(daysAgo(400), true)} to ${format(daysAgo(0))}`,
   );
 });
 
-test.each([0, 60, 150, 180, 181])(
-  "always offers all four periods for %s days of history",
-  (age) => {
-    render(
-      <MarketPriceHistoryChart
-        history={history({
-          tcgplayer: [point(daysAgo(age), 200), point(daysAgo(0), 100)],
-        })}
-      />,
-    );
-    expect(
-      screen.getAllByRole("radio").map((radio) => radio.getAttribute("value")),
-    ).toEqual(["30", "90", "180", "all"]);
-    expect(screen.getByRole("radio", { name: "1M" })).toBeVisible();
-    expect(screen.getByRole("radio", { name: "3M" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "6M" })).toBeVisible();
-    fireEvent.click(screen.getByRole("radio", { name: "All" }));
-    expect(screen.getByRole("radio", { name: "All" })).toBeChecked();
-  },
-);
+test.each([
+  [0, ["30"]],
+  [30, ["30"]],
+  [31, ["30", "90"]],
+  [90, ["30", "90"]],
+  [91, ["30", "90", "180"]],
+  [180, ["30", "90", "180"]],
+  [181, ["30", "90", "180", "all"]],
+])("offers only useful periods for %s days of history", (age, expected) => {
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [point(daysAgo(age), 200), point(daysAgo(0), 100)],
+      })}
+    />,
+  );
+  expect(
+    screen.getAllByRole("radio").map((radio) => radio.getAttribute("value")),
+  ).toEqual(expected);
+  expect(screen.getByRole("radio", { name: "1M" })).toBeVisible();
+  expect(
+    screen.getByRole("radio", { name: age <= 30 ? "1M" : "3M" }),
+  ).toBeChecked();
+});
+
+test("updates periods across sources and falls back when older graded history disappears", () => {
+  const recentHistory = history({
+    tcgplayer: [point(daysAgo(0), 20)],
+    ebay: [point(daysAgo(60), 25)],
+  });
+  const { rerender } = render(
+    <MarketPriceHistoryChart
+      history={recentHistory}
+      gradedHistory={{ label: "PSA 10", points: [point(daysAgo(200), 500)] }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: /^all$/i }));
+  expect(screen.getByRole("radio", { name: /^all$/i })).toBeChecked();
+  rerender(<MarketPriceHistoryChart history={recentHistory} />);
+  expect(
+    screen.queryByRole("radio", { name: /^all$/i }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("radio", { name: "6M" })).not.toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "3M" })).toBeChecked();
+  expect(screen.getByRole("img")).toHaveAccessibleName(/TCGPlayer and Ebay/);
+});
 
 test("includes previous years in axis and hover dates for All", () => {
   const firstDate = "Sep 30, 2025";
@@ -844,7 +907,7 @@ test("includes previous years in axis and hover dates for All", () => {
       })}
     />,
   );
-  fireEvent.click(screen.getByRole("radio", { name: "All" }));
+  fireEvent.click(screen.getByRole("radio", { name: /^all$/i }));
   expect(screen.getByText(firstDate)).toBeVisible();
   expect(screen.getByText("Nov 4")).toBeVisible();
   expect(screen.queryByText("Nov 4, 2026")).not.toBeInTheDocument();
@@ -868,7 +931,9 @@ test.each(["1M", "3M", "6M", "All"])(
         })}
       />,
     );
-    fireEvent.click(screen.getByRole("radio", { name: period }));
+    fireEvent.click(
+      screen.getByRole("radio", { name: new RegExp(`^${period}$`, "i") }),
+    );
     const labels = [
       ...document.querySelectorAll(".poketrace-market__history-date-label"),
     ];

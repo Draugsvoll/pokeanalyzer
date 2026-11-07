@@ -369,7 +369,7 @@ test("caches graded histories separately from other grades and Near Mint", async
               source: "ebay",
               avg: null,
               median7d: price,
-              median30d: null,
+              median30d: price + 10,
               low: null,
               high: null,
               saleCount: 1,
@@ -387,10 +387,12 @@ test("caches graded histories separately from other grades and Near Mint", async
     assert.equal(requests, 2);
     assert.equal(cached?.condition, "PSA_10");
     assert.equal(cached?.series.ebay?.[0].median7d, 475);
+    assert.equal(cached?.series.ebay?.[0].avg, 485);
     assert.equal(cached?.stale, false);
     const stale = await loadTier("BGS_9", 999, now + 7 * 60 * 60 * 1000, true);
     assert.equal(stale?.condition, "BGS_9");
     assert.equal(stale?.series.ebay?.[0].median7d, 390);
+    assert.equal(stale?.series.ebay?.[0].avg, 400);
     assert.equal(stale?.stale, true);
     assert.equal(
       (

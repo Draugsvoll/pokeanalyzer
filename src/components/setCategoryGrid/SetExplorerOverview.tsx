@@ -194,6 +194,7 @@ export function SetExplorerOverview({
         />
 
         <OverviewMetric
+          className="set-explorer-overview__card-count"
           detail={
             <>
               {overview.uniqueCards.toLocaleString("en-US")} numbered

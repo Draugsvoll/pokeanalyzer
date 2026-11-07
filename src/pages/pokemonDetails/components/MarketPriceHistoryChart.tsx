@@ -28,7 +28,7 @@ const PERIOD_OPTIONS = [
   { value: "30", label: "1M" },
   { value: "90", label: "3M" },
   { value: "180", label: "6M" },
-  { value: "all", label: "All" },
+  { value: "all", label: "ALL" },
 ] as const;
 type HistoryPeriod = (typeof PERIOD_OPTIONS)[number]["value"];
 
@@ -178,7 +178,7 @@ export function MarketPriceHistoryChart({
   loading?: boolean;
   gradeLoading?: boolean;
 }) {
-  const [period, setSelectedPeriod] = useState<HistoryPeriod>("90");
+  const [selectedPeriod, setSelectedPeriod] = useState<HistoryPeriod>("90");
   const today = dateTimestamp(new Date().toISOString().slice(0, 10));
   const sources: ChartSource[] = gradedHistory
     ? [...SOURCES, "graded"]
@@ -194,7 +194,10 @@ export function MarketPriceHistoryChart({
     points: excludeExtremePricePoint(
       [
         ...(source === "graded"
-          ? (gradedHistory?.points ?? [])
+          ? (gradedHistory?.points ?? []).map((point) => ({
+              ...point,
+              avg: point.median30d ?? point.avg,
+            }))
           : (history.series[source] ?? [])),
       ]
         .filter((point) => {
@@ -205,6 +208,20 @@ export function MarketPriceHistoryChart({
         .sort((left, right) => left.date.localeCompare(right.date)),
     ),
   }));
+  const oldestTimestamp = allSeries.reduce(
+    (oldest, { points }) =>
+      points.length ? Math.min(oldest, dateTimestamp(points[0].date)) : oldest,
+    today,
+  );
+  const periodOptions = PERIOD_OPTIONS.filter((_, index) =>
+    index === 0
+      ? true
+      : oldestTimestamp <
+        today - Number(PERIOD_OPTIONS[index - 1].value) * DAY_MS,
+  );
+  const period = periodOptions.some(({ value }) => value === selectedPeriod)
+    ? selectedPeriod
+    : periodOptions[periodOptions.length - 1].value;
   const formatHistoryDate = (date: string) =>
     formatDate(
       date,
@@ -252,7 +269,7 @@ export function MarketPriceHistoryChart({
       <RadioButtonGroup
         ariaLabel="Price history period"
         className="poketrace-market__history-periods"
-        options={PERIOD_OPTIONS}
+        options={periodOptions}
         value={period}
         onChange={(value) => {
           setSelectedPeriod(value);
@@ -627,7 +644,7 @@ export function MarketPriceHistoryChart({
                       <strong>
                         {point
                           ? formatPrice(point.value, history.currency)
-                          : "No data"}
+                          : "—"}
                       </strong>
                     </span>
                   ))}

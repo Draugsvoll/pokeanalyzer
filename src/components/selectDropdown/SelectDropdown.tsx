@@ -15,6 +15,7 @@ type SelectDropdownProps<T extends string> = {
   leadingIcon?: ReactNode;
   onChange: (value: T) => void;
   options: SelectDropdownOption<T>[];
+  placeholder?: string;
   value: T;
 };
 
@@ -25,13 +26,15 @@ export function SelectDropdown<T extends string>({
   leadingIcon,
   onChange,
   options,
+  placeholder,
   value,
 }: SelectDropdownProps<T>) {
   const menuId = useId();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const selectedOption =
-    options.find((option) => option.value === value) ?? options[0];
+    options.find((option) => option.value === value) ??
+    (placeholder === undefined ? options[0] : undefined);
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +88,7 @@ export function SelectDropdown<T extends string>({
               {leadingIcon}
             </span>
           )}
-          <span>{selectedOption?.label ?? ""}</span>
+          <span>{selectedOption?.label ?? placeholder ?? ""}</span>
           {selectedOption?.secondaryLabel && (
             <span className="ui-select-dropdown__secondary">
               <i aria-hidden="true">-</i>

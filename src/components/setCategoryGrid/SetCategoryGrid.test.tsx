@@ -5,11 +5,17 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { getGradingOpportunityList } from "../../services/gradingOpportunityListApi";
 import { beforeEach, expect, test, vi } from "vitest";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import type { PokemonCard } from "../../types/pokemon";
+import type { ReactNode } from "react";
 import { loadPokeTraceSet } from "../../services/pokeTraceSets";
 import { SetCategoryGrid } from "./SetCategoryGrid";
+
+vi.mock("../../services/gradingOpportunityListApi", () => ({
+  getGradingOpportunityList: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("../../hooks/usePokeTraceSetNameOptions", () => ({
   usePokeTraceSetNameOptions: () => [
@@ -55,8 +61,10 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
   PokemonCardView: ({
     card,
     marketDisplay,
+    badge,
   }: {
     card: PokemonCard;
+    badge?: ReactNode;
     marketDisplay?: {
       changePercent?: number;
       changePeriod?: string;
@@ -72,6 +80,7 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
       data-testid="set-card"
     >
       {card.name}
+      {badge}
     </p>
   ),
 }));
@@ -108,6 +117,7 @@ function card(
 }
 
 beforeEach(() => {
+  vi.mocked(getGradingOpportunityList).mockReset().mockResolvedValue(null);
   vi.mocked(loadPokeTraceSet).mockReset();
   window.sessionStorage.clear();
 });
@@ -115,6 +125,82 @@ beforeEach(() => {
 const salesLeaders = {
   total: { cardId: "Card 10" },
 };
+
+test("grading checkbox filters loaded cards before pagination and toggles multiplier badges without refetching", async () => {
+  vi.mocked(getGradingOpportunityList).mockResolvedValue({
+    schemaVersion: 2,
+    generatedAt: new Date().toISOString(),
+    items: [{ cardId: "Card 1", psa10Price: 1000 }],
+  });
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: Array.from({ length: 60 }, (_, index) =>
+      card(`Card ${index + 1}`, `${index + 1}/100`, index + 1),
+    ).reverse(),
+    salesLeaders,
+  });
+  renderSetExplorer("/set?set=Base%20Set");
+  const checkbox = await screen.findByRole("checkbox", {
+    name: "1 grading opportunity",
+  });
+  await waitFor(() =>
+    expect(screen.getAllByTestId("set-card")).toHaveLength(50),
+  );
+  expect(
+    screen
+      .getAllByTestId("set-card")
+      .some((node) => node.textContent === "Card 1"),
+  ).toBe(false);
+  fireEvent.click(checkbox);
+  expect(screen.getAllByTestId("set-card")).toHaveLength(1);
+  expect(
+    screen.getByLabelText(
+      "1,000 times TCGPlayer Near Mint price, based on eBay PSA 10 30-day median",
+    ),
+  ).toBeVisible();
+  fireEvent.click(checkbox);
+  expect(screen.getAllByTestId("set-card")).toHaveLength(50);
+  expect(screen.queryByLabelText(/times TCGPlayer/)).toBeNull();
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("radio", { name: "All variants" }));
+  await waitFor(() => expect(checkbox).not.toBeChecked());
+  expect(screen.getAllByTestId("set-card")).toHaveLength(50);
+  expect(screen.queryByLabelText(/times TCGPlayer/)).toBeNull();
+  expect(loadPokeTraceSet).toHaveBeenCalledTimes(1);
+});
+
+test("filters set cards by their available rarities and restores all cards", async () => {
+  vi.mocked(loadPokeTraceSet).mockResolvedValue({
+    cards: [
+      { ...card("Rare card", "1/100", 20), rarity: "Rare" },
+      { ...card("Common card", "2/100", 10), rarity: "Common" },
+      { ...card("Another rare", "3/100", 15), rarity: "Rare" },
+    ],
+    salesLeaders,
+  });
+  renderSetExplorer("/set?set=Base%20Set");
+  const trigger = await screen.findByRole("button", {
+    name: "Filter by rarity",
+  });
+  expect(trigger).toHaveTextContent("Any rarity");
+  fireEvent.click(trigger);
+  expect(
+    screen.getAllByRole("option", { name: /^Rare\s*\(2\)$/ }),
+  ).toHaveLength(1);
+  fireEvent.click(screen.getByRole("option", { name: /^Rare\s*\(2\)$/ }));
+  expect(
+    screen.getAllByTestId("set-card").map((node) => node.textContent),
+  ).toEqual(["Rare card", "Another rare"]);
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Filter set cards" }),
+    { target: { value: "Another" } },
+  );
+  expect(screen.getAllByTestId("set-card")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Clear card filter" }));
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole("option", { name: "Any rarity" }));
+  expect(screen.getAllByTestId("set-card")).toHaveLength(3);
+  expect(loadPokeTraceSet).toHaveBeenCalledTimes(1);
+});
 
 function CurrentLocation() {
   const location = useLocation();
@@ -710,7 +796,7 @@ test("opens a set immediately on suggestion click and sorts the fetched cards lo
   );
   expect(
     screen.getByRole("button", { name: "Sort set cards" }),
-  ).toHaveTextContent("Unsorted");
+  ).toHaveTextContent("Sort by");
   expect(document.querySelector(".grid-view")).toHaveClass("ui-scroll-reveal");
   expect(
     screen.getAllByTestId("set-card").map((node) => node.textContent),
@@ -789,7 +875,7 @@ test("opens a set immediately on suggestion click and sorts the fetched cards lo
   expect(
     screen.getByRole("option", { name: "% Change: high–low" }),
   ).toBeVisible();
-  fireEvent.click(screen.getByRole("option", { name: "Unsorted" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
   await waitFor(() =>
     expect(
       screen.getAllByTestId("set-card").map((node) => node.textContent),

@@ -2,6 +2,10 @@ import { Router, type RequestHandler } from "express";
 import { ensurePokeTraceReady, pokeTraceDb } from "../pokeTraceDb.js";
 import { logError } from "../../security/logging.js";
 import {
+  createGradingOpportunityListCache,
+  loadGradingOpportunityList,
+} from "../../services/gradingOpportunityList.js";
+import {
   loadMarketCategories,
   type MarketCategoriesPayload,
 } from "../../services/marketCategories.js";
@@ -40,6 +44,30 @@ export function createMarketCategoriesHandler(
 }
 
 const router = Router();
+const loadGradingList = createGradingOpportunityListCache(async () => {
+  await ensurePokeTraceReady();
+  return loadGradingOpportunityList(pokeTraceDb);
+});
+export function createGradingOpportunityListHandler(
+  load = loadGradingList,
+  reportError = logError,
+): RequestHandler {
+  return async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      res.json(await load());
+    } catch (error) {
+      reportError("Failed to load grading opportunity list", error);
+      res
+        .status(503)
+        .json({ error: "Grading opportunity list is unavailable" });
+    }
+  };
+}
+router.get(
+  "/grading-opportunities-list",
+  createGradingOpportunityListHandler(),
+);
 router.get("/", createMarketCategoriesHandler());
 
 export default router;

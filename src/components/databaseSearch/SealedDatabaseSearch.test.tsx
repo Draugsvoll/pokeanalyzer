@@ -118,8 +118,8 @@ test("uses the shared results toolbar to sort and close sealed results", async (
   const onClose = vi.fn();
   vi.mocked(searchSealedProducts).mockResolvedValue({
     items: [
-      sealedProduct("expensive", "Expensive Box", 200),
       sealedProduct("cheap", "Cheap Box", 50),
+      sealedProduct("expensive", "Expensive Box", 200),
     ],
     total: 2,
   });
@@ -135,10 +135,10 @@ test("uses the shared results toolbar to sort and close sealed results", async (
   ).toBeVisible();
   expect(
     screen.getAllByTestId("sealed-product").map((node) => node.textContent),
-  ).toEqual(["Expensive Box", "Cheap Box"]);
+  ).toEqual(["Cheap Box", "Expensive Box"]);
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Price: low–high" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
 
   expect(document.querySelector(".card-grid")).toHaveClass(
     "card-grid--sorting",
@@ -146,7 +146,7 @@ test("uses the shared results toolbar to sort and close sealed results", async (
   await waitFor(() =>
     expect(
       screen.getAllByTestId("sealed-product").map((node) => node.textContent),
-    ).toEqual(["Cheap Box", "Expensive Box"]),
+    ).toEqual(["Expensive Box", "Cheap Box"]),
   );
   expect(document.querySelector(".card-grid")).not.toHaveClass(
     "card-grid--sorting",
@@ -238,7 +238,7 @@ test("invalidates a pending sort when a new search begins", async () => {
   ).toEqual(["New Expensive", "New Cheap"]);
   expect(
     screen.getByRole("button", { name: "Sort search results" }),
-  ).toHaveTextContent("Unsorted");
+  ).toHaveTextContent("Sort by");
 });
 
 test("keeps sealed results closed when an active request resolves late", async () => {
@@ -498,7 +498,10 @@ test("removes cleared Sealed filters from the URL", async () => {
     </MemoryRouter>,
   );
 
-  fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
+  const filtersButton = screen.getByRole("button", {
+    name: /^Search filters,/,
+  });
+  fireEvent.click(filtersButton);
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
   await waitFor(() => {
@@ -510,10 +513,8 @@ test("removes cleared Sealed filters from the URL", async () => {
       name: "Booster",
     });
   });
-  expect(screen.getByRole("spinbutton", { name: "Minimum price" })).toHaveValue(
-    null,
-  );
-  expect(screen.getByRole("spinbutton", { name: "Maximum price" })).toHaveValue(
-    null,
-  );
+  expect(filtersButton).toHaveAttribute("aria-expanded", "false");
+  expect(
+    screen.queryByRole("spinbutton", { name: "Minimum price" }),
+  ).not.toBeInTheDocument();
 });

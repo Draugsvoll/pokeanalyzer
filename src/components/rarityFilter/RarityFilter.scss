@@ -1,0 +1,26 @@
+.rarity-filter {
+  .ui-select-dropdown__menu {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-height: min(20rem, 60vh);
+    max-width: calc(100vw - 2rem);
+    overflow-y: auto;
+  }
+
+  .ui-select-dropdown__secondary {
+    color: inherit;
+    font-weight: var(--font-weight-regular);
+
+    i {
+      display: none;
+    }
+  }
+
+  .ui-select-dropdown__option {
+    height: auto;
+    min-height: 34px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}

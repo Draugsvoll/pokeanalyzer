@@ -60,6 +60,10 @@ export default function App() {
           element={withRouteLoader(<GradingCalculatorPage />)}
         />
         <Route path="portfolio" element={withRouteLoader(<Portfolio />)} />
+        <Route
+          path="portfolio/demo"
+          element={withRouteLoader(<Portfolio demo />)}
+        />
         <Route path="admin" element={withRouteLoader(<Admin />)} />
         <Route path="privacy" element={withRouteLoader(<PrivacyPolicy />)} />
         <Route path="terms" element={withRouteLoader(<TermsOfService />)} />

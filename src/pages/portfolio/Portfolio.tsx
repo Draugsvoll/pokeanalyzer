@@ -9,14 +9,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AlertTriangle, LogIn, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, LogIn, Plus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { formatPokeTraceMoney } from "../../../shared/pokeTraceCurrency";
 import { formatPriceChangePeriodLong } from "../../../shared/priceChangePeriod";
 import Button from "../../components/button/Button";
 import { CardIdentity } from "../../components/cardIdentity/CardIdentity";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { FilterInput } from "../../components/filterInput/FilterInput";
+import { RarityFilter } from "../../components/rarityFilter/RarityFilter";
+import { useGradingOpportunityFilter } from "../../hooks/useGradingOpportunityFilter";
+import { GradingOpportunityFilter } from "../../components/gradingOpportunitiesGrid/GradingOpportunityFilter";
+import { GradingOpportunityBadge } from "../../components/gradingOpportunitiesGrid/GradingOpportunityBadge";
 import { GridView } from "../../components/gridView/GridView";
 import LoginModal from "../../components/loginmodal/Loginmodal";
 import {
@@ -38,8 +42,14 @@ import { SelectDropdown } from "../../components/selectDropdown/SelectDropdown";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
-import { getHydratedPortfolio } from "../../services/portfolioApi";
-import type { PortfolioComparisonPeriod } from "../../types/portfolio";
+import {
+  getDemoPortfolio,
+  getHydratedPortfolio,
+} from "../../services/portfolioApi";
+import type {
+  PortfolioComparisonPeriod,
+  HydratedPortfolioResponse,
+} from "../../types/portfolio";
 import { logClientError } from "../../utils/logClientError";
 import {
   getPortfolioStats,
@@ -58,7 +68,6 @@ const integer = new Intl.NumberFormat("en-US", {
 });
 
 const SORT_OPTIONS: { value: PortfolioSort; label: string }[] = [
-  { value: "unsorted", label: "Unsorted" },
   { value: "name-az", label: "Name: A–Z" },
   { value: "price-high", label: "Price: high–low" },
   { value: "price-low", label: "Price: low–high" },
@@ -133,9 +142,11 @@ function FeaturedAssetMetric({
 }
 
 function PortfolioPageHeader({
+  demo = false,
   actions,
   mode = "collection",
 }: {
+  demo?: boolean;
   actions?: ReactNode;
   mode?: ListMode;
 }) {
@@ -143,7 +154,7 @@ function PortfolioPageHeader({
     <header className="portfolio__page-header">
       <div>
         <span className="portfolio__eyebrow">Portfolio</span>
-        <h1>My {mode}</h1>
+        <h1>{demo ? `Demo ${mode}` : `My ${mode}`}</h1>
       </div>
       {actions && <div className="portfolio__page-actions">{actions}</div>}
     </header>
@@ -192,6 +203,10 @@ function PortfolioGuest() {
         </div>
       </section>
 
+      <Link className="portfolio__demo-link" to="/portfolio/demo">
+        Explore demo portfolio
+      </Link>
+
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   );
@@ -210,14 +225,21 @@ const LIST_OPTIONS = [
   { label: "Watchlist", value: "watchlist" },
 ] as const;
 
-function PortfolioList() {
+function PortfolioList({ demo = false }: { demo?: boolean }) {
   const [mode, setMode] = useState<ListMode>("collection");
   const navigate = useNavigate();
   const collection = usePortfolioCache();
   const watchlist = useWatchlistCache();
   const hydrateCollection = collection.hydrate;
   const hydrateWatchlist = watchlist.hydrate;
-  const { items, missingItems } = mode === "watchlist" ? watchlist : collection;
+  const [demoPortfolios, setDemoPortfolios] = useState<
+    Partial<Record<ListMode, HydratedPortfolioResponse>>
+  >({});
+  const { items, missingItems } = demo
+    ? (demoPortfolios[mode] ?? { items: [], missingItems: [] })
+    : mode === "watchlist"
+      ? watchlist
+      : collection;
   const isWatchlist = mode === "watchlist";
   const listLabel = isWatchlist ? "Watchlist" : "Collection";
   const requestControllerRef = useRef<AbortController | null>(null);
@@ -229,6 +251,7 @@ function PortfolioList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [rarity, setRarity] = useState("");
   const filterInputRef = useRef<HTMLInputElement>(null);
 
   const [sort, setSort] = useState<PortfolioSort>("unsorted");
@@ -267,6 +290,16 @@ function PortfolioList() {
     setLoading(true);
     setError("");
     try {
+      if (demo) {
+        const [collection, watchlist] = await Promise.all([
+          getDemoPortfolio("collection", controller.signal),
+          getDemoPortfolio("watchlist", controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
+        setDemoPortfolios({ collection, watchlist });
+        setLoadedLists({ collection: true, watchlist: true });
+        return;
+      }
       const modes: ListMode[] = initialLoadCompleteRef.current
         ? [mode]
         : ["collection", "watchlist"];
@@ -290,15 +323,21 @@ function PortfolioList() {
         }
       });
       setLoadedLists((current) => ({ ...current, ...loaded }));
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        logClientError("Failed to load demo portfolio", error);
+        setError("Please try again in a moment.");
+      }
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;
         setLoading(false);
       }
     }
-  }, [mode, hydrateCollection, hydrateWatchlist]);
+  }, [demo, mode, hydrateCollection, hydrateWatchlist]);
 
   function handleFeaturedFilter(value: string) {
+    setRarity("");
     setFilter(value);
     requestAnimationFrame(() => {
       filterInputRef.current?.focus();
@@ -326,9 +365,35 @@ function PortfolioList() {
     };
   }, [load, hasCachedList]);
 
+  const {
+    available: gradingAvailable,
+    active: gradingActive,
+    setEnabled: setGradingEnabled,
+    multiplier: gradingMultiplier,
+  } = useGradingOpportunityFilter(!loading && items.length > 0);
   const visibleItems = useMemo(
-    () => getVisiblePortfolioItems(items, filter, sort, changePeriod),
-    [items, changePeriod, filter, sort],
+    () =>
+      getVisiblePortfolioItems(
+        items.filter(
+          (item) =>
+            (!rarity ||
+              (item.type === "single" && item.rarity?.trim() === rarity)) &&
+            (!gradingActive ||
+              (item.type === "single" && gradingMultiplier(item) !== null)),
+        ),
+        filter,
+        sort,
+        changePeriod,
+      ),
+    [
+      items,
+      changePeriod,
+      filter,
+      sort,
+      rarity,
+      gradingActive,
+      gradingMultiplier,
+    ],
   );
   const stats = useMemo(
     () => getPortfolioStats(items, changePeriod),
@@ -349,8 +414,10 @@ function PortfolioList() {
         setError("");
         setQuantityDialogItemKey(null);
         if (nextMode === "watchlist" && sort === "holding-high")
-          setSort("price-high");
+          setSort("unsorted");
         setMode(nextMode);
+        setGradingEnabled(false);
+        setRarity("");
       }}
       options={LIST_OPTIONS}
       value={mode}
@@ -365,9 +432,14 @@ function PortfolioList() {
   return (
     <div className="portfolio">
       <PortfolioPageHeader
+        demo={demo}
         mode={mode}
         actions={
-          items.length === 0 && error ? (
+          demo ? (
+            <Button fill="ghost" onClick={() => navigate("/")}>
+              <ArrowLeft aria-hidden="true" /> Home
+            </Button>
+          ) : items.length === 0 && error ? (
             scopeControl
           ) : items.length > 0 && !error ? (
             <>
@@ -559,15 +631,36 @@ function PortfolioList() {
               />
 
               <div className="portfolio__control-group">
+                {gradingAvailable && (
+                  <GradingOpportunityFilter
+                    checked={gradingActive}
+                    count={
+                      visibleItems.filter(
+                        (item) =>
+                          item.type === "single" &&
+                          gradingMultiplier(item) !== null,
+                      ).length
+                    }
+                    onChange={setGradingEnabled}
+                  />
+                )}
                 <div className="portfolio__timeframe">
                   <PriceChangePeriodSelector
                     onChange={setChangePeriod}
                     value={changePeriod}
                   />
                 </div>
+                <RarityFilter
+                  rarities={items.flatMap((item) =>
+                    item.type === "single" ? [item.rarity] : [],
+                  )}
+                  value={rarity}
+                  onChange={setRarity}
+                />
                 <div className="portfolio__sort-group">
                   <SelectDropdown
                     ariaLabel={`Sort ${mode} assets`}
+                    placeholder="Sort by"
                     className="portfolio__sort"
                     options={
                       isWatchlist
@@ -597,6 +690,39 @@ function PortfolioList() {
               <GridView>
                 {visibleItems.map((item) => {
                   const itemKey = `${item.type}:${item.id}`;
+                  if (gradingActive && item.type === "single") {
+                    return (
+                      <PokemonCardView
+                        key={itemKey}
+                        card={item}
+                        readOnly={demo}
+                        comparisonPeriod={changePeriod}
+                        comparisonPriceSnapshot={portfolioComparisonSnapshot(
+                          item,
+                          changePeriod,
+                        )}
+                        badge={
+                          <GradingOpportunityBadge
+                            multiplier={gradingMultiplier(item)!}
+                          />
+                        }
+                      />
+                    );
+                  }
+                  if (demo && item.type === "single") {
+                    return (
+                      <PokemonCardView
+                        key={itemKey}
+                        card={item}
+                        readOnly
+                        comparisonPeriod={changePeriod}
+                        comparisonPriceSnapshot={portfolioComparisonSnapshot(
+                          item,
+                          changePeriod,
+                        )}
+                      />
+                    );
+                  }
                   const commonProps = {
                     comparisonPeriod: changePeriod,
                     quantityDialogOpen: quantityDialogItemKey === itemKey,
@@ -662,9 +788,10 @@ function PortfolioList() {
   );
 }
 
-export default function Portfolio() {
+export default function Portfolio({ demo = false }: { demo?: boolean }) {
   const { user, loading } = useAuth();
 
+  if (demo) return <PortfolioList key="demo" demo />;
   if (loading) return <PortfolioLoading showHeader={false} />;
   if (!user) return <PortfolioGuest />;
 

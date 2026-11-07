@@ -4,6 +4,7 @@ import express from "express";
 import {
   addPortfolioAsset,
   createHydratedAssetsHandler,
+  createDemoPortfolioHandler,
   createHydratedPortfolioHandler,
   createPortfolioAssetHandlers,
   getHydratedAssets,
@@ -12,6 +13,68 @@ import {
   updatePortfolioAssetQuantity,
 } from "./portfolioRoutes.js";
 import { requestFromTestServer } from "./httpTestServer.js";
+import {
+  DEMO_PORTFOLIO_CARD_IDS,
+  DEMO_WATCHLIST_CARD_IDS,
+} from "../../../shared/demoPortfolio.js";
+
+for (const [list, ids] of [
+  ["collection", DEMO_PORTFOLIO_CARD_IDS],
+  ["watchlist", DEMO_WATCHLIST_CARD_IDS],
+] as const) {
+  test(`public demo ${list} hydrates only its fixed 20 single-card entries`, async () => {
+    assert.equal(ids.length, 20);
+    assert.equal(new Set(ids).size, 20);
+    assert.equal(
+      new Set([...DEMO_PORTFOLIO_CARD_IDS, ...DEMO_WATCHLIST_CARD_IDS]).size,
+      40,
+    );
+    const app = express();
+    let calls = 0;
+    app.get(
+      "/api/portfolio/demo",
+      createDemoPortfolioHandler(async (entries) => {
+        calls++;
+        assert.deepEqual(
+          entries,
+          ids.map((id) => ({ id, type: "single", quantity: 1 })),
+        );
+        return {
+          items: entries.map((entry) => ({ ...entry, name: "Demo card" })),
+          missingItems: [],
+        };
+      }),
+    );
+    const response = await requestFromTestServer(
+      app,
+      `/api/portfolio/demo?list=${list}&uid=someone-else&cardId=arbitrary`,
+    );
+    assert.equal(response.status, 200);
+    assert.equal(calls, 1);
+    assert.equal(response.headers.get("cache-control"), "public, max-age=300");
+    const result = (await response.json()) as {
+      entries: unknown[];
+      items: unknown[];
+    };
+    assert.equal(result.entries.length, 20);
+    assert.equal(result.items.length, 20);
+  });
+}
+
+test("demo rejects unsupported lists before loading cards", async () => {
+  const app = express();
+  app.get(
+    "/api/portfolio/demo",
+    createDemoPortfolioHandler(async () => {
+      throw new Error("Must not load cards");
+    }),
+  );
+  const response = await requestFromTestServer(
+    app,
+    "/api/portfolio/demo?list=private",
+  );
+  assert.equal(response.status, 400);
+});
 
 const pokeTraceCardId = "019bff77-befa-771d-bab0-f5909f0a78c9";
 

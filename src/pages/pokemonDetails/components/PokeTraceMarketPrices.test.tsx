@@ -203,6 +203,40 @@ test("hides grades with three identical numeric medians without hiding raw price
   await screen.findByRole("img");
 });
 
+test("graded prices prefer the 30-day median and fall back to avg rather than the 7-day median", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue({
+    cardId,
+    days: 9,
+    snapshots: [],
+  });
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={{
+        ...liveData,
+        prices: {
+          tcgplayer: { NEAR_MINT: { avg: 20, median30d: 10 } },
+          ebay: {
+            PSA_10: { avg: 500, median7d: 450, median30d: 425 },
+            PSA_9: { avg: 300, median7d: 250, median30d: null },
+            PSA_8: { avg: 200, median7d: 150 },
+          },
+        },
+      }}
+    />,
+  );
+  const graded = within(screen.getByRole("region", { name: "Graded" }));
+  expect(graded.getByText("$425.00")).toBeVisible();
+  expect(graded.getByText("$300.00")).toBeVisible();
+  expect(graded.getByText("$200.00")).toBeVisible();
+  expect(graded.queryByText("$450.00")).toBeNull();
+  expect(graded.queryByText("$250.00")).toBeNull();
+  expect(screen.getByText("$20.00")).toBeVisible();
+  await screen.findByRole("img");
+});
+
 test("omits stale or undated graded options while retaining the two-month boundary and raw conditions", async () => {
   vi.mocked(fetchCardPriceHistory).mockResolvedValue({
     cardId,

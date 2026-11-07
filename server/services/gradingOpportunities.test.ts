@@ -5,6 +5,8 @@ import {
   findGradingOpportunities,
   normalizeGradingOpportunitiesOptions,
 } from "./gradingOpportunities.js";
+import { loadGradingOpportunityList } from "./gradingOpportunityList.js";
+import { runGradingOpportunityListGeneration } from "../scripts/gradingOpportunityListGenerationJob.js";
 
 const fresh = "2026-10-20T00:00:00.000Z";
 
@@ -40,7 +42,7 @@ async function insertCard(
   id: string,
   name: string,
   nearMint: ReturnType<typeof tier>,
-  psa: ReturnType<typeof tier>,
+  psa: ReturnType<typeof tier> & { median3d?: number | null },
   tcgNearMint = {
     avg: nearMint.median7d,
     saleCount: nearMint.saleCount,
@@ -66,7 +68,7 @@ async function insertCard(
   });
 }
 
-test("uses the displayed TCG Near Mint average and only the PSA 10 seven-day median", async (t) => {
+test("uses the displayed TCG Near Mint average and only the PSA 10 30-day median", async (t) => {
   t.mock.timers.enable({
     apis: ["Date"],
     now: new Date("2026-11-01T12:00:00Z"),
@@ -112,6 +114,13 @@ test("uses the displayed TCG Near Mint average and only the PSA 10 seven-day med
     tier(2_000, 1_500, 80),
     { avg: null, saleCount: 100, lastUpdated: fresh },
   );
+  await insertCard(
+    database,
+    "seven-day-only",
+    "Seven Day Only",
+    tier(100, 90, 75),
+    tier(2000, null, 80),
+  );
 
   const result = await findGradingOpportunities(database);
 
@@ -130,9 +139,10 @@ test("uses the displayed TCG Near Mint average and only the PSA 10 seven-day med
       item.multiplier,
     ]),
     [
-      ["high-multiple", 50, "7d", 2_000, 40],
-      ["larger-gap", 100, "7d", 3_000, 30],
-      ["no-ebay-raw-median", 100, "7d", 2_000, 20],
+      ["thirty-day-only", 40, "30d", 2_200, 55],
+      ["larger-gap", 100, "30d", 4_000, 40],
+      ["no-ebay-raw-median", 100, "30d", 4_000, 40],
+      ["high-multiple", 50, "30d", 1_500, 30],
     ],
   );
   database.close();
@@ -144,8 +154,8 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     now: new Date("2026-11-01T12:00:00Z"),
   });
   const database = await createDatabase();
-  const qualifiedRaw = tier(100, 90, 75);
-  const qualifiedPsa = tier(1_000, 900, 75);
+  const qualifiedRaw = tier(100, 90, 50);
+  const qualifiedPsa = tier(1_000, 900, 50);
   await insertCard(
     database,
     "qualified",
@@ -165,13 +175,13 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     "small-gap",
     "Small Gap",
     tier(100, 90, 75),
-    tier(599, 500, 75),
+    tier(500, 549, 50),
   );
   await insertCard(
     database,
     "few-raw-sales",
     "Few Raw Sales",
-    tier(100, 90, 74),
+    tier(100, 90, 49),
     qualifiedPsa,
   );
   await insertCard(
@@ -179,7 +189,7 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     "few-psa-sales",
     "Few PSA Sales",
     qualifiedRaw,
-    tier(1_000, 900, 74),
+    tier(1_000, 900, 49),
   );
   await insertCard(
     database,
@@ -199,8 +209,8 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     database,
     "boundary",
     "Boundary",
-    tier(50, 40, 75, "2026-10-02T12:00:00.000Z"),
-    tier(700, 600, 75, "2026-10-02T12:00:00.000Z"),
+    tier(25, 20, 50, "2026-10-02T12:00:00.000Z"),
+    tier(450, 475, 50, "2026-10-02T12:00:00.000Z"),
   );
 
   const result = await findGradingOpportunities(database, { limit: 12 });
@@ -235,6 +245,7 @@ test("excludes identical PSA medians before ranking and limiting, while retainin
     },
     { id: "missing-3d", price: tier(1_000, 1_000, 100) },
     { id: "null-3d", price: { ...tier(1_000, 1_000, 100), median3d: null } },
+    { id: "null-7d", price: { ...tier(null, 1_000, 100), median3d: 1_000 } },
     { id: "null-30d", price: { ...tier(1_000, null, 100), median3d: 1_000 } },
   ];
   for (const { id, price } of cases) {
@@ -244,14 +255,14 @@ test("excludes identical PSA medians before ranking and limiting, while retainin
   assert.deepEqual(
     result.items.map(({ cardId }) => cardId).sort(),
     cases
-      .slice(1)
+      .filter(({ id }) => id !== "identical" && id !== "null-30d")
       .map(({ id }) => id)
       .sort(),
   );
   const limited = await findGradingOpportunities(database, { limit: 1 });
   assert.deepEqual(
     limited.items.map(({ cardId }) => cardId),
-    ["different-30d"],
+    ["different-3d"],
   );
 });
 
@@ -268,4 +279,54 @@ test("rejects unsafe grading opportunity parameters", () => {
     () => normalizeGradingOpportunitiesOptions({ minimumPsaPriceIncrease: -1 }),
     /minimumPsaPriceIncrease/,
   );
+});
+
+test("unlimited generation saves all qualified cards while the original category still returns its top 12", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-11-01T12:00:00Z"),
+  });
+  const db = await createDatabase();
+  try {
+    await db.execute(
+      "CREATE TABLE poketrace_job_locks (name TEXT PRIMARY KEY, token TEXT NOT NULL, expires_at INTEGER NOT NULL)",
+    );
+    for (let i = 0; i < 125; i++) {
+      await insertCard(
+        db,
+        `qualified-${i}`,
+        `Qualified ${i}`,
+        tier(10, 15, 75),
+        { ...tier(700, 600 + i, 75), median3d: 550 },
+      );
+    }
+    await insertCard(
+      db,
+      "low-sales",
+      "Low sales",
+      tier(10, 15, 75),
+      tier(5000, 6000, 49),
+    );
+    await insertCard(db, "identical", "Identical medians", tier(10, 15, 75), {
+      ...tier(5000, 5000, 100),
+      median3d: 5000,
+    });
+    const limited = await findGradingOpportunities(db);
+    const full = await findGradingOpportunities(db, { limit: null });
+    assert.equal(limited.items.length, 12);
+    assert.equal(full.items.length, 125);
+    assert.deepEqual(full.items.slice(0, 12), limited.items);
+    const saved = await runGradingOpportunityListGeneration(db);
+    assert.equal(saved?.items.length, 125);
+    assert.deepEqual(await loadGradingOpportunityList(db), saved);
+    assert.deepEqual(saved?.items[0], {
+      cardId: "qualified-124",
+      psa10Price: 724,
+    });
+    await db.execute("UPDATE poketrace_cards SET raw_json = '{}' ");
+    await runGradingOpportunityListGeneration(db);
+    assert.deepEqual((await loadGradingOpportunityList(db))?.items, []);
+  } finally {
+    db.close();
+  }
 });

@@ -8,6 +8,26 @@ import type {
 import { savedListRequest } from "./savedListApi";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
 
+export function getDemoPortfolio(
+  list: "collection" | "watchlist",
+  signal?: AbortSignal,
+) {
+  return runWithRequestTimeout(
+    async (requestSignal) => {
+      const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+      const response = await fetch(
+        `${apiUrl}/api/portfolio/demo?list=${list}`,
+        {
+          signal: requestSignal,
+        },
+      );
+      if (!response.ok) throw new Error("Failed to load demo portfolio");
+      return response.json() as Promise<HydratedPortfolioResponse>;
+    },
+    { signal },
+  );
+}
+
 function portfolioRequest<T>(
   path: string,
   uid: string,

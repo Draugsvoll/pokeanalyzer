@@ -89,6 +89,10 @@
     align-items: flex-end;
     display: flex;
     gap: var(--space-3);
+
+    &:has(> .grading-opportunity-filter) {
+      flex-wrap: wrap;
+    }
   }
 
   &__sort-group,
@@ -229,6 +233,16 @@
   &__guest-actions {
     justify-content: center;
     margin-top: var(--space-5);
+  }
+
+  &__demo-link {
+    color: var(--font-color-primary);
+    display: block;
+    font-size: var(--font-size-paragraph-sm);
+    margin: var(--space-5) auto 0;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    width: fit-content;
   }
 
   @media (max-width: 48rem) {

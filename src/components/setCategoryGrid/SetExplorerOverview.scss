@@ -8,10 +8,17 @@
   transition: opacity var(--delay-short) ease;
 }
 
-.set-explorer-overview__summary .app-overview-metric-content > span:has(.info-tooltip) {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+.set-explorer-overview__card-count .app-overview-metric-content > span {
+  padding-right: calc(1.5rem + var(--space-1));
+  position: relative;
+  width: max-content;
+
+  > .info-tooltip {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }
 
 .set-explorer-overview[aria-busy="true"] .set-explorer-overview__summary {

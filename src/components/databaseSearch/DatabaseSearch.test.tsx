@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { getGradingOpportunityList } from "../../services/gradingOpportunityListApi";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { PokemonCard } from "../../types/pokemon";
+import type { ReactNode } from "react";
 import { DatabaseSearch } from "./DatabaseSearch";
 
 const mocks = vi.hoisted(() => ({
@@ -9,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   searchResponse: vi.fn(),
   fetchSealedFilterOptions: vi.fn(),
   searchSealedProducts: vi.fn(),
+}));
+
+vi.mock("../../services/gradingOpportunityListApi", () => ({
+  getGradingOpportunityList: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("../../services/pokeTraceFilterOptions", () => ({
@@ -24,13 +30,16 @@ vi.mock("../pokemonCardView/PokemonCardView", () => ({
   PokemonCardView: ({
     card,
     marketDisplay,
+    badge,
   }: {
     card: PokemonCard;
+    badge?: ReactNode;
     marketDisplay?: { marketLabel?: string; price?: number };
   }) => (
     <div>
       <span>{card.name}</span> {marketDisplay?.marketLabel}{" "}
       {marketDisplay?.price}
+      {badge}
     </div>
   ),
 }));
@@ -52,6 +61,42 @@ function pricedCard(id: string, name: string, price: number): PokemonCard {
   };
   return result;
 }
+
+test("grading filter uses the loaded results and their normal NM price without another search", async () => {
+  vi.mocked(getGradingOpportunityList).mockResolvedValue({
+    schemaVersion: 2,
+    generatedAt: new Date().toISOString(),
+    items: [{ cardId: "match", psa10Price: 1000 }],
+  });
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () =>
+      serverResponse([
+        pricedCard("match", "Matching Card", 50),
+        pricedCard("other", "Other Card", 100),
+      ]),
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderSearch();
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "card" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  await screen.findByText("Matching Card");
+  const checkbox = await screen.findByRole("checkbox", {
+    name: "1 grading opportunity",
+  });
+  fireEvent.click(checkbox);
+  expect(screen.queryByText("Other Card")).toBeNull();
+  expect(
+    screen.getByLabelText(
+      "20 times TCGPlayer Near Mint price, based on eBay PSA 10 30-day median",
+    ),
+  ).toBeVisible();
+  fireEvent.click(checkbox);
+  expect(screen.getByText("Other Card")).toBeVisible();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
 
 function changedCard(
   id: string,
@@ -94,6 +139,7 @@ function SearchHistoryControls() {
 }
 
 beforeEach(() => {
+  vi.mocked(getGradingOpportunityList).mockReset().mockResolvedValue(null);
   mocks.loadPokeTraceFilterOptions.mockReset();
   mocks.loadPokeTraceFilterOptions.mockResolvedValue(null);
   mocks.searchResponse.mockReset();
@@ -323,7 +369,6 @@ test("writes every submitted Singles filter to the URL", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
   fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   await waitFor(() => {
     const params = new URLSearchParams(
@@ -354,7 +399,10 @@ test("removes cleared Singles filters from the URL", async () => {
     </MemoryRouter>,
   );
 
-  fireEvent.click(screen.getByRole("button", { name: /^Search filters,/ }));
+  const filtersButton = screen.getByRole("button", {
+    name: /^Search filters,/,
+  });
+  fireEvent.click(filtersButton);
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
   await waitFor(() => {
@@ -366,18 +414,13 @@ test("removes cleared Singles filters from the URL", async () => {
       name: "Pikachu",
     });
   });
-  expect(screen.getByRole("spinbutton", { name: "Minimum price" })).toHaveValue(
-    null,
-  );
-  expect(screen.getByRole("spinbutton", { name: "Maximum price" })).toHaveValue(
-    null,
-  );
+  expect(filtersButton).toHaveAttribute("aria-expanded", "false");
   expect(
-    screen.getByRole("combobox", { name: "Filter by rarity" }),
-  ).toHaveValue("");
+    screen.queryByRole("spinbutton", { name: "Minimum price" }),
+  ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Filter by condition" }),
-  ).toHaveTextContent("Near Mint");
+    screen.queryByRole("group", { name: "Optional search filters" }),
+  ).not.toBeInTheDocument();
 });
 
 test("shows server search results", async () => {
@@ -736,7 +779,7 @@ test("sorts server search results without making another request", async () => {
   expect(await screen.findByText("High Card")).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: "Sort search results" }),
-  ).toHaveTextContent("Unsorted");
+  ).toHaveTextContent("Sort by");
   expect(
     screen
       .getByText("Low Card")
@@ -745,6 +788,12 @@ test("sorts server search results without making another request", async () => {
   ).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
+  expect(
+    screen.queryByRole("option", { name: "Unsorted" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("option", { name: "Sort by" }),
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
 
   expect(document.querySelector(".grid-view")).toHaveAttribute(
@@ -762,7 +811,7 @@ test("sorts server search results without making another request", async () => {
   expect(document.querySelector(".grid-view")).not.toHaveAttribute("aria-busy");
 
   fireEvent.click(screen.getByRole("button", { name: "Sort search results" }));
-  fireEvent.click(screen.getByRole("option", { name: "Unsorted" }));
+  fireEvent.click(screen.getByRole("option", { name: "Price: low–high" }));
 
   await waitFor(() =>
     expect(
@@ -962,13 +1011,65 @@ test("uses the selected TCGPlayer price for condition searches", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
   fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
   fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("Played Charizard")).toBeInTheDocument();
   expect(screen.getByText("Played Charizard").parentElement).toHaveTextContent(
     "Lightly Played 30",
   );
   expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+test("changing condition searches immediately, including switching back to Near Mint", async () => {
+  const result = pricedCard("condition-switch", "Condition Charizard", 50);
+  result.pokeTrace.prices.tcgplayer = {
+    NEAR_MINT: { avg: 50 },
+    LIGHTLY_PLAYED: { avg: 30 },
+  };
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => serverResponse([result]),
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderSearch();
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "charizard" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
+  fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
+  fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
+  const name = await screen.findByText("Condition Charizard");
+  expect(name.parentElement).toHaveTextContent("Lightly Played 30");
+  fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
+  fireEvent.click(screen.getByRole("option", { name: "Near Mint" }));
+  await waitFor(() => {
+    expect(
+      screen.getByText("Condition Charizard").parentElement,
+    ).toHaveTextContent("50");
+  });
+  expect(
+    screen.getByText("Condition Charizard").parentElement,
+  ).not.toHaveTextContent("Near Mint");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock.mock.calls[1][0]).toContain("condition=NEAR_MINT");
+});
+
+test("keeps the Near Mint price without rendering its condition label on cards", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () =>
+        serverResponse([pricedCard("mint-card", "Mint Charizard", 50)]),
+    }),
+  );
+  renderSearch();
+  fireEvent.change(screen.getByRole("textbox", { name: "Pokemon name" }), {
+    target: { value: "charizard" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  const name = await screen.findByText("Mint Charizard");
+  expect(name.parentElement).toHaveTextContent("50");
+  expect(name.parentElement).not.toHaveTextContent("Near Mint");
 });
 
 test("uses the server fallback when local condition search is unavailable", async () => {
@@ -986,7 +1087,6 @@ test("uses the server fallback when local condition search is unavailable", asyn
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
   fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
   fireEvent.click(screen.getByRole("option", { name: "Lightly Played" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByText("Server Charizard")).toBeInTheDocument();
   expect(screen.getByText("Server Charizard").parentElement).toHaveTextContent(
@@ -1010,7 +1110,6 @@ test("shows an empty state when a condition search has no matches", async () => 
   fireEvent.click(screen.getByRole("button", { name: "Search filters" }));
   fireEvent.click(screen.getByRole("button", { name: "Filter by condition" }));
   fireEvent.click(screen.getByRole("option", { name: "Damaged" }));
-  fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(
     await screen.findByText(/^0 cards matching .*Damaged/),

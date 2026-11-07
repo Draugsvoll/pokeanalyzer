@@ -11,6 +11,10 @@ import { toPokemonCard } from "../../services/pokeTraceCardView.js";
 import { loadPokeTracePortfolioHistory } from "../../services/pokeTracePortfolioHistory.js";
 import { getCachedPokeTraceSealedCatalog } from "../../services/pokeTraceSealedCatalog.js";
 import { parsePokeTraceMarketComparisons } from "../../../shared/pokeTraceMarketComparisons.js";
+import {
+  DEMO_PORTFOLIO_CARD_IDS,
+  DEMO_WATCHLIST_CARD_IDS,
+} from "../../../shared/demoPortfolio.js";
 
 type PortfolioEntry = { cardId: string; quantity: number };
 export type PortfolioAssetType = "single" | "sealed";
@@ -516,6 +520,45 @@ export function createPortfolioAssetHandlers(
 
   return { add, updateQuantity, remove };
 }
+
+export function createDemoPortfolioHandler(
+  loadAssets: typeof getHydratedAssets = getHydratedAssets,
+): RequestHandler {
+  return async (req, res) => {
+    const list = req.query.list ?? "collection";
+    if (list !== "collection" && list !== "watchlist") {
+      res.status(400).json({ message: "Invalid demo list" });
+      return;
+    }
+    try {
+      const cardIds =
+        list === "watchlist"
+          ? DEMO_WATCHLIST_CARD_IDS
+          : DEMO_PORTFOLIO_CARD_IDS;
+      const entries: PortfolioAssetEntry[] = cardIds.map((id) => ({
+        id,
+        type: "single",
+        quantity: 1,
+      }));
+      const portfolio = await loadAssets(entries);
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.json({ entries, ...portfolio });
+    } catch (error) {
+      sendError(res, error, "Failed to load demo portfolio");
+    }
+  };
+}
+
+router.get(
+  "/demo",
+  rateLimit({
+    windowMs: 60_000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+  createDemoPortfolioHandler(),
+);
 
 router.use(requireVerifiedUser);
 

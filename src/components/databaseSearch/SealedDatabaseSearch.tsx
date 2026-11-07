@@ -18,7 +18,6 @@ const SEALED_SORT_OPTIONS: Array<{
   label: string;
   value: SealedProductSort;
 }> = [
-  { label: "Unsorted", value: "none" },
   { label: "Name: A–Z", value: "name-az" },
   { label: "Price: high–low", value: "price-high-low" },
   { label: "Price: low–high", value: "price-low-high" },
@@ -140,6 +139,7 @@ export function SealedDatabaseSearchResults({
             sortControl={
               <SelectDropdown
                 ariaLabel="Sort search results"
+                placeholder="Sort by"
                 className="search-results-sort-control__dropdown"
                 onChange={search.handleSortChange}
                 options={SEALED_SORT_OPTIONS}

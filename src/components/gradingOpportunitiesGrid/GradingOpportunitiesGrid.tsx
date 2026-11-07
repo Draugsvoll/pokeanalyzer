@@ -12,7 +12,7 @@ import {
   type CardCategoryGridItem,
 } from "../cardCategoryGrid/CardCategoryGrid";
 import "./GradingOpportunitiesGrid.scss";
-import { Badge } from "../ui/Badge";
+import { GradingOpportunityBadge } from "./GradingOpportunityBadge";
 
 type GradingOpportunitiesFetcher = (
   signal?: AbortSignal,
@@ -26,9 +26,6 @@ type GradingOpportunitiesGridProps = {
 };
 
 function toGridItem(item: GradingOpportunityItem): CardCategoryGridItem {
-  const multiplierLabel = item.multiplier.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
-  });
   const image = item.image ?? "";
   const setName = item.setName ?? "Unknown set";
   const card: PokemonCard = {
@@ -50,19 +47,7 @@ function toGridItem(item: GradingOpportunityItem): CardCategoryGridItem {
   };
   return {
     card,
-    badge: (
-      <div className="grading-opportunity__multiplier">
-        <Badge
-          accent="blue"
-          size="sm"
-          weight="strong"
-          title="TCG Near Mint price -> eBay PSA 10 median (7-day)  "
-          aria-label={`${multiplierLabel} times TCGPlayer Near Mint price, based on eBay PSA 10 7-day median`}
-        >
-          {multiplierLabel}×
-        </Badge>
-      </div>
-    ),
+    badge: <GradingOpportunityBadge multiplier={item.multiplier} />,
   };
 }
 
@@ -103,6 +88,7 @@ export function GradingOpportunitiesGrid({
 
   return (
     <CardCategoryGrid
+      allowGradingFilter={false}
       defaultExpanded={defaultExpanded}
       emptyMessage="No cards currently meet the grading criteria."
       error={result.error}

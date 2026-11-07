@@ -6,6 +6,9 @@ import {
 } from "../pokemonCardView/PokemonCardView";
 import { GridView } from "../gridView/GridView";
 import "./CardCategoryGrid.scss";
+import { useGradingOpportunityFilter } from "../../hooks/useGradingOpportunityFilter";
+import { GradingOpportunityFilter } from "../gradingOpportunitiesGrid/GradingOpportunityFilter";
+import { GradingOpportunityBadge } from "../gradingOpportunitiesGrid/GradingOpportunityBadge";
 
 export type CardCategoryGridItem = {
   card: PokemonCard;
@@ -14,6 +17,7 @@ export type CardCategoryGridItem = {
 };
 
 type CardCategoryGridProps = {
+  allowGradingFilter?: boolean;
   defaultExpanded?: boolean;
   controls?: ReactNode;
   emptyMessage?: ReactNode;
@@ -29,6 +33,7 @@ type CardCategoryGridProps = {
 };
 
 export function CardCategoryGrid({
+  allowGradingFilter = true,
   defaultExpanded = false,
   controls,
   emptyMessage = "No cards are available in this category yet.",
@@ -42,10 +47,27 @@ export function CardCategoryGrid({
   subtitle,
   title,
 }: CardCategoryGridProps) {
+  const grading = useGradingOpportunityFilter(
+    allowGradingFilter && !loading && !error && items.length > 0,
+  );
+  const qualifyingItems = grading.available
+    ? items.filter(({ card }) => grading.multiplier(card) !== null)
+    : [];
+  const displayedItems = grading.active ? qualifyingItems : items;
   return (
     <section className="card-category-grid ui-render-fade">
       <GridView
         defaultExpanded={defaultExpanded}
+        headerControls={
+          grading.available &&
+          qualifyingItems.length > 0 && (
+            <GradingOpportunityFilter
+              checked={grading.active}
+              count={qualifyingItems.length}
+              onChange={grading.setEnabled}
+            />
+          )
+        }
         minimized={minimized}
         revealOnScroll={revealOnScroll}
         sorting={sorting}
@@ -74,17 +96,27 @@ export function CardCategoryGrid({
           >
             <p>{error}</p>
           </div>
-        ) : items.length === 0 && emptyMessage ? (
+        ) : displayedItems.length === 0 && emptyMessage ? (
           <p className="card-category-grid__state" data-grid-full-width>
-            {emptyMessage}
+            {grading.active
+              ? "No grading opportunities in these cards."
+              : emptyMessage}
           </p>
-        ) : items.length > 0 ? (
-          items.map(({ card, marketDisplay, badge }) => (
+        ) : displayedItems.length > 0 ? (
+          displayedItems.map(({ card, marketDisplay, badge }) => (
             <PokemonCardView
               card={card}
               key={card.id}
-              marketDisplay={marketDisplay}
-              badge={badge}
+              marketDisplay={grading.active ? undefined : marketDisplay}
+              badge={
+                grading.active ? (
+                  <GradingOpportunityBadge
+                    multiplier={grading.multiplier(card)!}
+                  />
+                ) : (
+                  badge
+                )
+              }
             />
           ))
         ) : null}

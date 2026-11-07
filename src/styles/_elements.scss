@@ -315,11 +315,11 @@ input[type="radio"] {
 }
 
 .grid-header {
-  align-items: flex-end;
+  align-items: last baseline;
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   justify-content: space-between;
-  padding-bottom: 0.6rem;
+  padding-bottom: 0.9rem;
 }
 
 .grid-header__subtitle {

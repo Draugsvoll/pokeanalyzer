@@ -2,6 +2,7 @@ import "dotenv/config";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
+import { ensureGradingOpportunityListStore } from "../services/gradingOpportunityList.js";
 import { ensurePokeTraceCatalogStore } from "../services/pokeTraceCatalogStore.js";
 import { ensurePokeTraceFilterOptionsStore } from "../services/pokeTraceFilterOptionsStore.js";
 import { ensurePokeTraceSealedCatalogStore } from "../services/pokeTraceSealedCatalogStore.js";
@@ -296,6 +297,7 @@ export async function migratePokeTraceDatabase(
     "CREATE INDEX IF NOT EXISTS idx_poketrace_market_snapshots_date ON poketrace_market_snapshots(recorded_at, card_id)",
   );
   await ensureMarketCategoriesStore(database);
+  await ensureGradingOpportunityListStore(database);
   await ensurePokeTraceCatalogStore(database);
   await ensurePokeTraceSealedCatalogStore(database);
   await ensurePokeTraceFilterOptionsStore(database);

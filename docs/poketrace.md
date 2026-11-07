@@ -139,11 +139,11 @@ frontend shows those dates in the sales tooltip. The search grids are titled
 "TCG high volume this week" and "Ebay high volume this week".
 
 The `gradingOpportunities` category compares the standard TCGPlayer Near Mint
-`avg` with the eBay PSA 10 `median7d`. The Near Mint price used in calculations
+`avg` with the eBay PSA 10 `median30d`. The Near Mint price used in calculations
 is the same price displayed on the card. Cards missing either positive price
 are excluded, with no PSA 10 fallback. A card qualifies when both sale counts
-are at least 75, both prices were updated within the last 30 days, and the PSA 10
-median is at least $500 higher. The top 12 are ranked by the PSA 10 seven-day
+are at least 50, both prices were updated within the last 30 days, and the PSA 10
+median is at least $450 higher. The top 12 are ranked by the PSA 10 30-day
 median divided by the TCGPlayer Near Mint average. The
 search grid is titled "Grading Opportunities".
 
@@ -166,9 +166,12 @@ history table remains the source of truth. Existing rows without this cache
 fall back to history until their next refresh.
 
 Opening a card requests the first page of all-time `NEAR_MINT` history (up to
-365 rows, without pagination). The chart always offers four local period
+365 rows, without pagination). The chart offers local period
 controls: **1M** (30 days), **3M** (90 days), **6M** (180 days), and **All**
-(all available returned history). There is no 365-day option. The All view includes the year on dates
+(all available returned history). Longer options appear only when the displayed
+series contain history older than the preceding period: 30, 90, or 180 days,
+respectively. If the selected period becomes unavailable, the longest available
+period is selected. There is no 365-day option. The All view includes the year on dates
 from previous years. Available TCGPlayer and eBay rows are normalized into
 separate series and stored with one fetch timestamp on the card row. The cache
 is reused for six hours, then
@@ -190,8 +193,9 @@ present, the tier must also be advertised there. Older records without that
 metadata use their valid graded price keys. Half grades are excluded from history requests and dropdown
 options; their price tiles remain subject to the graded-price display rules.
 Selecting a tier requests its first all-time history page on demand, with the
-same local period filters. Graded charts render `avg`; when the upstream graded
-average is missing, the server currently substitutes `median7d` into that field.
+same local period filters. Graded charts prefer `median30d`, falling back to
+`avg` when unavailable. When the upstream graded average is missing, the server
+uses `median30d` to retain the point. Raw-condition charts continue to use averages.
 Selecting a grade retains the Near Mint TCGPlayer and eBay lines and adds the
 graded eBay history as a third, blue line. Raw-condition selections display only
 that condition's sources. Each card/tier pair has an independent six-hour cache
@@ -212,7 +216,8 @@ The legend below the chart sums available counts from retained points in the
 selected period. The price axis selects four or five horizontal grid lines and supports
 fractional intervals and decimal labels for low prices.
 
-The graded-price box below the graph hides tiers whose numeric `median3d`,
+The graded-price box displays `median30d` when available, otherwise `avg`.
+It hides tiers whose numeric `median3d`,
 `median7d`, and `median30d` are all equal. Grading-opportunity generation excludes
 PSA 10 prices matching the same rule before ranking and limiting results.
 Missing medians alone do not trigger this exclusion. This rule does not remove

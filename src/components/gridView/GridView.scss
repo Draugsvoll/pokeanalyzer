@@ -7,7 +7,6 @@
 }
 
 .grid-header--minimized {
-  align-items: last baseline;
   position: relative;
 }
 
@@ -19,10 +18,32 @@
 
 .grid-header > h3 {
   font-size: var(--font-size-grid-title);
+  line-height: 1;
+}
+
+.grid-header__subtitle,
+.grid-header__toggle-label {
+  line-height: 1;
+}
+
+.grid-header__controls {
+  display: flex;
+  position: relative;
+  z-index: 2;
+}
+
+.grid-header.grid-header--with-controls {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+
+  .grid-header__toggle {
+    margin-left: auto;
+  }
 }
 
 .grid-header__toggle {
-  align-items: baseline;
+  align-items: center;
+  align-self: flex-end;
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
@@ -31,7 +52,7 @@
   display: flex;
   flex-shrink: 0;
   font-family: inherit;
-  gap: var(--space-2);
+  gap: var(--space-1);
   margin-left: auto;
   justify-content: flex-end;
   padding: 0 0.2rem 0 0;
@@ -55,7 +76,6 @@
     outline-offset: 3px;
   }
 
-  // Keep the header clickable without taking the label out of baseline layout.
   &::after {
     content: "";
     inset: 0;

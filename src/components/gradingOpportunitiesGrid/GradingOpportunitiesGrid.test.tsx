@@ -18,7 +18,7 @@ vi.mock("../../services/marketCategoriesApi", () => ({
         nearMintSales: 161,
         tcgPrices: { NEAR_MINT: { avg: 125 } },
         priceIncrease: 15510.945,
-        psaMedian: "7d",
+        psaMedian: "30d",
         psaPrice: 15619.92,
         psaSales: 78,
         rarity: "Rare Holo",
@@ -77,9 +77,7 @@ test("uses standard TCG pricing without a grading price-row override", async () 
   });
   expect(screen.getByText("143×")).toBeVisible();
   expect(
-    screen.getByTitle(
-      "TCG Near Mint price -> eBay PSA 10 median (7-day)",
-    ),
+    screen.getByTitle("TCG Near Mint price -> eBay PSA 10 median (30-day)"),
   ).toBeVisible();
 });
 

@@ -13,6 +13,9 @@ import {
 import { SearchHero } from "../searchHero/SearchHero";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions";
 import { SearchResultsToolbar } from "./SearchResultsToolbar";
+import { useGradingOpportunityFilter } from "../../hooks/useGradingOpportunityFilter";
+import { GradingOpportunityFilter } from "../gradingOpportunitiesGrid/GradingOpportunityFilter";
+import { GradingOpportunityBadge } from "../gradingOpportunitiesGrid/GradingOpportunityBadge";
 import { SelectDropdown } from "../selectDropdown/SelectDropdown";
 import { PokeTraceSortDropdown } from "../pokeTraceSortDropdown/PokeTraceSortDropdown";
 import {
@@ -253,6 +256,7 @@ type DatabaseSearchBarProps = {
   onFiltersChange: (updates: Partial<DatabaseSearchFilters>) => void;
   onFiltersClear: () => void;
   onRaritySelect: (rarity: string) => void;
+  onConditionSelect: (condition: PokeTraceRawCondition) => void;
   onSearch: () => void;
   onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onSetNameChange: (value: string, exact: boolean) => void;
@@ -271,6 +275,7 @@ export function DatabaseSearchBar({
   onFiltersChange,
   onFiltersClear,
   onRaritySelect,
+  onConditionSelect,
   onSearch,
   onSearchKeyDown,
   onSetNameChange,
@@ -335,7 +340,7 @@ export function DatabaseSearchBar({
             <SelectDropdown
               ariaLabel="Filter by condition"
               className="database-search-condition-select"
-              onChange={(condition) => onFiltersChange({ condition })}
+              onChange={onConditionSelect}
               options={CONDITION_OPTIONS}
               value={filters.condition}
             />
@@ -408,7 +413,7 @@ function getSearchResultMarketDisplay(
   const conditionLabel = POKETRACE_RAW_CONDITION_LABELS[condition];
   return {
     condition,
-    marketLabel: conditionLabel,
+    marketLabel: condition === "NEAR_MINT" ? undefined : conditionLabel,
     price: resolvePokeTraceCardPrice(card, condition)?.price,
     priceLabel: `TCGPlayer · ${conditionLabel}`,
     source: "tcgplayer",
@@ -498,15 +503,30 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
       window.clearTimeout(searchCooldownTimerRef.current);
     };
   }, []);
+  const {
+    available: gradingAvailable,
+    active: gradingActive,
+    setEnabled: setGradingEnabled,
+    multiplier: gradingMultiplier,
+  } = useGradingOpportunityFilter(
+    productType === "singles" && !isSearching && results.length > 0,
+  );
+  const resultCondition = gradingActive ? "NEAR_MINT" : activeCondition;
   const sortedResults = useMemo(
     () =>
-      sortPokeTraceCards(results, sortDirection, {
-        condition: activeCondition || "NEAR_MINT",
-        getPriceChangeDisplayContext: (card) => ({
-          marketDisplay: getSearchResultMarketDisplay(card, activeCondition),
-        }),
-      }),
-    [activeCondition, results, sortDirection],
+      sortPokeTraceCards(
+        results.filter(
+          (card) => !gradingActive || gradingMultiplier(card) !== null,
+        ),
+        sortDirection,
+        {
+          condition: resultCondition || "NEAR_MINT",
+          getPriceChangeDisplayContext: (card) => ({
+            marketDisplay: getSearchResultMarketDisplay(card, resultCondition),
+          }),
+        },
+      ),
+    [resultCondition, results, sortDirection, gradingActive, gradingMultiplier],
   );
   const visibleResults = sortedResults.slice(0, visibleResultCount);
 
@@ -772,6 +792,11 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         setFilters(nextFilters);
         submitSearch({ filters: nextFilters }, true);
       }}
+      onConditionSelect={(condition) => {
+        const nextFilters = { ...filters, condition };
+        setFilters(nextFilters);
+        submitSearch({ filters: nextFilters }, true);
+      }}
       onSearch={() => submitSearch()}
       onSearchKeyDown={handleSearchKeyDown}
       onSetNameChange={(value, exact) => {
@@ -851,7 +876,25 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   activeQueryLabel={activeQueryLabel}
                   itemLabel={{ plural: "cards", singular: "card" }}
                   onClose={handleCloseResults}
-                  resultCount={totalResultCount}
+                  resultCount={
+                    gradingActive ? sortedResults.length : totalResultCount
+                  }
+                  filterControl={
+                    gradingAvailable && (
+                      <GradingOpportunityFilter
+                        checked={gradingActive}
+                        count={
+                          sortedResults.filter(
+                            (card) => gradingMultiplier(card) !== null,
+                          ).length
+                        }
+                        onChange={(checked) => {
+                          setGradingEnabled(checked);
+                          setVisibleResultCount(POKETRACE_SEARCH_PAGE_SIZE);
+                        }}
+                      />
+                    )
+                  }
                   sortControl={
                     <PokeTraceSortDropdown
                       ariaLabel="Sort search results"
@@ -864,23 +907,33 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                     />
                   }
                 />
-                {results.length > 0 && (
+                {gradingActive && sortedResults.length === 0 && (
+                  <p>No cards match the grading criteria in these results.</p>
+                )}
+                {sortedResults.length > 0 && (
                   <GridView revealOnScroll={false} sorting={isSorting}>
                     {visibleResults.map((card) => {
                       return (
                         <PokemonCardView
                           key={card.id}
                           card={card}
+                          badge={
+                            gradingActive ? (
+                              <GradingOpportunityBadge
+                                multiplier={gradingMultiplier(card)!}
+                              />
+                            ) : undefined
+                          }
                           marketDisplay={getSearchResultMarketDisplay(
                             card,
-                            activeCondition,
+                            resultCondition,
                           )}
                         />
                       );
                     })}
                   </GridView>
                 )}
-                {visibleResultCount < results.length && (
+                {visibleResultCount < sortedResults.length && (
                   <div className="search-results__more">
                     <button
                       className="search-results__more-button"

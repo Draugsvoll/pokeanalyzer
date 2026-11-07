@@ -1,0 +1,19 @@
+.grading-opportunity-filter {
+  align-items: center;
+  color: var(--font-color-secondary);
+  font-size: var(--font-size-label);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  min-height: var(--dropdown-trigger-height);
+  white-space: nowrap;
+
+  input {
+    accent-color: var(--custom-color-blue);
+    cursor: pointer;
+    height: 1rem;
+    margin: 0;
+    width: 1rem;
+  }
+}
