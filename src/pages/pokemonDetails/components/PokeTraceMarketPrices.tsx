@@ -265,7 +265,7 @@ function MarketplaceColumn({
                 {url && (
                   <a
                     aria-label={`View on ${source.toLowerCase() === "tcgplayer" ? "TCG" : sourceLabel(source)}`}
-                    className={`poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
+                    className={`app-link poketrace-market__market-link poketrace-market__market-link--${source.toLowerCase()}`}
                     href={url}
                     rel="noreferrer"
                     target="_blank"

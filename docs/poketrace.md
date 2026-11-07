@@ -142,7 +142,7 @@ The `gradingOpportunities` category compares the standard TCGPlayer Near Mint
 `avg` with the eBay PSA 10 `median30d`. The Near Mint price used in calculations
 is the same price displayed on the card. Cards missing either positive price
 are excluded, with no PSA 10 fallback. A card qualifies when both sale counts
-are at least 50, both prices were updated within the last 30 days, and the PSA 10
+are at least 40, both prices were updated within the last 30 days, and the PSA 10
 median is at least $450 higher. The top 12 are ranked by the PSA 10 30-day
 median divided by the TCGPlayer Near Mint average. The
 search grid is titled "Grading Opportunities".

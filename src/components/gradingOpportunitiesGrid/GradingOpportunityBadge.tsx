@@ -7,7 +7,8 @@ export function GradingOpportunityBadge({
   multiplier: number;
 }) {
   const label = multiplier.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
+    minimumFractionDigits: multiplier < 10 ? 1 : 0,
+    maximumFractionDigits: multiplier < 10 ? 1 : 0,
   });
   return (
     <div className="grading-opportunity__multiplier">

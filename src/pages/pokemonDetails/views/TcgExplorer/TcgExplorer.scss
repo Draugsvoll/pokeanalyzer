@@ -11,14 +11,15 @@
   }
 
   .marketplace-listings__product-link {
-    color: var(--marketplace-accent);
-    margin-bottom: 0.3rem;
-  }
-
-  &__caption {
     color: var(--font-color-secondary);
-    font-size: 0.85rem;
-    line-height: 1.5;
-    margin: 0.75rem 0;
+    font-family: inherit;
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    margin-bottom: 0.3rem;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--font-color-primary);
+    }
   }
 }

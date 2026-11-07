@@ -9,7 +9,7 @@ TCG Near Mint average, PSA 10 30-day median, the configured sales, price-gain,
 and update-age thresholds, excluding identical three-day/seven-day/thirty-day
 PSA medians. The existing category returns its top 12; the new script explicitly
 requests unlimited results. The maintenance lock protects generation.
-The current thresholds are at least 50 sales for both TCG Near Mint and PSA 10,
+The current thresholds are at least 40 sales for both TCG Near Mint and PSA 10,
 at least $450 more for PSA 10 than the raw price, and both prices updated within
 30 days.
 

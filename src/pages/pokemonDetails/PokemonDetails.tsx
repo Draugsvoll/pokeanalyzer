@@ -11,6 +11,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowUp,
   CircleDollarSign,
+  Calculator,
   Gem,
   LineChart,
   ScanSearch,
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { PokemonCard } from "../../types/pokemon";
+import { DISABLE_CARD_AI_ANALYSIS } from "../../config/cardFeatures";
 import { askGrok, type GrokRequestState } from "../../utils/grok/grokClient";
 import Button from "../../components/button/Button";
 import { DetailsPage } from "../../components/detailsPage/DetailsPage";
@@ -161,7 +163,7 @@ function PokemonDetailsForCard() {
     null,
   );
   const [selectedPanel, setSelectedPanel] = useState<
-    "ebay" | "tcg" | "analysis"
+    "ebay" | "tcg" | "analysis" | "calculator"
   >("ebay");
   const showEbay = selectedPanel === "ebay";
   const [tcgLoading, setTcgLoading] = useState(false);
@@ -340,7 +342,7 @@ function PokemonDetailsForCard() {
     featureKey: StoredGrokFeature,
     requestSignal?: AbortSignal,
   ) {
-    if (!card) return false;
+    if (DISABLE_CARD_AI_ANALYSIS || !card) return false;
 
     setGrokLoading(true);
     updateGrokError(featureKey, "");
@@ -648,6 +650,19 @@ function PokemonDetailsForCard() {
     );
   }
 
+  const gradingCalculator = (
+    <GradingCalculator
+      currency={card.pokeTrace.currency}
+      hidden={
+        DISABLE_CARD_AI_ANALYSIS
+          ? selectedPanel !== "calculator"
+          : !gradingCalculatorOpen
+      }
+      key={card.id}
+      prices={card.pokeTrace.prices}
+    />
+  );
+
   // RENDERING
   return (
     <DetailsPage
@@ -695,8 +710,10 @@ function PokemonDetailsForCard() {
                 (subscription.status === "active" ||
                   subscription.status === "trialing"))
             }
-            onToggleGradingCalculator={() =>
-              setGradingCalculatorOpen((open) => !open)
+            onToggleGradingCalculator={
+              DISABLE_CARD_AI_ANALYSIS
+                ? undefined
+                : () => setGradingCalculatorOpen((open) => !open)
             }
             variantLoading={Boolean(loadingVariantId)}
           />
@@ -828,12 +845,7 @@ function PokemonDetailsForCard() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      <GradingCalculator
-        currency={card.pokeTrace.currency}
-        hidden={!gradingCalculatorOpen}
-        key={card.id}
-        prices={card.pokeTrace.prices}
-      />
+      {!DISABLE_CARD_AI_ANALYSIS && gradingCalculator}
 
       <section aria-label="Card insights" className="card-view__analysis-panel">
         <div className="card-view__analysis-divider" aria-hidden="true" />
@@ -877,49 +889,71 @@ function PokemonDetailsForCard() {
               <span className="feature-button__title">Available on TCG</span>
             </span>
           </button>
-          {aiFeatures.map((aiFeature) => {
-            const Icon = aiFeature.icon;
-            const isFeatureLoading =
-              activeView === aiFeature.view && grokLoading;
+          {DISABLE_CARD_AI_ANALYSIS && (
+            <button
+              type="button"
+              className={`feature-button${selectedPanel === "calculator" ? " is-active" : ""}`}
+              style={getCustomColors("pink")}
+              onClick={() => setSelectedPanel("calculator")}
+              aria-pressed={selectedPanel === "calculator"}
+            >
+              <span className="feature-button__icon" aria-hidden="true">
+                <Calculator size={22} strokeWidth={2} />
+              </span>
+              <span className="feature-button__text">
+                <span className="feature-button__title">
+                  Grading calculator
+                </span>
+              </span>
+            </button>
+          )}
+          {!DISABLE_CARD_AI_ANALYSIS &&
+            aiFeatures.map((aiFeature) => {
+              const Icon = aiFeature.icon;
+              const isFeatureLoading =
+                activeView === aiFeature.view && grokLoading;
 
-            return (
-              <button
-                key={aiFeature.view}
-                type="button"
-                className={`feature-button${selectedPanel === "analysis" && activeView === aiFeature.view ? " is-active" : ""}${
-                  isFeatureLoading ? " is-loading" : ""
-                }`}
-                style={getCustomColors(aiFeature.color)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setSelectedPanel("analysis");
-                  setActiveView(aiFeature.view);
-                }}
-                disabled={grokLoading && activeView !== aiFeature.view}
-                aria-pressed={
-                  selectedPanel === "analysis" && activeView === aiFeature.view
-                }
-                aria-busy={isFeatureLoading}
-              >
-                <span className="feature-button__icon" aria-hidden="true">
-                  {isFeatureLoading ? (
-                    <span className="feature-button__spinner" />
-                  ) : (
-                    <Icon size={22} strokeWidth={2} />
-                  )}
-                </span>
-                <span className="feature-button__text">
-                  <span className="feature-button__title">
-                    {aiFeature.title}
+              return (
+                <button
+                  key={aiFeature.view}
+                  type="button"
+                  className={`feature-button${selectedPanel === "analysis" && activeView === aiFeature.view ? " is-active" : ""}${
+                    isFeatureLoading ? " is-loading" : ""
+                  }`}
+                  style={getCustomColors(aiFeature.color)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setSelectedPanel("analysis");
+                    setActiveView(aiFeature.view);
+                  }}
+                  disabled={grokLoading && activeView !== aiFeature.view}
+                  aria-pressed={
+                    selectedPanel === "analysis" &&
+                    activeView === aiFeature.view
+                  }
+                  aria-busy={isFeatureLoading}
+                >
+                  <span className="feature-button__icon" aria-hidden="true">
+                    {isFeatureLoading ? (
+                      <span className="feature-button__spinner" />
+                    ) : (
+                      <Icon size={22} strokeWidth={2} />
+                    )}
                   </span>
-                  <span className="feature-button__description">
-                    {aiFeature.description}
+                  <span className="feature-button__text">
+                    <span className="feature-button__title">
+                      {aiFeature.title}
+                    </span>
+                    <span className="feature-button__description">
+                      {aiFeature.description}
+                    </span>
                   </span>
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
         </div>
+
+        {DISABLE_CARD_AI_ANALYSIS && gradingCalculator}
 
         <div
           className="card-view__marketplace-panel"
@@ -961,39 +995,41 @@ function PokemonDetailsForCard() {
           }`}
           aria-live="polite"
         >
-          {activeFeature && activeView !== "empty_view" && (
-            <div
-              className="card-view__active-feature ui-render-fade"
-              style={getCustomColors(activeFeature.color)}
-            >
-              {(!activeFeatureHasResponse || currentGrokError) &&
-                renderFeatureHeader()}
+          {!DISABLE_CARD_AI_ANALYSIS &&
+            activeFeature &&
+            activeView !== "empty_view" && (
               <div
-                className="card-view__active-variants card-feature-header__variants"
-                id={CARD_FEATURE_VARIANTS_ID}
-              />
-              <div className="card-view__active-body">
-                {!currentGrokError && activeView === "prices" && (
-                  <MarketAnalysisView
-                    grokRequest={grokRequest}
-                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
-                  />
-                )}
-                {!currentGrokError && activeView === "worth_grading" && (
-                  <WorthGradingView
-                    grokRequest={grokRequest}
-                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
-                  />
-                )}
-                {!currentGrokError && activeView === "collector_analysis" && (
-                  <CollectorAnalysis
-                    grokRequest={grokRequest}
-                    errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
-                  />
-                )}
+                className="card-view__active-feature ui-render-fade"
+                style={getCustomColors(activeFeature.color)}
+              >
+                {(!activeFeatureHasResponse || currentGrokError) &&
+                  renderFeatureHeader()}
+                <div
+                  className="card-view__active-variants card-feature-header__variants"
+                  id={CARD_FEATURE_VARIANTS_ID}
+                />
+                <div className="card-view__active-body">
+                  {!currentGrokError && activeView === "prices" && (
+                    <MarketAnalysisView
+                      grokRequest={grokRequest}
+                      errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
+                    />
+                  )}
+                  {!currentGrokError && activeView === "worth_grading" && (
+                    <WorthGradingView
+                      grokRequest={grokRequest}
+                      errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
+                    />
+                  )}
+                  {!currentGrokError && activeView === "collector_analysis" && (
+                    <CollectorAnalysis
+                      grokRequest={grokRequest}
+                      errorFallback={renderFeatureHeader(FEATURE_ERROR_MESSAGE)}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {activeView === "empty_view" && (
             <div className="card-view__empty-view" aria-hidden="true"></div>

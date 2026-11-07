@@ -166,7 +166,7 @@ function SealedMarketplacePrice({
                 {url && (
                   <a
                     aria-label={linkLabel}
-                    className={`poketrace-market__market-link poketrace-market__market-link--${sourceClass}`}
+                    className={`app-link poketrace-market__market-link poketrace-market__market-link--${sourceClass}`}
                     href={url}
                     rel="noreferrer"
                     target="_blank"

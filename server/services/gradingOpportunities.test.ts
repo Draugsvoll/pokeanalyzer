@@ -154,8 +154,8 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     now: new Date("2026-11-01T12:00:00Z"),
   });
   const database = await createDatabase();
-  const qualifiedRaw = tier(100, 90, 50);
-  const qualifiedPsa = tier(1_000, 900, 50);
+  const qualifiedRaw = tier(100, 90, 40);
+  const qualifiedPsa = tier(1_000, 900, 40);
   await insertCard(
     database,
     "qualified",
@@ -181,7 +181,7 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     database,
     "few-raw-sales",
     "Few Raw Sales",
-    tier(100, 90, 49),
+    tier(100, 90, 39),
     qualifiedPsa,
   );
   await insertCard(
@@ -189,7 +189,7 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     "few-psa-sales",
     "Few PSA Sales",
     qualifiedRaw,
-    tier(1_000, 900, 49),
+    tier(1_000, 900, 39),
   );
   await insertCard(
     database,
@@ -209,8 +209,8 @@ test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
     database,
     "boundary",
     "Boundary",
-    tier(25, 20, 50, "2026-10-02T12:00:00.000Z"),
-    tier(450, 475, 50, "2026-10-02T12:00:00.000Z"),
+    tier(25, 20, 40, "2026-10-02T12:00:00.000Z"),
+    tier(450, 475, 40, "2026-10-02T12:00:00.000Z"),
   );
 
   const result = await findGradingOpportunities(database, { limit: 12 });
@@ -305,7 +305,7 @@ test("unlimited generation saves all qualified cards while the original category
       "low-sales",
       "Low sales",
       tier(10, 15, 75),
-      tier(5000, 6000, 49),
+      tier(5000, 6000, 39),
     );
     await insertCard(db, "identical", "Identical medians", tier(10, 15, 75), {
       ...tier(5000, 5000, 100),

@@ -14,6 +14,7 @@ import type { GrokRequestState } from "../../utils/grok/grokClient";
 import PokemonDetails from "./PokemonDetails";
 
 const mocks = vi.hoisted(() => ({
+  disableCardAiAnalysis: false,
   authLoading: false,
   authUser: { uid: "user-1" } as { uid: string } | null,
   askGrok: vi.fn(),
@@ -65,6 +66,12 @@ function buildCard(id: string, name: string): PokemonCard {
     },
   };
 }
+
+vi.mock("../../config/cardFeatures", () => ({
+  get DISABLE_CARD_AI_ANALYSIS() {
+    return mocks.disableCardAiAnalysis;
+  },
+}));
 
 vi.mock("../../utils/grok/grokClient", async (importOriginal) => {
   const original =
@@ -291,6 +298,7 @@ function TestRoutes() {
 }
 
 beforeEach(() => {
+  mocks.disableCardAiAnalysis = false;
   subscription.planId = "free";
   mocks.authLoading = false;
   mocks.authUser = { uid: "user-1" };
@@ -374,6 +382,49 @@ test("shows links to the card directory and current set in the breadcrumb", asyn
     "aria-current",
     "page",
   );
+});
+
+test("calculator-only mode replaces card AI tabs without changing marketplace tabs", async () => {
+  mocks.disableCardAiAnalysis = true;
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  const calculatorTab = await screen.findByRole("button", {
+    name: "Grading calculator",
+  });
+  expect(calculatorTab).toHaveStyle({
+    "--feature-accent": "var(--custom-color-pink)",
+  });
+  expect(
+    screen.queryByRole("button", { name: /^Collector Insights/ }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /^Market Analysis/ }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Grading" }),
+  ).not.toBeInTheDocument();
+  expect(document.querySelectorAll(".grading-calculator")).toHaveLength(1);
+  fireEvent.click(calculatorTab);
+  expect(
+    screen.getByRole("region", { name: "Grading calculator" }),
+  ).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Raw market value"), {
+    target: { value: "100" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Available on TCG" }));
+  expect(
+    screen.queryByRole("region", { name: "Grading calculator" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(calculatorTab);
+  expect(screen.getByLabelText("Raw market value")).toHaveValue("100");
+  fireEvent.click(screen.getByRole("button", { name: "Available on Ebay" }));
+  expect(
+    screen.getByRole("button", { name: "Available on Ebay" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(mocks.askGrok).not.toHaveBeenCalled();
 });
 
 test.each([

@@ -241,14 +241,6 @@ export function TcgExplorerView({
       renderPanel={(value) =>
         renderPanel(value === "sold" ? "sales" : "offers")
       }
-      footer={
-        <p className="tcg-explorer__caption">
-          Fetched{" "}
-          <time dateTime={data.fetchedAt}>
-            {new Date(data.fetchedAt).toLocaleString()}
-          </time>
-        </p>
-      }
     />
   );
 }

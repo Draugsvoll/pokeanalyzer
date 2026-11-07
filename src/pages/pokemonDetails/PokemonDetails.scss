@@ -435,6 +435,10 @@
     max-width: 100%;
     scroll-margin-top: 1rem;
     width: 100%;
+
+    > .grading-calculator {
+      margin-top: var(--space-3);
+    }
   }
 
   &__analysis-divider {
