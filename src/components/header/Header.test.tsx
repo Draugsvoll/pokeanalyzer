@@ -115,3 +115,16 @@ test("shows unlimited eBay access in the signed-in credit display", () => {
     screen.getByRole("link", { name: /Unlimited Market credits/ }),
   ).toBeVisible();
 });
+
+test("shows only Market credits while card AI analysis is disabled", () => {
+  mocks.auth.user = { uid: "user-1" };
+  mocks.unlimitedEbay = false;
+  renderHeader();
+  const balance = screen.getByRole("link", {
+    name: /10 Market credits remaining/,
+  });
+  expect(balance).toHaveAttribute("href", "/profile");
+  expect(balance).toHaveTextContent("10 Market credits");
+  expect(balance).not.toHaveTextContent("AI");
+  expect(balance.querySelector(".header__credits-separator")).toBeNull();
+});

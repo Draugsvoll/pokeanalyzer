@@ -239,10 +239,10 @@
 .header__credits {
   margin-right: var(--space-2);
   align-items: center;
-  background: var(--bg-input);
+  background: var(--bg-input-strong);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-control);
-  color: var(--secondary);
+  color: var(--font-color-secondary);
   display: inline-flex;
   font-size: var(--font-size-nav);
   font-weight: var(--font-weight-regular);

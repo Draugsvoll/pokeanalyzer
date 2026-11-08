@@ -27,6 +27,7 @@ import type {
 } from "../../subscriptions/types";
 import { LoadingState } from "../../components/loadingState/LoadingState";
 import LoginModal from "../../components/loginmodal/Loginmodal";
+import { DISABLE_CARD_AI_ANALYSIS } from "../../config/cardFeatures";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import {
   PricingBar,
@@ -75,7 +76,8 @@ export default function Profile() {
   const canUseMembership =
     subscription?.status === "active" || subscription?.status === "trialing";
   const displayedPeriodEnd =
-    subscription?.planId !== "free" || membershipCreditsTotal > 0
+    subscription?.planId !== "free" ||
+    (!DISABLE_CARD_AI_ANALYSIS && membershipCreditsTotal > 0)
       ? subscription?.currentPeriodEnd
       : undefined;
   const profileInitial = useInitials(
@@ -438,18 +440,22 @@ export default function Profile() {
               </div>
               <div className="profile__credit-balances">
                 {[
-                  {
-                    label: "AI credits",
-                    remaining:
-                      !loadingSubscription && subscription
-                        ? creditsRemaining
-                        : undefined,
-                    allowance:
-                      !loadingSubscription && subscription
-                        ? membershipCreditsTotal
-                        : undefined,
-                    loading: loadingSubscription,
-                  },
+                  ...(!DISABLE_CARD_AI_ANALYSIS
+                    ? [
+                        {
+                          label: "AI credits",
+                          remaining:
+                            !loadingSubscription && subscription
+                              ? creditsRemaining
+                              : undefined,
+                          allowance:
+                            !loadingSubscription && subscription
+                              ? membershipCreditsTotal
+                              : undefined,
+                          loading: loadingSubscription,
+                        },
+                      ]
+                    : []),
                   {
                     label: "Market credits",
                     unlimited: ebayCredits?.unlimited,
@@ -505,6 +511,9 @@ export default function Profile() {
                   ),
                 )}
               </div>
+              <p className="profile__credits-description">
+                Each Ebay or TCGplayer search uses 1 Market credit.
+              </p>
             </article>
           </div>
 

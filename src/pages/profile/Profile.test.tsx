@@ -287,16 +287,14 @@ test("shows no included credits or credit renewal date for Free", async () => {
     ),
   ).toBeVisible();
   expect(screen.queryByText(/AI credits renew/)).not.toBeInTheDocument();
-  expect(
-    screen.getByLabelText("AI credits: 0 remaining, 0 per month"),
-  ).toHaveTextContent(/0\s*AI credits\s*0 renewed monthly/);
+  expect(screen.queryByLabelText(/AI credits:/)).not.toBeInTheDocument();
   expect(
     screen.getByLabelText("Market credits: 10 remaining, 0 per month"),
   ).toHaveTextContent(/10\s*Market credits\s*0 renewed monthly/);
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 
-test("keeps existing Free credit renewal information alongside the footer", async () => {
+test("hides legacy AI credit renewal information alongside the Free footer", async () => {
   mocks.subscription = subscription({
     membershipCreditsTotal: 10,
     currentPeriodEnd: "2026-11-15T00:00:00.000Z",
@@ -308,7 +306,7 @@ test("keeps existing Free credit renewal information alongside the footer", asyn
       "You can browse cards, explore prices, and manage a small collection.",
     ),
   ).toBeVisible();
-  expect(screen.getByText(/AI credits renew/)).toBeVisible();
+  expect(screen.queryByText(/AI credits renew/)).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Manage plan" }),
   ).not.toBeInTheDocument();
@@ -341,9 +339,7 @@ test("uses the billing portal when an active subscriber changes plans", async ()
     ),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/Next billing date/)).toBeVisible();
-  expect(
-    screen.getByLabelText("AI credits: 25 remaining, 20 per month"),
-  ).toHaveTextContent(/25\s*AI credits\s*20 renewed monthly/);
+  expect(screen.queryByLabelText(/AI credits:/)).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Switch plan" }));
   fireEvent.click(screen.getByRole("button", { name: "Switch to Free" }));

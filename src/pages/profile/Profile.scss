@@ -198,8 +198,8 @@
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
-    margin: 0.3rem 0 0.25rem;
+    gap: var(--space-3);
+    margin: 0.4rem 0 0.25rem;
 
     h2 {
       font-size: clamp(1.35rem, 3vw, 1.7rem);
@@ -209,6 +209,7 @@
     .app-badge {
       font-size: var(--font-size-caption);
       font-weight: var(--font-weight-semibold);
+      gap: var(--space-2);
     }
   }
 
@@ -247,6 +248,7 @@
     align-items: center;
     display: flex;
     justify-content: space-between;
+    min-height: 2rem;
   }
 
   &__summary-loading {
@@ -284,11 +286,8 @@
     }
 
     &--active {
-      background: color-mix(
-        in srgb,
-        var(--custom-color-green) 10%,
-        transparent
-      );
+      font-size: var(--font-size-label);
+      background: none;
       border-color: color-mix(
         in srgb,
         var(--custom-color-green) 22%,
@@ -384,7 +383,15 @@
   &__credit-balances {
     display: grid;
     gap: var(--space-7);
-    margin-top: var(--space-3);
+    margin-top: 1.25rem;
+  }
+
+  &__credits-description {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-caption);
+    line-height: var(--font-leading-normal);
+    margin-top: 1.8rem;
+    max-width: 48ch;
   }
 
   &__credit-row {
@@ -399,7 +406,7 @@
     }
 
     .profile__credit-value {
-      align-items: baseline;
+      align-items: center;
       display: flex;
       flex-wrap: wrap;
       flex-shrink: 0;
@@ -409,15 +416,18 @@
     }
 
     strong {
+      align-items: center;
       color: var(--font-color-primary);
+      display: inline-flex;
+      flex-shrink: 0;
       font-family: var(--font-family-price);
       font-size: calc(var(--font-size-h3) + 2px);
+      height: calc(var(--font-size-h3) + 2px);
       letter-spacing: var(--font-tracking-price);
       line-height: 1;
 
       &.profile__credit-unlimited {
         font-size: var(--font-size-price-lg);
-        transform: translateY(3px);
       }
     }
 

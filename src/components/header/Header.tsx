@@ -11,6 +11,7 @@ import { useInitials } from "../../hooks/useInitials";
 import { useCredits, useMembershipSubscription } from "../../subscriptions";
 import { BrandMark } from "../brand/BrandMark";
 import { AccountDropdown } from "./AccountDropdown";
+import { DISABLE_CARD_AI_ANALYSIS } from "../../config/cardFeatures";
 import { useEbayCredits } from "../../ebay/useEbayCredits";
 
 function formatAccountName(value?: string | null) {
@@ -164,17 +165,21 @@ export const Header: React.FC = () => {
               <Link
                 to="/profile"
                 className="header__credits"
-                title="View AI and Market credits"
-                aria-label={`${creditsRemaining} AI credits remaining; ${ebayCredits?.unlimited ? "Unlimited Market credits" : ebayCredits ? `${ebayCredits.creditsRemaining} Market credits remaining` : "Market credit balance unavailable"}. View credits`}
+                title="View credits"
+                aria-label={`${DISABLE_CARD_AI_ANALYSIS ? "" : `${creditsRemaining} AI credits remaining; `}${ebayCredits?.unlimited ? "Unlimited Market credits" : ebayCredits ? `${ebayCredits.creditsRemaining} Market credits remaining` : "Market credit balance unavailable"}. View credits`}
               >
-                <span className="header__credits-balance">
-                  <strong>{creditsRemaining}</strong> AI{" "}
-                  {creditsRemaining === 1 ? "credit" : "credits"}
-                </span>
-                <span
-                  className="header__credits-separator"
-                  aria-hidden="true"
-                />
+                {!DISABLE_CARD_AI_ANALYSIS && (
+                  <>
+                    <span className="header__credits-balance">
+                      <strong>{creditsRemaining}</strong> AI{" "}
+                      {creditsRemaining === 1 ? "credit" : "credits"}
+                    </span>
+                    <span
+                      className="header__credits-separator"
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
                 <span
                   className={`header__credits-balance${ebayCredits?.unlimited ? " header__credits-balance--unlimited" : ""}`}
                 >
