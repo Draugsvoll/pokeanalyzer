@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { DEFAULT_POKETRACE_REQUEST_GAP_MS } from "../config/pokeTraceRequests.js";
 import {
   assertExplicitPokeTraceDatabaseTarget,
   ensurePokeTraceReady,
@@ -51,7 +52,7 @@ function integerSetting(
 let limit = 50_000;
 let retentionDays = 40;
 const marketSnapshotRetentionDays = 35;
-let requestGapMs = 2_100;
+let requestGapMs = DEFAULT_POKETRACE_REQUEST_GAP_MS;
 const recordedAt = new Date().toISOString().slice(0, 10);
 const startedAt = Date.now();
 let lastRequestAt = 0;

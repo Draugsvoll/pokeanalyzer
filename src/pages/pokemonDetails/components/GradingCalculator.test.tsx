@@ -199,11 +199,11 @@ test("fills each grade when prices arrive, and keeps an edited price", () => {
       prices={{
         tcgplayer: { NEAR_MINT: { avg: 20 } },
         ebay: {
-          PSA_10: { avg: 539 },
-          PSA_9: { avg: 66 },
-          PSA_8: { avg: 34 },
-          PSA_7: { avg: 34 },
-          PSA_8_5: { avg: 30 },
+          PSA_10: { saleCount: 15, avg: 539 },
+          PSA_9: { saleCount: 15, avg: 66 },
+          PSA_8: { saleCount: 15, avg: 34 },
+          PSA_7: { saleCount: 15, avg: 34 },
+          PSA_8_5: { saleCount: 15, avg: 30 },
         },
       }}
     />,
@@ -222,8 +222,8 @@ test("fills prices that are already on the card, including a partial set", () =>
       prices={{
         tcgplayer: { NEAR_MINT: { avg: 22.5 } },
         ebay: {
-          PSA_10: { avg: 539 },
-          PSA_8: { avg: 34 },
+          PSA_10: { saleCount: 15, avg: 539 },
+          PSA_8: { saleCount: 15, avg: 34 },
         },
       }}
     />,

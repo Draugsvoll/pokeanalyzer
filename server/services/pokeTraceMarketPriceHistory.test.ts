@@ -37,9 +37,33 @@ async function createDatabase(
   `);
   await database.execute({
     sql: "INSERT INTO poketrace_cards (id, raw_json) VALUES (?, ?)",
-    args: [cardId, JSON.stringify(raw)],
+    args: [
+      cardId,
+      JSON.stringify({
+        ...raw,
+        markets: {
+          US: { available: true, currency: "USD" },
+          EU: { available: true, currency: "EUR" },
+        },
+        prices: nativePrices(raw.prices),
+      }),
+    ],
   });
   return database;
+}
+
+function nativePrices(prices: unknown) {
+  const ebay = (prices as { ebay?: Record<string, unknown> })?.ebay ?? {};
+  return Object.fromEntries(
+    Object.entries(ebay).map(([tier, price]) => [
+      tier,
+      { US: { ebay: price } },
+    ]),
+  );
+}
+
+function storedUS(value: Record<string, unknown>) {
+  return JSON.stringify({ US: { ...value, market: "US" } });
 }
 
 const cachedSeries = {
@@ -54,6 +78,149 @@ const cachedSeries = {
     },
   ],
 };
+
+test("US and EU requests keep independent caches and preserve concurrent writes", async () => {
+  const database = await createDatabase();
+  const fetchHistory = async (
+    _key: string,
+    _id: string,
+    options?: { market?: "US" | "EU" },
+  ) => ({
+    data: [
+      {
+        date: "2026-09-18",
+        source: options?.market === "EU" ? "cardmarket_unsold" : "ebay",
+        avg: options?.market === "EU" ? 75 : 100,
+        median7d: null,
+        median30d: null,
+        low: null,
+        high: null,
+        saleCount: 20,
+        approxSaleCount: false,
+      },
+    ],
+    pagination: { hasMore: false, nextCursor: null },
+  });
+  try {
+    const dependencies = {
+      database,
+      ready: Promise.resolve(),
+      apiKey: "test-key",
+      now: () => now,
+      fetchHistory,
+    };
+    const [us, eu] = await Promise.all([
+      loadMarketPriceHistory(cardId, { ...dependencies, market: "US" }),
+      loadMarketPriceHistory(cardId, { ...dependencies, market: "EU" }),
+    ]);
+    assert.equal(us?.currency, "USD");
+    assert.equal(eu?.currency, "EUR");
+    assert.equal(eu?.series.cardmarket_unsold?.[0].avg, 75);
+    assert.equal(eu?.series.ebay, undefined);
+    const saved = await database.execute(
+      "SELECT market_price_history FROM poketrace_cards",
+    );
+    const payload = JSON.parse(String(saved.rows[0].market_price_history));
+    assert.equal(payload.US.series.ebay[0].avg, 100);
+    assert.equal(payload.EU.series.cardmarket_unsold[0].avg, 75);
+    const noFetch = async () => {
+      throw new Error("A fresh market cache must be reused");
+    };
+    for (const market of ["US", "EU"] as const) {
+      assert.equal(
+        (
+          await loadMarketPriceHistory(cardId, {
+            ...dependencies,
+            market,
+            fetchHistory: noFetch,
+          })
+        )?.market,
+        market,
+      );
+    }
+  } finally {
+    database.close();
+  }
+});
+
+test("a fresh US cache cannot hide an expired EU cache", async () => {
+  const database = await createDatabase();
+  const payload = {
+    US: {
+      condition: "NEAR_MINT",
+      market: "US",
+      currency: "USD",
+      period: "1y",
+      fetchedAt: new Date(now).toISOString(),
+      series: cachedSeries,
+    },
+    EU: {
+      condition: "NEAR_MINT",
+      market: "EU",
+      currency: "EUR",
+      period: "1y",
+      fetchedAt: new Date(now - 7 * 3600_000).toISOString(),
+      series: {},
+    },
+  };
+  try {
+    await database.execute({
+      sql: "UPDATE poketrace_cards SET market_price_history = ?",
+      args: [JSON.stringify(payload)],
+    });
+    let requests = 0;
+    const result = await loadMarketPriceHistory(cardId, {
+      database,
+      ready: Promise.resolve(),
+      apiKey: "test-key",
+      market: "EU",
+      now: () => now,
+      fetchHistory: async () => {
+        requests++;
+        return { data: [], pagination: { hasMore: false, nextCursor: null } };
+      },
+    });
+    assert.equal(requests, 1);
+    assert.equal(result?.fetchedAt, new Date(now).toISOString());
+    const saved = await database.execute(
+      "SELECT market_price_history FROM poketrace_cards",
+    );
+    assert.deepEqual(
+      JSON.parse(String(saved.rows[0].market_price_history)).US,
+      payload.US,
+    );
+  } finally {
+    database.close();
+  }
+});
+
+test("graded eligibility uses the selected market's own counts, prices, and dates", () => {
+  const prices = {
+    PSA_10: {
+      US: { ebay: { avg: 800, saleCount: 100, lastUpdated } },
+      EU: { cardmarket_unsold: { avg: 700, saleCount: 14, lastUpdated } },
+    },
+    PSA_9: {
+      US: { ebay: { avg: 300, saleCount: 0, lastUpdated } },
+      EU: { cardmarket_unsold: { median30d: 250, saleCount: 15, lastUpdated } },
+    },
+    PSA_8: {
+      EU: {
+        cardmarket_unsold: {
+          avg: 100,
+          saleCount: 50,
+          lastUpdated: "2025-01-01",
+        },
+      },
+    },
+  };
+  assert.deepEqual(qualifyingGradedHistoryTiers(prices, undefined, now, "US"), [
+    "PSA_10",
+  ]);
+  assert.deepEqual(qualifyingGradedHistoryTiers(prices, undefined, now, "EU"), [
+    "PSA_9",
+  ]);
+});
 
 test("stores TCGPlayer and eBay Near Mint history from one request", async () => {
   const database = await createDatabase();
@@ -96,7 +263,7 @@ test("stores TCGPlayer and eBay Near Mint history from one request", async () =>
   });
 
   assert.equal(requests, 1);
-  assert.equal(history?.period, "all");
+  assert.equal(history?.period, "1y");
   assert.equal(history?.series.tcgplayer?.[0].avg, 420);
   assert.equal(history?.series.ebay?.[0].avg, 500);
   assert.equal(history?.series.ebay?.[0].median7d, 475);
@@ -118,8 +285,8 @@ test("qualifies only available graded eBay tiers with a price and at least 15 sa
     ebay: {
       PSA_10: { avg: 500, saleCount: 15, lastUpdated },
       PSA_9: { avg: 300, saleCount: 14, lastUpdated },
-      BGS_9: { median7d: 400, saleCount: 25, lastUpdated },
-      BGS_9_5: { median7d: 450, saleCount: 25, lastUpdated },
+      BGS_9: { median30d: 400, saleCount: 25, lastUpdated },
+      BGS_9_5: { median30d: 450, saleCount: 25, lastUpdated },
       PSA_5: { avg: 200, saleCount: 15, lastUpdated },
       CGC_10: { avg: 500, saleCount: null, lastUpdated },
       SGC_10: { avg: null, saleCount: 30, lastUpdated },
@@ -131,17 +298,18 @@ test("qualifies only available graded eBay tiers with a price and at least 15 sa
       NEAR_MINT: { avg: 20, saleCount: 100 },
     },
   };
-  assert.deepEqual(qualifyingGradedHistoryTiers(prices, undefined, now), [
-    "ACE_10",
-    "BGS_9",
-    "PSA_5",
-    "PSA_10",
-    "TAG_10",
-  ]);
-  assert.deepEqual(qualifyingGradedHistoryTiers(prices, ["PSA_10"], now), [
-    "PSA_10",
-  ]);
-  assert.deepEqual(qualifyingGradedHistoryTiers(prices, [], now), []);
+  assert.deepEqual(
+    qualifyingGradedHistoryTiers(nativePrices(prices), undefined, now),
+    ["ACE_10", "BGS_9", "PSA_5", "PSA_10", "TAG_10"],
+  );
+  assert.deepEqual(
+    qualifyingGradedHistoryTiers(nativePrices(prices), ["PSA_10"], now),
+    ["PSA_10"],
+  );
+  assert.deepEqual(
+    qualifyingGradedHistoryTiers(nativePrices(prices), [], now),
+    [],
+  );
 });
 
 const gradedCard = {
@@ -151,8 +319,8 @@ const gradedCard = {
     ebay: {
       PSA_10: { avg: 500, saleCount: 15, lastUpdated },
       PSA_9: { avg: 300, saleCount: 14, lastUpdated },
-      BGS_9: { median7d: 400, saleCount: 25, lastUpdated },
-      BGS_9_5: { median7d: 450, saleCount: 25, lastUpdated },
+      BGS_9: { median30d: 400, saleCount: 25, lastUpdated },
+      BGS_9_5: { median30d: 450, saleCount: 25, lastUpdated },
       CGC_10: { avg: 500, saleCount: 20, lastUpdated },
     },
   },
@@ -181,7 +349,7 @@ test("graded freshness uses an inclusive two-calendar-month UTC cutoff, includin
       ]),
     );
     assert.deepEqual(
-      qualifyingGradedHistoryTiers({ ebay }, undefined, time),
+      qualifyingGradedHistoryTiers(nativePrices({ ebay }), undefined, time),
       ["PSA_8", "PSA_10"],
       current,
     );
@@ -207,9 +375,9 @@ test("stale or invalid grade updates cannot fetch or reuse an otherwise fresh ca
         args: [
           cardId,
           "PSA_10",
-          JSON.stringify({
+          storedUS({
             condition: "PSA_10",
-            period: "all",
+            period: "1y",
             currency: "USD",
             fetchedAt: lastUpdated,
             series: { ebay: cachedSeries.tcgplayer },
@@ -299,8 +467,8 @@ test("fetches the exact qualifying tier through the graded API endpoint", async 
     "fetch",
     async (input: Parameters<typeof fetch>[0]) => {
       const url = new URL(String(input));
-      assert.equal(url.pathname, `/v1/cards/${cardId}/prices/BGS_9/history`);
-      assert.equal(url.searchParams.get("period"), "all");
+      assert.equal(url.pathname, `/v2/cards/${cardId}/prices/BGS_9/history`);
+      assert.equal(url.searchParams.get("period"), "1y");
       return Response.json({
         data: [{ date: "2026-09-18", source: "ebay", avg: 400, median7d: 390 }],
         pagination: { hasMore: false },
@@ -425,9 +593,9 @@ test("returns a cache younger than six hours without an upstream request", async
       WHERE id = ?
     `,
     args: [
-      JSON.stringify({
+      storedUS({
         condition: "NEAR_MINT",
-        period: "all",
+        period: "1y",
         currency: "USD",
         fetchedAt,
         series: cachedSeries,
@@ -455,13 +623,13 @@ test("returns a cache younger than six hours without an upstream request", async
   database.close();
 });
 
-test("refreshes a recent legacy 90-day cache to all-time history", async () => {
+test("does not reuse an unsupported history cache period", async () => {
   const database = await createDatabase();
   const fetchedAt = new Date(now).toISOString();
   await database.execute({
     sql: "UPDATE poketrace_cards SET market_price_history = ?, market_price_history_fetched_at = ? WHERE id = ?",
     args: [
-      JSON.stringify({
+      storedUS({
         condition: "NEAR_MINT",
         period: "90d",
         currency: "USD",
@@ -484,7 +652,7 @@ test("refreshes a recent legacy 90-day cache to all-time history", async () => {
     },
   });
   assert.equal(requests, 1);
-  assert.equal(history?.period, "all");
+  assert.equal(history?.period, "1y");
   assert.equal(history?.stale, false);
   database.close();
 });
@@ -499,9 +667,9 @@ test("serves saved history as stale when a refresh fails", async () => {
       WHERE id = ?
     `,
     args: [
-      JSON.stringify({
+      storedUS({
         condition: "NEAR_MINT",
-        period: "90d",
+        period: "1y",
         currency: "USD",
         fetchedAt,
         series: cachedSeries,

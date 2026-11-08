@@ -21,7 +21,7 @@ test("cold search queries exact set matches directly from the cards table", asyn
     `);
     const rawJson = JSON.stringify({
       currency: "USD",
-      prices: { tcgplayer: { NEAR_MINT: { avg: 25 } } },
+      prices: { NEAR_MINT: { US: { tcgplayer: { avg: 25 } } } },
     });
     await database.batch([
       {
@@ -107,11 +107,9 @@ test("cold search applies contains and price filters entirely in SQL", async () 
         JSON.stringify({
           currency: "USD",
           prices: {
-            tcgplayer: {
-              ...(nearMintPrice !== null && {
-                NEAR_MINT: { avg: nearMintPrice },
-              }),
-            },
+            ...(nearMintPrice !== null && {
+              NEAR_MINT: { US: { tcgplayer: { avg: nearMintPrice } } },
+            }),
           },
         }),
       ],

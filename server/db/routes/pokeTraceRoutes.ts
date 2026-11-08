@@ -475,6 +475,7 @@ type MarketPriceHistoryHandlerDependencies = {
   loadHistory: (
     cardId: string,
     tier: MarketHistoryTier,
+    market: "US" | "EU",
   ) => Promise<MarketPriceHistory | null>;
   reportError: (context: string, error: unknown) => void;
 };
@@ -484,7 +485,8 @@ export function createMarketPriceHistoryHandler(
 ): RequestHandler {
   const loadHistory =
     dependencies.loadHistory ??
-    ((cardId, tier) => loadMarketPriceHistory(cardId, { tier }));
+    ((cardId, tier, market) =>
+      loadMarketPriceHistory(cardId, { tier, market }));
   const reportError = dependencies.reportError ?? logError;
 
   return async (req, res) => {
@@ -497,12 +499,17 @@ export function createMarketPriceHistoryHandler(
     }
 
     const tier = req.query.tier ?? "NEAR_MINT";
+    const market = req.query.market ?? "US";
+    if (market !== "US" && market !== "EU") {
+      res.status(400).json({ error: "Invalid market" });
+      return;
+    }
     if (!isMarketHistoryTier(tier)) {
       res.status(400).json({ error: "Invalid price history tier" });
       return;
     }
     try {
-      const history = await loadHistory(cardId, tier);
+      const history = await loadHistory(cardId, tier, market);
       if (!history) {
         res.status(404).json({ error: "Card not found" });
         return;

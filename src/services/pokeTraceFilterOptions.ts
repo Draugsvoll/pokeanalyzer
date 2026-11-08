@@ -7,7 +7,7 @@ import { runWithRequestTimeout } from "../utils/requestTimeout";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const FILTER_OPTIONS_URL = `${API_URL}/api/cards/filter-options?v=2`;
-const CACHE_KEY = "pokelyzer:poketrace-filter-options:v2";
+const CACHE_KEY = "pokelyzer:poketrace-filter-options:poketrace-v2";
 export const POKETRACE_FILTER_OPTIONS_CACHE_MS = 6 * 60 * 60 * 1_000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
 const REQUEST_TIMEOUT_MS = 10_000;

@@ -40,7 +40,7 @@ export async function generatePokeTraceSealedCatalog(
         image_url,
         fetched_at,
         json_extract(raw_json, '$.currency') AS currency,
-        json_extract(raw_json, '$.prices.tcgplayer.UNOPENED.avg') AS price,
+        json_extract(raw_json, '$.prices.UNOPENED.US.tcgplayer.avg') AS price,
         json_extract(raw_json, '$.lastUpdated') AS last_updated
       FROM poketrace_sealed_products
       ORDER BY name, set_name, product_family, variant, id

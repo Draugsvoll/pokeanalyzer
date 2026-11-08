@@ -1,7 +1,72 @@
 # PokeTrace catalogue and daily prices
 
-For local development, add `POKETRACE_API_KEY=...` and
-`ALLOW_LOCAL_DATABASE=true` to `.env`, then run:
+## V2 database
+
+The app and all PokeTrace import, refresh, and generation commands use
+`POKETRACE_DATABASE_URL_V2` and `POKETRACE_DATABASE_AUTH_TOKEN_V2` exclusively.
+The upstream card, catalog, and history requests use `/v2`. There is no v1
+database fallback or v1 response conversion. For a local database, explicitly set
+`POKETRACE_DATABASE_URL_V2=file:server/db/poketrace-v2.sqlite`; no database target
+is chosen automatically.
+
+Bootstrap a new v2 database with:
+
+```sh
+npm run poketrace:setup-v2
+```
+
+This migrates the empty database, copies only the four market snapshot tables
+from v1, imports fresh singles and sealed products, and generates catalogs,
+filter options, market categories, and the grading-opportunity list. The snapshot
+copy reads the old `POKETRACE_DATABASE_URL` and `POKETRACE_DATABASE_AUTH_TOKEN`;
+no other command uses those credentials. It copies `poketrace_market_snapshots`,
+`poketrace_tcg_market_prices`, `poketrace_sealed_market_snapshots`, and
+`poketrace_sealed_tcg_market_prices`. Existing target observations win on reruns.
+No saved analyses, listings, card JSON, history caches, generated payloads, or
+import checkpoints are copied. Imports save a new checkpoint after each page.
+Quota exhaustion stops setup with a failure status and preserves completed work.
+
+Complete v2 card responses are stored directly in `raw_json`, including
+`markets` and the native `prices.<tier>.<market>.<source>` structure. US and EU prices stay on the same
+card row in their native currencies. US snapshots and calculations read the
+native US price paths directly. Only the existing UI card model projects US
+prices into its source-first props; its `marketPrices` field exposes native prices for market controls. Import also records the
+initial daily snapshots and comparisons. Browser caches have a separate v2
+namespace. The old database's maintenance lock is independent from v2's lock.
+
+Run this command on the v2 daily cron service:
+
+```sh
+npm run poketrace:refresh-v2-daily
+```
+
+The web and cron services must share the v2 database credentials. Keep the old
+deployment and its jobs on the old release and credentials for manual rollback;
+changing the database URL alone does not make this implementation read v1 data.
+Both deployments share the upstream account quota. `POKETRACE_REQUEST_GAP_MS`
+controls pacing for singles imports/refreshes and sealed imports. Catalog warmup
+requests use `POKETRACE_CATALOG_REFRESH_URL_V2`,
+`POKETRACE_SEALED_CATALOG_REFRESH_URL_V2`, and
+`POKETRACE_CATALOG_REFRESH_TOKEN_V2`, pointing only to the v2 web service.
+
+The history US/EU controls select the market passed to the upstream history
+endpoint with `period=1y`, which is supported by the Pro account. Raw conditions retain their source's averages, and whole graded tiers
+prefer `median30d`. EU graded eligibility uses the selected market's
+`cardmarket_unsold` prices and counts. CardMarket counts describe listings, not
+sold transactions. Current price cards and grading calculations remain US-based.
+The UI does not perform currency conversion.
+
+Each history cache stores separate `US` and `EU` entries inside its existing JSON
+column. Every entry has its own six-hour timestamp; atomic JSON updates preserve
+the other market. Pending requests and browser page caches include the card,
+market, and tier. Responses from another card, market, or tier are rejected.
+Only the first one-year page is fetched (up to 365 rows); pagination is unchanged.
+The live v2 API restricts `period=all` to Scale/Business. The chart's All control
+shows all returned data within that request's coverage, not lifetime history.
+Sealed history uses the same market separation on its product row.
+
+For local development, add `POKETRACE_API_KEY=...` and an explicit
+`POKETRACE_DATABASE_URL_V2` to `.env`, then run:
 
 ```sh
 npm run poketrace:import-catalog
@@ -9,7 +74,7 @@ npm run start
 ```
 
 The import saves 20 English Pokémon singles from the US market in
-`server/db/poketrace.sqlite`. Continue the same checkpoint through the full
+`server/db/poketrace-v2.sqlite`. Continue the same checkpoint through the full
 English US single-card catalogue with:
 
 ```sh
@@ -165,15 +230,15 @@ one day newer; the entry is `null` when none of those dates exists. The daily
 history table remains the source of truth. Existing rows without this cache
 fall back to history until their next refresh.
 
-Opening a card requests the first page of all-time `NEAR_MINT` history (up to
+Opening a card requests the first page of one-year `NEAR_MINT` history (up to
 365 rows, without pagination). The chart offers local period
 controls: **1M** (30 days), **3M** (90 days), **6M** (180 days), and **All**
 (all available returned history). Longer options appear only when the displayed
 series contain history older than the preceding period: 30, 90, or 180 days,
 respectively. If the selected period becomes unavailable, the longest available
 period is selected. There is no 365-day option. The All view includes the year on dates
-from previous years. Available TCGPlayer and eBay rows are normalized into
-separate series and stored with one fetch timestamp on the card row. The cache
+from previous years. Available rows are grouped into their marketplace series
+and stored in the selected market's entry on the card row. Each market's cache
 is reused for six hours, then
 refreshed and overwritten. If an upstream refresh fails, existing stored series
 are returned as stale instead of removing the chart.
@@ -183,31 +248,31 @@ Played, Heavily Played, and Damaged. Raw histories retain both TCGPlayer and
 eBay sources and use averages, with no minimum sales requirement. Additional raw
 conditions share the per-card/tier cache in `poketrace_graded_price_history`;
 Near Mint stays on the card row. A valid raw condition may have no history for a
-particular card.
+particular card. EU conditions use CardMarket listing history in EUR.
 
 The dropdown also offers whole-number graded eBay tiers with at least
 15 sales, an available price, and a valid `lastUpdated` within the last two
 calendar months (inclusive of the cutoff date, using UTC and clamping month ends).
 Missing, invalid, or future update dates are excluded. When `gradedOptions` is
-present, the tier must also be advertised there. Older records without that
-metadata use their valid graded price keys. Half grades are excluded from history requests and dropdown
+present for US, the tier must also be advertised there. EU tiers are qualified
+directly from native `prices` for that market. Half grades are excluded from history requests and dropdown
 options; their price tiles remain subject to the graded-price display rules.
-Selecting a tier requests its first all-time history page on demand, with the
-same local period filters. Graded charts prefer `median30d`, falling back to
-`avg` when unavailable. When the upstream graded average is missing, the server
+Selecting a tier requests its first one-year history page on demand, with the
+same local period filters. Graded charts resolve returned points using the shared
+price priority: `median30d`, then `median7d`, then `avg`. When the upstream graded average is missing, the server
 uses `median30d` to retain the point. Raw-condition charts continue to use averages.
 Selecting a grade retains the Near Mint TCGPlayer and eBay lines and adds the
 graded eBay history as a third, blue line. Raw-condition selections display only
-that condition's sources. Each card/tier pair has an independent six-hour cache
+that condition's sources. Each card/market/tier combination has an independent six-hour cache
 in `poketrace_graded_price_history`; the server enforces the same eligibility
 rules before fetching or serving a graded cache. The demo route fetches the source card and its price history normally; only
 feature-analysis responses come from `demo-card.json`.
 
-Sealed-product charts request the first all-time page of `UNOPENED` history with
+Sealed-product charts request the first one-year page of `UNOPENED` history with
 the same 365-row limit and no pagination. Their six-hour cache stays on the
-sealed-product row. Existing 90-day caches refresh on the next history request,
-even if still within their TTL; if refresh fails, the previous data remains
-available as stale. The browser uses the same 1M, 3M, 6M, and All period controls.
+sealed-product row, separated by market. If refresh fails, the same market's
+previous data remains available as stale. The browser uses the same 1M, 3M,
+6M, and All period controls.
 
 Before period filtering, each series excludes a single highest price point
 when it is at least four times the next-highest positive price in that same
@@ -216,20 +281,32 @@ The legend below the chart sums available counts from retained points in the
 selected period. The price axis selects four or five horizontal grid lines and supports
 fractional intervals and decimal labels for low prices.
 
-The graded-price box displays `median30d` when available, otherwise `avg`.
-It hides tiers whose numeric `median3d`,
-`median7d`, and `median30d` are all equal. Grading-opportunity generation excludes
-PSA 10 prices matching the same rule before ranking and limiting results.
-Missing medians alone do not trigger this exclusion. This rule does not remove
-history dropdown options.
+Graded-price boxes, grading calculator prefills, and graded graph lines use
+`resolveGradedPrice` in `shared/gradedPrice.ts`: prefer `median30d`, then
+`median7d`, then `avg`. The first finite, nonnegative numeric value is used;
+missing or invalid values fall through to the next field. Raw-condition prices
+continue to use averages.
+
+Graded-price boxes and calculator prefills also share `isEligibleGradedPrice`:
+the tier must have a finite numeric `saleCount` of at least 15, and its numeric
+`median3d`, `median7d`, and `median30d` must not all be equal. Missing medians
+alone do not trigger this exclusion. Ineligible grades are hidden from the
+boxes and are not imported into calculator inputs; users can still enter
+calculator prices manually. The history dropdown retains its separate rules
+described above, including its update-age requirement; the identical-median
+exclusion does not remove history options.
+
+Grading-opportunity generation separately excludes PSA 10 prices with three
+identical medians before ranking and limiting results. It retains its own
+30-day-median-only pricing and qualification thresholds described above.
 
 Import and refresh share a database lock. If either job is already running, the
 other skips its run successfully. A daily quota stop preserves all completed
 cards and exits with a failure status so the cron execution is visibly
 incomplete.
 
-For deployment, set `POKETRACE_DATABASE_URL` and
-`POKETRACE_DATABASE_AUTH_TOKEN` on both the web and cron services. They must use
+For deployment, set `POKETRACE_DATABASE_URL_V2` and
+`POKETRACE_DATABASE_AUTH_TOKEN_V2` on both the web and cron services. They must use
 the same libSQL database; a local SQLite file cannot be shared between separate
 Railway services.
 

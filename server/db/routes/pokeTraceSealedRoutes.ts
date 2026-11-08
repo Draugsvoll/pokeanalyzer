@@ -131,8 +131,13 @@ export function createSealedMarketPriceHistoryHandler(
       return;
     }
 
+    const market = req.query.market ?? "US";
+    if (market !== "US" && market !== "EU") {
+      res.status(400).json({ error: "Invalid market" });
+      return;
+    }
     try {
-      const history = await loadHistory(id);
+      const history = await loadHistory(id, { market });
       if (!history) {
         res.status(404).json({ error: "Sealed product not found" });
         return;

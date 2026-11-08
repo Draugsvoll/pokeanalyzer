@@ -137,6 +137,7 @@ test("market movers forwards validated customizable filters", async () => {
           items: [],
           query,
           stale: false,
+          market: "US",
         };
       },
       reportError: () => {
@@ -533,9 +534,7 @@ test("GET /api/cards/:id/price-history returns PokeTrace price snapshots", async
             {
               recordedAt: "2026-09-17",
               currency: "USD",
-              prices: {
-                tcgplayer: { NEAR_MINT: { avg: 420 } },
-              },
+              prices: { NEAR_MINT: { US: { tcgplayer: { avg: 420 } } } },
               sourceUpdatedAt: "2026-09-17T08:00:00.000Z",
             },
           ],
@@ -560,9 +559,7 @@ test("GET /api/cards/:id/price-history returns PokeTrace price snapshots", async
       {
         recordedAt: "2026-09-17",
         currency: "USD",
-        prices: {
-          tcgplayer: { NEAR_MINT: { avg: 420 } },
-        },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 420 } } } },
         sourceUpdatedAt: "2026-09-17T08:00:00.000Z",
       },
     ],
@@ -624,7 +621,7 @@ test("GET /api/cards/:id/market-price-history returns available provider series"
         condition: "NEAR_MINT",
         currency: "USD",
         fetchedAt: "2026-09-19T12:00:00.000Z",
-        period: "90d",
+        period: "1y",
         series: {
           tcgplayer: [
             {
@@ -641,6 +638,7 @@ test("GET /api/cards/:id/market-price-history returns available provider series"
           ebay: [],
         },
         stale: false,
+        market: "US",
       }),
     }),
   );
@@ -676,9 +674,10 @@ test("marketplace history accepts exact graded tiers and rejects invalid or unqu
           condition: tier,
           currency: "USD",
           fetchedAt: "2026-11-04T12:00:00Z",
-          period: "all",
+          period: "1y",
           series: {},
           stale: false,
+          market: "US",
         };
       },
       reportError: () =>

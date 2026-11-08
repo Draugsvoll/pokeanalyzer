@@ -4,7 +4,7 @@ import {
   GRADING_LIST_MAX_AGE_MS,
 } from "../../shared/gradingOpportunityList";
 
-const key = "pokelyzer:grading-opportunities:v2";
+const key = "pokelyzer:grading-opportunities:poketrace-v2";
 const now = Date.parse("2026-11-06T12:00:00Z");
 const snapshot = {
   schemaVersion: 2,

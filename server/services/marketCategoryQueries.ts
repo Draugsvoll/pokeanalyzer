@@ -396,12 +396,12 @@ function dedicatedNearMintQuery(
         ? `WITH cached_prices AS (
       SELECT id AS card_id,
         json_extract(raw_json, '$.currency') AS currency,
-        json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS market_price,
+        json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') AS market_price,
         json_extract(tcg_market_comparisons, '$.comparisons."1d".marketPrice') AS comparison_price,
         json_extract(tcg_market_comparisons, '$.asOf') AS recorded_at
       FROM poketrace_cards
       WHERE json_valid(raw_json) AND json_valid(tcg_market_comparisons)
-        AND json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') IN ('integer', 'real')
+        AND json_type(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') IN ('integer', 'real')
         AND json_type(tcg_market_comparisons, '$.comparisons."1d".marketPrice') IN ('integer', 'real')
     )`
         : ""
@@ -760,7 +760,7 @@ export async function findMostSold(
         cards.tcg_market_comparisons,
         selected.currency,
         selected.prices,
-        json_extract(cards.raw_json, '$.prices.tcgplayer') AS tcg_prices,
+        (SELECT json_group_object(key, json_extract(value, '$.US.tcgplayer')) FROM json_each(cards.raw_json, '$.prices') WHERE json_type(value, '$.US.tcgplayer') = 'object') AS tcg_prices,
         selected.current_price,
         selected.sale_count,
         selected.new_sales

@@ -20,7 +20,7 @@ export function createCatalogRefreshHandler({
   errorContext,
   failureMessage,
   refreshCatalog,
-  refreshToken = process.env.POKETRACE_CATALOG_REFRESH_TOKEN,
+  refreshToken = process.env.POKETRACE_CATALOG_REFRESH_TOKEN_V2,
   reportError = logError,
 }: CatalogRefreshHandlerOptions): RequestHandler {
   const expectedToken = refreshToken?.trim();

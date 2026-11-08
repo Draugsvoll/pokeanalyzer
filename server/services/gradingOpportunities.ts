@@ -147,8 +147,8 @@ export async function findGradingOpportunities(
   const updatedAfter = new Date(
     new Date().getTime() - parameters.maximumUpdateAgeDays * DAY_MS,
   ).toISOString();
-  const nearMintPrice = priceValue("tcgplayer.NEAR_MINT.avg");
-  const psaPrice = priceValue("ebay.PSA_10.median30d");
+  const nearMintPrice = priceValue("NEAR_MINT.US.tcgplayer.avg");
+  const psaPrice = priceValue("PSA_10.US.ebay.median30d");
 
   const result = await database.execute({
     sql: `
@@ -162,22 +162,22 @@ export async function findGradingOpportunities(
           variant,
           image_url,
           tcg_market_comparisons,
-          json_extract(raw_json, '$.prices.tcgplayer') AS tcg_prices,
+          (SELECT json_group_object(key, json_extract(value, '$.US.tcgplayer')) FROM json_each(raw_json, '$.prices') WHERE json_type(value, '$.US.tcgplayer') = 'object') AS tcg_prices,
           json_extract(raw_json, '$.currency') AS currency,
-          CAST(json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.saleCount') AS REAL) AS near_mint_sales,
-          CAST(json_extract(raw_json, '$.prices.ebay.PSA_10.saleCount') AS REAL) AS psa_sales,
+          CAST(json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.saleCount') AS REAL) AS near_mint_sales,
+          CAST(json_extract(raw_json, '$.prices.PSA_10.US.ebay.saleCount') AS REAL) AS psa_sales,
           ${nearMintPrice} AS near_mint_price,
           ${psaPrice} AS psa_price,
-          ${priceValue("ebay.PSA_10.median3d")} AS psa_median_3d,
-          ${priceValue("ebay.PSA_10.median7d")} AS psa_median_7d,
+          ${priceValue("PSA_10.US.ebay.median3d")} AS psa_median_3d,
+          ${priceValue("PSA_10.US.ebay.median7d")} AS psa_median_7d,
           '30d' AS psa_median
         FROM poketrace_cards
-        WHERE json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.saleCount') IN ('integer', 'real')
-          AND json_type(raw_json, '$.prices.ebay.PSA_10.saleCount') IN ('integer', 'real')
-          AND json_type(raw_json, '$.prices.tcgplayer.NEAR_MINT.lastUpdated') = 'text'
-          AND json_type(raw_json, '$.prices.ebay.PSA_10.lastUpdated') = 'text'
-          AND json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.lastUpdated') >= ?
-          AND json_extract(raw_json, '$.prices.ebay.PSA_10.lastUpdated') >= ?
+        WHERE json_type(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.saleCount') IN ('integer', 'real')
+          AND json_type(raw_json, '$.prices.PSA_10.US.ebay.saleCount') IN ('integer', 'real')
+          AND json_type(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.lastUpdated') = 'text'
+          AND json_type(raw_json, '$.prices.PSA_10.US.ebay.lastUpdated') = 'text'
+          AND json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.lastUpdated') >= ?
+          AND json_extract(raw_json, '$.prices.PSA_10.US.ebay.lastUpdated') >= ?
       )
       SELECT
         id,

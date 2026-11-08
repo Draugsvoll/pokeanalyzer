@@ -76,10 +76,11 @@ test("sealed market history route returns live unopened API history", async () =
       loadHistory: async (requestedId) => ({
         productId: requestedId,
         condition: "UNOPENED",
-        period: "90d",
+        period: "1y",
         currency: "USD",
         fetchedAt: "2026-10-05T12:00:00.000Z",
         stale: false,
+        market: "US",
         series: {
           tcgplayer: [
             {

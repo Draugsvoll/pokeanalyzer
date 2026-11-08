@@ -6,7 +6,14 @@ import { loadPokeTraceSetSalesLeaders } from "./pokeTraceSetInsights.js";
 function rawCard(
   prices: Record<string, { approxSaleCount?: boolean; saleCount: number }>,
 ) {
-  return JSON.stringify({ prices: { tcgplayer: prices } });
+  return JSON.stringify({
+    prices: Object.fromEntries(
+      Object.entries(prices).map(([tier, price]) => [
+        tier,
+        { US: { tcgplayer: price } },
+      ]),
+    ),
+  });
 }
 
 test("queries current card data without sales history", async () => {

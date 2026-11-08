@@ -3,9 +3,15 @@ import {
   fetchPokeTraceSealedPriceHistory,
   type PokeTracePriceHistoryPoint,
 } from "./pokeTraceApi.js";
+import type { PokeTraceMarket } from "../../shared/pokeTraceMarkets.js";
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-const MARKET_SOURCES = ["tcgplayer", "ebay"] as const;
+const MARKET_SOURCES = [
+  "tcgplayer",
+  "ebay",
+  "cardmarket",
+  "cardmarket_unsold",
+] as const;
 
 type MarketSource = (typeof MARKET_SOURCES)[number];
 type HistoryPoint = Omit<PokeTracePriceHistoryPoint, "avg" | "source"> & {
@@ -15,8 +21,9 @@ type HistoryPoint = Omit<PokeTracePriceHistoryPoint, "avg" | "source"> & {
 export type PokeTraceSealedMarketPriceHistory = {
   productId: string;
   condition: "UNOPENED";
-  period: "90d" | "all";
-  currency: "USD";
+  period: "1y";
+  currency: string;
+  market: PokeTraceMarket;
   fetchedAt: string;
   stale: boolean;
   series: Partial<Record<MarketSource, HistoryPoint[]>>;
@@ -29,6 +36,7 @@ type StoredSealedMarketPriceHistory = Omit<
 type HistoryDatabase = Pick<typeof pokeTraceDb, "execute">;
 
 type HistoryDependencies = {
+  market?: PokeTraceMarket;
   database?: HistoryDatabase;
   ready?: Promise<unknown>;
   apiKey?: string;
@@ -80,6 +88,7 @@ function parsePoint(value: unknown): HistoryPoint | null {
 
 function parseStoredHistory(
   value: unknown,
+  market: PokeTraceMarket,
 ): StoredSealedMarketPriceHistory | null {
   if (typeof value !== "string" || !value) return null;
   try {
@@ -87,11 +96,12 @@ function parseStoredHistory(
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return null;
     }
-    const history = parsed as Record<string, unknown>;
+    const history = (parsed as Record<string, Record<string, unknown>>)[market];
+    if (!history || history.market !== market) return null;
     if (
       history.condition !== "UNOPENED" ||
-      (history.period !== "90d" && history.period !== "all") ||
-      history.currency !== "USD" ||
+      history.period !== "1y" ||
+      typeof history.currency !== "string" ||
       typeof history.fetchedAt !== "string" ||
       !history.series ||
       typeof history.series !== "object" ||
@@ -113,7 +123,8 @@ function parseStoredHistory(
     return {
       condition: "UNOPENED",
       period: history.period,
-      currency: "USD",
+      currency: history.currency,
+      market,
       fetchedAt: history.fetchedAt,
       series,
     };
@@ -122,10 +133,19 @@ function parseStoredHistory(
   }
 }
 
-function groupSeries(points: PokeTracePriceHistoryPoint[]) {
+function groupSeries(
+  points: PokeTracePriceHistoryPoint[],
+  market: PokeTraceMarket,
+) {
   const series: PokeTraceSealedMarketPriceHistory["series"] = {};
   for (const point of points) {
     const source = point.source.toLowerCase();
+    if (
+      market === "US"
+        ? source !== "ebay" && source !== "tcgplayer"
+        : source !== "cardmarket" && source !== "cardmarket_unsold"
+    )
+      continue;
     if (!isMarketSource(source) || !isFiniteNumber(point.avg)) continue;
     (series[source] ??= []).push({
       date: point.date,
@@ -163,11 +183,12 @@ export async function loadPokeTraceSealedMarketPriceHistory(
   dependencies: HistoryDependencies = {},
 ): Promise<PokeTraceSealedMarketPriceHistory | null> {
   const database = dependencies.database ?? pokeTraceDb;
+  const market = dependencies.market ?? "US";
   await (dependencies.ready ?? ensurePokeTraceReady());
   const now = dependencies.now ?? Date.now;
   const result = await database.execute({
     sql: `
-      SELECT market_price_history, market_price_history_fetched_at
+      SELECT raw_json, market_price_history, market_price_history_fetched_at
       FROM poketrace_sealed_products
       WHERE id = ?
     `,
@@ -176,14 +197,20 @@ export async function loadPokeTraceSealedMarketPriceHistory(
   const row = result.rows[0];
   if (!row) return null;
 
-  const cached = parseStoredHistory(row.market_price_history);
-  const fetchedAt =
-    typeof row.market_price_history_fetched_at === "string"
-      ? Date.parse(row.market_price_history_fetched_at)
-      : Number.NaN;
+  const product = JSON.parse(String(row.raw_json));
+  if (
+    product.markets?.[market]?.available !== true ||
+    typeof product.markets[market].currency !== "string"
+  ) {
+    throw new PokeTraceSealedPriceHistoryUnavailableError(
+      "This market is not available for this product",
+    );
+  }
+  const cached = parseStoredHistory(row.market_price_history, market);
+  const fetchedAt = cached ? Date.parse(cached.fetchedAt) : Number.NaN;
   if (
     cached &&
-    cached.period === "all" &&
+    cached.period === "1y" &&
     Number.isFinite(fetchedAt) &&
     now() - fetchedAt < CACHE_TTL_MS
   ) {
@@ -191,7 +218,8 @@ export async function loadPokeTraceSealedMarketPriceHistory(
   }
 
   const activeFetches = getActiveHistoryFetches(database);
-  const existing = activeFetches.get(productId);
+  const cacheKey = `${productId}:${market}`;
+  const existing = activeFetches.get(cacheKey);
   if (existing) return existing;
 
   const refresh = (async () => {
@@ -206,22 +234,23 @@ export async function loadPokeTraceSealedMarketPriceHistory(
     try {
       const response = await (
         dependencies.fetchHistory ?? fetchPokeTraceSealedPriceHistory
-      )(apiKey, productId);
+      )(apiKey, productId, { market });
       const refreshedAt = new Date(now()).toISOString();
       const history: StoredSealedMarketPriceHistory = {
         condition: "UNOPENED",
-        period: "all",
-        currency: "USD",
+        period: "1y",
+        currency: product.markets[market].currency,
+        market,
         fetchedAt: refreshedAt,
-        series: groupSeries(response.data),
+        series: groupSeries(response.data, market),
       };
       await database.execute({
         sql: `
           UPDATE poketrace_sealed_products
-          SET market_price_history = ?, market_price_history_fetched_at = ?
+          SET market_price_history = json_set(COALESCE(market_price_history, '{}'), ?, json(?)), market_price_history_fetched_at = ?
           WHERE id = ?
         `,
-        args: [JSON.stringify(history), refreshedAt, productId],
+        args: [`$.${market}`, JSON.stringify(history), refreshedAt, productId],
       });
       return { productId, ...history, stale: false };
     } catch (error) {
@@ -230,12 +259,12 @@ export async function loadPokeTraceSealedMarketPriceHistory(
     }
   })();
 
-  activeFetches.set(productId, refresh);
+  activeFetches.set(cacheKey, refresh);
   try {
     return await refresh;
   } finally {
-    if (activeFetches.get(productId) === refresh) {
-      activeFetches.delete(productId);
+    if (activeFetches.get(cacheKey) === refresh) {
+      activeFetches.delete(cacheKey);
     }
   }
 }

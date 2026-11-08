@@ -12,12 +12,12 @@ type InsightsDependencies = {
 
 const totalSales = POKETRACE_RAW_CONDITIONS.map(
   (condition) => `CASE
-    WHEN json_type(cards.raw_json, '$.prices.tcgplayer.${condition}.saleCount')
+    WHEN json_type(cards.raw_json, '$.prices.${condition}.US.tcgplayer.saleCount')
            IN ('integer', 'real')
     THEN CAST(
       json_extract(
         cards.raw_json,
-        '$.prices.tcgplayer.${condition}.saleCount'
+        '$.prices.${condition}.US.tcgplayer.saleCount'
       ) AS REAL
     )
     ELSE 0
@@ -27,7 +27,7 @@ const totalSales = POKETRACE_RAW_CONDITIONS.map(
 const hasSalesData = POKETRACE_RAW_CONDITIONS.map(
   (condition) => `json_type(
     cards.raw_json,
-    '$.prices.tcgplayer.${condition}.saleCount'
+    '$.prices.${condition}.US.tcgplayer.saleCount'
   ) IN ('integer', 'real')`,
 ).join(" OR ");
 

@@ -338,10 +338,11 @@ beforeEach(() => {
   );
   mocks.fetchMarketPriceHistory.mockImplementation(async (cardId: string) => ({
     cardId,
+    market: "US",
     condition: "NEAR_MINT",
     currency: "USD",
     fetchedAt: "2026-09-19T10:00:00.000Z",
-    period: "90d",
+    period: "1y",
     series: {},
     stale: false,
   }));
@@ -555,6 +556,53 @@ test("closes the embedded card search with its visible close button", async () =
     screen.queryByRole("dialog", { name: "Switch card" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Next Card" })).toHaveFocus();
+});
+
+test("shows regular loading instead of locked content while the demo card loads", async () => {
+  mocks.authUser = null;
+  mocks.hasSubscription = false;
+  let resolveCard!: (card: PokemonCard) => void;
+  mocks.fetchCardById.mockReturnValue(
+    new Promise<PokemonCard>((resolve) => {
+      resolveCard = resolve;
+    }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/card/demo"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("status", { name: "Loading marketplace price history" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("status", { name: "Loading graded prices" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText("Available with Basic or Pro membership."),
+  ).not.toBeInTheDocument();
+  expect(mocks.fetchMarketPriceHistory).not.toHaveBeenCalled();
+  const loadingPage = screen
+    .getByRole("heading", { name: "Loading card…", level: 1 })
+    .closest("article")!;
+  expect(loadingPage).toHaveClass("details-page");
+  expect(
+    loadingPage.querySelector(".details-page__media .card-view__loading-image"),
+  ).toBeInTheDocument();
+  expect(
+    loadingPage.querySelector(".details-page__content .poketrace-market"),
+  ).toBeInTheDocument();
+  await act(async () => {
+    resolveCard(buildCard("demo-card", "Demo card"));
+  });
+  expect(
+    await screen.findByRole("heading", { name: "Demo card", level: 1 }),
+  ).toBeVisible();
+  expect(
+    screen
+      .getByRole("heading", { name: "Demo card", level: 1 })
+      .closest("article"),
+  ).toBe(loadingPage);
 });
 
 test("shows membership pricing at the bottom of the demo card page", async () => {
@@ -820,7 +868,10 @@ test("shows market loading while fetching a variant and reuses the result", asyn
   ).not.toBeInTheDocument();
   expect(screen.queryByText(/Loading Pok/)).not.toBeInTheDocument();
 
-  resolveCardB(cardB);
+  await act(async () => {
+    resolveCardB(cardB);
+    await cardBRequest;
+  });
   await screen.findByRole("heading", { name: "Raichu", level: 1 });
 
   expect(
@@ -879,7 +930,7 @@ test("keeps navigation details visible while the complete card loads", async () 
   expect(
     screen.queryByRole("status", { name: "Loading market data" }),
   ).not.toBeInTheDocument();
-  expect(screen.getAllByText("No price data")).toHaveLength(2);
+  expect(screen.getAllByText("No price data")).toHaveLength(3);
   expect(
     screen.getAllByText("Available with Basic or Pro membership."),
   ).toHaveLength(2);
@@ -1268,6 +1319,9 @@ test.each(["basic", "pro"] as const)(
   "allows price history for an active %s member",
   async (planId) => {
     subscription.planId = planId;
+    const card = buildCard("card-a", "Bulbasaur");
+    card.pokeTrace!.prices = { tcgplayer: { NEAR_MINT: { avg: 10 } } };
+    mocks.fetchCardById.mockResolvedValue(card);
     render(
       <MemoryRouter initialEntries={["/card/card-a"]}>
         <TestRoutes />
@@ -1355,7 +1409,9 @@ test("unlocks demo market history and graded prices without login or membership"
   mocks.hasSubscription = false;
   const liveId = "019bff9a-8592-77ae-8865-c500279b7630";
   const demo = buildCard(liveId, "Charizard");
-  demo.pokeTrace!.prices = { ebay: { PSA_10: { avg: 100, saleCount: 20 } } };
+  demo.pokeTrace!.prices = {
+    ebay: { NEAR_MINT: { avg: 10 }, PSA_10: { avg: 100, saleCount: 20 } },
+  };
   mocks.fetchCardById.mockResolvedValue(demo);
   render(
     <MemoryRouter initialEntries={["/card/demo"]}>
@@ -1374,6 +1430,7 @@ test("unlocks demo market history and graded prices without login or membership"
       liveId,
       expect.any(AbortSignal),
       "NEAR_MINT",
+      "US",
     ),
   );
   expect(mocks.fetchCardPriceHistory).toHaveBeenCalledWith(

@@ -10,11 +10,11 @@ import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 import { toPokeTraceCatalogCard } from "./pokeTraceCatalog.js";
 
 const CONDITION_PATHS: Record<PokeTraceRawCondition, string> = {
-  NEAR_MINT: "$.prices.tcgplayer.NEAR_MINT.avg",
-  LIGHTLY_PLAYED: "$.prices.tcgplayer.LIGHTLY_PLAYED.avg",
-  MODERATELY_PLAYED: "$.prices.tcgplayer.MODERATELY_PLAYED.avg",
-  HEAVILY_PLAYED: "$.prices.tcgplayer.HEAVILY_PLAYED.avg",
-  DAMAGED: "$.prices.tcgplayer.DAMAGED.avg",
+  NEAR_MINT: "$.prices.NEAR_MINT.US.tcgplayer.avg",
+  LIGHTLY_PLAYED: "$.prices.LIGHTLY_PLAYED.US.tcgplayer.avg",
+  MODERATELY_PLAYED: "$.prices.MODERATELY_PLAYED.US.tcgplayer.avg",
+  HEAVILY_PLAYED: "$.prices.HEAVILY_PLAYED.US.tcgplayer.avg",
+  DAMAGED: "$.prices.DAMAGED.US.tcgplayer.avg",
 };
 
 type DirectSearchDependencies = {
@@ -131,11 +131,11 @@ export async function loadDirectPokeTraceSearch(
         variant,
         image_url,
         json_extract(raw_json, '$.currency') AS currency,
-        json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS near_mint_price,
-        json_extract(raw_json, '$.prices.tcgplayer.LIGHTLY_PLAYED.avg') AS lightly_played_price,
-        json_extract(raw_json, '$.prices.tcgplayer.MODERATELY_PLAYED.avg') AS moderately_played_price,
-        json_extract(raw_json, '$.prices.tcgplayer.HEAVILY_PLAYED.avg') AS heavily_played_price,
-        json_extract(raw_json, '$.prices.tcgplayer.DAMAGED.avg') AS damaged_price,
+        json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') AS near_mint_price,
+        json_extract(raw_json, '$.prices.LIGHTLY_PLAYED.US.tcgplayer.avg') AS lightly_played_price,
+        json_extract(raw_json, '$.prices.MODERATELY_PLAYED.US.tcgplayer.avg') AS moderately_played_price,
+        json_extract(raw_json, '$.prices.HEAVILY_PLAYED.US.tcgplayer.avg') AS heavily_played_price,
+        json_extract(raw_json, '$.prices.DAMAGED.US.tcgplayer.avg') AS damaged_price,
         tcg_market_comparisons
       FROM poketrace_cards
       ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}

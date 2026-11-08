@@ -43,7 +43,7 @@ test("generates missing catalog and atomically stores the enriched set list", as
       "Test Set",
       JSON.stringify({
         currency: "USD",
-        prices: { tcgplayer: { NEAR_MINT: { avg: 20 } } },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 20 } } } },
       }),
       JSON.stringify({
         asOf: "2026-10-03",
@@ -64,7 +64,7 @@ test("generates missing catalog and atomically stores the enriched set list", as
       "Test Set",
       JSON.stringify({
         currency: "USD",
-        prices: { tcgplayer: { NEAR_MINT: { avg: 12 } } },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 12 } } } },
       }),
       JSON.stringify({
         asOf: "2026-10-03",

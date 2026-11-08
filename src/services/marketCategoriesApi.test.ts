@@ -342,7 +342,9 @@ test("reuses the complete browser cache until its 24-hour TTL expires", async ()
   await mostSoldEbayCards();
 
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).not.toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).not.toBeNull();
 
   vi.advanceTimersByTime(24 * 60 * 60 * 1_000);
   await dailyTcgNearMintLosers();
@@ -351,7 +353,7 @@ test("reuses the complete browser cache until its 24-hour TTL expires", async ()
 });
 
 test("falls back to the server when the browser cache is corrupt", async () => {
-  localStorage.setItem("pokelyzer:market-categories:v7", "not-json");
+  localStorage.setItem("pokelyzer:market-categories:poketrace-v2", "not-json");
   const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -372,7 +374,9 @@ test("rechecks insufficient history after a reload while sharing the current pag
   expect(results[0].status).toBe("insufficient_history");
   await dailyTcgNearMintGainers();
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).toBeNull();
 
   // Reloading resets module memory but preserves localStorage.
   vi.resetModules();
@@ -382,13 +386,15 @@ test("rechecks insufficient history after a reload while sharing the current pag
   expect(result.status).toBe("ready");
   expect(result.items[0]?.name).toBe("Pikachu");
   expect(fetchMock).toHaveBeenCalledTimes(2);
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).not.toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).not.toBeNull();
   reloadedApi.clearMarketCategoriesCache();
 });
 
 test("discards previously persisted incomplete history even within its cache TTL", async () => {
   localStorage.setItem(
-    "pokelyzer:market-categories:v7",
+    "pokelyzer:market-categories:poketrace-v2",
     JSON.stringify({
       cachedAt: Date.now(),
       payload: withInsufficientHistory(),
@@ -411,12 +417,16 @@ test("removes the previous persistent cache when new results lack history", asyn
     .mockResolvedValueOnce(Response.json(withInsufficientHistory()));
   vi.stubGlobal("fetch", fetchMock);
   await mostSoldCards();
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).not.toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).not.toBeNull();
 
   vi.advanceTimersByTime(24 * 60 * 60 * 1_000);
   await mostSoldCards();
 
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).toBeNull();
 });
 
 test("keeps the normal cache for sufficient history with no qualifying cards", async () => {
@@ -436,7 +446,9 @@ test("keeps the normal cache for sufficient history with no qualifying cards", a
   expect(result.status).toBe("ready");
   expect(result.items).toEqual([]);
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  expect(localStorage.getItem("pokelyzer:market-categories:v7")).not.toBeNull();
+  expect(
+    localStorage.getItem("pokelyzer:market-categories:poketrace-v2"),
+  ).not.toBeNull();
 });
 
 test("loads grading opportunities", async () => {
@@ -462,7 +474,7 @@ test("does not reuse a cached grading category calculated from seven-day medians
   )!;
   Object.assign(category.items[0], { psaMedian: "7d" });
   localStorage.setItem(
-    "pokelyzer:market-categories:v7",
+    "pokelyzer:market-categories:poketrace-v2",
     JSON.stringify({ cachedAt: Date.now(), payload: legacy }),
   );
   const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));

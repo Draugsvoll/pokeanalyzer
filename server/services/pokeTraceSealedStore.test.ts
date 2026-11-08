@@ -33,14 +33,16 @@ test("sealed sales retain separate days and update same-day counts, including de
             ...product,
             lastUpdated: `${date}T08:00:00.000Z`,
             prices: {
-              tcgplayer: {
-                UNOPENED: {
-                  avg: 150,
-                  saleCount: count,
-                  approxSaleCount: false,
+              UNOPENED: {
+                US: {
+                  tcgplayer: {
+                    avg: 150,
+                    saleCount: count,
+                    approxSaleCount: false,
+                  },
+                  ebay: { saleCount: 0, approxSaleCount: true },
                 },
               },
-              ebay: { UNOPENED: { saleCount: 0, approxSaleCount: true } },
             },
           },
           date,
@@ -86,11 +88,14 @@ test("sealed snapshots support eBay without a TCG price and preserve missing cou
   try {
     await migratePokeTraceDatabase(database);
     for (const [id, prices] of [
-      ["ebay-only", { ebay: { UNOPENED: { saleCount: 42 } } }],
-      ["missing-count", { tcgplayer: { UNOPENED: { avg: 120 } } }],
-      ["null-count", { tcgplayer: { UNOPENED: { saleCount: null } } }],
-      ["empty", { tcgplayer: { UNOPENED: {} } }],
-      ["wrong-condition", { tcgplayer: { NEAR_MINT: { saleCount: 999 } } }],
+      ["ebay-only", { UNOPENED: { US: { ebay: { saleCount: 42 } } } }],
+      ["missing-count", { UNOPENED: { US: { tcgplayer: { avg: 120 } } } }],
+      ["null-count", { UNOPENED: { US: { tcgplayer: { saleCount: null } } } }],
+      ["empty", { UNOPENED: { US: { tcgplayer: {} } } }],
+      [
+        "wrong-condition",
+        { NEAR_MINT: { US: { tcgplayer: { saleCount: 999 } } } },
+      ],
     ] as const) {
       await database.batch(
         sealedProductAndDailyPriceUpserts(

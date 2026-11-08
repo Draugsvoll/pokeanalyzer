@@ -20,12 +20,12 @@ async function requestCatalogRefresh(
     options.endpoint ?? process.env[configuration.endpointEnvironmentVariable]
   )?.trim();
   const token = (
-    options.token ?? process.env.POKETRACE_CATALOG_REFRESH_TOKEN
+    options.token ?? process.env.POKETRACE_CATALOG_REFRESH_TOKEN_V2
   )?.trim();
 
   if (!endpoint || !token) {
     throw new Error(
-      `${configuration.endpointEnvironmentVariable} and POKETRACE_CATALOG_REFRESH_TOKEN must be configured together`,
+      `${configuration.endpointEnvironmentVariable} and POKETRACE_CATALOG_REFRESH_TOKEN_V2 must be configured together`,
     );
   }
 
@@ -73,7 +73,7 @@ export async function requestPokeTraceCatalogRefresh(
 ) {
   try {
     await requestCatalogRefresh(options, {
-      endpointEnvironmentVariable: "POKETRACE_CATALOG_REFRESH_URL",
+      endpointEnvironmentVariable: "POKETRACE_CATALOG_REFRESH_URL_V2",
       requestLabel: "PokeTrace catalog refresh",
     });
   } catch (error) {
@@ -87,7 +87,7 @@ export async function requestPokeTraceSealedCatalogRefresh(
 ) {
   try {
     await requestCatalogRefresh(options, {
-      endpointEnvironmentVariable: "POKETRACE_SEALED_CATALOG_REFRESH_URL",
+      endpointEnvironmentVariable: "POKETRACE_SEALED_CATALOG_REFRESH_URL_V2",
       requestLabel: "PokeTrace sealed catalog refresh",
     });
   } catch (error) {

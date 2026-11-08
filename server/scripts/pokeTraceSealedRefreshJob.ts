@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Client } from "@libsql/client";
+import { DEFAULT_POKETRACE_REQUEST_GAP_MS } from "../config/pokeTraceRequests.js";
 import {
   fetchPokeTraceSealedPage,
   type PokeTraceSealedPage,
@@ -57,7 +58,7 @@ export async function refreshPokeTraceSealedProducts(
     fetchPage = fetchPokeTraceSealedPage,
     log = console.log,
     onCheckpoint,
-    requestGapMs = 2_100,
+    requestGapMs = DEFAULT_POKETRACE_REQUEST_GAP_MS,
     sleep = defaultSleep,
   } = dependencies;
   const crawlId = createCrawlId();

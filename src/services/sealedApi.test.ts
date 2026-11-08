@@ -138,44 +138,43 @@ test("loads sealed details without using the card endpoint", async () => {
   );
 });
 
-test.each(["all", "90d"])(
-  "loads sealed graph data with period %s from the live unopened-history endpoint",
-  async (period) => {
-    const history = {
-      productId: product.id,
-      condition: "UNOPENED",
-      period,
-      currency: "USD",
-      fetchedAt: "2026-10-05T12:00:00.000Z",
-      stale: false,
-      series: {
-        tcgplayer: [
-          {
-            date: "2026-10-05",
-            avg: 150,
-            median7d: null,
-            median30d: null,
-            low: 145,
-            high: 160,
-            saleCount: 8,
-            approxSaleCount: false,
-          },
-        ],
-      },
-    } as const;
-    const fetchMock = vi.fn().mockResolvedValue({
-      json: async () => history,
-      ok: true,
-    });
-    vi.stubGlobal("fetch", fetchMock);
+test("loads sealed graph data from the one-year unopened-history endpoint", async () => {
+  const period = "1y";
+  const history = {
+    productId: product.id,
+    condition: "UNOPENED",
+    period,
+    currency: "USD",
+    fetchedAt: "2026-10-05T12:00:00.000Z",
+    stale: false,
+    market: "US",
+    series: {
+      tcgplayer: [
+        {
+          date: "2026-10-05",
+          avg: 150,
+          median7d: null,
+          median30d: null,
+          low: 145,
+          high: 160,
+          saleCount: 8,
+          approxSaleCount: false,
+        },
+      ],
+    },
+  } as const;
+  const fetchMock = vi.fn().mockResolvedValue({
+    json: async () => history,
+    ok: true,
+  });
+  vi.stubGlobal("fetch", fetchMock);
 
-    expect(await fetchSealedMarketPriceHistory(product.id)).toEqual(history);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/sealed/${product.id}/market-price-history`,
-      expect.objectContaining({ cache: "no-store" }),
-    );
-  },
-);
+  expect(await fetchSealedMarketPriceHistory(product.id)).toEqual(history);
+  expect(fetchMock).toHaveBeenCalledWith(
+    `http://localhost:3001/api/sealed/${product.id}/market-price-history?market=US`,
+    expect.objectContaining({ cache: "no-store" }),
+  );
+});
 
 test("rejects a sealed response with card-shaped pricing", async () => {
   vi.stubGlobal(

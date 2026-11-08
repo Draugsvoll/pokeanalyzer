@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { DEFAULT_POKETRACE_REQUEST_GAP_MS } from "../config/pokeTraceRequests.js";
 import {
   assertExplicitPokeTraceDatabaseTarget,
   ensurePokeTraceReady,
@@ -8,8 +9,10 @@ import {
   fetchPokeTracePage,
   PokeTraceDailyLimitError,
 } from "../services/pokeTraceApi.js";
-import { cardUpsert } from "../services/pokeTraceStore.js";
+import { cardAndDailyPriceUpserts } from "../services/pokeTraceStore.js";
+import { generateAndSavePokeTraceCatalog } from "./pokeTraceCatalogGenerationJob.js";
 import { withPokeTraceJobLock } from "./pokeTraceJobLock.js";
+import { getSafeErrorDetails } from "../security/logging.js";
 
 const apiKey = process.env.POKETRACE_API_KEY?.trim();
 if (!apiKey) {
@@ -30,12 +33,26 @@ if (
   process.exit(1);
 }
 
-const importName = "english-us-singles";
-const requestGapMs = 2100; // Safe for the free tier's one-request-per-two-seconds burst limit.
+const importName = "english-us-singles-v2";
+const requestGapMs = Number(
+  process.env.POKETRACE_REQUEST_GAP_MS ?? DEFAULT_POKETRACE_REQUEST_GAP_MS,
+);
+if (
+  !Number.isSafeInteger(requestGapMs) ||
+  requestGapMs < 0 ||
+  requestGapMs > 60_000
+) {
+  throw new Error("POKETRACE_REQUEST_GAP_MS must be between 0 and 60000");
+}
+
+let operation = "initialize v2 database";
+let savedCount = 0;
 
 try {
   await ensurePokeTraceReady();
+  operation = "acquire maintenance lock";
   const acquired = await withPokeTraceJobLock(async (assertHeld) => {
+    operation = "read import checkpoint from Turso";
     const progress = await pokeTraceDb.execute({
       sql: "SELECT next_cursor, imported_count, complete FROM poketrace_import_progress WHERE name = ?",
       args: [importName],
@@ -46,9 +63,15 @@ try {
         : String(progress.rows[0].next_cursor);
     let count = Number(progress.rows[0]?.imported_count ?? 0);
     let complete = Number(progress.rows[0]?.complete ?? 0) === 1;
+    savedCount = count;
+    console.log(
+      `Resuming catalogue import at ${savedCount} saved cards; request gap ${requestGapMs}ms`,
+    );
 
     while (!complete && count < target) {
+      operation = "fetch PokeTrace catalogue page";
       const page = await fetchPokeTracePage(apiKey, cursor ? { cursor } : {});
+      operation = "verify maintenance lock";
       assertHeld();
       const nextCursor = page.pagination.nextCursor;
       if (page.pagination.hasMore && nextCursor === cursor) {
@@ -56,9 +79,16 @@ try {
       }
       count += page.data.length;
       complete = !page.pagination.hasMore;
+      operation = "save catalogue page and checkpoint to Turso";
       await pokeTraceDb.batch(
         [
-          ...page.data.map((card) => cardUpsert(card)),
+          ...page.data.flatMap((card) =>
+            cardAndDailyPriceUpserts(
+              card,
+              new Date().toISOString().slice(0, 10),
+              new Date().toISOString(),
+            ),
+          ),
           {
             sql: `
             INSERT INTO poketrace_import_progress (name, next_cursor, imported_count, complete)
@@ -73,6 +103,7 @@ try {
         ],
         "write",
       );
+      savedCount = count;
       console.log(
         `Saved ${count} English US singles to the PokeTrace database`,
       );
@@ -81,22 +112,39 @@ try {
         await new Promise((resolve) => setTimeout(resolve, requestGapMs));
       }
     }
+    if (complete) {
+      operation = "publish generated catalogue to Turso";
+      await generateAndSavePokeTraceCatalog(pokeTraceDb, assertHeld);
+    }
     console.log(
       complete
         ? "PokeTrace catalogue exhausted"
         : `Import paused at ${count} cards`,
     );
     console.log("Browse /search");
+    operation = "release maintenance lock";
   });
   if (!acquired)
-    console.log("PokeTrace maintenance job already running; import skipped");
+    throw new Error(
+      "PokeTrace maintenance job already running; import not started",
+    );
 } catch (error) {
   if (error instanceof PokeTraceDailyLimitError) {
     console.log(
       "PokeTrace daily quota exhausted; import paused at saved cursor",
     );
+    process.exitCode = 1;
   } else {
-    console.error(error instanceof Error ? error.message : error);
+    console.error("Catalogue import failed", {
+      operation,
+      savedCount,
+      ...getSafeErrorDetails(error),
+    });
+    let cause = error instanceof Error ? error.cause : undefined;
+    for (let depth = 0; cause instanceof Error && depth < 3; depth += 1) {
+      console.error("Underlying error", getSafeErrorDetails(cause));
+      cause = cause.cause;
+    }
     process.exitCode = 1;
   }
 } finally {

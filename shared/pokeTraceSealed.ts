@@ -1,4 +1,11 @@
 import type { PriceChangePeriod } from "./priceChangePeriod.js";
+import {
+  isPokeTraceMarket,
+  type PokeTraceMarket,
+  type PokeTraceMarketSource,
+  type PokeTraceMarkets,
+  type PokeTracePrices,
+} from "./pokeTraceMarkets.js";
 
 export const POKETRACE_SEALED_CATALOG_SCHEMA_VERSION = 1;
 export const POKETRACE_SEALED_SEARCH_RESULT_LIMIT = 2_000;
@@ -40,7 +47,7 @@ export type PokeTraceSealedFilterOptions = {
   setNames: string[];
 };
 
-export type PokeTraceSealedMarketHistorySource = "ebay" | "tcgplayer";
+export type PokeTraceSealedMarketHistorySource = PokeTraceMarketSource;
 
 export type PokeTraceSealedMarketHistoryPoint = {
   approxSaleCount: boolean | null;
@@ -57,7 +64,7 @@ export type PokeTraceSealedMarketHistory = {
   condition: "UNOPENED";
   currency: string;
   fetchedAt: string;
-  period: "90d" | "all";
+  period: "1y";
   productId: string;
   series: Partial<
     Record<
@@ -66,6 +73,7 @@ export type PokeTraceSealedMarketHistory = {
     >
   >;
   stale: boolean;
+  market: PokeTraceMarket;
 };
 
 export type PokeTraceSealedMarketplacePricing = {
@@ -84,6 +92,8 @@ export type PokeTraceSealedMarketplacePricing = {
 };
 
 export type PokeTraceSealedDetails = PokeTraceSealedCatalogProduct & {
+  markets?: PokeTraceMarkets;
+  marketPrices?: PokeTracePrices;
   marketplaceUrls: Partial<Record<"cardmarket" | "ebay" | "tcgplayer", string>>;
   pricing: {
     ebay?: PokeTraceSealedMarketplacePricing;
@@ -165,19 +175,22 @@ export function isPokeTraceSealedMarketHistory(
   if (
     typeof history.productId !== "string" ||
     history.condition !== "UNOPENED" ||
-    (history.period !== "90d" && history.period !== "all") ||
+    history.period !== "1y" ||
     typeof history.currency !== "string" ||
     !history.currency.trim() ||
     typeof history.fetchedAt !== "string" ||
     !Number.isFinite(Date.parse(history.fetchedAt)) ||
     typeof history.stale !== "boolean" ||
+    !isPokeTraceMarket(history.market) ||
     !history.series ||
     typeof history.series !== "object" ||
     Array.isArray(history.series)
   ) {
     return false;
   }
-  return (["ebay", "tcgplayer"] as const).every((source) => {
+  return (
+    ["ebay", "tcgplayer", "cardmarket", "cardmarket_unsold"] as const
+  ).every((source) => {
     const points = history.series?.[source];
     return (
       points === undefined ||

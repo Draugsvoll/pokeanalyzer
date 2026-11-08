@@ -34,3 +34,4 @@ terminals/
 notes.md
 db_notes.md
 server/db/poketrace.sqlite*
+server/db/poketrace-v2.sqlite*

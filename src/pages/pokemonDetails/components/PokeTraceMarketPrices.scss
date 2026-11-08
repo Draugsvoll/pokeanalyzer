@@ -13,7 +13,7 @@
     inset: 0;
     justify-content: center;
     position: absolute;
-    z-index: 5;
+    z-index: calc(var(--dropdown-z-index) + 1);
   }
 
   .default-container-inner {
@@ -40,12 +40,13 @@
 
   &__grid {
     display: grid;
-    gap: var(--poketrace-panel-gap, 0.9rem);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--poketrace-panel-gap);
+    column-gap: var(--poketrace-price-card-column-gap);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   &__access {
-    margin-top: var(--poketrace-panel-gap, 0.9rem);
+    margin-top: var(--poketrace-panel-gap);
     border-radius: var(--border-radius-card);
     position: relative;
   }
@@ -146,6 +147,8 @@
     justify-content: space-between;
 
     h4 {
+      align-items: center;
+      display: flex;
       font-size: var(--font-size-paragraph-sm);
       font-weight: var(--font-weight-semibold);
       margin: 0;
@@ -164,9 +167,19 @@
     color: var(--custom-color-teal);
   }
 
+  &__source-title--cardmarket {
+    color: var(--custom-color-purple);
+  }
+
   &__market-link {
+    flex-shrink: 0;
     margin-right: -0.25rem;
     white-space: nowrap;
+    font-size: var(--font-size-caption);
+
+    > svg {
+      flex-shrink: 0;
+    }
   }
 
   &__market-link--tcgplayer {
@@ -177,10 +190,20 @@
     --app-link-color: var(--custom-color-teal);
   }
 
+  &__market-link--cardmarket {
+    --app-link-color: var(--custom-color-purple);
+  }
+
+  &__aggregate-label {
+    color: var(--font-color-muted);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+  }
+
   &__condition-tabs {
     align-items: center;
     display: flex;
-    gap: 0.8rem;
+    gap: 0.6rem;
     justify-content: flex-end;
     margin: 0;
     min-width: 0;
@@ -200,21 +223,8 @@
     span {
       display: block;
       font-weight: var(--font-weight-semibold);
-      padding-bottom: calc(0.3rem - 2px);
       position: relative;
       transition: color var(--delay-short) ease;
-
-      &::after {
-        background: var(--custom-color-blue);
-        bottom: 0;
-        content: "";
-        height: 1px;
-        left: 0;
-        opacity: 0;
-        position: absolute;
-        transition: opacity var(--delay-short) ease;
-        width: 100%;
-      }
     }
 
     label:hover span,
@@ -222,20 +232,11 @@
       color: var(--font-color-primary);
     }
 
-    input:checked + span::after {
-      opacity: 1;
-    }
-
     input:focus-visible + span {
       outline: 2px solid
         color-mix(in srgb, var(--custom-color-blue) 55%, transparent);
       outline-offset: 3px;
     }
-  }
-
-  &__condition-tabs--tcgplayer span::after,
-  &__condition-tabs--ebay span::after {
-    display: none;
   }
 
   &__primary {
@@ -292,6 +293,7 @@
     gap: 1rem;
     justify-content: space-between;
     min-width: 0;
+    margin-block: 0.2rem;
   }
 
   &__price-summary {
@@ -302,7 +304,7 @@
     min-width: 0;
 
     .app-price-change {
-      font-size: 0.8rem;
+      font-size: 0.77rem;
     }
 
     .app-price-change__period {
@@ -311,8 +313,8 @@
     }
   }
 
-  &__quote strong {
-    font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  &__grid &__quote strong {
+    font-size: clamp(1.2rem, 2.4vw, 1.7rem);
   }
 
   &__range {
@@ -321,9 +323,18 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem 0.6rem;
-    margin: 0.75rem 0 0;
+    margin: 0.9rem 0 0;
     padding-top: 0.7rem;
     justify-content: space-between;
+
+    &--cardmarket > div {
+      flex: 0 0 auto;
+      white-space: nowrap;
+
+      &[hidden] {
+        display: none;
+      }
+    }
 
     div {
       align-items: baseline;
@@ -352,12 +363,11 @@
   }
 
   &__graded {
-    margin-top: var(--poketrace-panel-gap, 0.9rem);
+    margin-top: var(--poketrace-panel-gap);
     min-height: 7.5rem;
 
     h3 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-h4);
       font-weight: var(--font-weight-semibold);
       margin: 0;
     }
@@ -370,7 +380,9 @@
     gap: 0.7rem 1rem;
     justify-content: space-between;
     margin-bottom: 0.6rem;
-    margin-top: -0.5rem;
+    &--with-prices {
+      margin-top: -0.5rem;
+    }
   }
 
   &__calculator-toggle {
@@ -425,7 +437,7 @@
   &__graded-grid {
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   &__graded-price {
@@ -468,17 +480,18 @@
     --poketrace-history-padding: 1rem;
     --history-ebay: color-mix(in srgb, var(--custom-color-teal) 88%, white);
     --history-graded: var(--custom-color-blue);
+    --history-cardmarket: color-mix(
+      in srgb,
+      var(--custom-color-purple) 88%,
+      white
+    );
     --history-tcgplayer: color-mix(
       in srgb,
       var(--custom-color-orange) 88%,
       white
     );
 
-    margin-top: var(--poketrace-panel-gap, 0.9rem);
-    overflow: hidden;
-  }
-
-  &__history:has(.poketrace-market__history-tier) {
+    margin-top: var(--poketrace-panel-gap);
     overflow: visible;
   }
 
@@ -513,9 +526,8 @@
     justify-content: space-between;
     margin-bottom: -0.2rem;
 
-    h3 {
+    h4 {
       color: var(--font-color-primary);
-      font-size: var(--font-size-h4);
       font-weight: var(--font-weight-semibold);
       margin: 0;
     }
@@ -601,12 +613,17 @@
       margin-top: 0.1rem;
     }
 
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       --history-source-color: var(--history-tcgplayer);
     }
 
     &--ebay {
       --history-source-color: var(--history-ebay);
+    }
+
+    &--cardmarket_unsold {
+      --history-source-color: var(--history-cardmarket);
     }
 
     &--graded {
@@ -642,19 +659,25 @@
 
   &__history-chart {
     position: relative;
-    margin: 0 calc(-1 * var(--poketrace-history-padding));
+    &:has(.poketrace-market__history-tooltip) {
+      z-index: calc(var(--dropdown-z-index) + 1);
+    }
+    margin: 0;
     min-height: 11rem;
-    width: calc(
-      100% + var(--poketrace-history-padding) + var(--poketrace-history-padding)
-    );
+    width: 100%;
 
     svg {
       cursor: crosshair;
       display: block;
       height: auto;
       overflow: visible;
-      width: 99%;
+      width: calc(100% - 2px);
     }
+  }
+
+  &__history:has(.ui-select-dropdown__toggle[aria-expanded="true"])
+    &__history-chart {
+    z-index: auto;
   }
 
   &__history-refresh {
@@ -695,12 +718,17 @@
     pointer-events: none;
   }
 
-  &__history-area-stop--tcgplayer {
+  &__history-area-stop--tcgplayer,
+  &__history-area-stop--cardmarket {
     stop-color: var(--history-tcgplayer);
   }
 
   &__history-area-stop--ebay {
     stop-color: var(--history-ebay);
+  }
+
+  &__history-area-stop--cardmarket_unsold {
+    stop-color: var(--history-cardmarket);
   }
 
   &__history-area-stop--graded {
@@ -712,13 +740,19 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
 
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       stroke: var(--history-tcgplayer);
     }
 
     &--ebay {
       stroke: var(--history-ebay);
+    }
+
+    &--cardmarket_unsold {
+      stroke: var(--history-cardmarket);
     }
 
     &--graded {
@@ -730,12 +764,17 @@
     fill: var(--surface2);
     stroke-width: 1.5;
 
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       stroke: var(--history-tcgplayer);
     }
 
     &--ebay {
       stroke: var(--history-ebay);
+    }
+
+    &--cardmarket_unsold {
+      stroke: var(--history-cardmarket);
     }
 
     &--graded {
@@ -744,12 +783,17 @@
   }
 
   &__history-point-halo {
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       fill: color-mix(in srgb, var(--history-tcgplayer) 12%, transparent);
     }
 
     &--ebay {
       fill: color-mix(in srgb, var(--history-ebay) 12%, transparent);
+    }
+
+    &--cardmarket_unsold {
+      fill: color-mix(in srgb, var(--history-cardmarket) 12%, transparent);
     }
 
     &--graded {
@@ -761,12 +805,17 @@
     fill: var(--surface2);
     stroke-width: 1.5;
 
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       stroke: var(--history-tcgplayer);
     }
 
     &--ebay {
       stroke: var(--history-ebay);
+    }
+
+    &--cardmarket_unsold {
+      stroke: var(--history-cardmarket);
     }
 
     &--graded {
@@ -791,8 +840,8 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 0.28rem;
-    padding: 0.4rem 0.55rem;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
     width: 100%;
 
     strong,
@@ -812,11 +861,12 @@
 
     span {
       color: var(--font-color-muted);
-      font-size: 11px;
+      font-size: var(--font-size-caption);
     }
   }
 
-  &__history-tooltip-date {
+  &__history-tooltip-card &__history-tooltip-date {
+    font-size: var(--font-size-caption);
     color: var(--font-color-secondary) !important;
     font-weight: var(--font-weight-medium);
     margin-bottom: 0.08rem;
@@ -828,6 +878,10 @@
     gap: 0.4rem;
     grid-template-columns: auto 1fr auto;
 
+    > span {
+      font-weight: var(--font-weight-medium);
+    }
+
     i {
       background: var(--history-source-color);
       border-radius: var(--border-radius-round);
@@ -836,12 +890,17 @@
       width: 0.4rem;
     }
 
-    &--tcgplayer {
+    &--tcgplayer,
+    &--cardmarket {
       --history-source-color: var(--history-tcgplayer);
     }
 
     &--ebay {
       --history-source-color: var(--history-ebay);
+    }
+
+    &--cardmarket_unsold {
+      --history-source-color: var(--history-cardmarket);
     }
 
     &--graded {

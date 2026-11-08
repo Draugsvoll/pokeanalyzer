@@ -1,3 +1,8 @@
+import {
+  isEligibleGradedPrice,
+  resolveGradedPrice,
+} from "../../../../shared/gradedPrice";
+
 export const GRADES = [10, 9, 8, 7] as const;
 
 export type Grade = (typeof GRADES)[number];
@@ -249,7 +254,7 @@ function displayedPsaScore(gradeKey: string) {
   return scoreParts.join(".");
 }
 
-export function readGradedAverage(prices: unknown, grade: Grade) {
+export function readGradedPrice(prices: unknown, grade: Grade) {
   if (!prices || typeof prices !== "object") return null;
   const ebay = (prices as Record<string, unknown>).ebay;
   if (!ebay || typeof ebay !== "object") return null;
@@ -260,12 +265,8 @@ export function readGradedAverage(prices: unknown, grade: Grade) {
   )) {
     if (displayedPsaScore(gradeKey) !== score) continue;
     if (!tier || typeof tier !== "object") return null;
-    const average = (tier as { avg?: unknown }).avg;
-    return typeof average === "number" &&
-      Number.isFinite(average) &&
-      average >= 0
-      ? average
-      : null;
+    if (!isEligibleGradedPrice(tier)) return null;
+    return resolveGradedPrice(tier);
   }
   return null;
 }

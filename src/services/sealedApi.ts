@@ -9,6 +9,7 @@ import {
   type PokeTraceSealedSearchResponse,
 } from "../../shared/pokeTraceSealed";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
+import type { PokeTraceMarket } from "../../shared/pokeTraceMarkets";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -114,12 +115,17 @@ export async function fetchSealedProduct(
 export async function fetchSealedMarketPriceHistory(
   id: string,
   signal?: AbortSignal,
+  market: PokeTraceMarket = "US",
 ): Promise<PokeTraceSealedMarketHistory> {
   const value = await requestJson(
-    `${API_URL}/api/sealed/${encodeURIComponent(id)}/market-price-history`,
+    `${API_URL}/api/sealed/${encodeURIComponent(id)}/market-price-history?market=${market}`,
     signal,
   );
-  if (!isPokeTraceSealedMarketHistory(value) || value.productId !== id) {
+  if (
+    !isPokeTraceSealedMarketHistory(value) ||
+    value.productId !== id ||
+    value.market !== market
+  ) {
     throw new Error("Invalid sealed price-history response");
   }
   return value;

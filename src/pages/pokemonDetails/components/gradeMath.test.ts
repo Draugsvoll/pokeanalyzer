@@ -5,7 +5,7 @@ import {
   probabilitiesForPricedGrades,
   gradeProfit,
   gradeRoi,
-  readGradedAverage,
+  readGradedPrice,
   weightedResult,
   type Grade,
   type GradeInputs,
@@ -25,19 +25,20 @@ describe("grading calculator", () => {
     expect(gradeRoi(inputs())).toBeCloseTo(822.5 / 177.5);
   });
 
-  test("uses only the displayed PSA average and leaves other grades empty", () => {
+  test("uses the shared median priority for exact PSA grades", () => {
     const prices = {
       ebay: {
-        PSA_10: { avg: 3350, median7d: 3550 },
-        PSA_9: { median7d: 1900 },
-        PSA_8_5: { avg: 1775 },
+        PSA_10: { saleCount: 15, avg: 3350, median7d: 3550, median30d: 3600 },
+        PSA_9: { saleCount: 15, median7d: 1900 },
+        PSA_7: { saleCount: 15, avg: 1000 },
+        PSA_8_5: { saleCount: 15, avg: 1775 },
       },
     };
 
-    expect(readGradedAverage(prices, 10)).toBe(3350);
-    expect(readGradedAverage(prices, 9)).toBeNull();
-    expect(readGradedAverage(prices, 8)).toBeNull();
-    expect(readGradedAverage(prices, 7)).toBeNull();
+    expect(readGradedPrice(prices, 10)).toBe(3600);
+    expect(readGradedPrice(prices, 9)).toBe(1900);
+    expect(readGradedPrice(prices, 8)).toBeNull();
+    expect(readGradedPrice(prices, 7)).toBe(1000);
   });
 
   test("leaves an empty sell price out of the result", () => {
@@ -45,11 +46,37 @@ describe("grading calculator", () => {
     expect(gradeRoi(inputs({ expectedPrice: null }))).toBeNull();
   });
 
+  test("does not prefill a grade excluded from the graded price boxes", () => {
+    expect(
+      readGradedPrice(
+        {
+          ebay: {
+            PSA_10: {
+              avg: 150,
+              saleCount: 15,
+              median3d: 100,
+              median7d: 100,
+              median30d: 100,
+            },
+          },
+        },
+        10,
+      ),
+    ).toBeNull();
+  });
+
+  test.each([14, undefined])(
+    "does not prefill a grade with insufficient or missing sales (%s)",
+    (saleCount) => {
+      expect(
+        readGradedPrice({ ebay: { PSA_10: { avg: 500, saleCount } } }, 10),
+      ).toBeNull();
+    },
+  );
+
   test("treats an empty cost as zero and hides ROI when nothing was spent", () => {
     expect(
-      gradeProfit(
-        inputs({ gradingFee: null, shipping: null, ebayFees: null }),
-      ),
+      gradeProfit(inputs({ gradingFee: null, shipping: null, ebayFees: null })),
     ).toBe(1000);
     expect(
       gradeRoi(inputs({ gradingFee: null, shipping: null, ebayFees: null })),
@@ -88,7 +115,10 @@ describe("grading calculator", () => {
 
   test("gives the whole chance to one grade", () => {
     const next = adjustProbability({ 10: 15, 9: 35, 8: 35, 7: 15 }, 9, 100);
-    expect(next).toEqual({ 10: 0, 9: 100, 8: 0, 7: 0 } satisfies Record<Grade, number>);
+    expect(next).toEqual({ 10: 0, 9: 100, 8: 0, 7: 0 } satisfies Record<
+      Grade,
+      number
+    >);
   });
 
   test("does not change a locked grade when another slider moves", () => {
@@ -120,10 +150,7 @@ describe("grading calculator", () => {
       probabilitiesForPricedGrades({ 10: 50, 9: 0, 8: 25, 7: 25 }, [10, 9]),
     ).toEqual({ 10: 100, 9: 0, 8: 0, 7: 0 });
     expect(
-      probabilitiesForPricedGrades(
-        { 10: 15, 9: 35, 8: 35, 7: 15 },
-        [10, 9],
-      ),
+      probabilitiesForPricedGrades({ 10: 15, 9: 35, 8: 35, 7: 15 }, [10, 9]),
     ).toEqual({ 10: 30, 9: 70, 8: 0, 7: 0 });
   });
 

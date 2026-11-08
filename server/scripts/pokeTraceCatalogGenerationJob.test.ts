@@ -78,7 +78,7 @@ test("catalog generation stores the complete payload while holding the lock", as
       "https://example.test/charizard.webp",
       JSON.stringify({
         currency: "USD",
-        prices: { tcgplayer: { NEAR_MINT: { avg: 420 } } },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 420 } } } },
       }),
     ],
   });

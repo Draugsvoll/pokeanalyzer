@@ -71,26 +71,29 @@ const card: PokeTraceCard = {
   currency: "USD",
   lastUpdated: "2026-09-17T08:00:00.000Z",
   prices: {
-    tcgplayer: {
-      NEAR_MINT: { avg: 420, low: 380, high: 480 },
-      LIGHTLY_PLAYED: { avg: 350 },
-      MODERATELY_PLAYED: { avg: 300 },
-      DAMAGED: { avg: 180 },
-      HEAVILY_PLAYED: { avg: 240 },
-    },
-    ebay: {
-      NEAR_MINT: {
-        avg: 410,
-        low: 370,
-        high: 470,
-        saleCount: 12,
-        approxSaleCount: true,
+    NEAR_MINT: {
+      US: {
+        tcgplayer: { avg: 420, low: 380, high: 480 },
+        ebay: {
+          avg: 410,
+          low: 370,
+          high: 470,
+          saleCount: 12,
+          approxSaleCount: true,
+        },
       },
-      LIGHTLY_PLAYED: { avg: 340, saleCount: 8 },
-      MODERATELY_PLAYED: { avg: 290, saleCount: 5 },
-      DAMAGED: { avg: 170, saleCount: 3 },
-      PSA_10: { avg: 5_000, saleCount: 4 },
     },
+    LIGHTLY_PLAYED: {
+      US: { tcgplayer: { avg: 350 }, ebay: { avg: 340, saleCount: 8 } },
+    },
+    MODERATELY_PLAYED: {
+      US: { tcgplayer: { avg: 300 }, ebay: { avg: 290, saleCount: 5 } },
+    },
+    DAMAGED: {
+      US: { tcgplayer: { avg: 180 }, ebay: { avg: 170, saleCount: 3 } },
+    },
+    HEAVILY_PLAYED: { US: { tcgplayer: { avg: 240 } } },
+    PSA_10: { US: { ebay: { avg: 5_000, saleCount: 4 } } },
   },
 };
 
@@ -161,7 +164,8 @@ test("stores the existing TCG price and the additional market snapshot", async (
     "SELECT raw_json FROM poketrace_cards",
   );
   assert.equal(
-    JSON.parse(String(storedRaw.rows[0]?.raw_json)).prices.ebay.NEAR_MINT.avg,
+    JSON.parse(String(storedRaw.rows[0]?.raw_json)).prices.NEAR_MINT.US.ebay
+      .avg,
     410,
   );
   database.close();
@@ -174,7 +178,7 @@ test("rerunning a date replaces its snapshot instead of duplicating it", async (
     dailyMarketSnapshotUpserts(
       {
         ...card,
-        prices: { tcgplayer: { NEAR_MINT: { avg: 425 } } },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 425 } } } },
       },
       "2026-09-17",
     ),
@@ -278,8 +282,8 @@ test("stores each available supported condition by source", async () => {
       {
         ...card,
         prices: {
-          tcgplayer: { LIGHTLY_PLAYED: { avg: 350 } },
-          ebay: { NEAR_MINT: { avg: 410, saleCount: 12 } },
+          LIGHTLY_PLAYED: { US: { tcgplayer: { avg: 350 } } },
+          NEAR_MINT: { US: { ebay: { avg: 410, saleCount: 12 } } },
         },
       },
       "2026-09-17",
@@ -302,7 +306,7 @@ test("catalogue upserts preserve saved responses and price refresh state", async
   const database = await createDatabase();
   const fetchedAt = "2026-09-17T08:30:00.000Z";
   const savedResponses = {
-    tcg_listings: {sales: [], offers: [], fetchedAt},
+    tcg_listings: { sales: [], offers: [], fetchedAt },
     grok: { market_analysis: { fetched_at: fetchedAt } },
   };
 

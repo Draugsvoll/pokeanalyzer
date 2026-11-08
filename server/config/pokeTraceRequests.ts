@@ -1,0 +1,1 @@
+export const DEFAULT_POKETRACE_REQUEST_GAP_MS = 400;

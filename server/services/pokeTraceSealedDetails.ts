@@ -1,4 +1,8 @@
 import type { Client } from "@libsql/client";
+import type {
+  PokeTraceMarkets,
+  PokeTracePrices,
+} from "../../shared/pokeTraceMarkets.js";
 import { sealedPriceComparisons } from "./pokeTraceSealedComparisons.js";
 import type {
   PokeTraceSealedDetails,
@@ -28,7 +32,7 @@ function number(value: unknown) {
 }
 
 function marketplacePricing(value: unknown): PokeTraceSealedMarketplacePricing {
-  const unopened = record(record(value).UNOPENED);
+  const unopened = record(value);
   return {
     price: number(unopened.avg),
     average1d: number(unopened.avg1d),
@@ -86,7 +90,7 @@ export function toPokeTraceSealedDetails(
   product: PokeTraceSealedProduct,
   priceSnapshots: PokeTraceSealedCatalogProduct["priceSnapshots"],
 ): PokeTraceSealedDetails {
-  const prices = record(product.prices);
+  const prices = record(record(record(product.prices).UNOPENED).US);
   const tcgplayerPricing = marketplacePricing(prices.tcgplayer);
   const ebayPricing = marketplacePricing(prices.ebay);
   const refs = record(product.refs);
@@ -101,6 +105,8 @@ export function toPokeTraceSealedDetails(
 
   return {
     id: product.id,
+    markets: product.markets as PokeTraceMarkets,
+    marketPrices: product.prices as PokeTracePrices,
     name: product.name,
     setName: text(set.name) ?? "Unknown set",
     productFamily: product.productFamily,

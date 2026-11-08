@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Client } from "@libsql/client";
+import { DEFAULT_POKETRACE_REQUEST_GAP_MS } from "../config/pokeTraceRequests.js";
 import {
   fetchPokeTraceSealedPage,
   type PokeTraceSealedPage,
@@ -12,7 +13,6 @@ import { loadStoredPokeTraceSealedCatalog } from "../services/pokeTraceSealedCat
 import { generateAndSavePokeTraceSealedCatalog } from "./pokeTraceSealedCatalogGenerationJob.js";
 
 export const POKETRACE_SEALED_IMPORT_NAME = "english-us-sealed";
-export const POKETRACE_SEALED_REQUEST_GAP_MS = 2_100;
 
 type SealedImportDatabase = Pick<Client, "batch" | "execute">;
 
@@ -61,7 +61,7 @@ export async function importPokeTraceSealedProducts(
     log = console.log,
     onCheckpoint,
     publishCatalog = generateAndSavePokeTraceSealedCatalog,
-    requestGapMs = POKETRACE_SEALED_REQUEST_GAP_MS,
+    requestGapMs = DEFAULT_POKETRACE_REQUEST_GAP_MS,
     sleep = defaultSleep,
   } = dependencies;
 

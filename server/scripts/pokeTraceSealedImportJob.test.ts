@@ -30,8 +30,12 @@ function sealedProduct(id: string, name: string): PokeTraceSealedProduct {
     productType: "sealed",
     productFamily: "booster_box",
     prices: {
-      tcgplayer: { UNOPENED: { avg: 100, saleCount: 150 } },
-      ebay: { UNOPENED: { saleCount: 25 } },
+      UNOPENED: {
+        US: {
+          tcgplayer: { avg: 100, saleCount: 150 },
+          ebay: { saleCount: 25 },
+        },
+      },
     },
   };
 }
@@ -56,6 +60,7 @@ test("sealed import checkpoints pages, resumes, and never writes singles", async
   try {
     await database.execute(sealedProductUpsert(obsoleteProduct));
     let firstRunRequests = 0;
+    const delays: number[] = [];
     const checkpoints: PokeTraceSealedImportCheckpoint[] = [];
     await assert.rejects(
       importPokeTraceSealedProducts("test-key", () => {}, {
@@ -73,13 +78,16 @@ test("sealed import checkpoints pages, resumes, and never writes singles", async
           throw new Error("temporary interruption");
         },
         log: () => {},
-        requestGapMs: 0,
+        sleep: async (milliseconds) => {
+          delays.push(milliseconds);
+        },
         createCrawlId: () => "import-crawl",
         onCheckpoint: (checkpoint) => checkpoints.push(checkpoint),
       }),
       /temporary interruption/,
     );
 
+    assert.deepEqual(delays, [400]);
     assert.deepEqual(checkpoints.at(-1), {
       complete: false,
       finalized: false,

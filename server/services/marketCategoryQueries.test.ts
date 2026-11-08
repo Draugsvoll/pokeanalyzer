@@ -89,8 +89,8 @@ async function seedCachedMover(
       JSON.stringify({
         currency: "USD",
         prices: {
-          tcgplayer: {
-            NEAR_MINT: { avg: currentPrice, saleCount: currentSales },
+          NEAR_MINT: {
+            US: { tcgplayer: { avg: currentPrice, saleCount: currentSales } },
           },
         },
       }),
@@ -519,7 +519,11 @@ test("ranks new sales with configurable source, condition, and period", async ()
 
   await database.execute({
     sql: "UPDATE poketrace_cards SET raw_json = ? WHERE id = 'a'",
-    args: [JSON.stringify({ prices: { tcgplayer: { NEAR_MINT: { avg: 55 } } } })],
+    args: [
+      JSON.stringify({
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 55 } } } },
+      }),
+    ],
   });
 
   const allTcgConditions = await findMostSold(database);

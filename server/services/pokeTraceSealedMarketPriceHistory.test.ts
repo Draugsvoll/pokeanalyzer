@@ -14,15 +14,28 @@ async function createDatabase() {
   await database.execute(`
     CREATE TABLE poketrace_sealed_products (
       id TEXT PRIMARY KEY,
+      raw_json TEXT NOT NULL,
       market_price_history TEXT,
       market_price_history_fetched_at TEXT
     )
   `);
   await database.execute({
-    sql: "INSERT INTO poketrace_sealed_products (id) VALUES (?)",
-    args: [productId],
+    sql: "INSERT INTO poketrace_sealed_products (id, raw_json) VALUES (?, ?)",
+    args: [
+      productId,
+      JSON.stringify({
+        markets: {
+          US: { available: true, currency: "USD" },
+          EU: { available: true, currency: "EUR" },
+        },
+      }),
+    ],
   });
   return database;
+}
+
+function storedUS(value: Record<string, unknown>) {
+  return JSON.stringify({ US: { ...value, market: "US" } });
 }
 
 const cachedSeries = {
@@ -73,7 +86,7 @@ function apiHistory() {
 async function saveCachedHistory(
   database: Awaited<ReturnType<typeof createDatabase>>,
   fetchedAt: string,
-  period: "90d" | "all" = "all",
+  period: "1y" | "90d" = "1y",
 ) {
   await database.execute({
     sql: `
@@ -82,7 +95,7 @@ async function saveCachedHistory(
       WHERE id = ?
     `,
     args: [
-      JSON.stringify({
+      storedUS({
         condition: "UNOPENED",
         period,
         currency: "USD",
@@ -115,7 +128,7 @@ test("sealed graph history stores the unopened API response", async () => {
 
     assert.equal(requests, 1);
     assert.equal(history?.condition, "UNOPENED");
-    assert.equal(history?.period, "all");
+    assert.equal(history?.period, "1y");
     assert.equal(history?.stale, false);
     assert.equal(history?.fetchedAt, "2026-10-05T12:00:00.000Z");
     assert.equal(history?.series.tcgplayer?.[0].avg, 155);
@@ -135,8 +148,8 @@ test("sealed graph history stores the unopened API response", async () => {
     );
     assert.match(String(saved.rows[0].market_price_history), /"UNOPENED"/);
     assert.equal(
-      JSON.parse(String(saved.rows[0].market_price_history)).period,
-      "all",
+      JSON.parse(String(saved.rows[0].market_price_history)).US.period,
+      "1y",
     );
   } finally {
     database.close();
@@ -187,42 +200,42 @@ test("sealed graph history refreshes a fresh legacy 90-day cache and retains old
         return response;
       },
     });
-    assert.equal(history?.period, "all");
+    assert.equal(history?.period, "1y");
     assert.equal(history?.stale, false);
     assert.equal(history?.series.tcgplayer?.[0].date, "2025-10-05");
     const row = await database.execute(
       "SELECT market_price_history FROM poketrace_sealed_products",
     );
     assert.equal(
-      JSON.parse(String(row.rows[0].market_price_history)).period,
-      "all",
+      JSON.parse(String(row.rows[0].market_price_history)).US.period,
+      "1y",
     );
   } finally {
     database.close();
   }
 });
 
-test("sealed graph history serves a fresh legacy cache as stale if its all-time refresh fails", async () => {
+test("sealed graph history does not serve an unsupported cache period when its refresh fails", async () => {
   const database = await createDatabase();
   await saveCachedHistory(database, "2026-10-05T06:00:01.000Z", "90d");
   try {
-    const history = await loadPokeTraceSealedMarketPriceHistory(productId, {
-      apiKey: "test-key",
-      database,
-      ready: Promise.resolve(),
-      now: () => now,
-      fetchHistory: async () => {
-        throw new Error("upstream unavailable");
-      },
-    });
-    assert.equal(history?.period, "90d");
-    assert.equal(history?.stale, true);
-    assert.equal(history?.series.tcgplayer?.[0].avg, 150);
+    await assert.rejects(
+      loadPokeTraceSealedMarketPriceHistory(productId, {
+        apiKey: "test-key",
+        database,
+        ready: Promise.resolve(),
+        now: () => now,
+        fetchHistory: async () => {
+          throw new Error("upstream unavailable");
+        },
+      }),
+      /upstream unavailable/,
+    );
     const row = await database.execute(
       "SELECT market_price_history, market_price_history_fetched_at FROM poketrace_sealed_products",
     );
     assert.equal(
-      JSON.parse(String(row.rows[0].market_price_history)).period,
+      JSON.parse(String(row.rows[0].market_price_history)).US.period,
       "90d",
     );
     assert.equal(

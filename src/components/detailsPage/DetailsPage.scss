@@ -1,4 +1,11 @@
 .details-page {
+  --details-page-media-width: calc(
+    17rem + var(--default-container-padding) - var(--poketrace-panel-gap)
+  );
+  --poketrace-panel-gap: 0.85rem;
+  --poketrace-price-card-column-gap: var(--poketrace-panel-gap);
+  --details-page-column-gap: var(--poketrace-panel-gap);
+
   box-sizing: border-box;
   color: var(--font-color-primary);
   display: flex;
@@ -114,8 +121,8 @@
 .details-page__body {
   align-items: start;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: var(--details-page-media-width, 17.5rem) minmax(0, 1fr);
+  gap: var(--details-page-column-gap);
+  grid-template-columns: var(--details-page-media-width) minmax(0, 1fr);
   min-width: 0;
   width: 100%;
 }
@@ -147,6 +154,10 @@
 
   .details-page__body {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .details-page__media {
+    width: min(var(--details-page-media-width), 100%);
   }
 }
 

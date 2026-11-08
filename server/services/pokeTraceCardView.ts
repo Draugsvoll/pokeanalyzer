@@ -35,7 +35,16 @@ export function toPokemonCard(
   const set = record(raw.set);
   const image = text(raw.image) ?? "";
   const urls = record(raw.marketplaceUrls);
-  const prices = record(raw.prices) ?? {};
+  const marketPrices = record(raw.prices) ?? {};
+  // Project the native v2 US prices into the existing price-card UI props.
+  const prices: Record<string, Record<string, unknown>> = {};
+  for (const [tier, markets] of Object.entries(marketPrices)) {
+    for (const [source, price] of Object.entries(
+      record(record(markets)?.US) ?? {},
+    )) {
+      if (record(price)) (prices[source] ??= {})[tier] = price;
+    }
+  }
   const updatedAt = text(raw.lastUpdated) ?? "";
   const parsedMarketComparisons =
     parsePokeTraceMarketComparisons(marketComparisons);
@@ -56,6 +65,8 @@ export function toPokemonCard(
       currency: text(raw.currency) ?? "USD",
       marketplaceUrls: urls ?? {},
       prices,
+      markets: raw.markets,
+      marketPrices,
       ...(Array.isArray(raw.gradedOptions) && {
         gradedOptions: raw.gradedOptions.filter(isGradedHistoryTier),
       }),

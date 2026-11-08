@@ -129,7 +129,7 @@
   --hover-shadow: var(--shadow);
 
   /* Shared page shells. Detail views retain the narrower reading width. */
-  --shell-max-width: 1230px;
+  --shell-max-width: 1280px;
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;
@@ -166,8 +166,8 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 13px;
-  --card-pad: 10px;
+  --card-gap: 15px;
+  --card-pad: 11px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
@@ -297,7 +297,7 @@
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
 
-  --font-tracking-price: -0.05rem;
+  --font-tracking-price: -0.04rem;
   --font-tracking-price-change: -0.03rem;
   --font-tracking-tight: -0.02em;
   --font-tracking-normal: 0;

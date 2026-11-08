@@ -1,5 +1,5 @@
 import { AssetSaveActions } from "../../components/assetSaveActions/AssetSaveActions";
-import { ArrowUp, ExternalLink, Repeat2 } from "lucide-react";
+import { ArrowUp, ExternalLink, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -29,8 +29,15 @@ import {
   MarketPriceHistoryLoading,
 } from "../pokemonDetails/components/MarketPriceHistoryChart";
 import { MarketDataUnavailable } from "../pokemonDetails/components/MarketDataUnavailable";
+import { CardmarketPriceRange } from "../pokemonDetails/components/CardmarketPriceRange";
 import { SetTopSealedGrid } from "./SetTopSealedGrid";
 import "./SealedDetails.scss";
+import { RadioButtonGroup } from "../../components/radioButtonGroup/RadioButtonGroup";
+import type {
+  PokeTraceMarket,
+  PokeTraceMarkets,
+  PokeTracePrice,
+} from "../../../shared/pokeTraceMarkets";
 
 function formatMoney(value: number, currency: string) {
   try {
@@ -60,7 +67,10 @@ type SealedPriceHistoryRequest = {
   loading: boolean;
 };
 
-function useSealedPriceHistory(productId: string) {
+function useSealedPriceHistory(
+  productId: string,
+  market: PokeTraceMarket = "US",
+) {
   const [request, setRequest] = useState<SealedPriceHistoryRequest>({
     history: null,
     id: productId,
@@ -71,7 +81,7 @@ function useSealedPriceHistory(productId: string) {
     if (!productId) return;
 
     const controller = new AbortController();
-    void fetchSealedMarketPriceHistory(productId, controller.signal)
+    void fetchSealedMarketPriceHistory(productId, controller.signal, market)
       .then((history) => {
         if (controller.signal.aborted) return;
         setRequest({ history, id: productId, loading: false });
@@ -81,7 +91,7 @@ function useSealedPriceHistory(productId: string) {
         setRequest({ history: null, id: productId, loading: false });
       });
     return () => controller.abort();
-  }, [productId]);
+  }, [productId, market]);
 
   return {
     history: productId && request.id === productId ? request.history : null,
@@ -122,25 +132,51 @@ function SealedMarketplacePrice({
   price,
   pricing,
   url,
+  trend,
 }: {
   change?: number | null;
   currency: string;
-  label: "Ebay" | "TCGPlayer";
+  label: "Ebay" | "TCGPlayer" | "Cardmarket";
   price: number | null;
   pricing?: PokeTraceSealedMarketplacePricing;
   url?: string;
+  trend?: PokeTracePrice;
 }) {
-  const sourceClass = label === "Ebay" ? "ebay" : "tcgplayer";
-  const linkLabel = label === "Ebay" ? "View on Ebay" : "View on TCG";
+  const aggregated = label === "Cardmarket";
+  const sourceClass = label.toLowerCase();
+  const linkLabel = label === "TCGPlayer" ? "View on TCG" : `View on ${label}`;
+  const low = pricing?.low;
+  const high = pricing?.high;
   return (
     <article className="poketrace-market__marketplace default-container-inner">
       <div className="poketrace-market__source-heading">
         <h4
           className={`poketrace-market__source-title poketrace-market__source-title--${sourceClass}`}
         >
-          {label}
+          {url ? (
+            <a
+              aria-label={linkLabel}
+              className={`app-link poketrace-market__market-link poketrace-market__market-link--${sourceClass}`}
+              href={url}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {label}
+              <ExternalLink aria-hidden="true" />
+            </a>
+          ) : (
+            label
+          )}
         </h4>
-        <span className="sealed-details__condition">Unopened</span>
+        <span
+          className={
+            aggregated
+              ? "poketrace-market__aggregate-label"
+              : "sealed-details__condition"
+          }
+        >
+          {aggregated ? "Listings" : "Unopened"}
+        </span>
       </div>
       {price === null ? (
         <MarketDataUnavailable
@@ -163,46 +199,47 @@ function SealedMarketplacePrice({
                     />
                   )}
                 </div>
-                {url && (
-                  <a
-                    aria-label={linkLabel}
-                    className={`app-link poketrace-market__market-link poketrace-market__market-link--${sourceClass}`}
-                    href={url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {linkLabel} <ExternalLink aria-hidden="true" />
-                  </a>
-                )}
               </div>
             </div>
           </div>
-          <dl className="poketrace-market__range">
-            <div>
-              <dt>Low</dt>
-              <dd className="poketrace-market__range-price">
-                {typeof pricing?.low === "number"
-                  ? formatMoney(pricing.low, currency)
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>High</dt>
-              <dd className="poketrace-market__range-price">
-                {typeof pricing?.high === "number"
-                  ? formatMoney(pricing.high, currency)
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>Sales</dt>
-              <dd>
-                {pricing?.saleCount == null
-                  ? "—"
-                  : `${pricing.saleCount}${pricing.approxSaleCount ? "+" : ""}`}
-              </dd>
-            </div>
-          </dl>
+          {aggregated ? (
+            <CardmarketPriceRange
+              from={
+                typeof trend?.low === "number"
+                  ? formatMoney(trend.low, currency)
+                  : "—"
+              }
+              average30d={
+                typeof trend?.avg30d === "number"
+                  ? formatMoney(trend.avg30d, currency)
+                  : "—"
+              }
+              trend={formatMoney(price, currency)}
+            />
+          ) : (
+            <dl className="poketrace-market__range">
+              <div>
+                <dt>Low</dt>
+                <dd className="poketrace-market__range-price">
+                  {typeof low === "number" ? formatMoney(low, currency) : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>High</dt>
+                <dd className="poketrace-market__range-price">
+                  {typeof high === "number" ? formatMoney(high, currency) : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Sold</dt>
+                <dd>
+                  {pricing?.saleCount == null
+                    ? "—"
+                    : `${pricing.saleCount}${pricing.approxSaleCount ? "+" : ""}`}
+                </dd>
+              </div>
+            </dl>
+          )}
         </div>
       )}
     </article>
@@ -213,16 +250,41 @@ function SealedPriceHistory({
   currency,
   history,
   loading,
+  productId,
+  markets,
 }: {
   currency: string;
   history: PokeTraceSealedMarketHistory | null;
   loading: boolean;
+  productId: string;
+  markets?: PokeTraceMarkets;
 }) {
-  if (loading) {
+  const [market, setMarket] = useState<PokeTraceMarket>("US");
+  const [viewedEU, setViewedEU] = useState(false);
+  const eu = useSealedPriceHistory(viewedEU ? productId : "", "EU");
+  const displayed = market === "US" ? history : eu.history;
+  const pending = market === "US" ? loading : eu.loading;
+  const control = (
+    <RadioButtonGroup<PokeTraceMarket>
+      ariaLabel="Price history market"
+      options={(["US", "EU"] as const).map((value) => ({
+        value,
+        label: value,
+        disabled: markets?.[value]?.available !== true,
+      }))}
+      value={market}
+      onChange={(value) => {
+        setMarket(value);
+        if (value === "EU") setViewedEU(true);
+      }}
+    />
+  );
+  if (pending) {
     return (
       <MarketPriceHistoryLoading
         conditionLabel="Unopened"
         conditionControl={false}
+        marketControl={control}
       />
     );
   }
@@ -230,8 +292,17 @@ function SealedPriceHistory({
     <MarketPriceHistoryChart
       conditionLabel="Unopened"
       conditionControl={false}
+      marketControl={control}
+      market={market}
       emptyDescription="Historical prices are not available for this sealed product yet."
-      history={history ?? { currency, series: {}, stale: false }}
+      history={
+        displayed ?? {
+          currency:
+            market === "US" ? currency : (markets?.EU?.currency ?? "EUR"),
+          series: {},
+          stale: false,
+        }
+      }
     />
   );
 }
@@ -276,6 +347,15 @@ export default function SealedDetails() {
   const details = product && isPokeTraceSealedDetails(product) ? product : null;
   const tcgplayerPricing = details?.pricing.tcgplayer;
   const ebayPricing = details?.pricing.ebay;
+  const cardmarketTrend = details?.marketPrices?.AGGREGATED?.EU?.cardmarket;
+  const cardmarketProductId =
+    details?.refs.cardmarketId ??
+    /^eu_(\d+)$/.exec(details?.markets?.EU?.cardId ?? "")?.[1];
+  const cardmarketUrl =
+    details?.marketplaceUrls.cardmarket ??
+    (cardmarketProductId && /^\d+$/.test(cardmarketProductId)
+      ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${cardmarketProductId}`
+      : undefined);
   const sealedPriceHistory = useSealedPriceHistory(product?.id ?? "");
   const tcgplayerPriceChange = calculateDisplayedPriceChangePercent(
     product?.price,
@@ -392,8 +472,24 @@ export default function SealedDetails() {
               pricing={ebayPricing}
               url={details?.marketplaceUrls.ebay}
             />
+            <SealedMarketplacePrice
+              label="Cardmarket"
+              currency={details?.markets?.EU?.currency ?? "EUR"}
+              price={cardmarketTrend?.avg ?? null}
+              trend={cardmarketTrend}
+              change={calculateDisplayedPriceChangePercent(
+                cardmarketTrend?.avg,
+                typeof cardmarketTrend?.avg7d === "number"
+                  ? cardmarketTrend.avg7d
+                  : null,
+              )}
+              url={cardmarketUrl}
+            />
           </div>
           <SealedPriceHistory
+            key={product.id}
+            productId={product.id}
+            markets={details?.markets}
             currency={product.currency}
             history={sealedPriceHistory.history}
             loading={sealedPriceHistory.loading}
@@ -450,7 +546,7 @@ export default function SealedDetails() {
                 </>
               ) : (
                 <>
-                  <Repeat2 size={16} strokeWidth={2.25} aria-hidden="true" />
+                  <Search size={16} strokeWidth={2.25} aria-hidden="true" />
                   <span>Next Sealed</span>
                 </>
               )}

@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
@@ -84,10 +85,11 @@ test("late product and price-history responses cannot replace the next product",
   const history: PokeTraceSealedMarketHistory = {
     productId: second.id,
     condition: "UNOPENED",
-    period: "90d",
+    period: "1y",
     currency: "USD",
     fetchedAt: "2026-10-05T12:00:00.000Z",
     stale: false,
+    market: "US",
     series: {},
   };
   let resolveProduct!: (value: PokeTraceSealedDetails) => void;
@@ -147,10 +149,11 @@ test("renders stored sealed details with live graph data", async () => {
   vi.mocked(fetchSealedMarketPriceHistory).mockResolvedValue({
     productId,
     condition: "UNOPENED",
-    period: "all",
+    period: "1y",
     currency: "USD",
     fetchedAt: "2026-10-05T12:00:00.000Z",
     stale: false,
+    market: "US",
     series: {
       tcgplayer: [
         {
@@ -199,6 +202,17 @@ test("renders stored sealed details with live graph data", async () => {
     priceSnapshots: { "1d": 145, "7d": 140, "30d": 125 },
     marketplaceUrls: {
       tcgplayer: "https://www.tcgplayer.com/product/123",
+      cardmarket:
+        "https://www.cardmarket.com/en/Pokemon/Products?idProduct=456",
+    },
+    markets: {
+      US: { available: true, currency: "USD" },
+      EU: { available: true, currency: "EUR" },
+    },
+    marketPrices: {
+      AGGREGATED: {
+        EU: { cardmarket: { avg: 90, low: 80, avg7d: 75, avg30d: 85 } },
+      },
     },
     pricing: {
       tcgplayer: {
@@ -265,6 +279,7 @@ test("renders stored sealed details with live graph data", async () => {
     expect(fetchSealedMarketPriceHistory).toHaveBeenCalledWith(
       productId,
       expect.any(AbortSignal),
+      "US",
     );
   });
   expect(screen.getAllByText("Unopened")).toHaveLength(2);
@@ -286,6 +301,22 @@ test("renders stored sealed details with live graph data", async () => {
   expect(screen.getByText("$142.00")).toBeInTheDocument();
   expect(screen.getByText("8+")).toBeInTheDocument();
   expect(screen.getByText("12")).toBeInTheDocument();
+  const marketCards = document.querySelectorAll(
+    ".poketrace-market__marketplace",
+  );
+  expect(marketCards).toHaveLength(3);
+  const cardmarket = within(marketCards[2] as HTMLElement);
+  expect(cardmarket.getAllByText("€90.00")).toHaveLength(2);
+  expect(cardmarket.getByText("€80.00")).toBeInTheDocument();
+  expect(cardmarket.getByText("€85.00")).toBeInTheDocument();
+  expect(cardmarket.getByText("30d avg")).toBeInTheDocument();
+  expect(cardmarket.getByText("Trend")).toBeInTheDocument();
+  expect(
+    cardmarket.getByRole("link", { name: "View on Cardmarket" }),
+  ).toHaveAttribute(
+    "href",
+    "https://www.cardmarket.com/en/Pokemon/Products?idProduct=456",
+  );
   expect(screen.getByRole("link", { name: "View on TCG" })).toHaveAttribute(
     "href",
     "https://www.tcgplayer.com/product/123",
@@ -296,10 +327,11 @@ test("opens the embedded search with sealed selected", async () => {
   vi.mocked(fetchSealedMarketPriceHistory).mockResolvedValue({
     productId,
     condition: "UNOPENED",
-    period: "90d",
+    period: "1y",
     currency: "USD",
     fetchedAt: "2026-10-05T12:00:00.000Z",
     stale: false,
+    market: "US",
     series: {},
   });
   vi.mocked(fetchSealedProduct).mockResolvedValue({

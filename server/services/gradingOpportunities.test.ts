@@ -60,8 +60,8 @@ async function insertCard(
       JSON.stringify({
         currency: "USD",
         prices: {
-          ebay: { NEAR_MINT: nearMint, PSA_10: psa },
-          tcgplayer: { NEAR_MINT: tcgNearMint },
+          NEAR_MINT: { US: { ebay: nearMint, tcgplayer: tcgNearMint } },
+          PSA_10: { US: { ebay: psa } },
         },
       }),
     ],

@@ -26,7 +26,16 @@ const card = {
   market: "US",
   productType: "single",
   refs: { tcgplayerId: "123456" },
-  prices: { tcgplayer: { NEAR_MINT: { avg: 420 } } },
+  prices: {
+    NEAR_MINT: {
+      US: { tcgplayer: { avg: 420 } },
+      EU: { cardmarket_unsold: { avg: 390 } },
+    },
+  },
+  markets: {
+    US: { available: true, currency: "USD" },
+    EU: { available: true, currency: "EUR", cardId: "eu_1" },
+  },
 };
 
 const sealedProduct = {
@@ -42,16 +51,51 @@ const sealedProduct = {
   market: "US",
   currency: "USD",
   refs: { tcgplayerId: "91601" },
-  prices: { tcgplayer: { UNOPENED: { avg: 3900 } } },
+  prices: {
+    UNOPENED: {
+      US: { tcgplayer: { avg: 3900 } },
+      EU: { cardmarket_unsold: { avg: 3600 } },
+    },
+  },
+  markets: {
+    US: { available: true, currency: "USD" },
+    EU: { available: true, currency: "EUR", cardId: "eu_2" },
+  },
 };
 
-test("fetches one page for an exact graded tier using all-time history", async () => {
+test("requests EU history through the US card ID with no price conversion", async () => {
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    assert.equal(url.pathname, `/v2/cards/${card.id}/prices/NEAR_MINT/history`);
+    assert.equal(url.searchParams.get("market"), "EU");
+    return Response.json({
+      data: [{ date: "2026-11-04", source: "cardmarket_unsold", avg: 390 }],
+      pagination: { hasMore: false, nextCursor: null },
+    });
+  };
+  const result = await fetchPokeTracePriceHistory("test-key", card.id, {
+    market: "EU",
+  });
+  assert.equal(result.data[0].avg, 390);
+  assert.equal(result.data[0].source, "cardmarket_unsold");
+});
+
+test("rejects source-first card prices instead of adapting them", async () => {
+  globalThis.fetch = async () =>
+    Response.json({
+      data: [{ ...card, prices: { tcgplayer: { NEAR_MINT: { avg: 420 } } } }],
+      pagination: { hasMore: false, nextCursor: null },
+    });
+  await assert.rejects(fetchPokeTracePage("test-key", {}), /invalid card page/);
+});
+
+test("fetches one page for an exact graded tier using one-year history", async () => {
   let requests = 0;
   globalThis.fetch = async (input) => {
     requests += 1;
     const url = new URL(String(input));
-    assert.equal(url.pathname, `/v1/cards/${card.id}/prices/BGS_9/history`);
-    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.pathname, `/v2/cards/${card.id}/prices/BGS_9/history`);
+    assert.equal(url.searchParams.get("period"), "1y");
     assert.equal(url.searchParams.get("limit"), "365");
     assert.equal(url.searchParams.has("cursor"), false);
     return Response.json({
@@ -78,9 +122,9 @@ test("requests every supported raw condition through its exact history endpoint"
     const url = new URL(String(input));
     assert.equal(
       url.pathname,
-      `/v1/cards/${card.id}/prices/${requestedTier}/history`,
+      `/v2/cards/${card.id}/prices/${requestedTier}/history`,
     );
-    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.searchParams.get("period"), "1y");
     assert.equal(url.searchParams.get("limit"), "365");
     return Response.json({ data: [], pagination: { hasMore: false } });
   };
@@ -148,7 +192,7 @@ test("reads one sealed product with its complete current data", async () => {
   globalThis.fetch = async (input) => {
     assert.equal(
       String(input),
-      `https://api.poketrace.com/v1/cards/${sealedProduct.id}`,
+      `https://api.poketrace.com/v2/cards/${sealedProduct.id}`,
     );
     return Response.json({ data: sealedProduct });
   };
@@ -187,7 +231,7 @@ test("reads one card with its complete current prices", async () => {
   globalThis.fetch = async (input, init) => {
     assert.equal(
       String(input),
-      `https://api.poketrace.com/v1/cards/${card.id}`,
+      `https://api.poketrace.com/v2/cards/${card.id}`,
     );
     assert.equal(
       (init?.headers as Record<string, string>)["X-API-Key"],
@@ -201,13 +245,13 @@ test("reads one card with its complete current prices", async () => {
   assert.deepEqual(result.prices, card.prices);
 });
 
-test("requests only the first page of all-time Near Mint price history", async () => {
+test("requests only the first page of one-year Near Mint price history", async () => {
   let requests = 0;
   globalThis.fetch = async (input, init) => {
     requests += 1;
     const url = new URL(String(input));
-    assert.equal(url.pathname, `/v1/cards/${card.id}/prices/NEAR_MINT/history`);
-    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.pathname, `/v2/cards/${card.id}/prices/NEAR_MINT/history`);
+    assert.equal(url.searchParams.get("period"), "1y");
     assert.equal(url.searchParams.get("limit"), "365");
     assert.equal(
       (init?.headers as Record<string, string>)["X-API-Key"],
@@ -247,16 +291,16 @@ test("requests only the first page of all-time Near Mint price history", async (
   });
 });
 
-test("requests only the first page of all-time unopened sealed price history", async () => {
+test("requests only the first page of one-year unopened sealed price history", async () => {
   let requests = 0;
   globalThis.fetch = async (input) => {
     requests += 1;
     const url = new URL(String(input));
     assert.equal(
       url.pathname,
-      `/v1/cards/${sealedProduct.id}/prices/UNOPENED/history`,
+      `/v2/cards/${sealedProduct.id}/prices/UNOPENED/history`,
     );
-    assert.equal(url.searchParams.get("period"), "all");
+    assert.equal(url.searchParams.get("period"), "1y");
     assert.equal(url.searchParams.get("limit"), "365");
     return Response.json({
       data: [

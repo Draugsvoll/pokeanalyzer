@@ -10,7 +10,7 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const MARKET_CATEGORIES_URL = `${API_URL}/api/market-categories`;
-const MARKET_CATEGORIES_CACHE_KEY = "pokelyzer:market-categories:v7";
+const MARKET_CATEGORIES_CACHE_KEY = "pokelyzer:market-categories:poketrace-v2";
 const MARKET_CATEGORIES_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
 type JsonRecord = Record<string, unknown>;

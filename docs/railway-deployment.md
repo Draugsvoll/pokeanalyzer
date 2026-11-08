@@ -34,7 +34,63 @@ still requires the site key.
 See [Firebase's Enterprise setup guide](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider)
 and [debug provider guide](https://firebase.google.com/docs/app-check/web/debug-provider).
 
-## Service commands
+## Independent v1 and v2 services
+
+Keep the existing v1 backend, frontend, cron services, variables, domains, and
+database unchanged. Pin those services to the last working v1 release and disable
+automatic deployments from the branch receiving v2 changes. The old npm command
+names in this release execute v2 code; keeping their names does not preserve v1.
+Rollback requires the previous application release as well as its database.
+
+Create new services from the v2 release with separate names:
+
+| New Railway service     | Start command                              | Pre-deploy command                |
+| ----------------------- | ------------------------------------------ | --------------------------------- |
+| `pokelyzer-backend-v2`  | `npm run server:v2`                        | `npm run db:migrate:poketrace:v2` |
+| `card-sync-v2`          | `npm run poketrace:v2:refresh-daily`       | None                              |
+| `categories-fetch-v2`   | `npm run poketrace:v2:generate-categories` | None                              |
+| `catalog-warmup-v2`     | `npm run poketrace:v2:warm-catalogs`       | None                              |
+| `pokelyzer-frontend-v2` | `npm run start:prod`                       | None                              |
+
+The frontend needs `npm run build`; its build-time `VITE_API_URL` must point to
+the v2 backend domain. Configure `APP_URL` / `CORS_ALLOWED_ORIGINS` on the v2
+backend for the v2 frontend. Use separate temporary domains for testing; leave
+the v1 domains intact until cutover. These commands and instructions do not
+create or change hosted Railway services automatically.
+
+The existing primary/account database must already be migrated. The v2 backend
+pre-deploy command intentionally migrates only the new PokeTrace database.
+Account, billing, and news resources are still shared; this isolates the
+PokeTrace migration, not the entire account system. Keep the existing Stripe
+webhook destination and news cron unchanged.
+
+Give the v2 backend, card sync, and categories services only
+`POKETRACE_DATABASE_URL_V2` and `POKETRACE_DATABASE_AUTH_TOKEN_V2` for PokeTrace
+database access. Do not copy the old database credentials into these services.
+Only the one-time snapshot-copy command needs both sets of credentials. Leave
+the old credentials on the pinned v1 services.
+
+The v2 warmup service needs only `POKETRACE_CATALOG_REFRESH_URL_V2`,
+`POKETRACE_SEALED_CATALOG_REFRESH_URL_V2`, and
+`POKETRACE_CATALOG_REFRESH_TOKEN_V2`. Both URLs must target the v2 backend, and
+the token must match the v2 backend's token and differ from the v1 token.
+Do not reference the old backend's domain or warmup token.
+
+Schedule v2 jobs separately: run card sync, then categories after sync finishes,
+then warmup after publication. They have a database-local maintenance lock and
+cannot block v1 maintenance. The upstream API key still shares its quota and
+burst limit across services if the same key is used; stagger v1/v2 imports and
+refreshes. Singles and sealed refreshes default to a 400 ms request gap.
+
+Do not also schedule the combined `poketrace:refresh-v2-daily` command alongside
+these separate sync/categories services. Alternatively, replace both with one
+combined daily service, then warm its catalogs after it succeeds.
+
+Keep the v1 frontend/backend pair available for rollback. Reverting traffic to
+that pair restores v1 without copying v2 data into the old database. Do not rerun
+`poketrace:setup-v2` as a recurring job; setup/import is a one-time operation.
+
+## Existing v1 service commands (previous release only)
 
 The backend uses Railway's **Pre-deploy Command** so its databases are migrated
 before a new deployment starts:
@@ -60,6 +116,19 @@ service only needs credentials for the database listed above. A failed backend
 migration prevents the new backend deployment from starting. A failed cron
 migration prevents the command after `&&` from running, so that scheduled job
 fails without executing against an incompatible schema.
+
+The table above describes the pinned v1 release, not commands to run from the
+v2 release. Initialize the new database once with `npm run poketrace:setup-v2`
+before routing traffic to v2. The new release never falls back to the old
+database.
+
+For a single v2 daily cron, use
+`npm run db:migrate:poketrace && npm run poketrace:refresh-v2-daily`.
+This refreshes singles and sealed, then generates categories and the complete
+grading-opportunity list. Do not also run a separate category cron at the same
+time. Optional catalog warmups must target the v2 backend using the
+`POKETRACE_CATALOG_REFRESH_URL_V2`, `POKETRACE_SEALED_CATALOG_REFRESH_URL_V2`,
+and `POKETRACE_CATALOG_REFRESH_TOKEN_V2` settings.
 
 The PokeTrace migration creates the published Sealed catalog store but does not
 populate it. A complete Sealed import or daily refresh validates and atomically

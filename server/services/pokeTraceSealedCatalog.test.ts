@@ -28,7 +28,7 @@ const product: ApiSealedProduct = {
   productType: "sealed",
   productFamily: "booster_box",
   currency: "USD",
-  prices: { tcgplayer: { UNOPENED: { avg: 150 } } },
+  prices: { UNOPENED: { US: { tcgplayer: { avg: 150 } } } },
 };
 
 test("sealed catalog and details anchor comparisons to each product's latest snapshot", async () => {
@@ -94,7 +94,7 @@ test("sealed catalog and details anchor comparisons to each product's latest sna
           sealedDailyPriceUpserts(
             {
               ...stored,
-              prices: { tcgplayer: { UNOPENED: { avg: price } } },
+              prices: { UNOPENED: { US: { tcgplayer: { avg: price } } } },
             },
             date.toISOString().slice(0, 10),
           ),
@@ -135,7 +135,7 @@ test("sealed catalog generation uses only sealed storage", async () => {
       sealedDailyPriceUpserts(
         {
           ...product,
-          prices: { tcgplayer: { UNOPENED: { avg: 125 } } },
+          prices: { UNOPENED: { US: { tcgplayer: { avg: 125 } } } },
         },
         sevenDaysAgo.toISOString().slice(0, 10),
       ),

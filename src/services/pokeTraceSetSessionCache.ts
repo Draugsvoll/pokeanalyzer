@@ -1,6 +1,6 @@
 import { isLoadedPokeTraceSet, type LoadedPokeTraceSet } from "./pokeTraceSets";
 
-const CACHE_KEY = "pokeanalyzer:set-explorer:last-set";
+const CACHE_KEY = "pokeanalyzer:set-explorer:poketrace-v2:last-set";
 const CACHE_VERSION = 1;
 export const POKETRACE_SET_SESSION_CACHE_TTL_MS = 30 * 60 * 1000;
 

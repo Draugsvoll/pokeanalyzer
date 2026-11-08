@@ -1,5 +1,4 @@
 import "dotenv/config";
-import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { ensureMarketCategoriesStore } from "../services/marketCategories.js";
 import { ensureGradingOpportunityListStore } from "../services/gradingOpportunityList.js";
@@ -7,19 +6,28 @@ import { ensurePokeTraceCatalogStore } from "../services/pokeTraceCatalogStore.j
 import { ensurePokeTraceFilterOptionsStore } from "../services/pokeTraceFilterOptionsStore.js";
 import { ensurePokeTraceSealedCatalogStore } from "../services/pokeTraceSealedCatalogStore.js";
 
-const localFileUrl = `file:${path.resolve("server/db/poketrace.sqlite")}`;
 type PokeTraceMigrationDatabase = Pick<Client, "execute">;
 
+const databaseUrl = process.env.POKETRACE_DATABASE_URL_V2?.trim();
+if (!databaseUrl) {
+  throw new Error("POKETRACE_DATABASE_URL_V2 is required");
+}
+if (
+  !databaseUrl.startsWith("file:") &&
+  databaseUrl === process.env.POKETRACE_DATABASE_URL?.trim()
+) {
+  throw new Error("The v2 database must be different from the v1 database");
+}
+
 export const pokeTraceDb = createClient({
-  url: process.env.POKETRACE_DATABASE_URL || localFileUrl,
-  authToken: process.env.POKETRACE_DATABASE_AUTH_TOKEN || undefined,
+  url: databaseUrl,
+  authToken: process.env.POKETRACE_DATABASE_AUTH_TOKEN_V2 || undefined,
 });
 
 export function assertExplicitPokeTraceDatabaseTarget() {
-  if (process.env.POKETRACE_DATABASE_URL?.trim()) return;
-  if (process.env.ALLOW_LOCAL_DATABASE?.trim().toLowerCase() === "true") return;
+  if (process.env.POKETRACE_DATABASE_URL_V2?.trim()) return;
   throw new Error(
-    "POKETRACE_DATABASE_URL is missing. Set it for shared persistence, or explicitly set ALLOW_LOCAL_DATABASE=true for local development.",
+    "POKETRACE_DATABASE_URL_V2 is missing. Set it to the v2 database explicitly.",
   );
 }
 

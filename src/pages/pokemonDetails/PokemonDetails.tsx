@@ -503,41 +503,42 @@ function PokemonDetailsForCard() {
 
   if (loading) {
     return (
-      <div className="card-view card-view--poketrace ui-render-fade">
-        <div className="card-view__panel-wrap">
-          <div className="card-view__shell">
-            <div className="card-view__details">
-              <div className="card-view__body">
-                <div className="card-view__image-side">
-                  <div
-                    aria-hidden="true"
-                    className="card-view__loading-image"
-                  />
-                </div>
-                <div className="card-view__info-side">
-                  <PokeTraceMarketPrices
-                    cardId=""
-                    data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
-                    pricingHref={authUser ? "/profile" : "#membership-pricing"}
-                    variantLoading
-                  />
-                </div>
-              </div>
-            </div>
+      <DetailsPage
+        breadcrumbs={[
+          { label: "Cards", to: "/search" },
+          { label: "Loading card…" },
+        ]}
+        busy
+        className="card-view card-view--poketrace ui-render-fade"
+        content={
+          <div className="card-view__market-content">
+            <PokeTraceMarketPrices
+              cardId=""
+              data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
+              dataPending={isDemo}
+              marketHistoryAccessPending={isDemo}
+              pricingHref={authUser ? "/profile" : "#membership-pricing"}
+              variantLoading
+            />
           </div>
-        </div>
-      </div>
+        }
+        contentClassName="card-view__info-side"
+        media={<div aria-hidden="true" className="card-view__loading-image" />}
+        mediaClassName="card-view__image-side"
+        title="Loading card…"
+      />
     );
   }
 
   if (!card) {
     return (
-      <div className="card-view card-view--status ui-render-fade">
+      <div className="card-view card-view--status default-container ui-render-fade">
         {cardLoadFailed ? (
           <>
-            <p>We couldn’t load this card. Please try again.</p>
-            <Button fitContent onClick={retryCardRequest}>
-              Retry
+            <h2>Oops</h2>
+            <p>We couldn’t load this card. Please try again later.</p>
+            <Button fill="ghost" fitContent onClick={retryCardRequest}>
+              Try again
             </Button>
           </>
         ) : (
@@ -709,6 +710,9 @@ function PokemonDetailsForCard() {
                   subscription?.planId === "pro") &&
                 (subscription.status === "active" ||
                   subscription.status === "trialing"))
+            }
+            marketHistoryAccessPending={
+              !isDemo && (authLoading || (!!authUser && loadingSubscription))
             }
             onToggleGradingCalculator={
               DISABLE_CARD_AI_ANALYSIS

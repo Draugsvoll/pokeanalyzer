@@ -6,11 +6,17 @@ import type {
 import type { CardPriceHistoryResponse } from "../../../shared/pokeTracePriceHistory";
 import type { CardSet } from "./set";
 import type {
+  PokeTraceMarket,
+  PokeTraceMarketSource,
+  PokeTraceMarkets,
+  PokeTracePrices,
+} from "../../../shared/pokeTraceMarkets";
+import type {
   PokeTraceMarketComparisonPeriod,
   PokeTraceMarketComparisons,
 } from "../../../shared/pokeTraceMarketComparisons";
 
-export type PokeTraceMarketHistorySource = "tcgplayer" | "ebay";
+export type PokeTraceMarketHistorySource = PokeTraceMarketSource;
 
 export type PokeTraceMarketHistoryPoint = {
   date: string;
@@ -26,10 +32,11 @@ export type PokeTraceMarketHistoryPoint = {
 export type PokeTraceMarketHistory = {
   cardId: string;
   condition: MarketHistoryTier;
-  period: "90d" | "all";
+  period: "1y";
   currency: string;
   fetchedAt: string;
   stale: boolean;
+  market: PokeTraceMarket;
   series: Partial<
     Record<PokeTraceMarketHistorySource, PokeTraceMarketHistoryPoint[]>
   >;
@@ -54,6 +61,8 @@ export type PokemonCard = {
     currency: string;
     marketplaceUrls: Record<string, unknown>;
     prices: Record<string, unknown>;
+    markets?: PokeTraceMarkets;
+    marketPrices?: PokeTracePrices;
     gradedOptions?: GradedHistoryTier[];
     variant?: string;
     variants?: Array<{

@@ -10,10 +10,10 @@ import { loadMarketPriceHistory } from "../services/pokeTraceMarketPriceHistory.
 
 const DEMO_SOURCE_CARD_ID = "019bff9a-8592-77ae-8865-c500279b7630";
 const demoPath = path.resolve("public/demo-card.json");
-const databaseUrl = process.env.POKETRACE_DATABASE_URL?.trim();
+const databaseUrl = process.env.POKETRACE_DATABASE_URL_V2?.trim();
 
 if (!databaseUrl || databaseUrl.startsWith("file:")) {
-  throw new Error("Set POKETRACE_DATABASE_URL to the Turso database");
+  throw new Error("Set POKETRACE_DATABASE_URL_V2 to the Turso database");
 }
 await ensurePokeTraceReady();
 

@@ -1,5 +1,9 @@
 import type { PokemonCard } from "../types/pokemon";
 import {
+  isPokeTraceMarket,
+  type PokeTraceMarket,
+} from "../../shared/pokeTraceMarkets";
+import {
   isMarketHistoryTier,
   type MarketHistoryTier,
 } from "../../shared/pokeTraceHistoryTiers";
@@ -88,17 +92,23 @@ function parseMarketPriceHistoryResponse(
     !isRecord(value) ||
     typeof value.cardId !== "string" ||
     !isMarketHistoryTier(value.condition) ||
-    (value.period !== "90d" && value.period !== "all") ||
+    value.period !== "1y" ||
     typeof value.currency !== "string" ||
     typeof value.fetchedAt !== "string" ||
     typeof value.stale !== "boolean" ||
+    !isPokeTraceMarket(value.market) ||
     !isRecord(value.series)
   ) {
     throw new Error("Invalid marketplace price-history response");
   }
 
   const series: MarketPriceHistoryResponse["series"] = {};
-  for (const source of ["tcgplayer", "ebay"] as const) {
+  for (const source of [
+    "tcgplayer",
+    "ebay",
+    "cardmarket",
+    "cardmarket_unsold",
+  ] as const) {
     const rawPoints = value.series[source];
     if (rawPoints === undefined) continue;
     if (!Array.isArray(rawPoints)) {
@@ -140,6 +150,7 @@ function parseMarketPriceHistoryResponse(
     currency: value.currency,
     fetchedAt: value.fetchedAt,
     stale: value.stale,
+    market: value.market,
     series,
   };
 }
@@ -226,8 +237,9 @@ export async function fetchMarketPriceHistory(
   cardId: string,
   signal?: AbortSignal,
   tier: MarketHistoryTier = "NEAR_MINT",
+  market: PokeTraceMarket = "US",
 ) {
-  const query = tier === "NEAR_MINT" ? "" : `?tier=${encodeURIComponent(tier)}`;
+  const query = `?${new URLSearchParams({ tier, market })}`;
   const value = await cardRequest(
     `${API_URL}/api/cards/${encodeURIComponent(cardId)}/market-price-history${query}`,
     signal,
@@ -243,5 +255,9 @@ export async function fetchMarketPriceHistory(
       "Marketplace price-history response belongs to another tier",
     );
   }
+  if (history.market !== market)
+    throw new Error(
+      "Marketplace price-history response belongs to another market",
+    );
   return history;
 }

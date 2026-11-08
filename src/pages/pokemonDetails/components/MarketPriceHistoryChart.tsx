@@ -16,11 +16,13 @@ import { MarketDataUnavailable } from "./MarketDataUnavailable";
 import { RadioButtonGroup } from "../../../components/radioButtonGroup/RadioButtonGroup";
 import { monotoneAreaPath, monotoneLinePath } from "./marketPriceHistoryPaths";
 import "./PokeTraceMarketPrices.scss";
+import type { PokeTraceMarket } from "../../../../shared/pokeTraceMarkets";
+import { resolveGradedPrice } from "../../../../shared/gradedPrice";
 
 const WIDTH = 800;
 const HEIGHT = 304;
-const PADDING = { top: 24, right: 10, bottom: 30, left: 46 };
-const AXIS_LABEL_GAP = 8;
+const PADDING = { top: 24, right: 0, bottom: 30, left: 46 };
+const AXIS_LABEL_GAP = 12;
 const SOURCES: MarketPriceHistorySource[] = ["tcgplayer", "ebay"];
 type ChartSource = MarketPriceHistorySource | "graded";
 const DAY_MS = 86_400_000;
@@ -54,6 +56,8 @@ function excludeExtremePricePoint(points: MarketPriceHistoryPoint[]) {
 
 function sourceLabel(source: ChartSource, gradedLabel?: string) {
   if (source === "graded") return gradedLabel ?? "Graded";
+  if (source === "cardmarket") return "CardMarket trend";
+  if (source === "cardmarket_unsold") return "CardMarket";
   return source === "tcgplayer" ? "TCGPlayer" : "Ebay";
 }
 
@@ -93,13 +97,22 @@ function formatDate(value: string, currentYear?: number) {
 function priceAxis(min: number, max: number) {
   const tolerance = Math.abs(max) * Number.EPSILON * 4;
   const candidates = [4, 3].map((intervals) => {
-    const roughStep = (max - min) / intervals || (max < 1 ? 0.01 : 1);
+    // Keep tiny changes proportional: show at least a 5% range, and avoid
+    // fractional-cent ticks unless the prices themselves are below one cent.
+    const roughStep = Math.max(
+      (max - min) / intervals || (max < 1 ? 0.01 : 1),
+      (max * 0.05) / intervals,
+      max >= 0.01 ? 0.01 : 0,
+    );
     const magnitude = 10 ** Math.floor(Math.log10(roughStep));
     let step = magnitude;
     for (const factor of [1, 1.5, 2, 2.5, 5, 10, 20]) {
       step = factor * magnitude;
       // Allow for floating-point rounding at an exact tick boundary.
-      if (Math.floor(min / step) * step + intervals * step >= max - tolerance)
+      if (
+        step >= roughStep - tolerance &&
+        Math.floor(min / step) * step + intervals * step >= max - tolerance
+      )
         break;
     }
     const lower = Math.max(0, Math.floor(min / step) * step);
@@ -124,9 +137,11 @@ type MarketPriceHistoryChartData = Pick<
 >;
 
 export function MarketPriceHistoryLoading({
+  marketControl,
   conditionLabel = "Near Mint",
   conditionControl,
 }: {
+  marketControl?: ReactNode;
   conditionLabel?: string;
   conditionControl?: ReactNode;
 }) {
@@ -139,7 +154,8 @@ export function MarketPriceHistoryLoading({
     >
       <header className="poketrace-market__history-header">
         <div className="poketrace-market__history-title">
-          <h3>Price history</h3>
+          <h4>Price history</h4>
+          {marketControl}
         </div>
         <div className="poketrace-market__history-controls">
           {conditionControl ?? <span>{conditionLabel}</span>}
@@ -153,6 +169,7 @@ export function MarketPriceHistoryLoading({
 }
 
 export function MarketPriceHistoryChart({
+  marketControl,
   conditionLabel = "Near Mint",
   conditionControl,
   chartOverlay,
@@ -162,7 +179,9 @@ export function MarketPriceHistoryChart({
   gradedHistory,
   loading = false,
   gradeLoading = false,
+  market = "US",
 }: {
+  marketControl?: ReactNode;
   conditionLabel?: string;
   conditionControl?: ReactNode;
   chartOverlay?: ReactNode;
@@ -177,12 +196,15 @@ export function MarketPriceHistoryChart({
   };
   loading?: boolean;
   gradeLoading?: boolean;
+  market?: PokeTraceMarket;
 }) {
   const [selectedPeriod, setSelectedPeriod] = useState<HistoryPeriod>("90");
   const today = dateTimestamp(new Date().toISOString().slice(0, 10));
+  const rawSources: ChartSource[] =
+    market === "EU" ? ["cardmarket", "cardmarket_unsold"] : SOURCES;
   const sources: ChartSource[] = gradedHistory
-    ? [...SOURCES, "graded"]
-    : SOURCES;
+    ? [...rawSources, "graded"]
+    : rawSources;
   const updatedOn = (source: ChartSource) =>
     source === "graded"
       ? gradedHistory?.updatedOn
@@ -196,7 +218,7 @@ export function MarketPriceHistoryChart({
         ...(source === "graded"
           ? (gradedHistory?.points ?? []).map((point) => ({
               ...point,
-              avg: point.median30d ?? point.avg,
+              avg: resolveGradedPrice(point) ?? point.avg,
             }))
           : (history.series[source] ?? [])),
       ]
@@ -243,6 +265,7 @@ export function MarketPriceHistoryChart({
   const glowId = `market-history-glow-${chartId}`;
   const svgRef = useRef<SVGSVGElement>(null);
   const [axisFontSize, setAxisFontSize] = useState(12);
+  const [tooltipScale, setTooltipScale] = useState(1);
   const [leftPadding, setLeftPadding] = useState(PADDING.left);
   const hasHistory = availableSources.length > 0;
   const values = filteredSeries.flatMap(({ points }) =>
@@ -260,7 +283,8 @@ export function MarketPriceHistoryChart({
   const axisLabelKey = axisLabels.join("|");
   const title = (
     <div className="poketrace-market__history-title">
-      <h3>Price history</h3>
+      <h4>Price history</h4>
+      {marketControl}
     </div>
   );
   const controls = (
@@ -285,6 +309,7 @@ export function MarketPriceHistoryChart({
     const updateFontSize = () => {
       const width = svg.getBoundingClientRect().width;
       if (width <= 0) return;
+      setTooltipScale(WIDTH / width);
       // Compensate for SVG scaling; keep rendered labels between 11 and 12px.
       const renderedSize = Math.max(11, Math.min(12, (12 * width) / WIDTH));
       setAxisFontSize((renderedSize * WIDTH) / width);
@@ -307,15 +332,15 @@ export function MarketPriceHistoryChart({
         0,
         ...Array.from(labels, (label) => label.getComputedTextLength?.() ?? 0),
       );
-      setLeftPadding(
-        Math.max(PADDING.left, Math.ceil(widestLabel) + AXIS_LABEL_GAP * 2),
-      );
+      if (widestLabel > 0) {
+        setLeftPadding(Math.ceil(widestLabel) + AXIS_LABEL_GAP * tooltipScale);
+      }
     };
     updateLabelSpace();
     document.fonts?.addEventListener("loadingdone", updateLabelSpace);
     return () =>
       document.fonts?.removeEventListener("loadingdone", updateLabelSpace);
-  }, [hasHistory, axisFontSize, axisLabelKey]);
+  }, [hasHistory, axisFontSize, axisLabelKey, tooltipScale]);
 
   if (availableSources.length === 0) {
     return (
@@ -428,13 +453,13 @@ export function MarketPriceHistoryChart({
     point ? [y(point.value)] : [],
   );
   const activeTop = Math.min(...activePointYs);
-  const tooltipViewportWidth = 192;
-  const tooltipHeight = 44 + availableSources.length * 22;
+  const tooltipViewportWidth = 220 * tooltipScale;
+  const tooltipHeight = (40 + availableSources.length * 24) * tooltipScale;
   const tooltipX = Math.min(
     WIDTH - PADDING.right - tooltipViewportWidth,
     Math.max(leftPadding, activeX - tooltipViewportWidth / 2),
   );
-  const tooltipY = Math.max(PADDING.top + 6, activeTop - tooltipHeight - 12);
+  const tooltipY = activeTop - tooltipHeight - 12 * tooltipScale;
 
   function handlePointerMove(event: PointerEvent<SVGSVGElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -567,9 +592,10 @@ export function MarketPriceHistoryChart({
                   />
                   <text
                     className="poketrace-market__history-axis-label"
-                    textAnchor="end"
-                    x={leftPadding - AXIS_LABEL_GAP}
-                    y={tickY + 4}
+                    dominantBaseline="middle"
+                    textAnchor="start"
+                    x={0}
+                    y={tickY}
                   >
                     {axisLabels[index]}
                   </text>
@@ -630,7 +656,14 @@ export function MarketPriceHistoryChart({
                 x={tooltipX}
                 y={tooltipY}
               >
-                <div className="poketrace-market__history-tooltip-card">
+                <div
+                  className="poketrace-market__history-tooltip-card ui-render-fade"
+                  style={{
+                    width: 220,
+                    transform: `scale(${tooltipScale})`,
+                    transformOrigin: "top left",
+                  }}
+                >
                   <span className="poketrace-market__history-tooltip-date">
                     {formatHistoryDate(activeDate)}
                   </span>
@@ -694,7 +727,7 @@ export function MarketPriceHistoryChart({
               const countLabel =
                 salesCount === null
                   ? "—"
-                  : `${salesCount.toLocaleString("en-US")} sold`;
+                  : `${salesCount.toLocaleString("en-US")} ${market === "EU" ? "listings" : "sold"}`;
               return (
                 <span
                   className={`poketrace-market__history-legend-item poketrace-market__history-legend-item--${source}`}

@@ -15,7 +15,9 @@
 .card-view {
   font-family: var(--font-family-base);
 
-  &--status {
+  &.card-view--status {
+    align-items: center;
+    gap: var(--space-4);
     min-height: 12rem;
     justify-content: center;
     text-align: center;
@@ -435,6 +437,7 @@
     max-width: 100%;
     scroll-margin-top: 1rem;
     width: 100%;
+    margin-top: -1.5rem;
 
     > .grading-calculator {
       margin-top: var(--space-3);
@@ -525,15 +528,7 @@
 }
 
 .card-view--poketrace {
-  --poketrace-panel-gap: 0.8rem;
-  // Give the image any space released by the gap; keep the info column fixed.
-  --poketrace-media-width: calc(
-    18.3rem + var(--default-container-padding) - var(--poketrace-panel-gap)
-  );
-  --details-page-column-gap: var(--poketrace-panel-gap);
-  --details-page-media-width: var(--poketrace-media-width);
-
-  gap: 2rem;
+  gap: 3rem;
 
   .card-view__shell {
     overflow: visible;
@@ -548,7 +543,7 @@
 
   .card-view__body {
     gap: var(--poketrace-panel-gap);
-    grid-template-columns: var(--poketrace-media-width) minmax(0, 1fr);
+    grid-template-columns: var(--details-page-media-width) minmax(0, 1fr);
     padding: 0;
   }
 
@@ -573,11 +568,11 @@
   .card-view__image-controls,
   .card-view__image,
   .card-view__image-placeholder {
-    width: var(--poketrace-media-width);
+    width: var(--details-page-media-width);
   }
 
   .card-view__loading-image {
-    max-width: var(--poketrace-media-width);
+    max-width: var(--details-page-media-width);
   }
 
   .card-view__image {
@@ -654,7 +649,7 @@
     .card-view__image-controls,
     .card-view__image,
     .card-view__image-placeholder {
-      width: min(19.5rem, 100%);
+      width: min(var(--details-page-media-width), 100%);
     }
   }
 }

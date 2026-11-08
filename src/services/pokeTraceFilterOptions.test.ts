@@ -71,7 +71,7 @@ test("refreshes a current cache when its payload is invalid", async () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   const now = Date.parse("2026-09-26T09:00:00.000Z");
   localStorage.setItem(
-    "pokelyzer:poketrace-filter-options:v2",
+    "pokelyzer:poketrace-filter-options:poketrace-v2",
     JSON.stringify({
       cachedAt: now - 60_000,
       options: {
@@ -98,7 +98,7 @@ test("refreshes a current cache when its payload is invalid", async () => {
 test("fetches again at six hours even when the server returns the same summaries", async () => {
   const now = Date.parse("2026-09-30T08:00:00.000Z");
   localStorage.setItem(
-    "pokelyzer:poketrace-filter-options:v2",
+    "pokelyzer:poketrace-filter-options:poketrace-v2",
     JSON.stringify({
       cachedAt: now - 6 * 60 * 60 * 1_000,
       options: payload,
@@ -121,7 +121,7 @@ test("fetches again at six hours even when the server returns the same summaries
 test("invalid newly fetched percentages hide cached summaries and allow retry", async () => {
   const now = Date.parse("2026-09-30T08:00:00.000Z");
   localStorage.setItem(
-    "pokelyzer:poketrace-filter-options:v2",
+    "pokelyzer:poketrace-filter-options:poketrace-v2",
     JSON.stringify({
       cachedAt: now - 6 * 60 * 60 * 1_000,
       options: payload,
@@ -155,7 +155,7 @@ test("invalid newly fetched percentages hide cached summaries and allow retry", 
 test("missing percentages in a valid new response replace cached percentages", async () => {
   const now = Date.parse("2026-09-30T08:00:00.000Z");
   localStorage.setItem(
-    "pokelyzer:poketrace-filter-options:v2",
+    "pokelyzer:poketrace-filter-options:poketrace-v2",
     JSON.stringify({ cachedAt: now - 6 * 60 * 60 * 1_000, options: payload }),
   );
   vi.spyOn(Date, "now").mockReturnValue(now);
@@ -177,7 +177,7 @@ test("missing percentages in a valid new response replace cached percentages", a
 test("retains directory options but omits summaries when a refresh fails", async () => {
   const now = Date.parse("2026-09-26T09:00:00.000Z");
   localStorage.setItem(
-    "pokelyzer:poketrace-filter-options:v2",
+    "pokelyzer:poketrace-filter-options:poketrace-v2",
     JSON.stringify({
       cachedAt: now - 2 * 24 * 60 * 60 * 1_000,
       options: payload,
@@ -244,8 +244,11 @@ test.each(["fetch", "body"])(
       refreshed.generatedAt,
     );
     expect(
-      JSON.parse(localStorage.getItem("pokelyzer:poketrace-filter-options:v2")!)
-        .options.generatedAt,
+      JSON.parse(
+        localStorage.getItem(
+          "pokelyzer:poketrace-filter-options:poketrace-v2",
+        )!,
+      ).options.generatedAt,
     ).toBe(refreshed.generatedAt);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(vi.getTimerCount()).toBe(0);

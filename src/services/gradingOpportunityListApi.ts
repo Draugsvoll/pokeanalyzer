@@ -6,7 +6,7 @@ import {
 } from "../../shared/gradingOpportunityList";
 import { runWithRequestTimeout } from "../utils/requestTimeout";
 
-const CACHE_KEY = "pokelyzer:grading-opportunities:v2";
+const CACHE_KEY = "pokelyzer:grading-opportunities:poketrace-v2";
 type CachedList = { cachedAt: number; payload: GradingOpportunityList | null };
 let memory: CachedList | null = null;
 let pending: Promise<GradingOpportunityList | null> | null = null;

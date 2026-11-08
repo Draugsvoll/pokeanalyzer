@@ -31,8 +31,12 @@ const product: PokeTraceSealedProduct = {
   currency: "USD",
   lastUpdated: "2026-10-05T08:00:00.000Z",
   prices: {
-    tcgplayer: { UNOPENED: { avg: 150, saleCount: 200 } },
-    ebay: { UNOPENED: { avg: 140, saleCount: 50, approxSaleCount: true } },
+    UNOPENED: {
+      US: {
+        tcgplayer: { avg: 150, saleCount: 200 },
+        ebay: { avg: 140, saleCount: 50, approxSaleCount: true },
+      },
+    },
   },
 };
 
@@ -95,6 +99,31 @@ test("sealed daily refresh saves products and snapshots without touching singles
     const catalog = await loadStoredPokeTraceSealedCatalog(database);
     assert.equal(catalog?.products.length, 1);
     assert.equal(catalog?.products[0]?.id, product.id);
+  } finally {
+    database.close();
+  }
+});
+
+test("sealed daily refresh defaults to 400ms between pages", async () => {
+  const database = createClient({ url: ":memory:" });
+  await migratePokeTraceDatabase(database);
+  const delays: number[] = [];
+  try {
+    await refreshPokeTraceSealedProducts("test-key", "2026-10-05", () => {}, {
+      database,
+      fetchPage: async (_apiKey, filters) =>
+        filters.cursor
+          ? { data: [], pagination: { hasMore: false, nextCursor: null } }
+          : {
+              data: [product],
+              pagination: { hasMore: true, nextCursor: "next-page" },
+            },
+      log: () => {},
+      sleep: async (milliseconds) => {
+        delays.push(milliseconds);
+      },
+    });
+    assert.deepEqual(delays, [400]);
   } finally {
     database.close();
   }

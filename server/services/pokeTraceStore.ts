@@ -20,12 +20,14 @@ const SNAPSHOT_CONDITIONS = [
   "DAMAGED",
 ] as const;
 
-function marketConditionsSnapshot(value: unknown) {
-  const source = recordOrEmpty(value);
+function marketConditionsSnapshot(value: unknown, source: string) {
+  const prices = recordOrEmpty(value);
   const conditions: Record<string, Record<string, unknown>> = {};
 
   for (const condition of SNAPSHOT_CONDITIONS) {
-    const price = recordOrEmpty(source[condition]);
+    const price = recordOrEmpty(
+      recordOrEmpty(recordOrEmpty(prices[condition]).US)[source],
+    );
     if (Object.keys(price).length > 0) conditions[condition] = price;
   }
 
@@ -87,8 +89,8 @@ export function dailyMarketSnapshotUpserts(
   }
 
   const prices = recordOrEmpty(card.prices);
-  const tcg = marketConditionsSnapshot(prices.tcgplayer);
-  const ebay = marketConditionsSnapshot(prices.ebay);
+  const tcg = marketConditionsSnapshot(prices, "tcgplayer");
+  const ebay = marketConditionsSnapshot(prices, "ebay");
   if (tcg === null && ebay === null) return [];
 
   return [
@@ -126,8 +128,9 @@ export function dailyTcgMarketPriceUpserts(
   }
 
   const prices = recordOrEmpty(card.prices);
-  const tcgplayer = recordOrEmpty(prices.tcgplayer);
-  const nearMint = recordOrEmpty(tcgplayer.NEAR_MINT);
+  const nearMint = recordOrEmpty(
+    recordOrEmpty(recordOrEmpty(prices.NEAR_MINT).US).tcgplayer,
+  );
   const marketPrice = finiteNumberOrNull(nearMint.avg);
   if (marketPrice === null) return [];
 

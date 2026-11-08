@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { DEFAULT_POKETRACE_REQUEST_GAP_MS } from "../config/pokeTraceRequests.js";
 import {
   assertExplicitPokeTraceDatabaseTarget,
   ensurePokeTraceReady,
@@ -31,6 +32,16 @@ try {
   }
   assertExplicitPokeTraceDatabaseTarget();
   const target = importTarget(process.argv[2]);
+  const requestGapMs = Number(
+    process.env.POKETRACE_REQUEST_GAP_MS ?? DEFAULT_POKETRACE_REQUEST_GAP_MS,
+  );
+  if (
+    !Number.isSafeInteger(requestGapMs) ||
+    requestGapMs < 0 ||
+    requestGapMs > 60_000
+  ) {
+    throw new Error("POKETRACE_REQUEST_GAP_MS must be between 0 and 60000");
+  }
 
   await ensurePokeTraceReady();
   let result:
@@ -41,6 +52,7 @@ try {
       assertHeld,
       {
         database: pokeTraceDb,
+        requestGapMs,
         onCheckpoint: (checkpoint) => {
           lastCheckpoint = checkpoint;
         },

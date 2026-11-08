@@ -1,5 +1,24 @@
 # Railway cron jobs
 
+## v2 service separation
+
+This release uses PokeTrace v2. Keep all existing v1 services pinned to their
+previous release with automatic deployments disabled. Create separate
+`card-sync-v2`, `categories-fetch-v2`, and `catalog-warmup-v2` services using:
+
+```sh
+npm run poketrace:v2:refresh-daily
+npm run poketrace:v2:generate-categories
+npm run poketrace:v2:warm-catalogs
+```
+
+These are three separate service commands. The first two include the v2
+PokeTrace migration; the warmup calls only the configured v2 backend.
+See [independent v1/v2 deployment](docs/railway-deployment.md#independent-v1-and-v2-services)
+for credentials, frontend/backend pairing, schedules, and rollback.
+The older command examples below execute v2 code in this release. Run the v1
+versions only from the pinned v1 release.
+
 Use separate Railway services for scheduled scripts. Each service should point at
 this repo, run one npm script as its Start Command, and have a Cron Schedule set
 in Railway service settings.
@@ -89,18 +108,18 @@ current cache age with:
 npm run poketrace:warm-all-catalogs
 ```
 
-Configure `POKETRACE_CATALOG_REFRESH_URL` and
-`POKETRACE_SEALED_CATALOG_REFRESH_URL` with the full Singles and Sealed backend
+Configure `POKETRACE_CATALOG_REFRESH_URL_V2` and
+`POKETRACE_SEALED_CATALOG_REFRESH_URL_V2` with the full Singles and Sealed v2 backend
 refresh endpoints, respectively. Set the same private
-`POKETRACE_CATALOG_REFRESH_TOKEN` on the warmup and backend services. The
+`POKETRACE_CATALOG_REFRESH_TOKEN_V2` on the warmup and v2 backend services. The
 command refreshes both in parallel and keeps each existing backend cache active
 until its replacement loads successfully.
 
 Typical endpoint values are:
 
 ```text
-POKETRACE_CATALOG_REFRESH_URL=https://<backend>/api/cards/catalog/refresh
-POKETRACE_SEALED_CATALOG_REFRESH_URL=https://<backend>/api/sealed/catalog/refresh
+POKETRACE_CATALOG_REFRESH_URL_V2=https://<v2-backend>/api/cards/catalog/refresh
+POKETRACE_SEALED_CATALOG_REFRESH_URL_V2=https://<v2-backend>/api/sealed/catalog/refresh
 ```
 
 The original `npm run poketrace:warm-catalog` command remains Singles-only;
@@ -112,8 +131,8 @@ Set
 `POKETRACE_PRICE_HISTORY_RETENTION_DAYS` to control retention; the default is 40
 days and the minimum is 31 for the existing TCGPlayer price history. The
 supplemental market snapshot retention is fixed at 35 days.
-`POKETRACE_REQUEST_GAP_MS` defaults to 2,100 ms for the free-tier burst limit
-and can be lowered to match a paid plan.
+Singles and sealed refreshes default to a 400 ms request gap. Set
+`POKETRACE_REQUEST_GAP_MS` to override the singles refresh delay.
 
 ## Market categories
 
@@ -142,14 +161,14 @@ TURSO_DATABASE_URL
 TURSO_AUTH_TOKEN
 XAI_API_KEY
 POKETRACE_API_KEY
-POKETRACE_DATABASE_URL
-POKETRACE_DATABASE_AUTH_TOKEN
+POKETRACE_DATABASE_URL_V2
+POKETRACE_DATABASE_AUTH_TOKEN_V2
 ```
 
 `news:generate` needs the main database variables and `XAI_API_KEY`.
 The PokeTrace cron and web service must share the same
-`POKETRACE_DATABASE_URL` and `POKETRACE_DATABASE_AUTH_TOKEN`; otherwise the cron
-will update a separate local SQLite file that the web service cannot read.
+`POKETRACE_DATABASE_URL_V2` and `POKETRACE_DATABASE_AUTH_TOKEN_V2`. Missing v2
+configuration fails explicitly; there is no local-file or v1 database fallback.
 
 Do not set `ALLOW_LOCAL_DATABASE` on Railway cron services. The scripts require
 an explicit remote database target in production-like environments.

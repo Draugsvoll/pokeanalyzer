@@ -35,9 +35,10 @@ function history(
   return {
     cardId: "card-1",
     condition: "NEAR_MINT",
+    market: "US",
     currency: "USD",
     fetchedAt: "2026-09-19T12:00:00.000Z",
-    period: "90d",
+    period: "1y",
     series,
     stale: false,
   };
@@ -260,6 +261,26 @@ test.each([
   },
 );
 
+test("does not exaggerate a two-cent change near $100", () => {
+  render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [point(daysAgo(1), 99.97), point(daysAgo(0), 99.99)],
+      })}
+    />,
+  );
+  const labels = [
+    ...document.querySelectorAll(
+      ".poketrace-market__history-axis-label:not(.poketrace-market__history-date-label)",
+    ),
+  ].map((label) => label.textContent!);
+  expect(labels.every((label) => /^\$\d+\.\d{2}$/.test(label))).toBe(true);
+  const prices = labels.map((label) => Number(label.replace("$", "")));
+  expect(prices[0] - prices.at(-1)!).toBeGreaterThanOrEqual(4.99);
+  expect(prices[0]).toBeGreaterThanOrEqual(99.99);
+  expect(prices.at(-1)).toBeLessThanOrEqual(99.97);
+});
+
 test("does not add price-range padding before rounding the axis", () => {
   render(
     <MarketPriceHistoryChart
@@ -307,21 +328,23 @@ test("reserves space for the widest price label and releases it when the period 
       document.querySelector(
         ".poketrace-market__history-grid-line:not(.poketrace-market__history-grid-line--vertical)",
       )!;
-    expect(gridLine()).toHaveAttribute("x1", "46");
+    expect(gridLine()).toHaveAttribute("x1", "42");
     fireEvent.click(screen.getByRole("radio", { name: "6M" }));
-    expect(gridLine()).toHaveAttribute("x1", "86");
+    expect(gridLine()).toHaveAttribute("x1", "82");
     const label = screen.getByText("$20,000");
-    expect(Number(label.getAttribute("x")) - 70).toBe(8);
+    expect(label).toHaveAttribute("x", "0");
+    expect(label).toHaveAttribute("text-anchor", "start");
+    expect(Number(gridLine().getAttribute("x1")) - 70).toBe(12);
     expect(
       document.querySelector(".poketrace-market__history-date-label"),
-    ).toHaveAttribute("x", "86");
+    ).toHaveAttribute("x", "82");
     expect(
       screen
         .getByRole("img")
         .style.getPropertyValue("--history-axis-font-size"),
     ).toBe("12px");
     fireEvent.click(screen.getByRole("radio", { name: "3M" }));
-    expect(gridLine()).toHaveAttribute("x1", "46");
+    expect(gridLine()).toHaveAttribute("x1", "42");
   } finally {
     if (original)
       Object.defineProperty(prototype, "getComputedTextLength", original);
@@ -364,7 +387,7 @@ test("uses 30-day medians for graded history while raw history keeps averages", 
     document.querySelector(
       ".poketrace-market__history-tooltip-row--graded strong",
     ),
-  ).toHaveTextContent("$550");
+  ).toHaveTextContent("$400");
 });
 
 test("compares Near Mint averages with a separately counted graded series", () => {
@@ -405,10 +428,10 @@ test("compares Near Mint averages with a separately counted graded series", () =
     document.querySelector(
       ".poketrace-market__history-tooltip-row--graded strong",
     ),
-  ).toHaveTextContent("$500");
+  ).toHaveTextContent("$450");
   expect(document.querySelector("foreignObject")).toHaveAttribute(
     "height",
-    "110",
+    "112",
   );
   fireEvent.pointerMove(chart, { clientX: 790 });
   expect(
@@ -452,7 +475,7 @@ test("applies separate update cutoffs to Near Mint and graded Ebay history", () 
     document.querySelector(
       ".poketrace-market__history-tooltip-row--graded strong",
     ),
-  ).toHaveTextContent("$500");
+  ).toHaveTextContent("$450");
   expect(
     document.querySelector(
       ".poketrace-market__history-tooltip-row--ebay strong",
@@ -619,7 +642,7 @@ test("aligns mismatched dates and keeps a one-point series visible", () => {
   ).toBeVisible();
   expect(
     document.querySelector(".poketrace-market__history-line--tcgplayer"),
-  ).toHaveAttribute("d", expect.stringContaining("L 790.00"));
+  ).toHaveAttribute("d", expect.stringContaining("L 800.00"));
 
   const chart = screen.getByRole("img");
   chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
@@ -649,6 +672,56 @@ test("renders normally when only one marketplace is available", () => {
   expect(
     document.querySelectorAll(".poketrace-market__history-line"),
   ).toHaveLength(1);
+});
+
+test.each([400, 1600])(
+  "keeps the tooltip size constant at chart width %i",
+  (width) => {
+    const bounds = vi
+      .spyOn(SVGElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ left: 0, width } as DOMRect);
+    try {
+      render(
+        <MarketPriceHistoryChart
+          history={history({ tcgplayer: [point("2026-09-18", 420)] })}
+        />,
+      );
+      fireEvent.pointerMove(screen.getByRole("img"), { clientX: width / 2 });
+      const tooltip = document.querySelector("foreignObject")!;
+      expect((Number(tooltip.getAttribute("width")) * width) / 800).toBeCloseTo(
+        220,
+      );
+      expect((tooltip.firstElementChild as HTMLElement).style.transform).toBe(
+        `scale(${800 / width})`,
+      );
+    } finally {
+      bounds.mockRestore();
+    }
+  },
+);
+
+test("keeps series unmasked while displaying the hover tooltip", () => {
+  const { container } = render(
+    <MarketPriceHistoryChart
+      history={history({
+        tcgplayer: [point("2026-09-17", 400), point("2026-09-18", 420)],
+      })}
+    />,
+  );
+  const chart = screen.getByRole("img");
+  chart.getBoundingClientRect = () => ({ left: 0, width: 800 }) as DOMRect;
+  const line = container.querySelector(".poketrace-market__history-line")!;
+  const area = container.querySelector(".poketrace-market__history-area")!;
+  expect(line).not.toHaveAttribute("mask");
+  fireEvent.pointerMove(chart, { clientX: 60 });
+  expect(line).not.toHaveAttribute("mask");
+  expect(area).not.toHaveAttribute("mask");
+  expect(
+    container.querySelector(".poketrace-market__history-tooltip"),
+  ).toBeInTheDocument();
+  fireEvent.pointerLeave(chart);
+  expect(line).not.toHaveAttribute("mask");
+  expect(area).not.toHaveAttribute("mask");
 });
 
 test("shows both marketplace values in the hover tooltip", () => {
@@ -699,7 +772,7 @@ test("carries the latest Ebay price through trailing dates", () => {
   ).toBeInTheDocument();
   expect(
     document.querySelector(".poketrace-market__history-line--ebay"),
-  ).toHaveAttribute("d", expect.stringContaining("L 790.00"));
+  ).toHaveAttribute("d", expect.stringContaining("L 800.00"));
 });
 
 test("aligns the Ebay line and marker on a carried-forward date", () => {
@@ -755,7 +828,7 @@ test("stops the Ebay line at the price update date", () => {
   expect(screen.queryByText("$55.00")).not.toBeInTheDocument();
   expect(
     document.querySelector(".poketrace-market__history-line--ebay"),
-  ).not.toHaveAttribute("d", expect.stringContaining("L 790.00"));
+  ).not.toHaveAttribute("d", expect.stringContaining("L 800.00"));
 });
 
 function daysAgo(days: number) {

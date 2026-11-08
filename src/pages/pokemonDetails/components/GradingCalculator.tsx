@@ -21,7 +21,7 @@ import {
   gradeProfit,
   moneyInputValue,
   parseMoney,
-  readGradedAverage,
+  readGradedPrice,
   readRawAverage,
   seededGradeFields,
   type Grade,
@@ -40,7 +40,7 @@ type Props = {
 };
 
 function gradePriceSeed(prices: unknown, grade: Grade) {
-  return seededGradeFields(readGradedAverage(prices, grade)).expectedPrice;
+  return seededGradeFields(readGradedPrice(prices, grade)).expectedPrice;
 }
 
 function rawPriceSeed(prices: unknown) {

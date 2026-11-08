@@ -55,10 +55,12 @@ test("PokeTrace cards are mapped to the app card model", () => {
         ebay: "https://example.test/ebay",
       },
       prices: {
-        tcgplayer: {
-          NEAR_MINT: { avg: 68.8, low: 67, high: 70, saleCount: 344 },
+        NEAR_MINT: {
+          US: {
+            tcgplayer: { avg: 68.8, low: 67, high: 70, saleCount: 344 },
+            ebay: { avg: 69.99 },
+          },
         },
-        ebay: { NEAR_MINT: { avg: 69.99 } },
       },
     },
     { grok: { market_analysis: { timestamp: "2026-09-16" } } },

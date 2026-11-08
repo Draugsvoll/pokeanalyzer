@@ -88,11 +88,11 @@ export async function generatePokeTraceCatalog(
       variant,
       image_url,
       json_extract(raw_json, '$.currency') AS currency,
-      json_extract(raw_json, '$.prices.tcgplayer.NEAR_MINT.avg') AS near_mint_price,
-      json_extract(raw_json, '$.prices.tcgplayer.LIGHTLY_PLAYED.avg') AS lightly_played_price,
-      json_extract(raw_json, '$.prices.tcgplayer.MODERATELY_PLAYED.avg') AS moderately_played_price,
-      json_extract(raw_json, '$.prices.tcgplayer.HEAVILY_PLAYED.avg') AS heavily_played_price,
-      json_extract(raw_json, '$.prices.tcgplayer.DAMAGED.avg') AS damaged_price,
+      json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') AS near_mint_price,
+      json_extract(raw_json, '$.prices.LIGHTLY_PLAYED.US.tcgplayer.avg') AS lightly_played_price,
+      json_extract(raw_json, '$.prices.MODERATELY_PLAYED.US.tcgplayer.avg') AS moderately_played_price,
+      json_extract(raw_json, '$.prices.HEAVILY_PLAYED.US.tcgplayer.avg') AS heavily_played_price,
+      json_extract(raw_json, '$.prices.DAMAGED.US.tcgplayer.avg') AS damaged_price,
       tcg_market_comparisons
     FROM poketrace_cards
     ORDER BY name, set_name, card_number, variant, id

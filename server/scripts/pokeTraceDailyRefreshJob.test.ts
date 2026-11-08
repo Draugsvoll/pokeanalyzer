@@ -59,7 +59,7 @@ async function seedCronTestDatabase(databaseUrl: string, holdLock = false) {
           "Cron Test Set",
           JSON.stringify({
             currency: "USD",
-            prices: { tcgplayer: { NEAR_MINT: { avg: 10 } } },
+            prices: { NEAR_MINT: { US: { tcgplayer: { avg: 10 } } } },
           }),
           "2999-01-01T00:00:00.000Z",
         ],
@@ -129,7 +129,7 @@ test("a successful daily refresh stores the regenerated catalog before completin
       "https://example.test/charizard.webp",
       JSON.stringify({
         currency: "USD",
-        prices: { tcgplayer: { NEAR_MINT: { avg: 420 } } },
+        prices: { NEAR_MINT: { US: { tcgplayer: { avg: 420 } } } },
       }),
     ],
   });
@@ -191,7 +191,7 @@ test("the daily refresh cron script regenerates the stored catalog", async () =>
         env: {
           ...process.env,
           POKETRACE_API_KEY: "test-api-key",
-          POKETRACE_DATABASE_URL: databaseUrl,
+          POKETRACE_DATABASE_URL_V2: databaseUrl,
           POKETRACE_REQUEST_GAP_MS: "0",
         },
       },
@@ -262,7 +262,7 @@ test("the daily refresh cron script fails when the maintenance lock is held", as
           env: {
             ...process.env,
             POKETRACE_API_KEY: "test-api-key",
-            POKETRACE_DATABASE_URL: databaseUrl,
+            POKETRACE_DATABASE_URL_V2: databaseUrl,
             POKETRACE_REQUEST_GAP_MS: "0",
           },
         },

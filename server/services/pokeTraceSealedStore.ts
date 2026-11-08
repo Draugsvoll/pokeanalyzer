@@ -59,8 +59,9 @@ export function sealedDailyPriceUpserts(
     throw new Error("PokeTrace sealed snapshot date must use YYYY-MM-DD");
   }
   const prices = recordOrEmpty(product.prices);
-  const tcgplayer = recordOrEmpty(prices.tcgplayer);
-  const unopened = recordOrEmpty(tcgplayer.UNOPENED);
+  const unopened = recordOrEmpty(
+    recordOrEmpty(recordOrEmpty(prices.UNOPENED).US).tcgplayer,
+  );
   const marketPrice = unopened.avg;
   if (typeof marketPrice !== "number" || !Number.isFinite(marketPrice)) {
     return [];
@@ -99,13 +100,14 @@ export function sealedDailyMarketSnapshotUpserts(
   }
   const prices = recordOrEmpty(product.prices);
   const snapshot = (value: unknown) => {
-    const unopened = recordOrEmpty(recordOrEmpty(value).UNOPENED);
+    const unopened = recordOrEmpty(value);
     return Object.keys(unopened).length > 0
       ? JSON.stringify({ UNOPENED: unopened })
       : null;
   };
-  const tcg = snapshot(prices.tcgplayer);
-  const ebay = snapshot(prices.ebay);
+  const us = recordOrEmpty(recordOrEmpty(prices.UNOPENED).US);
+  const tcg = snapshot(us.tcgplayer);
+  const ebay = snapshot(us.ebay);
   if (tcg === null && ebay === null) return [];
 
   return [

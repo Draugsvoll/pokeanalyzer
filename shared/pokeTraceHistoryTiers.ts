@@ -2,6 +2,8 @@ import {
   POKETRACE_RAW_CONDITIONS,
   POKETRACE_RAW_CONDITION_LABELS,
 } from "./pokeTraceMarketConditions.js";
+import type { PokeTraceMarket } from "./pokeTraceMarkets.js";
+import { MINIMUM_GRADED_PRICE_SALES } from "./gradedPrice.js";
 
 type Grader = "PSA" | "BGS" | "CGC" | "SGC" | "ACE" | "TAG";
 export type GradedHistoryTier = `${Grader}_${string}`;
@@ -9,8 +11,6 @@ export const RAW_HISTORY_TIERS = ["MINT", ...POKETRACE_RAW_CONDITIONS] as const;
 type RawHistoryTier = (typeof RAW_HISTORY_TIERS)[number];
 export type MarketHistoryTier = RawHistoryTier | GradedHistoryTier;
 const RAW_HISTORY_LABELS = { MINT: "Mint", ...POKETRACE_RAW_CONDITION_LABELS };
-
-export const MINIMUM_GRADED_HISTORY_SALES = 15;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -51,9 +51,17 @@ export function qualifyingGradedHistoryTiers(
   prices: unknown,
   gradedOptions?: unknown,
   now = Date.now(),
+  market: PokeTraceMarket = "US",
 ): GradedHistoryTier[] {
-  const ebay = record(record(prices)?.ebay);
-  if (!ebay) return [];
+  const tiers = record(prices);
+  if (!tiers) return [];
+  const source = market === "EU" ? "cardmarket_unsold" : "ebay";
+  const entries = new Map(
+    Object.entries(tiers).map(
+      ([tier, markets]) =>
+        [tier, record(record(markets)?.[market])?.[source]] as const,
+    ),
+  );
   const today = new Date(now);
   const year = today.getUTCFullYear();
   const month = today.getUTCMonth() - 2;
@@ -66,11 +74,11 @@ export function qualifyingGradedHistoryTiers(
   const available = Array.isArray(gradedOptions)
     ? new Set(gradedOptions.filter(isGradedHistoryTier))
     : null;
-  return Object.keys(ebay)
+  return [...entries.keys()]
     .filter(isWholeGradedHistoryTier)
     .filter((tier) => {
       if (available && !available.has(tier)) return false;
-      const price = record(ebay[tier]);
+      const price = record(entries.get(tier));
       const updatedAt =
         typeof price?.lastUpdated === "string"
           ? Date.parse(price.lastUpdated)
@@ -80,8 +88,8 @@ export function qualifyingGradedHistoryTiers(
         updatedAt <= now &&
         typeof price?.saleCount === "number" &&
         Number.isFinite(price.saleCount) &&
-        price.saleCount >= MINIMUM_GRADED_HISTORY_SALES &&
-        [price.median7d, price.avg].some(
+        price.saleCount >= MINIMUM_GRADED_PRICE_SALES &&
+        [price.median30d, price.avg].some(
           (value) =>
             typeof value === "number" && Number.isFinite(value) && value > 0,
         )
