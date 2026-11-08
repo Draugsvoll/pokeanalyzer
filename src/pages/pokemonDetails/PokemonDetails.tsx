@@ -518,7 +518,7 @@ function PokemonDetailsForCard() {
               dataPending={isDemo}
               marketHistoryAccessPending={isDemo}
               pricingHref={authUser ? "/profile" : "#membership-pricing"}
-              variantLoading
+              variantLoading={!isDemo}
             />
           </div>
         }
@@ -801,7 +801,7 @@ function PokemonDetailsForCard() {
       notice={
         isDemo ? (
           <aside className="card-view__demo-disclaimer" role="note">
-            Demo - Prices and analyses are not live data.
+            Demo card - data might be outdated.
           </aside>
         ) : undefined
       }

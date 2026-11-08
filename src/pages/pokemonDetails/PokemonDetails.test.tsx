@@ -1407,7 +1407,7 @@ test("keeps logged-out pricing links on the card page while card data loads", as
 test("unlocks demo market history and graded prices without login or membership", async () => {
   mocks.authUser = null;
   mocks.hasSubscription = false;
-  const liveId = "019bff9a-8592-77ae-8865-c500279b7630";
+  const liveId = "019c0001-f4af-73e0-bbc7-f1036725cbc5";
   const demo = buildCard(liveId, "Charizard");
   demo.pokeTrace!.prices = {
     ebay: { NEAR_MINT: { avg: 10 }, PSA_10: { avg: 100, saleCount: 20 } },

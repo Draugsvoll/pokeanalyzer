@@ -179,7 +179,7 @@ export async function fetchCardById(
 ): Promise<PokemonCard> {
   if (cardId === "demo") {
     const [liveCard, demoValue] = await Promise.all([
-      fetchCardById("019bff9a-8592-77ae-8865-c500279b7630", signal),
+      fetchCardById("019c0001-f4af-73e0-bbc7-f1036725cbc5", signal),
       cardRequest(`${import.meta.env.BASE_URL}demo-card.json`, signal),
     ]);
     const demo = normalizeCardResponse(demoValue, "demo");

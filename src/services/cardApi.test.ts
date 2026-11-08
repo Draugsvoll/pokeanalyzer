@@ -53,7 +53,7 @@ test("loads a card from the active card API", async () => {
 });
 
 test("uses live demo card data and only static feature analyses", async () => {
-  const liveId = "019bff9a-8592-77ae-8865-c500279b7630";
+  const liveId = "019c0001-f4af-73e0-bbc7-f1036725cbc5";
   const live = {
     id: liveId,
     name: "Live Umbreon",
@@ -106,7 +106,7 @@ test("normalizes older demo eBay results without exposing them as AI data", asyn
       ok: true,
       json: async () =>
         url !== "/demo-card.json"
-          ? { id: "019bff9a-8592-77ae-8865-c500279b7630" }
+          ? { id: "019c0001-f4af-73e0-bbc7-f1036725cbc5" }
           : {
               id: "demo",
               name: "Charizard",

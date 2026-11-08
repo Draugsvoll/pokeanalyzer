@@ -181,7 +181,10 @@ function MarketplaceColumn({
   const conditionGroup = useId();
   const sales = formatSales(price);
   const hasPrices = entries.length > 0;
-  const showLoader = source.toLowerCase() === "ebay" && dataPending;
+  const showLoader =
+    (source.toLowerCase() === "ebay" ||
+      source.toLowerCase() === "cardmarket") &&
+    dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !showLoader;
   const displayedPrice = price.avg;
