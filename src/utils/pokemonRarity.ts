@@ -64,8 +64,8 @@ export function getRarityBadgeAccent(
   if (family === "rare") return "blue";
   if (family === "ultra") return "orange";
   if (family === "secret") return "pink";
-  if (family === "promo") return "teal";
+  if (family === "promo") return "purple";
   if (family === "special") return "yellow";
   if (family === "unknown") return "neutral";
-  return "purple";
+  return "neutral";
 }

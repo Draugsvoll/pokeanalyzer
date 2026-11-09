@@ -121,7 +121,7 @@
 .details-page__body {
   align-items: start;
   display: grid;
-  gap: var(--details-page-column-gap);
+  gap: 1rem;
   grid-template-columns: var(--details-page-media-width) minmax(0, 1fr);
   min-width: 0;
   width: 100%;
