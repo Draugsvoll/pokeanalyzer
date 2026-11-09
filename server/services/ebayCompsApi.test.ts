@@ -27,18 +27,19 @@ test("eBay card requests preserve the sold and active request contract", () => {
     ["sold", soldOptions],
     ["active", activeOptions],
   ] as const) {
-    const requestUrl: URL = new URL(
-      buildEbayCompsUrl(
-        "https://api.sold-comps.com/v1/scrape",
-        "keyword",
-        query,
-        options,
-      ),
-    );
+    const requestUrl: URL = new URL(buildEbayCompsUrl(query, options));
 
+    assert.equal(requestUrl.origin, "https://api.compsniper.com");
+    assert.equal(requestUrl.pathname, "/v1/scrape");
     assert.equal(requestUrl.searchParams.get("keyword"), query);
+    assert.equal(requestUrl.searchParams.get("ebaySite"), "ebay.com");
+    assert.equal(requestUrl.searchParams.get("exactMatch"), "false");
+    assert.equal(requestUrl.searchParams.has("hydrateBoa"), false);
     assert.equal(requestUrl.searchParams.get("categoryId"), "183454");
+    assert.equal(requestUrl.searchParams.get("conditionId"), "2750");
     assert.equal(requestUrl.searchParams.has("aspectFilter"), false);
+    assert.equal(requestUrl.searchParams.get("bestOfferPrice"), "true");
+    assert.equal(requestUrl.searchParams.get("relevance"), "true");
     assert.equal(
       requestUrl.searchParams.get("sold"),
       listingType === "active" ? "false" : null,
@@ -107,19 +108,28 @@ test("empty match criteria do not match every title", () => {
 });
 
 test("fresh sold and active responses use the same title filter", async (t) => {
-  const previousKey = process.env.EBAYCOMPS_API_KEY;
-  process.env.EBAYCOMPS_API_KEY = "test-key";
+  const previousKey = process.env.COMPSNIPER_API_KEY;
+  process.env.COMPSNIPER_API_KEY = "test-key";
   t.after(() => {
-    if (previousKey === undefined) delete process.env.EBAYCOMPS_API_KEY;
-    else process.env.EBAYCOMPS_API_KEY = previousKey;
+    if (previousKey === undefined) delete process.env.COMPSNIPER_API_KEY;
+    else process.env.COMPSNIPER_API_KEY = previousKey;
   });
   const matching = [{ title: "Charizard Holo" }, { title: "Card SVP001" }];
-  t.mock.method(globalThis, "fetch", async () =>
-    new Response(
-      JSON.stringify({
-        items: [...matching, { title: "Unrelated Pikachu" }],
-      }),
-    ),
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (input: string | URL | Request, init?: RequestInit) => {
+      assert.equal(new URL(String(input)).origin, "https://api.compsniper.com");
+      assert.equal(
+        new Headers(init?.headers).get("Authorization"),
+        "Bearer test-key",
+      );
+      return new Response(
+        JSON.stringify({
+          items: [...matching, { title: "Unrelated Pikachu" }],
+        }),
+      );
+    },
   );
   const { query, soldOptions, activeOptions } = buildEbayCardRequests({
     cardName: "Charizard ex",
@@ -129,4 +139,20 @@ test("fresh sold and active responses use the same title filter", async (t) => {
     const result = await fetchEbayComps(query, undefined, options);
     assert.deepEqual(result, { items: matching, totalItems: 2 });
   }
+});
+
+test("missing CompSniper credentials fail before making a request", async (t) => {
+  const previousKey = process.env.COMPSNIPER_API_KEY;
+  delete process.env.COMPSNIPER_API_KEY;
+  t.after(() => {
+    if (previousKey !== undefined) process.env.COMPSNIPER_API_KEY = previousKey;
+  });
+  const request = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("Unexpected request");
+  });
+  await assert.rejects(
+    fetchEbayComps("Pikachu"),
+    /COMPSNIPER_API_KEY is not configured/,
+  );
+  assert.equal(request.mock.callCount(), 0);
 });

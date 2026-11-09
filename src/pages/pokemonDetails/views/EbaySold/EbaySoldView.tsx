@@ -20,7 +20,7 @@ import {
   type EbayCompsResponse,
   type EbayCompResult,
 } from "../../../../utils/ebayComps";
-import { Eye, Gavel } from "lucide-react";
+import { ArrowRight, Eye, Gavel } from "lucide-react";
 import { ClearFiltersButton } from "../../../../components/clearFiltersButton/ClearFiltersButton";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { EbayImagePreview } from "./EbayImagePreview";
@@ -111,9 +111,28 @@ function formatDate(value?: string) {
   }).format(date);
 }
 
+function getAcceptedOfferPrice(result: EbayCompResult) {
+  const acceptedPrice = getField(result, "acceptedOfferPrice");
+  if (
+    isTrue(getField(result, "bestOfferAccepted")) &&
+    getField(result, "acceptedOfferPriceStatus") === "found" &&
+    acceptedPrice &&
+    Number.isFinite(Number(acceptedPrice)) &&
+    Number(acceptedPrice) > 0
+  ) {
+    return acceptedPrice;
+  }
+  return undefined;
+}
+
+function getListingPrice(result: EbayCompResult) {
+  return getField(result, "listingType") === "active"
+    ? getField(result, "currentPrice")
+    : (getAcceptedOfferPrice(result) ?? getField(result, "soldPrice"));
+}
+
 function getNumericSoldPrice(result: EbayCompResult) {
-  const price =
-    getField(result, "soldPrice") ?? getField(result, "currentPrice");
+  const price = getListingPrice(result);
   if (!price) return null;
 
   const numericPrice = Number(price.replace(/[^0-9.-]/g, ""));
@@ -124,13 +143,12 @@ function getPriceSummary(
   results: EbayCompResult[],
   listingType: ListingTypeFilter,
 ) {
-  const priceKey = listingType === "sold" ? "soldPrice" : "currentPrice";
   const currencyKey =
     listingType === "sold" ? "soldCurrency" : "currentCurrency";
   const pricesByCurrency = new Map<string, number[]>();
 
   for (const result of results) {
-    const rawPrice = getField(result, priceKey);
+    const rawPrice = getListingPrice(result);
     if (!rawPrice) continue;
 
     const price = Number(rawPrice.replace(/[^0-9.-]/g, ""));
@@ -224,6 +242,7 @@ type EbayResultCardProps = {
 type EbayListingMetadataItem = {
   label: string;
   icon?: ReactNode;
+  content?: ReactNode;
 };
 
 function isMetadataItem(
@@ -231,7 +250,6 @@ function isMetadataItem(
 ): item is EbayListingMetadataItem {
   return Boolean(item);
 }
-
 
 function EbayResultCard({
   result,
@@ -263,7 +281,7 @@ function EbayResultCard({
       )
     : null;
   const price = formatPrice(
-    getField(result, isActive ? "currentPrice" : "soldPrice"),
+    getListingPrice(result),
     getField(result, isActive ? "currentCurrency" : "soldCurrency"),
   );
   const shippingPrice = result.shippingPrice
@@ -286,7 +304,20 @@ function EbayResultCard({
     bidCount ? { label: bidCount } : null,
     !isActive && location ? { label: location } : null,
     isActive && acceptsOffers ? { label: "Accepts offers" } : null,
-    offerAccepted ? { label: "Offer accepted" } : null,
+    offerAccepted
+      ? {
+          label: getAcceptedOfferPrice(result)
+            ? "Offer accepted"
+            : "Offer accepted — open sale for final price",
+          content: !getAcceptedOfferPrice(result) ? (
+            <>
+              Offer accepted
+              <ArrowRight aria-hidden="true" data-testid="offer-price-arrow" />
+              open sale for final price
+            </>
+          ) : undefined,
+        }
+      : null,
     timeLeft ? { label: `${timeLeft} left` } : null,
     buyItNowPrice ? { label: `Buy It Now ${buyItNowPrice}` } : null,
     watchers ? { label: watchers, icon: <Eye aria-hidden="true" /> } : null,
@@ -306,7 +337,7 @@ function EbayResultCard({
       metadataItems={metadataItems}
       price={price}
       url={url}
-      linkLabel={isActive ? "Buy" : "View sale"}
+      linkLabel={isActive ? "Buy" : "Open sale"}
       expansion={expansion}
       media={
         result.thumbnailUrl ? (
@@ -619,7 +650,13 @@ export default function EbaySoldView({
         : null;
     const listingTypeResults = getVisibleEbayCompResults(
       listingResponse,
-    ).filter((result) => getField(result, "listingType") === listingType);
+    ).filter((result) => {
+      const price = getNumericSoldPrice(result);
+      return (
+        getField(result, "listingType") === listingType &&
+        (price === null || price > 1)
+      );
+    });
     const gradeFilteredResults =
       appliedGradeFilter === "all"
         ? listingTypeResults

@@ -6,9 +6,9 @@ function listing(index: number, listingType = "sold") {
   return {
     title: `Pikachu listing ${index}`,
     listingType,
-    soldPrice: String(index),
+    soldPrice: String(Math.max(2, index)),
     soldCurrency: "USD",
-    currentPrice: String(index),
+    currentPrice: String(Math.max(2, index)),
     currentCurrency: "USD",
     endedAt: `2026-10-${String(index).padStart(2, "0")}`,
     url: `https://www.ebay.com/itm/${index}`,
@@ -185,7 +185,9 @@ test("shows an offer accepted marker on a sold listing", () => {
     />,
   );
 
-  expect(screen.getByText("Offer accepted")).toBeVisible();
+  expect(
+    screen.getByText("Offer acceptedopen sale for final price"),
+  ).toBeVisible();
 });
 
 test("shows an available shipping price as the final metadata item", () => {
@@ -262,7 +264,7 @@ test("shows sold and listed results together in the wide advanced view", () => {
     expect(
       screen.getByRole("heading", { name: "Listed · 1 match" }),
     ).toBeVisible();
-    expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open sale" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Buy" })).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Expand all listings" }),
@@ -352,11 +354,15 @@ test("expands and collapses an overflowing listing title", () => {
 
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(titleBlock).toHaveClass("marketplace-listings__title-block--expanded");
+    expect(titleBlock).toHaveClass(
+      "marketplace-listings__title-block--expanded",
+    );
 
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(titleBlock).not.toHaveClass("marketplace-listings__title-block--expanded");
+    expect(titleBlock).not.toHaveClass(
+      "marketplace-listings__title-block--expanded",
+    );
   } finally {
     clientWidth.mockRestore();
     scrollWidth.mockRestore();
@@ -372,7 +378,7 @@ test("preserves sold/listed and text filtering behavior", async () => {
       }}
     />,
   );
-  expect(screen.getAllByRole("link", { name: "View sale" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: "Open sale" })).toHaveLength(2);
   expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(screen.getAllByRole("link", { name: "Buy" })).toHaveLength(1);
@@ -608,7 +614,7 @@ test("Grade 6 replaces Raw and includes whole and half grades without matching c
 
 test("retains available results when the other provider request failed", () => {
   render(<EbaySoldView response={{ sold: [listing(1)], active: null }} />);
-  expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Open sale" })).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(
     screen.queryByText(/load these Ebay listings/),
@@ -773,4 +779,48 @@ test("exclusion resets pagination and ignores queries shorter than two character
   );
   await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(15));
   expect(screen.getByRole("status")).toHaveTextContent("Sold · 20 matches");
+});
+
+test("uses found accepted prices and excludes prices of one dollar or less", () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [
+          { ...listing(1), soldPrice: "0.99" },
+          { ...listing(2), soldPrice: "1" },
+          {
+            ...listing(3),
+            soldPrice: "100",
+            bestOfferAccepted: true,
+            acceptedOfferPriceStatus: "found",
+            acceptedOfferPrice: "25",
+          },
+          {
+            ...listing(4),
+            soldPrice: "50",
+            bestOfferAccepted: true,
+            acceptedOfferPriceStatus: "pending",
+            acceptedOfferPrice: "0.50",
+          },
+          {
+            ...listing(5),
+            soldPrice: "100",
+            bestOfferAccepted: true,
+            acceptedOfferPriceStatus: "found",
+            acceptedOfferPrice: "1",
+          },
+        ],
+        active: [],
+      }}
+    />,
+  );
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.getByText("Offer accepted")).toBeVisible();
+  expect(
+    screen.getByText("Offer acceptedopen sale for final price"),
+  ).toBeVisible();
+  expect(screen.queryByText("Pikachu Listing 1")).not.toBeInTheDocument();
+  expect(screen.getAllByText("$25.00").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("$50.00").length).toBeGreaterThan(0);
+  expect(screen.queryByText("$100.00")).not.toBeInTheDocument();
 });

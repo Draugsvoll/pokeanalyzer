@@ -1,7 +1,11 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 
-export type MarketplaceMetadataItem = { label: string; icon?: ReactNode };
+export type MarketplaceMetadataItem = {
+  label: string;
+  icon?: ReactNode;
+  content?: ReactNode;
+};
 type Props = {
   title: string;
   titleContent?: ReactNode;
@@ -95,7 +99,7 @@ export function MarketplaceResultRow({
                 >
                   {itemIndex > 0 && <span>{"\u2022"}</span>}
                   {item.icon}
-                  {item.label}
+                  {item.content ?? item.label}
                 </span>
               ))}
             </div>

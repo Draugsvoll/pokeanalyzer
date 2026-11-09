@@ -23,21 +23,23 @@ export function buildEbayCardRequests(context: EbayCardSearchContext) {
 }
 
 export function buildEbayCompsUrl(
-  apiUrl: string,
-  apiParam: string,
   query: string,
   options: EbayCompsOptions = {},
 ) {
   const params = new URLSearchParams({
-    [apiParam]: query,
+    keyword: query,
+    ebaySite: "ebay.com",
     categoryId: "183454",
+    conditionId: "2750",
     count: "240",
     page: "1",
-    hydrateBoa: "false",
+    bestOfferPrice: "true",
+    relevance: "true",
+    exactMatch: "false",
   });
   if (options.sold === false) params.set("sold", "false");
 
-  return `${apiUrl}?${params.toString()}`;
+  return `https://api.compsniper.com/v1/scrape?${params.toString()}`;
 }
 
 function normalizeTitleTokens(value: string) {
@@ -67,7 +69,8 @@ export function filterEbayCompsResponseByTitle(
       return false;
     }
     return (
-      (number !== "" && item.title.toLocaleLowerCase("en-US").includes(number)) ||
+      (number !== "" &&
+        item.title.toLocaleLowerCase("en-US").includes(number)) ||
       (firstNameToken !== undefined &&
         normalizeTitleTokens(item.title).includes(firstNameToken))
     );
@@ -81,16 +84,12 @@ export async function fetchEbayComps(
   signal?: AbortSignal,
   options: EbayCompsOptions = {},
 ) {
-  const apiKey = process.env.EBAYCOMPS_API_KEY;
-  const api_url =
-    process.env.EBAYCOMPS_API_URL || "https://api.sold-comps.com/v1/scrape";
-  const api_param = process.env.EBAYCOMPS_API_PARAM || "keyword";
-
+  const apiKey = process.env.COMPSNIPER_API_KEY;
   if (!apiKey) {
-    throw new Error("Missing EBAYCOMPS_API_KEY");
+    throw new Error("COMPSNIPER_API_KEY is not configured");
   }
 
-  const url = buildEbayCompsUrl(api_url, api_param, query, options);
+  const url = buildEbayCompsUrl(query, options);
 
   const res = await fetch(url, {
     headers: {
@@ -103,7 +102,7 @@ export async function fetchEbayComps(
 
   if (!res.ok) {
     await res.body?.cancel();
-    throw new Error(`EbayComps request failed with status ${res.status}`);
+    throw new Error(`CompSniper eBay request failed with status ${res.status}`);
   }
 
   const response: unknown = await res.json();
