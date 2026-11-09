@@ -54,6 +54,7 @@ export function toPokeTraceCatalogCard(row: CatalogRow): PokeTraceCatalogCard {
   const comparisons = parsePokeTraceMarketComparisons(
     row.tcg_market_comparisons,
   );
+  const cardmarketAvg = positiveNumber(row.cardmarket_avg);
 
   return {
     id: String(row.id),
@@ -65,7 +66,7 @@ export function toPokeTraceCatalogCard(row: CatalogRow): PokeTraceCatalogCard {
     ...(optionalText(row.rarity) && { rarity: optionalText(row.rarity) }),
     ...(optionalText(row.variant) && { variant: optionalText(row.variant) }),
     ...(optionalText(row.image_url) && { image: optionalText(row.image_url) }),
-    currency: optionalText(row.currency) ?? "USD",
+    ...(cardmarketAvg !== null && { cardmarketAvg }),
     conditionPrices: conditionPrices(row),
     priceSnapshots: {
       "1d": comparisons?.comparisons["1d"]?.marketPrice ?? null,
@@ -87,7 +88,7 @@ export async function generatePokeTraceCatalog(
       rarity,
       variant,
       image_url,
-      json_extract(raw_json, '$.currency') AS currency,
+      json_extract(raw_json, '$.prices.AGGREGATED.EU.cardmarket.avg') AS cardmarket_avg,
       json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') AS near_mint_price,
       json_extract(raw_json, '$.prices.LIGHTLY_PLAYED.US.tcgplayer.avg') AS lightly_played_price,
       json_extract(raw_json, '$.prices.MODERATELY_PLAYED.US.tcgplayer.avg') AS moderately_played_price,

@@ -16,7 +16,7 @@ export type PokeTraceCatalogCard = {
   rarity?: string;
   variant?: string;
   image?: string;
-  currency: string;
+  cardmarketAvg?: number;
   conditionPrices: Partial<Record<PokeTraceRawCondition, number>>;
   priceSnapshots: Record<PokeTraceCatalogPeriod, number | null>;
 };
@@ -64,8 +64,10 @@ export function isPokeTraceCatalogCard(
     card.name.trim() &&
     typeof card.setName === "string" &&
     card.setName.trim() &&
-    typeof card.currency === "string" &&
-    card.currency.trim() &&
+    (card.cardmarketAvg === undefined ||
+      (typeof card.cardmarketAvg === "number" &&
+        Number.isFinite(card.cardmarketAvg) &&
+        card.cardmarketAvg > 0)) &&
     isOptionalText(card.number) &&
     isOptionalText(card.rarity) &&
     isOptionalText(card.variant) &&
@@ -116,7 +118,12 @@ export function toPokeTraceCatalogPokemonCard(card: PokeTraceCatalogCard) {
     image: card.image,
     set: { id: "", name: card.setName },
     pokeTrace: {
-      currency: card.currency,
+      currency: "USD",
+      ...(card.cardmarketAvg !== undefined && {
+        marketPrices: {
+          AGGREGATED: { EU: { cardmarket: { avg: card.cardmarketAvg } } },
+        },
+      }),
       marketplaceUrls: {},
       prices:
         Object.keys(tcgplayerPrices).length > 0

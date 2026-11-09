@@ -267,9 +267,14 @@ function SealedPriceHistory({
   const control = (
     <RadioButtonGroup<PokeTraceMarket>
       ariaLabel="Price history market"
+      className="radio-button-group--currency"
       options={(["US", "EU"] as const).map((value) => ({
         value,
-        label: value,
+        label: (
+          <>
+            <span aria-hidden="true">{value === "US" ? "$" : "€"}</span> {value}
+          </>
+        ),
         disabled: markets?.[value]?.available !== true,
       }))}
       value={market}

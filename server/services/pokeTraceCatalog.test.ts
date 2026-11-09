@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   POKETRACE_CATALOG_SCHEMA_VERSION,
   type PokeTraceCatalogResponse,
+  isPokeTraceCatalogCard,
+  toPokeTraceCatalogPokemonCard,
 } from "../../shared/pokeTraceCatalog.js";
 import {
   createPokeTraceCatalogCache,
@@ -18,7 +20,6 @@ function catalog(generatedAt: string): PokeTraceCatalogResponse {
         id: "card-1",
         name: "Charizard",
         setName: "Base Set",
-        currency: "USD",
         conditionPrices: { NEAR_MINT: 420 },
         priceSnapshots: { "1d": 410, "7d": 400, "30d": 390 },
       },
@@ -35,7 +36,7 @@ test("builds a compact browser card from PokeTrace data", () => {
     rarity: "Holo Rare",
     variant: "Unlimited Holofoil",
     image_url: "https://example.test/charizard.webp",
-    currency: "USD",
+    cardmarket_avg: 350,
     near_mint_price: 420,
     lightly_played_price: 380,
     moderately_played_price: 340,
@@ -69,7 +70,7 @@ test("builds a compact browser card from PokeTrace data", () => {
     rarity: "Holo Rare",
     variant: "Unlimited Holofoil",
     image: "https://example.test/charizard.webp",
-    currency: "USD",
+    cardmarketAvg: 350,
     conditionPrices: {
       NEAR_MINT: 420,
       LIGHTLY_PLAYED: 380,
@@ -222,4 +223,34 @@ test("failed forced refresh preserves the existing catalog", async () => {
   await assert.rejects(getCatalog.refresh(), /temporary Turso failure/);
   assert.equal(getCatalog.peek(), initial);
   assert.equal(await getCatalog(), initial);
+});
+
+test("omits unavailable Cardmarket averages and currency from compact cards", () => {
+  for (const value of [null, undefined, 0, -1, "invalid"]) {
+    const card = toPokeTraceCatalogCard({
+      id: "card",
+      name: "Card",
+      cardmarket_avg: value,
+    });
+    assert.equal("cardmarketAvg" in card, false);
+    assert.equal("currency" in card, false);
+  }
+});
+
+test("preserves the EU aggregated average in catalog card views", () => {
+  const compact = toPokeTraceCatalogCard({
+    id: "card",
+    name: "Card",
+    cardmarket_avg: 42.5,
+  });
+  assert.equal(isPokeTraceCatalogCard(compact), true);
+  assert.equal(
+    isPokeTraceCatalogCard({ ...compact, cardmarketAvg: -1 }),
+    false,
+  );
+  const card = toPokeTraceCatalogPokemonCard(compact);
+  assert.equal(card.pokeTrace.currency, "USD");
+  assert.deepEqual(card.pokeTrace.marketPrices, {
+    AGGREGATED: { EU: { cardmarket: { avg: 42.5 } } },
+  });
 });

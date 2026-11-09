@@ -13,7 +13,6 @@ function card(id: string, setName: string): PokeTraceCatalogCard {
     id,
     name: id,
     setName,
-    currency: "USD",
     conditionPrices: { NEAR_MINT: 10 },
     priceSnapshots: { "1d": null, "7d": null, "30d": null },
   };

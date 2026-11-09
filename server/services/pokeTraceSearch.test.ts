@@ -28,7 +28,6 @@ function catalogCard({
     setName: "Test Set",
     rarity,
     variant: "Normal",
-    currency: "USD",
     conditionPrices,
     priceSnapshots: { "1d": null, "7d": null, "30d": null },
   };

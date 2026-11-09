@@ -62,3 +62,12 @@
     opacity: 0.55;
   }
 }
+
+.radio-button-group--currency .radio-button-group__option > span {
+  display: block;
+  font-weight: var(--font-weight-medium);
+
+  > span[aria-hidden="true"] {
+    font-size: var(--font-size-caption);
+  }
+}

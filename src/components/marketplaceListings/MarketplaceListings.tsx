@@ -216,6 +216,7 @@ type PanelProps = {
   busy?: boolean;
   loadingLabel?: string;
   description?: ReactNode;
+  headingAction?: ReactNode;
   state?: ReactNode;
   footer?: ReactNode;
   resultsKey?: string;
@@ -233,6 +234,7 @@ export function MarketplaceResultPanel({
   busy,
   loadingLabel,
   description,
+  headingAction,
   state,
   footer,
   resultsKey,
@@ -253,26 +255,39 @@ export function MarketplaceResultPanel({
       aria-label={ariaLabel}
     >
       <header className="marketplace-listings__result-summary">
-        <h2>
-          <span
-            role={!dual && !loading ? "status" : undefined}
-            aria-busy={!dual && !loading ? busy : undefined}
-          >
-            <span className="marketplace-listings__summary-label">{label}</span>
-            {!loading && count !== undefined && (
-              <>
-                {" "}
-                ·{" "}
-                <span
-                  className="marketplace-listings__result-count ui-render-fade ui-render-fade--counter"
-                  key={count}
-                >
-                  {count}
-                </span>
-              </>
-            )}
-          </span>
-        </h2>
+        <div
+          className={
+            headingAction ? "marketplace-listings__result-heading" : undefined
+          }
+        >
+          <h2>
+            <span
+              role={!dual && !loading ? "status" : undefined}
+              aria-busy={!dual && !loading ? busy : undefined}
+            >
+              <span className="marketplace-listings__summary-label">
+                {label}
+              </span>
+              {!loading && count !== undefined && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span
+                    className="marketplace-listings__result-count ui-render-fade ui-render-fade--counter"
+                    key={count}
+                  >
+                    {count}
+                  </span>
+                </>
+              )}
+            </span>
+          </h2>
+          {headingAction && (
+            <div className="marketplace-listings__heading-action">
+              {headingAction}
+            </div>
+          )}
+        </div>
         {!loading && summary && (
           <dl
             aria-label={`${label} price summary`}

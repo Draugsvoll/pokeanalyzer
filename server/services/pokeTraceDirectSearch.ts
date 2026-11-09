@@ -130,7 +130,7 @@ export async function loadDirectPokeTraceSearch(
         rarity,
         variant,
         image_url,
-        json_extract(raw_json, '$.currency') AS currency,
+        json_extract(raw_json, '$.prices.AGGREGATED.EU.cardmarket.avg') AS cardmarket_avg,
         json_extract(raw_json, '$.prices.NEAR_MINT.US.tcgplayer.avg') AS near_mint_price,
         json_extract(raw_json, '$.prices.LIGHTLY_PLAYED.US.tcgplayer.avg') AS lightly_played_price,
         json_extract(raw_json, '$.prices.MODERATELY_PLAYED.US.tcgplayer.avg') AS moderately_played_price,

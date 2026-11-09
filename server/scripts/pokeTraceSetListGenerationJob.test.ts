@@ -130,7 +130,6 @@ test("preserves the existing set list when its atomic save fails", async (t) => 
         name: "Card",
         number: "1/1",
         setName: "Test Set",
-        currency: "USD",
         conditionPrices: { NEAR_MINT: 12 },
         priceSnapshots: { "1d": null, "7d": 10, "30d": null },
       },

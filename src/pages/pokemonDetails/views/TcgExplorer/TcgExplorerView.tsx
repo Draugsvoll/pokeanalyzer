@@ -114,6 +114,18 @@ export function TcgExplorerView({
         key={panel}
         scrollResetKey={`${condition}-${sort}`}
         label={panel === "sales" ? "Sold" : "Listed"}
+        headingAction={
+          panel === "offers" ? (
+            <a
+              className="app-link marketplace-listings__product-link"
+              href={productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on TCG <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          ) : undefined
+        }
         ariaLabel={
           panel === "sales"
             ? "TCGplayer recent sales"
@@ -218,14 +230,6 @@ export function TcgExplorerView({
               ))}
             </div>
           </fieldset>
-          <a
-            className="app-link marketplace-listings__product-link"
-            href={productUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View listings on TCG <ExternalLink size={14} aria-hidden="true" />
-          </a>
         </div>
       }
       side={side === "sales" ? "sold" : "active"}

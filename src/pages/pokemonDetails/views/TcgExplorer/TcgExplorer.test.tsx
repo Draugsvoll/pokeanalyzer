@@ -296,12 +296,12 @@ test("condition buttons filter all variants locally and update the summary", () 
       }}
     />,
   );
-  expect(
-    screen.getByRole("link", { name: "View listings on TCG" }),
-  ).toHaveAttribute(
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  expect(screen.getByRole("link", { name: "View on TCG" })).toHaveAttribute(
     "href",
     `https://www.tcgplayer.com/product/${snapshot.productId}`,
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Sold" }));
   fireEvent.click(screen.getByRole("radio", { name: "Lightly Played" }));
   expect(screen.getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("article")).toHaveTextContent("$25.00");
@@ -514,4 +514,30 @@ test("keeps item expansion attached to the original row after sorting and filter
     clientWidth.mockRestore();
     scrollWidth.mockRestore();
   }
+});
+
+test("keeps the TCG link in the Listed panel header in single and dual views", () => {
+  render(<TcgExplorerView data={snapshot} initialSide="active" />);
+  const assertListedLink = () => {
+    const panel = screen.getByRole("region", {
+      name: "TCGplayer available offers",
+    });
+    const link = within(panel).getByRole("link", {
+      name: "View on TCG",
+    });
+    expect(link.closest("header")).toContainElement(
+      within(panel).getByRole("heading", { name: /Listed.*0 matches/ }),
+    );
+    expect(screen.getAllByRole("link", { name: "View on TCG" })).toHaveLength(
+      1,
+    );
+  };
+  assertListedLink();
+  fireEvent.click(screen.getByRole("radio", { name: "Dual" }));
+  assertListedLink();
+  expect(
+    within(
+      screen.getByRole("region", { name: "TCGplayer recent sales" }),
+    ).queryByRole("link", { name: "View on TCG" }),
+  ).not.toBeInTheDocument();
 });

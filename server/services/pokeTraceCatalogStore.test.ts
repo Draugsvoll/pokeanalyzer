@@ -20,7 +20,6 @@ function catalog(id: string, generatedAt: string): PokeTraceCatalogResponse {
         id,
         name: "Charizard",
         setName: "Base Set",
-        currency: "USD",
         conditionPrices: { NEAR_MINT: 420 },
         priceSnapshots: { "1d": 410, "7d": 400, "30d": 390 },
       },

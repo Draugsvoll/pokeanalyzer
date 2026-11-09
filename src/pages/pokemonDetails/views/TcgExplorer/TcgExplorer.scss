@@ -11,15 +11,10 @@
   }
 
   .marketplace-listings__product-link {
-    color: var(--font-color-secondary);
+    --app-link-color: var(--marketplace-accent);
     font-family: inherit;
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-medium);
-    margin-bottom: 0.3rem;
-
-    &:hover,
-    &:focus-visible {
-      color: var(--font-color-primary);
-    }
+    white-space: nowrap;
   }
 }

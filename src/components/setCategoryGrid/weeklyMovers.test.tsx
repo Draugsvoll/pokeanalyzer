@@ -211,7 +211,6 @@ test("filters sets worth less than $2 before filling both rankings", () => {
         id: "cheap",
         name: "cheap",
         setName: input[0].value,
-        currency: "USD",
         conditionPrices: { NEAR_MINT: 1.99 },
         priceSnapshots: { "1d": null, "7d": 0.01, "30d": null },
       },

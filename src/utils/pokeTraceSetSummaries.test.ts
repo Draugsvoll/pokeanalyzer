@@ -8,14 +8,12 @@ function card(
   number: string | undefined,
   currentPrice: number | null,
   sevenDayPrice: number | null,
-  currency = "USD",
 ): PokeTraceCatalogCard {
   return {
     id,
     name: id,
     ...(number && { number }),
     setName: "Base Set",
-    currency,
     conditionPrices: currentPrice === null ? {} : { NEAR_MINT: currentPrice },
     priceSnapshots: { "1d": null, "7d": sevenDayPrice, "30d": null },
   };
@@ -63,7 +61,7 @@ describe("createPokeTraceSetSummaries", () => {
 
   test("always summarizes every priced card in USD", () => {
     const [summary] = createPokeTraceSetSummaries(
-      [card("usd", "1/2", 10, 8), card("mislabeled", "2/2", 20, 10, "EUR")],
+      [card("usd", "1/2", 10, 8), card("second", "2/2", 20, 10)],
       "2026-10-03T01:00:00.000Z",
     );
 
@@ -91,16 +89,19 @@ describe("createPokeTraceSetSummaries", () => {
   });
 });
 
-test.each([1.99, 2, 9.99, 10, 10.01])("checks the set total against $10 (%s)", (total) => {
-  const [summary] = createPokeTraceSetSummaries(
-    [card("first", "1", total / 2, 0.5), card("second", "2", total / 2, 0.5)],
-    "2026-10-03T01:00:00.000Z",
-  );
-  expect(summary.pricedCards).toBe(2);
-  expect(summary.comparableCards).toBe(2);
-  if (total < 10) expect(summary.sevenDayChangePercent).toBeNull();
-  else expect(summary.sevenDayChangePercent).toBeCloseTo((total - 1) * 100);
-});
+test.each([1.99, 2, 9.99, 10, 10.01])(
+  "checks the set total against $10 (%s)",
+  (total) => {
+    const [summary] = createPokeTraceSetSummaries(
+      [card("first", "1", total / 2, 0.5), card("second", "2", total / 2, 0.5)],
+      "2026-10-03T01:00:00.000Z",
+    );
+    expect(summary.pricedCards).toBe(2);
+    expect(summary.comparableCards).toBe(2);
+    if (total < 10) expect(summary.sevenDayChangePercent).toBeNull();
+    else expect(summary.sevenDayChangePercent).toBeCloseTo((total - 1) * 100);
+  },
+);
 
 test("includes cheap cards in eligible set movement", () => {
   const [summary] = createPokeTraceSetSummaries(

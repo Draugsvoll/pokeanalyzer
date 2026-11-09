@@ -52,7 +52,6 @@ function existingCatalog(): PokeTraceCatalogResponse {
         id: "existing-card",
         name: "Existing Card",
         setName: "Existing Set",
-        currency: "USD",
         conditionPrices: { NEAR_MINT: 10 },
         priceSnapshots: { "1d": null, "7d": null, "30d": null },
       },

@@ -547,9 +547,14 @@ function PriceHistory({
   const marketControl = (
     <RadioButtonGroup<PokeTraceMarket>
       ariaLabel="Price history market"
+      className="radio-button-group--currency"
       options={(["US", "EU"] as const).map((value) => ({
         value,
-        label: value,
+        label: (
+          <>
+            <span aria-hidden="true">{value === "US" ? "$" : "€"}</span> {value}
+          </>
+        ),
         disabled: data.markets?.[value]?.available !== true,
       }))}
       value={market}
@@ -779,9 +784,24 @@ function LockedPriceHistory({
       marketControl={
         <RadioButtonGroup
           ariaLabel="Price history market"
+          className="radio-button-group--currency"
           options={[
-            { value: "US", label: "US" },
-            { value: "EU", label: "EU" },
+            {
+              value: "US",
+              label: (
+                <>
+                  <span aria-hidden="true">$</span> US
+                </>
+              ),
+            },
+            {
+              value: "EU",
+              label: (
+                <>
+                  <span aria-hidden="true">€</span> EU
+                </>
+              ),
+            },
           ]}
           value="US"
           onChange={() => {}}
