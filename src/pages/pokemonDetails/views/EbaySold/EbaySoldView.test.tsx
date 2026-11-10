@@ -2,6 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import EbaySoldView from "./EbaySoldView";
 
+function gradeOption(options: { name: string | RegExp }) {
+  const toggle = screen.getByRole("button", { name: "Filter by grade" });
+  if (toggle.getAttribute("aria-expanded") !== "true") fireEvent.click(toggle);
+  return screen.getByRole("option", options);
+}
+
 function listing(index: number, listingType = "sold") {
   return {
     title: `Pikachu listing ${index}`,
@@ -15,6 +21,158 @@ function listing(index: number, listingType = "sold") {
   };
 }
 
+test("counts grades 1–10 across all fetched rows without counting All or narrowing other grade counts", async () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [
+          ...Array.from({ length: 10 }, (_, index) => ({
+            ...listing(index + 1),
+            title: `Pikachu PSA ${index + 1}`,
+          })),
+          { ...listing(11), title: "Pikachu BGS 9.5" },
+          ...Array.from({ length: 10 }, (_, index) => ({
+            ...listing(index + 12),
+            title: "Pikachu PSA 10",
+          })),
+          { ...listing(22), title: "Pikachu unspecified" },
+          { ...listing(23), title: "Pikachu PSA 4", soldPrice: "1" },
+        ],
+        active: [],
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Filter by grade" }));
+  expect(screen.getByRole("option", { name: "All grades" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  for (let grade = 1; grade <= 8; grade++) {
+    expect(
+      screen.getByRole("option", { name: `Grade ${grade} (1)` }),
+    ).toBeVisible();
+  }
+  expect(screen.getByRole("option", { name: "Grade 10 (11)" })).toBeVisible();
+  fireEvent.click(screen.getByRole("option", { name: "Grade 9 (2)" }));
+  expect(
+    screen.getByRole("button", { name: "Filter by grade" }),
+  ).toHaveTextContent(/^Grade 9$/);
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(2));
+  fireEvent.click(screen.getByRole("button", { name: "Filter by grade" }));
+  expect(screen.getByRole("option", { name: "Grade 10 (11)" })).toBeVisible();
+  fireEvent.click(screen.getByRole("option", { name: "All grades" }));
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("22 matches"),
+  );
+});
+
+test("always uses a grade dropdown regardless of the available grades", () => {
+  const results = Array.from({ length: 5 }, (_, index) => ({
+    ...listing(index + 1),
+    title: `Pikachu PSA ${index + 1}`,
+  }));
+  const { rerender } = render(
+    <EbaySoldView response={{ sold: results.slice(0, 4), active: [] }} />,
+  );
+  expect(gradeOption({ name: "Grade 4 (1)" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Filter by grade" })).toBeVisible();
+  rerender(<EbaySoldView response={{ sold: results, active: [] }} />);
+  expect(gradeOption({ name: "Grade 5 (1)" })).toBeVisible();
+});
+
+test("grade and company totals are independent and respect keyword filters", async () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [
+          { ...listing(1), title: "Pikachu PSA 9 special" },
+          { ...listing(2), title: "Pikachu CGC 10 special" },
+          { ...listing(3), title: "Pikachu CGC 10 regular" },
+        ],
+        active: [],
+      }}
+    />,
+  );
+  expect(
+    screen.queryByRole("option", { name: /^Grade 8/ }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(gradeOption({ name: "Grade 9 (1)" }));
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Filter by grading company" }),
+  );
+  expect(screen.getByRole("option", { name: "CGC (2)" })).toBeVisible();
+  expect(screen.getByRole("option", { name: "PSA (1)" })).toBeVisible();
+  fireEvent.click(screen.getByRole("option", { name: "All companies" }));
+  fireEvent.click(gradeOption({ name: "All grades" }));
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(3));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Filter by grading company" }),
+  );
+  fireEvent.click(screen.getByRole("option", { name: "CGC (2)" }));
+  expect(
+    screen.getByRole("button", { name: "Filter by grading company" }),
+  ).toHaveTextContent(/^CGC$/);
+  await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(2));
+  expect(gradeOption({ name: "Grade 9 (1)" })).toBeVisible();
+  expect(gradeOption({ name: "Grade 10 (2)" })).toBeVisible();
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+    { target: { value: "special" } },
+  );
+  await waitFor(() =>
+    expect(gradeOption({ name: "Grade 10 (1)" })).toBeVisible(),
+  );
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Exclude keywords" }),
+    { target: { value: "special" } },
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("option", { name: /^Grade 10/ }),
+    ).not.toBeInTheDocument(),
+  );
+});
+
+test("grade counts follow Sold/Listed in Single view and combine both in Dual view", () => {
+  const previousMatchMedia = window.matchMedia;
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: () => ({
+      matches: true,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }),
+  });
+  try {
+    render(
+      <EbaySoldView
+        response={{
+          sold: [{ ...listing(1), title: "Pikachu PSA 9" }],
+          active: [
+            { ...listing(2, "active"), title: "Pikachu PSA 10" },
+            { ...listing(3, "active"), title: "Pikachu PSA 9" },
+          ],
+        }}
+      />,
+    );
+    expect(gradeOption({ name: "Grade 9 (1)" })).toBeVisible();
+    expect(
+      screen.queryByRole("option", { name: /^Grade 10/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+    expect(gradeOption({ name: "Grade 10 (1)" })).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: "Dual" }));
+    expect(gradeOption({ name: "Grade 9 (2)" })).toBeVisible();
+    expect(gradeOption({ name: "Grade 10 (1)" })).toBeVisible();
+  } finally {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: previousMatchMedia,
+    });
+  }
+});
+
 test("renders controls before optional intro content without a premature empty-results message", () => {
   const { rerender } = render(
     <EbaySoldView response={null}>
@@ -27,7 +185,9 @@ test("renders controls before optional intro content without a premature empty-r
     Node.DOCUMENT_POSITION_FOLLOWING,
   );
   expect(screen.getByRole("radio", { name: "Sold" })).toBeVisible();
-  expect(screen.getByRole("radio", { name: "Grade 10" })).toBeVisible();
+  expect(
+    screen.queryByRole("option", { name: /^Grade 10 [(]/ }),
+  ).not.toBeInTheDocument();
   expect(
     screen.getByRole("searchbox", { name: "Include keywords" }),
   ).toBeVisible();
@@ -77,7 +237,7 @@ test("clears all result filters from the shared clear-filter control", async () 
     screen.queryByRole("button", { name: "Clear filters" }),
   ).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  fireEvent.click(gradeOption({ name: /^Grade 10 [(]/ }));
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Include keywords" }),
     { target: { value: "Pikachu" } },
@@ -89,7 +249,9 @@ test("clears all result filters from the shared clear-filter control", async () 
 
   fireEvent.click(clearFilters);
 
-  expect(screen.getByRole("radio", { name: "All" })).toBeChecked();
+  expect(
+    screen.getByRole("button", { name: "Filter by grade" }),
+  ).toHaveTextContent(/^All grades$/);
   expect(
     screen.getByRole("searchbox", { name: "Include keywords" }),
   ).toHaveValue("");
@@ -173,21 +335,6 @@ test("shows available listing details without a duplicate Buy It Now price", () 
   expect(
     screen.queryByText(/Buy It Now Price unavailable/),
   ).not.toBeInTheDocument();
-});
-
-test("shows an offer accepted marker on a sold listing", () => {
-  render(
-    <EbaySoldView
-      response={{
-        sold: [{ ...listing(1), bestOfferAccepted: "true" }],
-        active: [],
-      }}
-    />,
-  );
-
-  expect(
-    screen.getByText("Offer acceptedopen sale for final price"),
-  ).toBeVisible();
 });
 
 test("shows an available shipping price as the final metadata item", () => {
@@ -411,6 +558,61 @@ test("preserves sold/listed and text filtering behavior", async () => {
   );
 });
 
+test.each([
+  ["PSA 1st Edition Gem Mint 10", "1", "10"],
+  ["BGS 2nd Edition Mint 9", "2", "9"],
+  ["CGC 3rd Edition Gem Mint 10", "3", "10"],
+  ["SGC 4th Edition Mint 9", "4", "9"],
+  ["TAG 1st Edition Gem Mint 10", "1", "10"],
+  ["PSA 10th Anniversary Mint 9", "10", "9"],
+  ["PSA1st Edition Gem Mint 10", "1", "10"],
+])(
+  "does not count ordinal numbers as grades in %s",
+  async (title, ordinal, grade) => {
+    render(
+      <EbaySoldView
+        response={{
+          sold: [
+            { ...listing(1), title: `Pikachu ${title}` },
+            { ...listing(2), title: `Pikachu PSA ${ordinal}` },
+          ],
+          active: [],
+        }}
+      />,
+    );
+    expect(gradeOption({ name: `Grade ${grade} (1)` })).toBeVisible();
+    fireEvent.click(gradeOption({ name: `Grade ${ordinal} (1)` }));
+    await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
+    expect(
+      screen.getByRole("heading", { name: `Pikachu Psa ${ordinal}` }),
+    ).toBeVisible();
+  },
+);
+
+test("preserves compact and half grades and numbers before separate words", () => {
+  render(
+    <EbaySoldView
+      response={{
+        sold: [
+          "PSA1",
+          "PSA 1 Star",
+          "PSA10",
+          "PSA 10 The Movie",
+          "CGC10",
+          "BGS9.5",
+        ].map((title, index) => ({
+          ...listing(index + 1),
+          title: `Pikachu ${title}`,
+        })),
+        active: [],
+      }}
+    />,
+  );
+  expect(gradeOption({ name: "Grade 1 (2)" })).toBeVisible();
+  expect(gradeOption({ name: "Grade 9 (1)" })).toBeVisible();
+  expect(gradeOption({ name: "Grade 10 (3)" })).toBeVisible();
+});
+
 test("includes half grades in the matching whole-grade filter", async () => {
   render(
     <EbaySoldView
@@ -424,7 +626,7 @@ test("includes half grades in the matching whole-grade filter", async () => {
       }}
     />,
   );
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 8" }));
+  fireEvent.click(gradeOption({ name: /^Grade 8 [(]/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
@@ -458,7 +660,7 @@ test("treats decimal whole grades as their matching whole-grade filter", async (
     ["Grade 8", "Pikachu Cgc 8.0"],
     ["Grade 9", "Pikachu Bgs 9.0"],
   ]) {
-    fireEvent.click(screen.getByRole("radio", { name: grade }));
+    fireEvent.click(gradeOption({ name: new RegExp(`^${grade} [(]`) }));
     await waitFor(() => {
       const resultHeadings = screen.getAllByRole("heading", { level: 3 });
       expect(resultHeadings).toHaveLength(1);
@@ -478,7 +680,7 @@ test("updates the result count when filtering by grade", async () => {
     />,
   );
   expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  fireEvent.click(gradeOption({ name: /^Grade 10 [(]/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent(/^Sold · 1 match$/),
   );
@@ -508,13 +710,13 @@ test("filters by grading company independently from included keywords", async ()
   expect(graderFilter).toHaveTextContent("All companies");
 
   fireEvent.click(graderFilter);
-  fireEvent.click(screen.getByRole("option", { name: "PSA" }));
+  fireEvent.click(screen.getByRole("option", { name: /^PSA \(/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("Sold · 1 match"),
   );
 
   fireEvent.click(graderFilter);
-  fireEvent.click(screen.getByRole("option", { name: "Beckett / BGS" }));
+  fireEvent.click(screen.getByRole("option", { name: /^Beckett \/ BGS \(/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
@@ -558,7 +760,7 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
     name: "Filter by grading company",
   });
   fireEvent.click(graderFilter);
-  fireEvent.click(screen.getByRole("option", { name: "TAG" }));
+  fireEvent.click(screen.getByRole("option", { name: /^TAG \(/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("Sold · 4 matches"),
   );
@@ -569,7 +771,7 @@ test("recognizes TAG grading names without matching Tag Team titles", async () =
     }),
   ).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  fireEvent.click(gradeOption({ name: /^Grade 10 [(]/ }));
   await waitFor(() =>
     expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches"),
   );
@@ -598,7 +800,7 @@ test("Grade 6 replaces Raw and includes whole and half grades without matching c
     />,
   );
   expect(screen.queryByRole("radio", { name: "Raw" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 6" }));
+  fireEvent.click(gradeOption({ name: /^Grade 6 [(]/ }));
   await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(3));
   expect(screen.getByRole("heading", { name: "Pikachu Psa 6" })).toBeVisible();
   expect(
@@ -608,7 +810,7 @@ test("Grade 6 replaces Raw and includes whole and half grades without matching c
   expect(
     screen.queryByRole("heading", { name: "Pikachu Raw 6/102" }),
   ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("radio", { name: "All" }));
+  fireEvent.click(gradeOption({ name: "All grades" }));
   await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(5));
 });
 
@@ -641,7 +843,7 @@ test("marks the matching grade phrase without marking the set number", async () 
       }}
     />,
   );
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 8" }));
+  fireEvent.click(gradeOption({ name: /^Grade 8 [(]/ }));
   const mark = await screen.findByText("Psa 8.5", { selector: "mark" });
   const title = mark.closest("h3");
   expect(title).toHaveAccessibleName("Charizard 4/102 Base Set Psa 8.5 Holo");
@@ -689,7 +891,7 @@ test("combines exclusion with text and grade filters across sold and listed resu
       }}
     />,
   );
-  fireEvent.click(screen.getByRole("radio", { name: "Grade 10" }));
+  fireEvent.click(gradeOption({ name: /^Grade 10 [(]/ }));
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Include keywords" }),
     {
@@ -816,9 +1018,6 @@ test("uses found accepted prices and excludes prices of one dollar or less", () 
   );
   expect(screen.getAllByRole("article")).toHaveLength(2);
   expect(screen.getByText("Offer accepted")).toBeVisible();
-  expect(
-    screen.getByText("Offer acceptedopen sale for final price"),
-  ).toBeVisible();
   expect(screen.queryByText("Pikachu Listing 1")).not.toBeInTheDocument();
   expect(screen.getAllByText("$25.00").length).toBeGreaterThan(0);
   expect(screen.getAllByText("$50.00").length).toBeGreaterThan(0);
@@ -863,7 +1062,7 @@ test("raw mode shows condition filters instead of grading controls and filters l
     />,
   );
   expect(
-    screen.queryByRole("radio", { name: "Grade 10" }),
+    screen.queryByRole("option", { name: /^Grade 10 [(]/ }),
   ).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Filter by grading company" }),

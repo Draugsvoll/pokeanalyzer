@@ -17,7 +17,7 @@
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--font-tracking-normal);
     line-height: 1;
-    gap: 0.7rem;
+    gap: 0.25rem;
     height: var(--dropdown-trigger-height);
     justify-content: space-between;
     min-width: 9rem;
@@ -72,6 +72,11 @@
     width: 0.85rem;
   }
 
+  &__count {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-regular);
+  }
+
   &__secondary {
     color: var(--font-color-muted);
     font-weight: var(--font-weight-regular);
@@ -84,7 +89,8 @@
     margin-right: 0.35rem;
   }
 
-  &__option &__secondary {
+  &__option &__secondary,
+  &__option &__count {
     margin-left: 0.35rem;
   }
 
@@ -148,9 +154,7 @@
 
   &--compact &__toggle {
     font-size: var(--font-size-caption);
-    gap: 0.55rem;
     height: 2rem;
-    padding-inline: 0.68rem 0.58rem;
   }
 
   &--compact &__menu {

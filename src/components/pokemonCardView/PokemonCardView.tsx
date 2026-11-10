@@ -56,7 +56,7 @@ function getVariantBadgeAccent(variant?: string) {
     return "orange" as const;
   }
   if (value.includes("1st edition")) return "yellow" as const;
-  if (value.includes("reverse holo")) return "teal" as const;
+  if (value.includes("reverse holo")) return "copper-rose" as const;
   return "neutral" as const;
 }
 

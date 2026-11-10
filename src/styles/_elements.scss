@@ -927,6 +927,10 @@ input[type="radio"] {
   --app-badge-accent: var(--custom-color-teal);
 }
 
+.app-badge--accent-copper-rose {
+  --app-badge-accent: var(--custom-color-copper-rose);
+}
+
 .app-badge:not(.app-badge--accent-neutral) {
   background: color-mix(in srgb, var(--app-badge-accent) 5%, transparent);
   border-color: color-mix(in srgb, var(--app-badge-accent) 26%, transparent);

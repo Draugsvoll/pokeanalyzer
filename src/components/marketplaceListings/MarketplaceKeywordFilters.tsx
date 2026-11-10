@@ -35,8 +35,8 @@ export function MarketplaceKeywordFilters(
                 <strong>Keywords</strong>
                 <span>
                   {include
-                    ? "Separate keywords with commas. Results must match all words."
-                    : "Separate keywords with commas. Results are excluded if they match any keyword."}
+                    ? "Use multiple keywords by seperating with commas. Results must match all keywords."
+                    : "Use multiple keywords by seperating with commas. Results are excluded if they match any keyword."}
                 </span>
               </InfoTooltip>
             )}

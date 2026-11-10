@@ -11,6 +11,7 @@ type BadgeAccent =
   | "red"
   | "pink"
   | "purple"
+  | "copper-rose"
   | "teal";
 
 type BadgeProps = Omit<

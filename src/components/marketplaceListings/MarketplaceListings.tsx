@@ -30,7 +30,6 @@ type Props = {
   datesAvailable?: boolean;
   sideStates?: Record<Side, SideState>;
   filters?: ReactNode;
-  topControls?: ReactNode;
   keywordFilters?: MarketplaceKeywordFiltersProps;
   clearFilters?: ReactNode;
   expansion: { expanded: boolean };
@@ -55,7 +54,6 @@ export function MarketplaceListings({
   datesAvailable = true,
   sideStates,
   filters,
-  topControls,
   keywordFilters,
   clearFilters,
   expansion,
@@ -78,13 +76,8 @@ export function MarketplaceListings({
       }
     >
       <div className="marketplace-listings__surface">
-        {(topControls || !dual) && (
+        {!dual && (
           <div className="marketplace-listings__toggles">
-            {topControls && (
-              <div className="marketplace-listings__top-controls">
-                {topControls}
-              </div>
-            )}
             {!dual && (
               <div className="marketplace-listings__listing-selector">
                 <SegmentedRadioGroup

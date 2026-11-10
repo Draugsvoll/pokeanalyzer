@@ -18,6 +18,7 @@ import { MarketplaceResultRow } from "../../../../components/marketplaceListings
 import {
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -52,16 +53,13 @@ type EbaySoldViewProps = {
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
 type ListingTypeFilter = "sold" | "active";
 type ResultViewMode = "basic" | "advanced";
-type GradeFilter = "all" | "6" | "7" | "8" | "9" | "10";
+const GRADES = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"] as const;
+type GradeFilter = "all" | (typeof GRADES)[number];
 type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
 
 const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "6", label: "Grade 6" },
-  { value: "7", label: "Grade 7" },
-  { value: "8", label: "Grade 8" },
-  { value: "9", label: "Grade 9" },
-  { value: "10", label: "Grade 10" },
+  { value: "all", label: "All grades" },
+  ...GRADES.map((value) => ({ value, label: `Grade ${value}` })),
 ];
 const GRADER_FILTERS: { value: GraderFilter; label: string }[] = [
   { value: "all", label: "All companies" },
@@ -323,7 +321,7 @@ function EbayResultCard({
             <>
               Offer accepted
               <ArrowRight aria-hidden="true" data-testid="offer-price-arrow" />
-              open sale for final price
+              view sale for final price
             </>
           ) : undefined,
         }
@@ -382,7 +380,11 @@ function getGradingSearchText(result: EbayCompResult) {
     .replace(/(\d)\s*\.\s*0\b/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-  const compactText = searchableText.replace(/\s/g, "");
+  // Remove ordinal tokens before joining words, so edition numbers cannot
+  // become compact grades while formats such as PSA10 and BGS9.5 still work.
+  const compactText = searchableText
+    .replace(/\d+(?:st|nd|rd|th)\b/g, " ")
+    .replace(/\s/g, "");
 
   return { compactText, searchableText };
 }
@@ -544,8 +546,9 @@ function matchesGrader(
 function matchesGrade(
   result: EbayCompResult,
   grade: Exclude<GradeFilter, "all">,
+  gradingText = getGradingSearchText(result),
 ) {
-  const { compactText, searchableText } = getGradingSearchText(result);
+  const { compactText, searchableText } = gradingText;
   // 8.5 is preserved as 8half, so a whole-grade filter includes its half grade.
   const gradeToken = `(?:${grade}|${grade}half)`;
   const tagGradePattern = new RegExp(
@@ -590,6 +593,12 @@ function matchesGrade(
   }
 
   switch (grade) {
+    case "1":
+    case "2":
+    case "3":
+    case "4":
+    case "5":
+      return false;
     case "6":
       return new RegExp(
         `\\b(?:excellent mint|ex mint|ex mt)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:excellent mint|ex mint|ex mt)\\b`,
@@ -666,6 +675,7 @@ export default function EbaySoldView({
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>("basic");
   const filterTimerRef = useRef<number | undefined>(undefined);
   const dualViewAvailable = useDualViewAvailable();
+  const advancedView = dualViewAvailable && resultViewMode === "advanced";
 
   useEffect(
     () => () => {
@@ -674,58 +684,133 @@ export default function EbaySoldView({
     [],
   );
 
-  const responseData = response as
-    | { sold?: EbayCompsResponse; active?: EbayCompsResponse }
-    | EbayCompsResponse;
-  const splitResponse =
-    responseData &&
-    typeof responseData === "object" &&
-    !Array.isArray(responseData) &&
-    ("sold" in responseData || "active" in responseData)
-      ? (responseData as {
-          sold?: EbayCompsResponse;
-          active?: EbayCompsResponse;
-        })
-      : null;
+  const { results: eligibleResults, splitResponse } = useMemo(() => {
+    const responseData = response as
+      | { sold?: EbayCompsResponse; active?: EbayCompsResponse }
+      | EbayCompsResponse;
+    const splitResponse =
+      responseData &&
+      typeof responseData === "object" &&
+      !Array.isArray(responseData) &&
+      ("sold" in responseData || "active" in responseData)
+        ? (responseData as {
+            sold?: EbayCompsResponse;
+            active?: EbayCompsResponse;
+          })
+        : null;
+    function getResults(listingType: ListingTypeFilter) {
+      const listingResponse = splitResponse
+        ? splitResponse[listingType]
+        : listingType === "sold"
+          ? responseData
+          : null;
+      const listingTypeResults = getVisibleEbayCompResults(
+        listingResponse,
+      ).filter((result) => {
+        const price = getNumericSoldPrice(result);
+        return (
+          getField(result, "listingType") === listingType &&
+          (price === null || price > 1)
+        );
+      });
+      return listingTypeResults.filter(
+        (result) =>
+          (mode !== "raw" ||
+            rawCondition === "all" ||
+            matchesRawCondition(result, rawCondition)) &&
+          (!appliedTextFilter ||
+            matchesTextFilter(result, appliedTextFilter)) &&
+          (!appliedExcludeFilter ||
+            !matchesAnyTextFilter(result, appliedExcludeFilter)),
+      );
+    }
+    return {
+      results: { sold: getResults("sold"), active: getResults("active") },
+      splitResponse,
+    };
+  }, [response, appliedTextFilter, appliedExcludeFilter, mode, rawCondition]);
+
+  const baseResults = useMemo(() => {
+    const filter = (results: EbayCompResult[]) =>
+      appliedGraderFilter === "all"
+        ? results
+        : results.filter((result) =>
+            matchesGrader(result, appliedGraderFilter),
+          );
+    return {
+      sold: filter(eligibleResults.sold),
+      active: filter(eligibleResults.active),
+    };
+  }, [eligibleResults, appliedGraderFilter]);
+
+  const gradeCounts = useMemo(() => {
+    const counts = Object.fromEntries(
+      GRADES.map((grade) => [grade, 0]),
+    ) as Record<Exclude<GradeFilter, "all">, number>;
+    if (mode !== "graded") return counts;
+    const results = advancedView
+      ? [...eligibleResults.sold, ...eligibleResults.active]
+      : eligibleResults[listingTypeFilter];
+    for (const result of results) {
+      const gradingText = getGradingSearchText(result);
+      for (const grade of GRADES) {
+        if (matchesGrade(result, grade, gradingText)) counts[grade]++;
+      }
+    }
+    return counts;
+  }, [eligibleResults, advancedView, listingTypeFilter, mode]);
+
+  const graderCounts = useMemo(() => {
+    const counts = { psa: 0, cgc: 0, bgs: 0, sgc: 0, tag: 0 };
+    if (mode !== "graded") return counts;
+    const results = advancedView
+      ? [...eligibleResults.sold, ...eligibleResults.active]
+      : eligibleResults[listingTypeFilter];
+    for (const result of results) {
+      for (const grader of GRADER_FILTERS) {
+        if (grader.value !== "all" && matchesGrader(result, grader.value))
+          counts[grader.value]++;
+      }
+    }
+    return counts;
+  }, [eligibleResults, advancedView, listingTypeFilter, mode]);
+
+  if (
+    mode === "graded" &&
+    ((graderFilter !== "all" && graderCounts[graderFilter] === 0) ||
+      (appliedGraderFilter !== "all" &&
+        graderCounts[appliedGraderFilter] === 0))
+  ) {
+    setGraderFilter("all");
+    setAppliedGraderFilter("all");
+  }
+
+  const availableGrades = GRADE_FILTERS.filter(
+    (filter) => filter.value === "all" || gradeCounts[filter.value] > 0,
+  );
+  const availableGraders = GRADER_FILTERS.filter(
+    (filter) => filter.value === "all" || graderCounts[filter.value] > 0,
+  );
+
+  if (
+    mode === "graded" &&
+    ((gradeFilter !== "all" && gradeCounts[gradeFilter] === 0) ||
+      (appliedGradeFilter !== "all" && gradeCounts[appliedGradeFilter] === 0))
+  ) {
+    setGradeFilter("all");
+    setAppliedGradeFilter("all");
+  }
+
   const selectedResponseUnavailable = Boolean(
     splitResponse && !splitResponse[listingTypeFilter],
   );
   function getSortedResults(listingType: ListingTypeFilter) {
-    const listingResponse = splitResponse
-      ? splitResponse[listingType]
-      : listingType === "sold"
-        ? responseData
-        : null;
-    const listingTypeResults = getVisibleEbayCompResults(
-      listingResponse,
-    ).filter((result) => {
-      const price = getNumericSoldPrice(result);
-      return (
-        getField(result, "listingType") === listingType &&
-        (price === null || price > 1)
-      );
-    });
-    const gradeFilteredResults =
+    const filteredResults =
       appliedGradeFilter === "all"
-        ? listingTypeResults
-        : listingTypeResults.filter((result) =>
+        ? baseResults[listingType]
+        : baseResults[listingType].filter((result) =>
             matchesGrade(result, appliedGradeFilter),
           );
-    const graderFilteredResults =
-      appliedGraderFilter === "all"
-        ? gradeFilteredResults
-        : gradeFilteredResults.filter((result) =>
-            matchesGrader(result, appliedGraderFilter),
-          );
-    const filteredResults = graderFilteredResults.filter(
-      (result) =>
-        (mode !== "raw" ||
-          rawCondition === "all" ||
-          matchesRawCondition(result, rawCondition)) &&
-        (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
-        (!appliedExcludeFilter ||
-          !matchesAnyTextFilter(result, appliedExcludeFilter)),
-    );
     return [...filteredResults].sort((firstResult, secondResult) => {
       const sortingByDate =
         sortOrder === "date-desc" || sortOrder === "date-asc";
@@ -858,7 +943,6 @@ export default function EbaySoldView({
     }
   }
 
-  const advancedView = dualViewAvailable && resultViewMode === "advanced";
   const hasFilters =
     rawCondition !== "all" ||
     gradeFilter !== "all" ||
@@ -916,7 +1000,6 @@ export default function EbaySoldView({
   return (
     <MarketplaceListings
       source="Ebay"
-      topControls={topControls}
       side={listingTypeFilter}
       onSideChange={handleListingTypeChange}
       sort={sortOrder}
@@ -935,82 +1018,91 @@ export default function EbaySoldView({
         )
       }
       filters={
-        mode === "raw" ? (
-          <div className="marketplace-listings__condition-controls">
-            <div className="marketplace-listings__condition-heading">
-              Condition
-              <InfoTooltip
-                className="marketplace-listings__condition-help"
-                label="How eBay condition filters work"
-                title="Filter"
+        <div className="ebay-section__filters">
+          {topControls}
+          {mode === "raw" ? (
+            <div className="marketplace-listings__condition-controls">
+              <div className="marketplace-listings__condition-heading">
+                Condition
+                <InfoTooltip
+                  className="marketplace-listings__condition-help"
+                  label="How eBay condition filters work"
+                  title="Filter"
+                >
+                  Filters by title. Many listings don't specify condition.
+                </InfoTooltip>
+              </div>
+              <fieldset
+                aria-label="Condition"
+                className="marketplace-listings__filters radio-group"
               >
-                Filters by title. Many listings don't specify condition.
-              </InfoTooltip>
-            </div>
-            <fieldset
-              aria-label="Condition"
-              className="marketplace-listings__filters radio-group"
-            >
-              <div>
-                {(["all", ...POKETRACE_RAW_CONDITIONS] as const).map(
-                  (value) => (
-                    <label key={value}>
-                      <input
-                        type="radio"
-                        name={`${filterGroupName}-condition`}
-                        aria-label={
-                          value === "all"
+                <div>
+                  {(["all", ...POKETRACE_RAW_CONDITIONS] as const).map(
+                    (value) => (
+                      <label key={value}>
+                        <input
+                          type="radio"
+                          name={`${filterGroupName}-condition`}
+                          aria-label={
+                            value === "all"
+                              ? "All"
+                              : POKETRACE_RAW_CONDITION_LABELS[value]
+                          }
+                          value={value}
+                          checked={rawCondition === value}
+                          onChange={() => {
+                            setRawCondition(value);
+                            resetVisibleResults();
+                          }}
+                        />
+                        <span>
+                          {value === "all"
                             ? "All"
-                            : POKETRACE_RAW_CONDITION_LABELS[value]
-                        }
-                        value={value}
-                        checked={rawCondition === value}
-                        onChange={() => {
-                          setRawCondition(value);
-                          resetVisibleResults();
-                        }}
-                      />
-                      <span>
-                        {value === "all" ? "All" : RAW_CONDITION_LABELS[value]}
-                      </span>
-                    </label>
-                  ),
-                )}
-              </div>
-            </fieldset>
-          </div>
-        ) : (
-          <div className="marketplace-listings__grade-controls">
-            <fieldset className="marketplace-listings__filters radio-group">
-              <legend>Grade</legend>
-              <div>
-                {GRADE_FILTERS.map((filter) => (
-                  <label key={filter.value}>
-                    <input
-                      checked={gradeFilter === filter.value}
-                      name={`${filterGroupName}-grade`}
-                      type="radio"
-                      value={filter.value}
-                      onChange={() => handleGradeFilterChange(filter.value)}
-                    />
-                    <span>{filter.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <div
-              className={`marketplace-listings__grader-filter${graderFilter === "all" ? "" : " marketplace-listings__grader-filter--active"}`}
-            >
-              <SelectDropdown
-                ariaLabel="Filter by grading company"
-                compact
-                options={GRADER_FILTERS}
-                value={graderFilter}
-                onChange={handleGraderFilterChange}
-              />
+                            : RAW_CONDITION_LABELS[value]}
+                        </span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
             </div>
-          </div>
-        )
+          ) : (
+            <div className="marketplace-listings__grade-controls">
+              <div
+                className={`marketplace-listings__grader-filter${gradeFilter === "all" ? "" : " marketplace-listings__grader-filter--active"}`}
+              >
+                <SelectDropdown<GradeFilter>
+                  ariaLabel="Filter by grade"
+                  compact
+                  options={availableGrades.map((filter) => ({
+                    ...filter,
+                    ...(filter.value !== "all"
+                      ? { count: gradeCounts[filter.value] }
+                      : {}),
+                  }))}
+                  value={gradeFilter}
+                  onChange={handleGradeFilterChange}
+                />
+              </div>
+              <div
+                className={`marketplace-listings__grader-filter${graderFilter === "all" ? "" : " marketplace-listings__grader-filter--active"}`}
+              >
+                <SelectDropdown
+                  ariaLabel="Filter by grading company"
+                  compact
+                  options={availableGraders.map((filter) => ({
+                    ...filter,
+                    ...(filter.value !== "all"
+                      ? { count: graderCounts[filter.value] }
+                      : {}),
+                  }))}
+                  value={graderFilter}
+                  onChange={handleGraderFilterChange}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       }
       keywordFilters={{
         include: textFilter,

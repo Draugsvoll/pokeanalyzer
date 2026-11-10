@@ -382,7 +382,7 @@ test("replaces the intro with results after an explicit search and does not refe
   );
   for (const control of [
     screen.queryByRole("radio", { name: "Sold" }),
-    screen.queryByRole("radio", { name: "Grade 10" }),
+    screen.queryByRole("radio", { name: /^Grade 10 [(]/ }),
     screen.queryByRole("searchbox", { name: "Include keywords" }),
     screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
   ]) {
@@ -458,7 +458,7 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
     screen.queryByRole("radio", { name: "Listed" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("radio", { name: "Grade 10" }),
+    screen.queryByRole("radio", { name: /^Grade 10 [(]/ }),
   ).not.toBeInTheDocument();
   expect(
     screen.queryByRole("searchbox", { name: "Include keywords" }),
@@ -849,7 +849,7 @@ test("raw and graded searches preserve independent results and view state withou
   fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
   expect(screen.getByRole("radio", { name: "Raw" })).toHaveFocus();
   expect(
-    screen.queryByRole("radio", { name: "Grade 10" }),
+    screen.queryByRole("radio", { name: /^Grade 10 [(]/ }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "1 Market credit" })).toBeVisible();
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);

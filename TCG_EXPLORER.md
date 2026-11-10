@@ -39,6 +39,8 @@ Graded saves use the existing `saved_responses.ebay` field; Raw uses `saved_resp
 
 Raw shows local condition filters using explicit condition names/abbreviations from the listing condition or title. Unspecified conditions remain visible under All. Graded keeps grade/company filters.
 
+Graded view shows only matching grades from 1–10, with counts from the fetched results. Grades always use a dropdown. The company dropdown also shows only companies with matches and includes counts. All and All companies have no count. Half grades belong to their matching whole-grade filter. Grade and company counts respect keyword filters but ignore both selected grade and company. Counts appear only in dropdown options; selected dropdown labels omit counts. Grade options descend from 10 to 1, after All. Single view counts the selected Sold/Listed side; Dual combines both sides. Unavailable selections fall back to All or All companies. Counts are memoized in component memory and reset with the card/account; they do not trigger API requests or use browser storage.
+
 The demo uses live card details/prices and saved `ebay`/`ebay_raw` responses from `public/demo-card.json`, without age checks or paid searches. The existing demo export script includes both saved fields when present. If no Raw response has been saved/exported, the demo says so instead of searching or borrowing Graded results.
 
 Both eBay and TCG explorer provider 429 errors show "Experiencing issues right now. Please try again later." and disable fetching for 15 seconds. Raw and Graded share that eBay cooldown.

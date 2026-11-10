@@ -6,6 +6,7 @@ export type SelectDropdownOption<T extends string> = {
   value: T;
   label: string;
   secondaryLabel?: string;
+  count?: number;
 };
 
 type SelectDropdownProps<T extends string> = {
@@ -31,6 +32,7 @@ export function SelectDropdown<T extends string>({
 }: SelectDropdownProps<T>) {
   const menuId = useId();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const selectedOption =
     options.find((option) => option.value === value) ??
@@ -71,6 +73,7 @@ export function SelectDropdown<T extends string>({
       ref={dropdownRef}
     >
       <button
+        ref={triggerRef}
         type="button"
         className={`ui-select-dropdown__toggle${open ? " is-open" : ""}`}
         aria-label={ariaLabel}
@@ -121,9 +124,17 @@ export function SelectDropdown<T extends string>({
               onClick={() => {
                 onChange(option.value);
                 setOpen(false);
+                triggerRef.current?.focus({ preventScroll: true });
               }}
             >
-              <span>{option.label}</span>
+              <span>
+                {option.count !== undefined ? `${option.label} ` : option.label}
+                {option.count !== undefined && (
+                  <small className="ui-select-dropdown__count">
+                    ({option.count})
+                  </small>
+                )}
+              </span>
               {option.secondaryLabel && (
                 <span className="ui-select-dropdown__secondary">
                   <i aria-hidden="true">-</i>

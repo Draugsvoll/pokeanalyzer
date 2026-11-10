@@ -5,6 +5,29 @@
   min-width: 0;
   width: 100%;
 
+  &__filters {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .marketplace-listings__grade-controls {
+    .ui-select-dropdown__toggle {
+      min-width: 6rem;
+      height: 2.15rem;
+    }
+
+    .ui-select-dropdown__count {
+      color: inherit;
+    }
+
+    .ui-select-dropdown__chevron {
+      translate: 0 1px;
+    }
+  }
+
   &__announcement {
     position: absolute;
     width: 1px;

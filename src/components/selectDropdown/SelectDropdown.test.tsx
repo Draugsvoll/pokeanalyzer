@@ -7,6 +7,30 @@ const options = [
   { value: "price-low", label: "Price: low–high" },
 ];
 
+test("returns focus to the trigger after selecting a focused option", () => {
+  const onChange = vi.fn();
+  render(
+    <SelectDropdown
+      ariaLabel="Filter by grade"
+      options={[
+        { value: "all", label: "All grades" },
+        { value: "10", label: "Grade 10", count: 5 },
+      ]}
+      value="all"
+      onChange={onChange}
+    />,
+  );
+  const trigger = screen.getByRole("button", { name: "Filter by grade" });
+  fireEvent.click(trigger);
+  const option = screen.getByRole("option", { name: "Grade 10 (5)" });
+  option.focus();
+  expect(option).toHaveFocus();
+  fireEvent.click(option);
+  expect(onChange).toHaveBeenCalledWith("10");
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
 test("shows a placeholder without adding it to the choices, then displays the selected option", () => {
   const onChange = vi.fn();
   const { rerender } = render(
