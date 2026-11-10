@@ -47,7 +47,7 @@
 
 .product-card:hover > .product-card__surface,
 .product-card:focus-within > .product-card__surface {
-  background: color-mix(in srgb, var(--bg-card) 98.5%, white);
+  background: color-mix(in srgb, var(--bg-card) 99%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
 }
@@ -80,6 +80,7 @@
   min-height: 2.6em;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   margin-bottom: 0.25rem;
 }
 

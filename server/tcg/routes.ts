@@ -1,3 +1,5 @@
+import { CompSniperRateLimitError } from "../services/compsniperErrors.js";
+import { MARKETPLACE_RATE_LIMIT_MESSAGE } from "../../shared/marketplaceSearch.js";
 import type {
   MarketplaceSearchEvent,
   MarketplaceSide,
@@ -111,7 +113,13 @@ export async function requestTcgExplorer(
             emit?.({
               type: "failure",
               side,
-              message: `We couldn't load TCG ${side === "sold" ? "sales" : "listings"}. Please try again.`,
+              message:
+                error instanceof CompSniperRateLimitError
+                  ? MARKETPLACE_RATE_LIMIT_MESSAGE
+                  : `We couldn't load TCG ${side === "sold" ? "sales" : "listings"}. Please try again.`,
+              ...(error instanceof CompSniperRateLimitError
+                ? { rateLimited: true }
+                : {}),
             });
           throw error;
         }

@@ -13,6 +13,8 @@ export type GradingOpportunitiesOptions = {
   minimumNearMintPrice: number;
   minimumNearMintSales: number;
   minimumPsaPriceIncrease: number;
+  lowRawPriceThreshold: number;
+  minimumLowRawPsaPriceIncrease: number;
   minimumPsaSales: number;
 };
 
@@ -111,6 +113,16 @@ export function normalizeGradingOpportunitiesOptions(
       0,
       1_000_000,
     ),
+    lowRawPriceThreshold: finiteNumber(
+      merged.lowRawPriceThreshold,
+      "lowRawPriceThreshold",
+      0,
+    ),
+    minimumLowRawPsaPriceIncrease: finiteNumber(
+      merged.minimumLowRawPsaPriceIncrease,
+      "minimumLowRawPsaPriceIncrease",
+      0,
+    ),
   };
 }
 
@@ -202,7 +214,10 @@ export async function findGradingOpportunities(
         AND psa_sales >= ?
         AND NOT COALESCE(psa_median_3d = psa_median_7d AND psa_median_7d = psa_price, 0)
         AND near_mint_price >= ?
-        AND psa_price - near_mint_price >= ?
+        AND psa_price - near_mint_price >= CASE
+          WHEN near_mint_price < ? THEN ?
+          ELSE ?
+        END
       ORDER BY multiplier DESC, price_increase DESC, id
       LIMIT ?
     `,
@@ -212,6 +227,8 @@ export async function findGradingOpportunities(
       parameters.minimumNearMintSales,
       parameters.minimumPsaSales,
       parameters.minimumNearMintPrice,
+      parameters.lowRawPriceThreshold,
+      parameters.minimumLowRawPsaPriceIncrease,
       parameters.minimumPsaPriceIncrease,
       parameters.limit ?? -1,
     ],

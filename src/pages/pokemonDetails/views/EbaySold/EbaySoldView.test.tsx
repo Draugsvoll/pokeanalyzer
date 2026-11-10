@@ -264,7 +264,7 @@ test("shows sold and listed results together in the wide advanced view", () => {
     expect(
       screen.getByRole("heading", { name: "Listed · 1 match" }),
     ).toBeVisible();
-    expect(screen.getByRole("link", { name: "Open sale" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Buy" })).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Expand all listings" }),
@@ -378,7 +378,7 @@ test("preserves sold/listed and text filtering behavior", async () => {
       }}
     />,
   );
-  expect(screen.getAllByRole("link", { name: "Open sale" })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: "View sale" })).toHaveLength(2);
   expect(screen.getByRole("status")).toHaveTextContent("Sold · 2 matches");
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(screen.getAllByRole("link", { name: "Buy" })).toHaveLength(1);
@@ -614,7 +614,7 @@ test("Grade 6 replaces Raw and includes whole and half grades without matching c
 
 test("retains available results when the other provider request failed", () => {
   render(<EbaySoldView response={{ sold: [listing(1)], active: null }} />);
-  expect(screen.getByRole("link", { name: "Open sale" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "View sale" })).toBeVisible();
   fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
   expect(
     screen.queryByText(/load these Ebay listings/),
@@ -823,4 +823,57 @@ test("uses found accepted prices and excludes prices of one dollar or less", () 
   expect(screen.getAllByText("$25.00").length).toBeGreaterThan(0);
   expect(screen.getAllByText("$50.00").length).toBeGreaterThan(0);
   expect(screen.queryByText("$100.00")).not.toBeInTheDocument();
+});
+
+test.each([
+  ["Pikachu 280 HP", false],
+  ["Pikachu HP 280", false],
+  ["Pikachu 280HP", false],
+  ["Pikachu hp280", false],
+  ["Pikachu HP", true],
+  ["Pikachu 280 HP Heavily Played", true],
+  ["Pikachu HP 280 Heavy Played", true],
+  ["Pikachu 280 HP HP", true],
+])("HP condition filter handles %s", (title, matches) => {
+  render(
+    <EbaySoldView
+      mode="raw"
+      response={{
+        sold: [{ ...listing(1), title }],
+        active: [],
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Heavily Played" }));
+  expect(screen.queryAllByRole("article")).toHaveLength(matches ? 1 : 0);
+});
+
+test("raw mode shows condition filters instead of grading controls and filters locally", () => {
+  render(
+    <EbaySoldView
+      mode="raw"
+      response={{
+        sold: [
+          { ...listing(1), title: "Pikachu Near Mint" },
+          { ...listing(2), title: "Pikachu Lightly Played" },
+          { ...listing(3), title: "Pikachu unspecified" },
+        ],
+        active: [],
+      }}
+    />,
+  );
+  expect(
+    screen.queryByRole("radio", { name: "Grade 10" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Filter by grading company" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByRole("article")).toHaveLength(3);
+  fireEvent.click(screen.getByRole("radio", { name: "Lightly Played" }));
+  expect(screen.getAllByRole("article")).toHaveLength(1);
+  expect(
+    screen.getByRole("heading", { name: "Pikachu Lightly Played" }),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+  expect(screen.getAllByRole("article")).toHaveLength(3);
 });

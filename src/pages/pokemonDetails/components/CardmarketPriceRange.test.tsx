@@ -37,14 +37,16 @@ test("hides only the 30-day average when the full row cannot fit, and restores i
       trend="€2,082.00"
     />,
   );
-  const average = screen.getByText("30d avg").parentElement!;
+  const average = screen.getByText("30d avg:").parentElement!;
   expect(average).not.toHaveAttribute("hidden");
 
   width = 200;
   act(() => resize());
   expect(average).toHaveAttribute("hidden");
-  expect(screen.getByText("From").parentElement).not.toHaveAttribute("hidden");
-  expect(screen.getByText("Trend").parentElement).not.toHaveAttribute("hidden");
+  expect(screen.getByText("From:").parentElement).not.toHaveAttribute("hidden");
+  expect(screen.getByText("Trend:").parentElement).not.toHaveAttribute(
+    "hidden",
+  );
 
   width = 300;
   act(() => resize());

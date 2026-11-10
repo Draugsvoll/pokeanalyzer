@@ -15,6 +15,7 @@ export function GradingOpportunityFilter({
     <label className="grading-opportunity-filter">
       <input
         type="checkbox"
+        className="app-checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />

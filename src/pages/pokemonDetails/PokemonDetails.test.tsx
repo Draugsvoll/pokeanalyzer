@@ -173,10 +173,7 @@ vi.mock("./components/CardFeatureHeader", async (importOriginal) => {
     CardFeatureHeader: (
       props: Parameters<typeof actual.CardFeatureHeader>[0],
     ) => {
-      if (
-        props.label === "Available on Ebay" ||
-        props.label === "Available on TCG"
-      )
+      if (props.label === "Sales & listings")
         return <actual.CardFeatureHeader {...props} />;
       const {
         actionLabel,
@@ -420,7 +417,7 @@ test("calculator-only mode replaces card AI tabs without changing marketplace ta
     screen.queryByRole("region", { name: "Grading calculator" }),
   ).not.toBeInTheDocument();
   fireEvent.click(calculatorTab);
-  expect(screen.getByLabelText("Raw market value")).toHaveValue("100");
+  expect(screen.getByLabelText("Raw market value")).toHaveValue(100);
   fireEvent.click(screen.getByRole("button", { name: "Available on Ebay" }));
   expect(
     screen.getByRole("button", { name: "Available on Ebay" }),

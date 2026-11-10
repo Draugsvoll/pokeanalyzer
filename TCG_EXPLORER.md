@@ -27,8 +27,18 @@ Reference: https://compsniper.com/docs/tcgplayer
 
 eBay searches use the fixed CompSniper endpoint `https://api.compsniper.com/v1/scrape` and `COMPSNIPER_API_KEY`; the old `EBAYCOMPS_*` configuration is unused. No Sold Comps credentials or endpoint overrides are used.
 
-Both sold and active searches request page 1 with count 240, ebay.com, card category 183454, conditionId 2750 (graded), relevance=true and exactMatch=false. Sold searches enable bestOfferPrice=true (ignored by CompSniper for active searches). Pagination is not automatic: each side fetches one page.
+Both sold and active searches request page 1 with count 240, ebay.com, card category 183454, conditionId 2750 (Graded) or 4000 (Raw), relevance=true and exactMatch=false. Sold searches enable bestOfferPrice=true (ignored by CompSniper for active searches). Pagination is not automatic: each side fetches one page.
 
 The frontend prefers a positive finite acceptedOfferPrice only when bestOfferAccepted=true and acceptedOfferPriceStatus=found, otherwise soldPrice. Sorting and summaries use that same price. Results priced at 1 or less are excluded from the frontend, and unresolved accepted offers show "Offer accepted — open sale for final price". Existing saved results retain the two-day cache duration.
 
 References: https://api.compsniper.com/docs/api-reference and https://api.compsniper.com/docs/best-offer-prices
+
+Before a successful response, eBay's feature header contains the Raw/Graded selector and fetch button. Successful responses, including empty results, hide the header and move Raw/Graded into the results controls: right-aligned beside the centered Sold/Listed toggle in Single view, and centered in Dual view. The controls stack when space is limited. Switching to a mode without a successful response brings back the header; errors also restore it so partial failures can be retried. Selecting a mode does not search or spend a credit. Each mode keeps its own results, filters, sorting and Single/Dual view state while switching modes or feature tabs; opening a different card/account resets it. Graded remains the initial selection.
+
+Graded saves use the existing `saved_responses.ebay` field; Raw uses `saved_responses.ebay_raw`. Both share `reuseDays` in `server/db/ebayStore.ts`, with separate saved timestamps. Raw never reuses graded/legacy results. No database migration is required. Provider conditionId is the only raw/graded request filter; no keyword exclusions or aspectFilter are added.
+
+Raw shows local condition filters using explicit condition names/abbreviations from the listing condition or title. Unspecified conditions remain visible under All. Graded keeps grade/company filters.
+
+The demo uses live card details/prices and saved `ebay`/`ebay_raw` responses from `public/demo-card.json`, without age checks or paid searches. The existing demo export script includes both saved fields when present. If no Raw response has been saved/exported, the demo says so instead of searching or borrowing Graded results.
+
+Both eBay and TCG explorer provider 429 errors show "Experiencing issues right now. Please try again later." and disable fetching for 15 seconds. Raw and Graded share that eBay cooldown.

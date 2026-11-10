@@ -989,6 +989,7 @@ function PokemonDetailsForCard() {
             setName={card.set?.name}
             isDemo={isDemo}
             demoResponse={isDemo ? card.ebay : undefined}
+            demoRawResponse={isDemo ? card.ebay_raw : undefined}
           />
         </div>
 

@@ -1,3 +1,12 @@
+export const EBAY_MODES = ["raw", "graded"] as const;
+export type EbayMode = (typeof EBAY_MODES)[number];
+export function isEbayMode(value: unknown): value is EbayMode {
+  return value === "raw" || value === "graded";
+}
+export function ebayResponseField(mode: EbayMode) {
+  return mode === "raw" ? "ebay_raw" : "ebay";
+}
+
 import type {
   MarketplaceSearchEvent,
   MarketplaceSide,

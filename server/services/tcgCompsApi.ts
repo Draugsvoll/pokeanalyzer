@@ -1,3 +1,4 @@
+import { CompSniperRateLimitError } from "./compsniperErrors.js";
 import {
   isRecord,
   isTcgOffer,
@@ -54,6 +55,7 @@ async function request(
   });
   if (!response.ok) {
     await response.body?.cancel();
+    if (response.status === 429) throw new CompSniperRateLimitError();
     throw new Error(`TCG request failed (${response.status})`);
   }
   const data: unknown = await response.json();

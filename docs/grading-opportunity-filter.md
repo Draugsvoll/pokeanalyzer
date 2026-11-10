@@ -10,8 +10,9 @@ and update-age thresholds, excluding identical three-day/seven-day/thirty-day
 PSA medians. The existing category returns its top 12; the new script explicitly
 requests unlimited results. The maintenance lock protects generation.
 The current thresholds are at least 40 sales for both TCG Near Mint and PSA 10,
-at least $450 more for PSA 10 than the raw price, and both prices updated within
-30 days.
+and both prices updated within 30 days. PSA 10 must be at least $350 higher
+than the raw price when raw is below $50, or at least $450 higher when raw is
+$50 or more.
 
 The new `poketrace_grading_opportunities` Turso table holds a single `current`
 JSON snapshot with `schemaVersion`, `generatedAt`, and `{ cardId, psa10Price }`

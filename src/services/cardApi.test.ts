@@ -67,6 +67,7 @@ test("uses live demo card data and only static feature analyses", async () => {
     pokeTrace: { prices: { ebay: { NEAR_MINT: { avg: 1 } } } },
     grok: { market_analysis: { source: "demo" } },
     ebay: { source: "demo" },
+    ebay_raw: { source: "raw demo" },
     tcg_listings: { source: "demo" },
   };
   const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
@@ -90,6 +91,7 @@ test("uses live demo card data and only static feature analyses", async () => {
   expect(card.pokeTrace).toEqual(live.pokeTrace);
   expect(card.grok).toEqual(demo.grok);
   expect(card.ebay).toEqual(demo.ebay);
+  expect(card.ebay_raw).toEqual(demo.ebay_raw);
   expect(card.tcg_listings).toEqual(demo.tcg_listings);
 });
 

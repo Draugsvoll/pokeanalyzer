@@ -6,9 +6,15 @@ type InfoTooltipProps = {
   children: ReactNode;
   className?: string;
   label: string;
+  title?: string;
 };
 
-export function InfoTooltip({ children, className, label }: InfoTooltipProps) {
+export function InfoTooltip({
+  children,
+  className,
+  label,
+  title,
+}: InfoTooltipProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
 
@@ -31,6 +37,7 @@ export function InfoTooltip({ children, className, label }: InfoTooltipProps) {
         <Info aria-hidden="true" />
       </button>
       <span className="info-tooltip__content" id={id} role="tooltip">
+        {title ? <strong>{title}</strong> : null}
         {children}
       </span>
     </span>

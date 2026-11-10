@@ -1,9 +1,11 @@
+import { useMarketplaceRateLimit } from "../../../../hooks/useMarketplaceRateLimit";
+import { MARKETPLACE_RATE_LIMIT_MESSAGE } from "../../../../../shared/marketplaceSearch";
 import type {
   MarketplaceSide,
   MarketplaceStatus,
 } from "../../../../../shared/marketplaceSearch";
 import { readMarketplaceSearchStream } from "../../../../utils/marketplaceSearchStream";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CircleDollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/authContextValue";
@@ -47,7 +49,7 @@ export function TcgExplorerSection(props: Props) {
     />
   );
 }
-function TcgExplorerForAccount({
+const TcgExplorerForAccount = memo(function TcgExplorerForAccount({
   cardId,
   cardName,
   cardNumber,
@@ -68,6 +70,7 @@ function TcgExplorerForAccount({
   const [firstSide, setFirstSide] = useState<MarketplaceSide>("sold");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rateLimited, setRateLimited] = useMarketplaceRateLimit();
   const [login, setLogin] = useState(false);
   const pending = useRef(false);
   const { startRequest, isCurrentRequest, abortActiveRequest } =
@@ -113,6 +116,7 @@ function TcgExplorerForAccount({
       !credits ||
       noCredits ||
       pending.current ||
+      rateLimited ||
       isDemo
     )
       return;
@@ -123,6 +127,7 @@ function TcgExplorerForAccount({
     setData(null);
     setListingStates({ sold: "pending", active: "pending" });
     let receivedResult = false;
+    let providerRateLimited = false;
     try {
       const response = await authenticatedFetch(
         `${API_URL}/tcg?stream=1`,
@@ -188,11 +193,17 @@ function TcgExplorerForAccount({
                 ...previous,
                 [event.side]: "success",
               }));
-            } else if (event.type === "failure")
+            } else if (event.type === "failure") {
+              if (event.rateLimited) {
+                providerRateLimited = true;
+                setRateLimited(true);
+                setError(MARKETPLACE_RATE_LIMIT_MESSAGE);
+              }
               setListingStates((previous) => ({
                 ...previous,
                 [event.side]: "error",
               }));
+            }
           },
           (value, side): value is TcgSnapshot =>
             isTcgSnapshot(value) &&
@@ -215,7 +226,11 @@ function TcgExplorerForAccount({
       });
     } catch {
       if (!signal.aborted && isCurrentRequest(signal)) {
-        setError(TCG_REQUEST_ERROR);
+        setError(
+          providerRateLimited
+            ? MARKETPLACE_RATE_LIMIT_MESSAGE
+            : TCG_REQUEST_ERROR,
+        );
         setListingStates((previous) => ({
           sold: previous.sold === "pending" ? "error" : previous.sold,
           active: previous.active === "pending" ? "error" : previous.active,
@@ -237,13 +252,14 @@ function TcgExplorerForAccount({
           card={{ name: cardName, number: cardNumber, set: { name: setName } }}
           color="orange"
           icon={CircleDollarSign}
-          label="Available on TCG"
+          label="Sales & listings"
           actionLabel={noCredits ? "Add credits" : "1 Market credit"}
           actionLoading={loading && !headerError}
           actionLoadingLabel="Loading listings and sales..."
           actionLoadingMessage="Loading listings and sales..."
           actionDisabled={
             loading ||
+            rateLimited ||
             (!noCredits && (authLoading || !emailVerified || !credits))
           }
           actionHidden={isDemo}
@@ -287,4 +303,4 @@ function TcgExplorerForAccount({
       <LoginModal isOpen={login} onClose={() => setLogin(false)} />
     </section>
   );
-}
+});

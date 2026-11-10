@@ -1,5 +1,9 @@
 import { ensurePokeTraceReady, pokeTraceDb } from "./pokeTraceDb.js";
-import { isEbayListings } from "../../shared/ebaySearch.js";
+import {
+  isEbayListings,
+  ebayResponseField,
+  type EbayMode,
+} from "../../shared/ebaySearch.js";
 import {
   parsePokeTraceSavedResponses,
   type JsonRecord,
@@ -37,12 +41,14 @@ export function getStoredEbayResponse(
   savedResponses: PokeTraceSavedResponses,
   query: string,
   now = Date.now(),
+  mode: EbayMode = "graded",
 ): StoredEbayResponse | null {
   // Legacy results use the same cache duration.
-  const legacy = isRecord(savedResponses.grok)
-    ? savedResponses.grok.ebay_sold
-    : null;
-  for (const response of [savedResponses.ebay, legacy]) {
+  const legacy =
+    mode === "graded" && isRecord(savedResponses.grok)
+      ? savedResponses.grok.ebay_sold
+      : null;
+  for (const response of [savedResponses[ebayResponseField(mode)], legacy]) {
     if (
       !isCompleteEbayResponse(response) ||
       response.request_query !== query ||
@@ -88,7 +94,11 @@ export async function getCardEbayContext(cardId: string) {
   };
 }
 
-export async function saveCardEbayResponse(cardId: string, response: unknown) {
+export async function saveCardEbayResponse(
+  cardId: string,
+  response: unknown,
+  mode: EbayMode = "graded",
+) {
   if (
     !isCompleteEbayResponse(response) ||
     typeof response.request_query !== "string" ||
@@ -105,10 +115,14 @@ export async function saveCardEbayResponse(cardId: string, response: unknown) {
   const result = await pokeTraceDb.execute({
     sql: `
       UPDATE poketrace_cards
-      SET saved_responses = json_set(saved_responses, '$.ebay', json(?))
+      SET saved_responses = json_set(saved_responses, ?, json(?))
       WHERE id = ?
     `,
-    args: [JSON.stringify(storedResponse), cardId],
+    args: [
+      `$.${ebayResponseField(mode)}`,
+      JSON.stringify(storedResponse),
+      cardId,
+    ],
   });
   if (result.rowsAffected !== 1) {
     throw new Error(`Card ${cardId} was not updated`);

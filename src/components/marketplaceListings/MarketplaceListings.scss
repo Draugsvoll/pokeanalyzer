@@ -6,17 +6,11 @@
   max-width: 100%;
   width: 100%;
 
-  &__eyebrow {
-    color: var(--marketplace-accent);
-    display: block;
-    margin-bottom: var(--space-1);
-    text-align: center;
-  }
-
   &__surface {
+    container: marketplace-controls / inline-size;
     display: grid;
     gap: var(--space-3);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   &__state {
@@ -114,10 +108,42 @@
     }
   }
 
+  &__toggles {
+    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  &__top-controls {
+    display: flex;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+
+    &:only-child {
+      grid-column: 2;
+      justify-self: center;
+    }
+  }
+
   &__listing-selector {
     display: grid;
+    grid-column: 2;
+    grid-row: 1;
     justify-items: center;
-    margin-top: var(--space-1);
+  }
+
+  @container marketplace-controls (max-width: 50rem) {
+    &__toggles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    &__top-controls {
+      align-self: center;
+    }
   }
 
   &__listing-toggle.segmented-radio-group {
@@ -127,7 +153,6 @@
     justify-self: center;
     width: fit-content;
     margin: 0;
-    margin-bottom: var(--space-2);
   }
 
   &__filter-row {
@@ -261,6 +286,39 @@
     top: 50%;
     transform: translateY(-50%);
     z-index: calc(var(--dropdown-z-index) + 1);
+  }
+
+  &__condition-heading {
+    align-items: center;
+    color: var(--font-color-muted);
+    display: inline-flex;
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    gap: 0.15rem;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+    padding-left: 0.4rem;
+  }
+
+  &__condition-help.info-tooltip {
+    position: relative;
+    display: inline-flex;
+    margin: 0;
+
+    > button {
+      height: 1rem;
+      width: 1rem;
+
+      svg {
+        height: 0.85rem;
+        width: 0.85rem;
+      }
+    }
+  }
+
+  &__condition-help .info-tooltip__content {
+    left: 0;
+    right: auto;
   }
 
   &__filters {
@@ -699,37 +757,47 @@
     white-space: normal;
   }
 
-  &__title-block--expanded .marketplace-listings__listing-meta {
-    flex-wrap: wrap;
-  }
-
   &__listing-meta {
-    align-items: center;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
+    color: var(--font-color-muted);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.35;
     margin-top: 0.2rem;
     max-height: 1.35em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--font-size-label);
-    font-weight: var(--font-weight-medium);
   }
 
   &__sold-date {
-    align-items: center;
-    color: var(--font-color-muted);
-    display: inline-flex;
-    gap: 0.4rem;
-    line-height: 1.35;
+    color: inherit;
+    display: inline;
+    line-height: inherit;
     padding: 0;
 
-    svg {
-      flex-shrink: 0;
+    & + & {
+      margin-left: 0.4rem;
+    }
+
+    > span {
+      margin-right: 0.4rem;
+    }
+
+    > svg {
       height: 0.75rem;
+      margin-right: 0.4rem;
+      position: relative;
+      top: -1px;
+      vertical-align: middle;
       width: 0.8rem;
-      margin-top: 0.1rem;
+    }
+
+    > svg:not(:first-child) {
+      margin-left: 0.4rem;
+    }
+
+    > span + svg {
+      margin-left: 0;
     }
   }
 

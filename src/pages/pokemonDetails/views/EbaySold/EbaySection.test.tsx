@@ -146,7 +146,7 @@ test.each(["sold", "active"] as const)(
     expect(
       await screen.findByRole("heading", { name: "Pikachu First Result" }),
     ).toBeVisible();
-    expect(screen.queryByText("Available on Ebay")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sales & listings")).not.toBeInTheDocument();
     const firstTab = screen.getByRole("radio", {
       name: first === "sold" ? "Sold" : "Listed",
     });
@@ -213,7 +213,7 @@ test("restores the header on a late failure while keeping the first result", asy
     stream.close();
   });
   expect(
-    screen.getByText("Available on Ebay").closest("header"),
+    screen.getByText("Sales & listings").closest("header"),
   ).toContainElement(screen.getByRole("alert"));
   expect(
     screen.getByRole("heading", { name: "Pikachu Available" }),
@@ -302,7 +302,7 @@ test("keeps only the header when both streamed sides fail and refreshes the refu
     "couldn't load Ebay sales and listings.",
   );
   expect(
-    screen.getByText("Available on Ebay").closest("header"),
+    screen.getByText("Sales & listings").closest("header"),
   ).toContainElement(screen.getByRole("alert"));
   expect(
     screen.queryByRole("radiogroup", { name: "Sort Ebay listings" }),
@@ -369,7 +369,7 @@ beforeEach(() => {
 
 test("replaces the intro with results after an explicit search and does not refetch on rerenders", async () => {
   const { rerender } = render(view());
-  const heading = screen.getByText("Available on Ebay");
+  const heading = screen.getByText("Sales & listings");
   expect(heading).toBeVisible();
   expect(screen.queryByText("10 Market credits")).not.toBeInTheDocument();
   expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
@@ -436,7 +436,7 @@ test("keeps the intro while loading, prevents duplicate requests, and leaves res
   fireEvent.click(action);
   fireEvent.click(action);
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
-  expect(screen.getByText("Available on Ebay")).toBeVisible();
+  expect(screen.getByText("Sales & listings")).toBeVisible();
   expect(screen.queryByText("10 Market credits")).not.toBeInTheDocument();
   const pendingAction = screen.getByRole("button", {
     name: "Loading listings and sales...",
@@ -553,8 +553,8 @@ test.each(["sold", "active"] as const)(
     render(view());
     fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
     await screen.findByRole("radiogroup", { name: "Sort Ebay listings" });
-    expect(screen.getByText("Available on Ebay")).toBeVisible();
-    const header = screen.getByText("Available on Ebay").closest("header");
+    expect(screen.getByText("Sales & listings")).toBeVisible();
+    const header = screen.getByText("Sales & listings").closest("header");
     expect(header).toContainElement(screen.getByRole("alert"));
     expect(screen.getByRole("alert")).toHaveTextContent(
       `We couldn't load Ebay ${failedSide === "sold" ? "sales" : "listings"}. Please try again.`,
@@ -586,7 +586,7 @@ test.each(["sold", "active"] as const)(
 
     fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
     await waitFor(() =>
-      expect(screen.queryByText("Available on Ebay")).not.toBeInTheDocument(),
+      expect(screen.getByText("Sales & listings")).toBeVisible(),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(
@@ -613,7 +613,7 @@ test("keeps a single error inside the header when both Ebay responses are missin
     "We couldn't load Ebay sales and listings. Please try again.",
   );
   expect(
-    screen.getByText("Available on Ebay").closest("header"),
+    screen.getByText("Sales & listings").closest("header"),
   ).toContainElement(alert);
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(screen.queryByText(/No matching Ebay/)).not.toBeInTheDocument();
@@ -662,7 +662,7 @@ test.each([409, 502])(
         : "We couldn't load Ebay sales and listings. Please try again.",
     );
     expect(
-      screen.getByText("Available on Ebay").closest("header"),
+      screen.getByText("Sales & listings").closest("header"),
     ).toContainElement(screen.getByRole("alert"));
     expect(mocks.refreshCredits).toHaveBeenCalledTimes(1);
     expect(mocks.updateCredits).not.toHaveBeenCalled();
@@ -672,7 +672,7 @@ test.each([409, 502])(
     expect(
       screen.queryByRole("searchbox", { name: "Include keywords" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Available on Ebay")).toBeVisible();
+    expect(screen.getByText("Sales & listings")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "1 Market credit" }),
     ).toBeEnabled();
@@ -784,5 +784,219 @@ test("unlimited Pro can search with zero credits", async () => {
   expect(
     await screen.findByRole("heading", { name: "Pikachu Psa 10" }),
   ).toBeVisible();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+});
+
+test("provider rate limiting shows a temporary message and disables search for 15 seconds", async () => {
+  const stream = progressiveResponse();
+  mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+  render(view());
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+    await act(async () => {
+      stream.send({ type: "started", credits });
+      stream.send({
+        type: "failure",
+        side: "sold",
+        message: "Rate limited",
+        rateLimited: true,
+      });
+      stream.send({
+        type: "failure",
+        side: "active",
+        message: "Rate limited",
+        rateLimited: true,
+      });
+      stream.send({ type: "error", message: "Search failed" });
+      stream.close();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Experiencing issues right now. Please try again later.",
+    );
+    const button = screen.getByRole("button", { name: "1 Market credit" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(14_999);
+    });
+    expect(button).toBeDisabled();
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(button).toBeEnabled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("raw and graded searches preserve independent results and view state without fetching on switches", async () => {
+  mocks.authenticatedFetch.mockResolvedValueOnce(successResponse());
+  const { rerender } = render(<div>{view()}</div>);
+  fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+  await screen.findByRole("heading", { name: "Pikachu Psa 10" });
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+    { target: { value: "Pikachu" } },
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("searchbox", { name: "Include keywords" }),
+    ).toHaveValue("Pikachu"),
+  );
+  screen.getByRole("radio", { name: "Graded" }).focus();
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  expect(screen.getByRole("radio", { name: "Raw" })).toHaveFocus();
+  expect(
+    screen.queryByRole("radio", { name: "Grade 10" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "1 Market credit" })).toBeVisible();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+  mocks.authenticatedFetch.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({
+        credits,
+        data: {
+          sold: [
+            {
+              title: "Pikachu raw NM",
+              listingType: "sold",
+              soldPrice: "10",
+              soldCurrency: "USD",
+            },
+          ],
+          active: [],
+        },
+      }),
+    ),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+  await screen.findByRole("heading", { name: "Pikachu Raw Nm" });
+  expect(screen.getByRole("radio", { name: "Raw" })).not.toHaveFocus();
+  expect(String(mocks.authenticatedFetch.mock.calls[1][0])).toContain(
+    "mode=raw",
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Near Mint" }));
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+    { target: { value: "raw" } },
+  );
+  screen.getByRole("radio", { name: "Raw" }).focus();
+  fireEvent.click(screen.getByRole("radio", { name: "Graded" }));
+  expect(screen.getByRole("radio", { name: "Graded" })).toHaveFocus();
+  expect(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+  ).toHaveValue("Pikachu");
+  expect(
+    screen.queryByRole("button", { name: "1 Market credit" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Pikachu Psa 10" })).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  expect(screen.getByRole("radio", { name: "Raw" })).toHaveFocus();
+  expect(screen.getByRole("radio", { name: "Near Mint" })).toBeChecked();
+  expect(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+  ).toHaveValue("raw");
+  rerender(<div hidden>{view()}</div>);
+  rerender(<div>{view()}</div>);
+  expect(
+    screen.getByRole("searchbox", { name: "Include keywords" }),
+  ).toHaveValue("raw");
+  expect(screen.getByRole("radio", { name: "Near Mint" })).toBeChecked();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(2);
+});
+
+test("successful empty raw results hide the fetch button and remain available on return", async () => {
+  mocks.authenticatedFetch.mockResolvedValueOnce(
+    new Response(JSON.stringify({ credits, data: { sold: [], active: [] } })),
+  );
+  render(view());
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+  await screen.findByText("No matching Ebay sales found.");
+  expect(
+    screen.queryByRole("button", { name: "1 Market credit" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("radio", { name: "Graded" }));
+  expect(screen.getByRole("button", { name: "1 Market credit" })).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  expect(screen.getByText("No matching Ebay sales found.")).toBeVisible();
+  expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
+});
+
+test("demo raw and graded responses are read independently even when old", () => {
+  render(
+    <MemoryRouter>
+      <EbaySection
+        cardId="demo"
+        cardName="Pikachu"
+        isDemo
+        demoResponse={{
+          timestamp: "2000-01-01",
+          sold: {
+            items: [
+              {
+                title: "Graded example",
+                listingType: "sold",
+                soldPrice: "100",
+              },
+            ],
+          },
+          active: { items: [] },
+        }}
+        demoRawResponse={{
+          timestamp: "2000-01-01",
+          sold: {
+            items: [
+              { title: "Raw example", listingType: "sold", soldPrice: "10" },
+            ],
+          },
+          active: { items: [] },
+        }}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("heading", { name: "Graded Example" })).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  expect(screen.getByRole("heading", { name: "Raw Example" })).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "1 Market credit" }),
+  ).not.toBeInTheDocument();
+  expect(mocks.authenticatedFetch).not.toHaveBeenCalled();
+});
+
+test("switching modes during a fetch keeps incoming results in their requested mode", async () => {
+  const stream = progressiveResponse();
+  mocks.authenticatedFetch.mockResolvedValueOnce(stream.response);
+  render(view());
+  fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Raw" }));
+  await act(async () => {
+    stream.send({ type: "started", credits });
+    stream.send({
+      type: "result",
+      side: "sold",
+      data: {
+        items: [
+          { title: "Graded response", listingType: "sold", soldPrice: "100" },
+        ],
+      },
+    });
+    stream.send({ type: "result", side: "active", data: { items: [] } });
+    stream.send({ type: "complete", credits });
+    stream.close();
+  });
+  expect(
+    screen.queryByRole("heading", { name: "Graded Response" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "1 Market credit" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("radio", { name: "Graded" }));
+  expect(
+    screen.getByRole("heading", { name: "Graded Response" }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "1 Market credit" }),
+  ).not.toBeInTheDocument();
   expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
 });

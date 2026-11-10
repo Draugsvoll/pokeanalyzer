@@ -3,6 +3,7 @@ export type JsonRecord = Record<string, unknown>;
 export type PokeTraceSavedResponses = JsonRecord & {
   grok?: JsonRecord;
   ebay?: JsonRecord;
+  ebay_raw?: JsonRecord;
   tcg_listings?: JsonRecord;
 };
 

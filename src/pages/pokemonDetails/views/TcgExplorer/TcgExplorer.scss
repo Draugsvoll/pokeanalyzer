@@ -7,7 +7,12 @@
   }
 
   .marketplace-listings__result {
-    padding-block: 0.7rem;
+    padding-block: 0.85rem;
+    padding-inline: 0.7rem;
+  }
+
+  .marketplace-listings__price-row {
+    margin-top: 0.2rem;
   }
 
   .marketplace-listings__product-link {

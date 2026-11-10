@@ -187,6 +187,7 @@ export async function fetchCardById(
       ...liveCard,
       grok: demo.grok,
       ebay: demo.ebay,
+      ebay_raw: demo.ebay_raw,
       tcg_listings: demo.tcg_listings,
     };
   }

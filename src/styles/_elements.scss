@@ -203,6 +203,13 @@ input[type="radio"] {
   border-radius: var(--border-radius-sm);
 }
 
+.app-checkbox {
+  accent-color: var(--custom-color-blue);
+  cursor: pointer;
+  margin: 0;
+  width: 1rem;
+}
+
 /* Section labels (e.g. Market Snapshot, Other market sources) */
 .app-subheader {
   color: var(--font-color-muted);

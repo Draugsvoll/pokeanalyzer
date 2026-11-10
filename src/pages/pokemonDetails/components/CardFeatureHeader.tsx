@@ -39,6 +39,7 @@ type CardFeatureHeaderProps = {
     set?: { name?: string; printedTotal?: number };
   };
   cardNumber?: string;
+  hideIdentity?: boolean;
   color: CustomColors;
   icon: LucideIcon;
   label: string;
@@ -53,11 +54,13 @@ type CardFeatureHeaderProps = {
   errorMessage?: string;
   description?: string;
   children?: ReactNode;
+  controls?: ReactNode;
 };
 
 export function CardFeatureHeader({
   card,
   cardNumber,
+  hideIdentity = false,
   color,
   icon: Icon,
   label,
@@ -72,6 +75,7 @@ export function CardFeatureHeader({
   errorMessage,
   description,
   children,
+  controls,
 }: CardFeatureHeaderProps) {
   const displayedNumber = formatCardNumber(card, cardNumber);
   const metadata = [
@@ -83,26 +87,32 @@ export function CardFeatureHeader({
 
   return (
     <header
-      className="card-feature-header default-container"
+      className={`card-feature-header default-container${hideIdentity ? " card-feature-header--identity-hidden" : ""}`}
       style={getCustomColors(color)}
     >
       <span className="card-feature-header__label">
         <Icon aria-hidden="true" />
         {label}
       </span>
-      <div className="card-feature-header__identity">
-        <h2>{card.name}</h2>
-        {metadata.length > 0 && (
-          <div className="card-feature-header__metadata">
-            {metadata.map((item, index) => (
-              <span className="card-feature-header__metadata-item" key={index}>
-                {index > 0 && <i aria-hidden="true">•</i>}
-                {item}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      {!hideIdentity && (
+        <div className="card-feature-header__identity">
+          <h2>{card.name}</h2>
+          {metadata.length > 0 && (
+            <div className="card-feature-header__metadata">
+              {metadata.map((item, index) => (
+                <span
+                  className="card-feature-header__metadata-item"
+                  key={index}
+                >
+                  {index > 0 && <i aria-hidden="true">•</i>}
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {controls}
       {authActions ? (
         <div className="card-feature-header__auth">{authActions}</div>
       ) : (

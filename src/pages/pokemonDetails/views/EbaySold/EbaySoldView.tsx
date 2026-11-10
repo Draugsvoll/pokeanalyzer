@@ -1,3 +1,10 @@
+import { InfoTooltip } from "../../../../components/ui/InfoTooltip";
+import type { EbayMode } from "../../../../../shared/ebaySearch";
+import {
+  POKETRACE_RAW_CONDITIONS,
+  POKETRACE_RAW_CONDITION_LABELS,
+  type PokeTraceRawCondition,
+} from "../../../../../shared/pokeTraceMarketConditions";
 import { useDualViewAvailable } from "../../../../components/marketplaceListings/useDualViewAvailable";
 import {
   normalizeFilterText,
@@ -10,6 +17,7 @@ import {
 import { MarketplaceResultRow } from "../../../../components/marketplaceListings/MarketplaceResultRow";
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type ReactNode,
@@ -35,8 +43,10 @@ const FILTER_TRANSITION_MS = 250;
 type EbaySoldViewProps = {
   response: EbayCompsResponse;
   children?: ReactNode;
+  topControls?: ReactNode;
   initialListingType?: EbayListingType;
   listingStates?: Record<EbayListingType, EbayListingStatus>;
+  mode?: EbayMode;
 };
 
 type EbaySortOrder = "price-asc" | "price-desc" | "date-desc" | "date-asc";
@@ -337,7 +347,7 @@ function EbayResultCard({
       metadataItems={metadataItems}
       price={price}
       url={url}
-      linkLabel={isActive ? "Buy" : "Open sale"}
+      linkLabel={isActive ? "Buy" : "View sale"}
       expansion={expansion}
       media={
         result.thumbnailUrl ? (
@@ -473,6 +483,38 @@ function matchesTagGrader(result: EbayCompResult) {
   );
 }
 
+const RAW_CONDITION_LABELS: Record<PokeTraceRawCondition, string> = {
+  NEAR_MINT: "NM",
+  LIGHTLY_PLAYED: "LP",
+  MODERATELY_PLAYED: "MP",
+  HEAVILY_PLAYED: "HP",
+  DAMAGED: "DMG",
+};
+
+const RAW_CONDITION_PATTERNS: Record<PokeTraceRawCondition, RegExp> = {
+  NEAR_MINT: /\b(?:near[ -]?mint|nm|mint)\b/i,
+  LIGHTLY_PLAYED: /\b(?:light(?:ly)?[ -]?played|lp|excellent)\b/i,
+  MODERATELY_PLAYED: /\b(?:moderate(?:ly)?[ -]?played|mp|very good)\b/i,
+  HEAVILY_PLAYED: /\b(?:heav(?:y|ily)[ -]?played|hp|poor)\b/i,
+  DAMAGED: /\b(?:damaged|dmg)\b/i,
+};
+
+// eBay's top-level condition may only say "Ungraded"; use explicit
+// condition phrases/abbreviations in the listing when a condition is requested.
+function matchesRawCondition(
+  result: EbayCompResult,
+  condition: PokeTraceRawCondition,
+) {
+  const text = [getField(result, "condition"), getField(result, "title")]
+    .filter(Boolean)
+    .join(" ");
+  const conditionText =
+    condition === "HEAVILY_PLAYED"
+      ? text.replace(/\b\d+\s*hp\b|\bhp\s*\d+\b/gi, " ")
+      : text;
+  return RAW_CONDITION_PATTERNS[condition].test(conditionText);
+}
+
 function matchesGrader(
   result: EbayCompResult,
   grader: Exclude<GraderFilter, "all">,
@@ -594,9 +636,15 @@ function matchesGrade(
 export default function EbaySoldView({
   response,
   children,
+  topControls,
   initialListingType = "sold",
   listingStates,
+  mode = "graded",
 }: EbaySoldViewProps) {
+  const filterGroupName = useId();
+  const [rawCondition, setRawCondition] = useState<
+    "all" | PokeTraceRawCondition
+  >("all");
   const [sortOrder, setSortOrder] = useState<EbaySortOrder>("price-desc");
   const [listingTypeFilter, setListingTypeFilter] =
     useState<ListingTypeFilter>(initialListingType);
@@ -671,6 +719,9 @@ export default function EbaySoldView({
           );
     const filteredResults = graderFilteredResults.filter(
       (result) =>
+        (mode !== "raw" ||
+          rawCondition === "all" ||
+          matchesRawCondition(result, rawCondition)) &&
         (!appliedTextFilter || matchesTextFilter(result, appliedTextFilter)) &&
         (!appliedExcludeFilter ||
           !matchesAnyTextFilter(result, appliedExcludeFilter)),
@@ -770,6 +821,7 @@ export default function EbaySoldView({
 
   function clearFilters() {
     window.clearTimeout(filterTimerRef.current);
+    setRawCondition("all");
     setGradeFilter("all");
     setAppliedGradeFilter("all");
     setGraderFilter("all");
@@ -808,6 +860,7 @@ export default function EbaySoldView({
 
   const advancedView = dualViewAvailable && resultViewMode === "advanced";
   const hasFilters =
+    rawCondition !== "all" ||
     gradeFilter !== "all" ||
     graderFilter !== "all" ||
     textFilter.trim().length > 0 ||
@@ -840,7 +893,7 @@ export default function EbaySoldView({
             </p>
           ) : undefined
         }
-        resultsKey={`${listingType}-${appliedGradeFilter}-${appliedGraderFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
+        resultsKey={`${rawCondition}-${listingType}-${appliedGradeFilter}-${appliedGraderFilter}-${appliedTextFilter}-${appliedExcludeFilter}-${sortOrder}`}
         onScroll={(event) => handleResultScroll(event, listingType)}
       >
         {visible.map((result, index) => (
@@ -863,6 +916,7 @@ export default function EbaySoldView({
   return (
     <MarketplaceListings
       source="Ebay"
+      topControls={topControls}
       side={listingTypeFilter}
       onSideChange={handleListingTypeChange}
       sort={sortOrder}
@@ -881,36 +935,82 @@ export default function EbaySoldView({
         )
       }
       filters={
-        <div className="marketplace-listings__grade-controls">
-          <fieldset className="marketplace-listings__filters radio-group">
-            <legend>Grade</legend>
-            <div>
-              {GRADE_FILTERS.map((filter) => (
-                <label key={filter.value}>
-                  <input
-                    checked={gradeFilter === filter.value}
-                    name="ebay-grade"
-                    type="radio"
-                    value={filter.value}
-                    onChange={() => handleGradeFilterChange(filter.value)}
-                  />
-                  <span>{filter.label}</span>
-                </label>
-              ))}
+        mode === "raw" ? (
+          <div className="marketplace-listings__condition-controls">
+            <div className="marketplace-listings__condition-heading">
+              Condition
+              <InfoTooltip
+                className="marketplace-listings__condition-help"
+                label="How eBay condition filters work"
+                title="Filter"
+              >
+                Filters by title. Many listings don't specify condition.
+              </InfoTooltip>
             </div>
-          </fieldset>
-          <div
-            className={`marketplace-listings__grader-filter${graderFilter === "all" ? "" : " marketplace-listings__grader-filter--active"}`}
-          >
-            <SelectDropdown
-              ariaLabel="Filter by grading company"
-              compact
-              options={GRADER_FILTERS}
-              value={graderFilter}
-              onChange={handleGraderFilterChange}
-            />
+            <fieldset
+              aria-label="Condition"
+              className="marketplace-listings__filters radio-group"
+            >
+              <div>
+                {(["all", ...POKETRACE_RAW_CONDITIONS] as const).map(
+                  (value) => (
+                    <label key={value}>
+                      <input
+                        type="radio"
+                        name={`${filterGroupName}-condition`}
+                        aria-label={
+                          value === "all"
+                            ? "All"
+                            : POKETRACE_RAW_CONDITION_LABELS[value]
+                        }
+                        value={value}
+                        checked={rawCondition === value}
+                        onChange={() => {
+                          setRawCondition(value);
+                          resetVisibleResults();
+                        }}
+                      />
+                      <span>
+                        {value === "all" ? "All" : RAW_CONDITION_LABELS[value]}
+                      </span>
+                    </label>
+                  ),
+                )}
+              </div>
+            </fieldset>
           </div>
-        </div>
+        ) : (
+          <div className="marketplace-listings__grade-controls">
+            <fieldset className="marketplace-listings__filters radio-group">
+              <legend>Grade</legend>
+              <div>
+                {GRADE_FILTERS.map((filter) => (
+                  <label key={filter.value}>
+                    <input
+                      checked={gradeFilter === filter.value}
+                      name={`${filterGroupName}-grade`}
+                      type="radio"
+                      value={filter.value}
+                      onChange={() => handleGradeFilterChange(filter.value)}
+                    />
+                    <span>{filter.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div
+              className={`marketplace-listings__grader-filter${graderFilter === "all" ? "" : " marketplace-listings__grader-filter--active"}`}
+            >
+              <SelectDropdown
+                ariaLabel="Filter by grading company"
+                compact
+                options={GRADER_FILTERS}
+                value={graderFilter}
+                onChange={handleGraderFilterChange}
+              />
+            </div>
+          </div>
+        )
       }
       keywordFilters={{
         include: textFilter,

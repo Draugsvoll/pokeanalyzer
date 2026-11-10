@@ -1,6 +1,10 @@
+import type { EbayMode } from "../../shared/ebaySearch.js";
+import { CompSniperRateLimitError } from "./compsniperErrors.js";
+
 export type EbayCompsOptions = {
   titleFilter?: EbayCardSearchContext;
   sold?: boolean;
+  mode?: EbayMode;
 };
 
 type EbayCardSearchContext = {
@@ -8,11 +12,15 @@ type EbayCardSearchContext = {
   cardNumber: string;
 };
 
-export function buildEbayCardRequests(context: EbayCardSearchContext) {
+export function buildEbayCardRequests(
+  context: EbayCardSearchContext,
+  mode: EbayMode = "graded",
+) {
   const { cardName, cardNumber } = context;
   const query = [cardName, cardNumber].filter(Boolean).join(" ");
   const soldOptions: EbayCompsOptions = {
     titleFilter: { cardName, cardNumber },
+    mode,
   };
 
   return {
@@ -30,7 +38,7 @@ export function buildEbayCompsUrl(
     keyword: query,
     ebaySite: "ebay.com",
     categoryId: "183454",
-    conditionId: "2750",
+    conditionId: options.mode === "raw" ? "4000" : "2750",
     count: "240",
     page: "1",
     bestOfferPrice: "true",
@@ -102,6 +110,7 @@ export async function fetchEbayComps(
 
   if (!res.ok) {
     await res.body?.cancel();
+    if (res.status === 429) throw new CompSniperRateLimitError();
     throw new Error(`CompSniper eBay request failed with status ${res.status}`);
   }
 

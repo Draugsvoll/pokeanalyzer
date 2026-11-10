@@ -50,6 +50,7 @@ export type PokemonCard = {
   rarity?: string;
   image?: string;
   ebay?: Record<string, unknown> & { timestamp: string };
+  ebay_raw?: Record<string, unknown> & { timestamp: string };
   tcg_listings?: TcgSnapshot;
   grok?: {
     collectors_analysis?: Record<string, unknown> & { timestamp: string };

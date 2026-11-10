@@ -91,10 +91,13 @@ export function GradingCalculator({
     sellingFeeAbove: moneyInputValue(2.35),
     sellingFeeThreshold: moneyInputValue(7500),
   });
+  const [portionalFeeEnabled, setPortionalFeeEnabled] = useState(false);
   const gradingFee = parseMoney(settings.gradingFee);
   const shipping = parseMoney(settings.shipping);
   const sellingFeePercent = parseMoney(settings.sellingFee) ?? 0;
-  const sellingFeeThreshold = parseMoney(settings.sellingFeeThreshold);
+  const sellingFeeThreshold = portionalFeeEnabled
+    ? parseMoney(settings.sellingFeeThreshold)
+    : null;
   const sellingFeeAbovePercent = parseMoney(settings.sellingFeeAbove);
   const grades = Object.fromEntries(
     GRADES.map((grade) => {
@@ -223,6 +226,9 @@ export function GradingCalculator({
                 <input
                   aria-label="Raw market value"
                   inputMode="decimal"
+                  type="number"
+                  min={0}
+                  step="any"
                   placeholder="0"
                   onChange={(event) =>
                     setRawFields((current) => ({
@@ -266,6 +272,9 @@ export function GradingCalculator({
                 <input
                   aria-label="PSA grading fee"
                   inputMode="decimal"
+                  type="number"
+                  min={0}
+                  step="any"
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
@@ -291,6 +300,9 @@ export function GradingCalculator({
                 <input
                   aria-label="Shipping & insurance"
                   inputMode="decimal"
+                  type="number"
+                  min={0}
+                  step="any"
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
@@ -322,6 +334,9 @@ export function GradingCalculator({
                 <input
                   aria-label="Ebay selling fee"
                   inputMode="decimal"
+                  type="number"
+                  min={0}
+                  step="any"
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
@@ -343,7 +358,17 @@ export function GradingCalculator({
             </div>
             <div className="grading-calculator__field">
               <span className="grading-calculator__field-label">
-                Ebay portional selling fee
+                <label className="grading-calculator__fee-toggle">
+                  <input
+                    type="checkbox"
+                    className="app-checkbox"
+                    checked={portionalFeeEnabled}
+                    onChange={(event) =>
+                      setPortionalFeeEnabled(event.target.checked)
+                    }
+                  />
+                  Ebay portional selling fee
+                </label>
                 <InfoTooltip label="Portional fee">
                   <strong>Ebay portional selling fee</strong>
                   <span>
@@ -352,12 +377,19 @@ export function GradingCalculator({
                   </span>
                 </InfoTooltip>
               </span>
-              <span className="grading-calculator__fee-split">
-                <span className={moneyClass(settings.sellingFeeThreshold)}>
+              <fieldset
+                className="grading-calculator__fee-split"
+                disabled={!portionalFeeEnabled}
+                aria-label="Portional selling fee settings"
+              >
+                <span className="grading-calculator__money">
                   <span aria-hidden="true">{currencySymbol(currency)}</span>
                   <input
                     aria-label="Selling fee price threshold"
                     inputMode="decimal"
+                    type="number"
+                    min={0}
+                    step="any"
                     onChange={(event) =>
                       setSettings((current) => ({
                         ...current,
@@ -366,23 +398,15 @@ export function GradingCalculator({
                     }
                     value={settings.sellingFeeThreshold}
                   />
-                  {settings.sellingFeeThreshold ? (
-                    <ClearInputButton
-                      label="Clear portional fee threshold"
-                      onClear={() =>
-                        setSettings((current) => ({
-                          ...current,
-                          sellingFeeThreshold: "",
-                        }))
-                      }
-                    />
-                  ) : null}
                 </span>
                 <span className={moneyClass(settings.sellingFeeAbove, true)}>
                   <span aria-hidden="true">%</span>
                   <input
                     aria-label="Selling fee above percent"
                     inputMode="decimal"
+                    type="number"
+                    min={0}
+                    step="any"
                     onChange={(event) =>
                       setSettings((current) => ({
                         ...current,
@@ -404,7 +428,7 @@ export function GradingCalculator({
                     }
                   />
                 </span>
-              </span>
+              </fieldset>
             </div>
           </div>
         </div>
@@ -482,6 +506,9 @@ export function GradingCalculator({
                       <input
                         aria-label={`PSA ${grade} Sell price`}
                         inputMode="decimal"
+                        type="number"
+                        min={0}
+                        step="any"
                         placeholder="0"
                         onChange={(event) =>
                           setFields((current) => ({
@@ -704,6 +731,9 @@ export function GradingCalculator({
                             <input
                               aria-label={`PSA ${grade} Sell price`}
                               inputMode="decimal"
+                              type="number"
+                              min={0}
+                              step="any"
                               placeholder="0"
                               onChange={(event) =>
                                 setFields((current) => ({
@@ -984,7 +1014,7 @@ function sellingFeeLabel(
   const limit = Number.isInteger(threshold)
     ? String(threshold)
     : String(Number(threshold.toFixed(2)));
-  return `${base} + ${formatFeePercent(abovePercent)} above ${currencySymbol(currency)}${limit}`;
+  return `${base} up to ${currencySymbol(currency)}${limit} and ${formatFeePercent(abovePercent)} above`;
 }
 
 function formatMultiple(raw: number | null, graded: number | null) {

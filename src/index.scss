@@ -251,7 +251,7 @@ body {
 /* Only the visible marketplace in dual mode uses the wider browsing layout. */
 .main-content--details:has(
   .card-view__marketplace-panel:not([hidden])
-    .marketplace-listings__result-panels--advanced
+    .marketplace-listings__result-panels--advanced:not([hidden] *)
 ) {
   --details-shell-padding: calc(var(--page-pad-x) - var(--space-2));
   --details-content-max-width: calc(
@@ -267,7 +267,8 @@ body {
   .card-view__analysis-divider,
   .card-view__actions,
   .card-view__page,
-  .card-view__demo-pricing {
+  .card-view__demo-pricing,
+  .ebay-section > .card-feature-header {
     box-sizing: border-box;
     margin-inline: auto;
     max-width: var(--details-content-max-width);

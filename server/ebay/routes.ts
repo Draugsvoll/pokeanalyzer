@@ -1,7 +1,10 @@
+import { MARKETPLACE_RATE_LIMIT_MESSAGE } from "../../shared/marketplaceSearch.js";
+import { CompSniperRateLimitError } from "../services/compsniperErrors.js";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import {
   isEbayListings,
+  isEbayMode,
   type EbayListingType,
   type EbaySearchEvent,
 } from "../../shared/ebaySearch.js";
@@ -65,7 +68,10 @@ export async function requestEbayListings(
   signal: AbortSignal,
   dependencies = defaultDependencies,
   emit?: (event: EbaySearchEvent) => void,
+  mode: unknown = "graded",
 ) {
+  if (!isEbayMode(mode))
+    throw new EbayCreditError("A valid eBay mode is required", 400);
   const parsedCardId = typeof cardId === "string" ? cardId.trim() : "";
   if (!parsedCardId || parsedCardId.length > 100) {
     throw new EbayCreditError("A valid cardId is required", 400);
@@ -74,8 +80,16 @@ export async function requestEbayListings(
   if (!context?.cardName) {
     throw new EbayCreditError("Card not found", 404);
   }
-  const { query, soldOptions, activeOptions } = buildEbayCardRequests(context);
-  const cachedResponse = getStoredEbayResponse(context.savedResponses, query);
+  const { query, soldOptions, activeOptions } = buildEbayCardRequests(
+    context,
+    mode,
+  );
+  const cachedResponse = getStoredEbayResponse(
+    context.savedResponses,
+    query,
+    Date.now(),
+    mode,
+  );
   let succeeded = false;
   function publish(side: EbayListingType, data: unknown) {
     signal.throwIfAborted();
@@ -117,7 +131,13 @@ export async function requestEbayListings(
             emit?.({
               type: "failure",
               side,
-              message: `We couldn't load eBay ${side === "sold" ? "sales" : "listings"}. Please try again.`,
+              message:
+                error instanceof CompSniperRateLimitError
+                  ? MARKETPLACE_RATE_LIMIT_MESSAGE
+                  : `We couldn't load eBay ${side === "sold" ? "sales" : "listings"}. Please try again.`,
+              ...(error instanceof CompSniperRateLimitError
+                ? { rateLimited: true }
+                : {}),
             });
           }
           throw error;
@@ -141,7 +161,9 @@ export async function requestEbayListings(
       };
       if (isCompleteEbayResponse(response)) {
         try {
-          return (await dependencies.save(parsedCardId, response)) ?? response;
+          return (
+            (await dependencies.save(parsedCardId, response, mode)) ?? response
+          );
         } catch (error) {
           // Results already succeeded; a cache outage must not discard them.
           logError("Failed to cache eBay results", error);
@@ -227,6 +249,7 @@ export function createEbayRouter({
         signal,
         undefined,
         streaming ? emit : undefined,
+        req.query.mode ?? "graded",
       );
       if (!signal.aborted) {
         if (streaming) {

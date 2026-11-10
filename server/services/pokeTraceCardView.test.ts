@@ -105,3 +105,18 @@ test("PokeTrace cards are mapped to the app card model", () => {
     65,
   );
 });
+
+test("raw eBay responses are exposed without replacing graded or AI data", () => {
+  const ebay = {
+    timestamp: "2026-11-09",
+    sold: { items: [] },
+    active: { items: [] },
+  };
+  const ebay_raw = { ...ebay, marker: "raw" };
+  const card = toPokemonCard(
+    { id: "card-1", name: "Pikachu" },
+    { ebay, ebay_raw },
+  );
+  assert.deepEqual(card.ebay, ebay);
+  assert.deepEqual(card.ebay_raw, ebay_raw);
+});

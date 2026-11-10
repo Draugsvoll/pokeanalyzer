@@ -1,3 +1,4 @@
+import { CompSniperRateLimitError } from "../services/compsniperErrors.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { EbayCredits } from "../../shared/ebayCredits.js";
@@ -292,4 +293,86 @@ test("cached results emit both sides without contacting the providers", async ()
   );
   assert.equal(calls.fetch, 0);
   assert.equal(events.filter((event) => event.type === "result").length, 2);
+});
+
+test("provider rate limits are marked in streamed failures", async () => {
+  const { dependencies, signal } = fixture();
+  dependencies.fetchComps = async () => {
+    throw new CompSniperRateLimitError();
+  };
+  const events: EbaySearchEvent[] = [];
+  await assert.rejects(
+    requestEbayListings("user-1", "card-1", signal, dependencies, (event) =>
+      events.push(event),
+    ),
+  );
+  const failures = events.filter((event) => event.type === "failure");
+  assert.equal(failures.length, 2);
+  for (const event of failures) {
+    assert.equal(event.rateLimited, true);
+    assert.equal(
+      event.message,
+      "Experiencing issues right now. Please try again later.",
+    );
+  }
+});
+
+test("raw searches fetch and save the raw mode without reusing graded cache", async () => {
+  const { dependencies, signal, calls } = fixture();
+  dependencies.getContext = async () => ({
+    ...context,
+    savedResponses: { ebay: response },
+  });
+  dependencies.fetchComps = async (_query, _signal, options) => {
+    calls.fetch += 1;
+    assert.equal(options?.mode, "raw");
+    return listings;
+  };
+  dependencies.save = async (_card, data, mode) => {
+    calls.save += 1;
+    assert.equal(mode, "raw");
+    return {
+      ...(data as typeof response),
+      timestamp: new Date().toISOString(),
+    };
+  };
+  await requestEbayListings(
+    "user-1",
+    "card-1",
+    signal,
+    dependencies,
+    undefined,
+    "raw",
+  );
+  assert.equal(calls.fetch, 2);
+  assert.equal(calls.save, 1);
+  dependencies.getContext = async () => ({
+    ...context,
+    savedResponses: { ebay_raw: response },
+  });
+  await requestEbayListings(
+    "user-1",
+    "card-1",
+    signal,
+    dependencies,
+    undefined,
+    "raw",
+  );
+  assert.equal(calls.fetch, 2);
+});
+
+test("invalid eBay modes fail before fetching or charging", async () => {
+  const { dependencies, signal, calls } = fixture();
+  await assert.rejects(
+    requestEbayListings(
+      "user-1",
+      "card-1",
+      signal,
+      dependencies,
+      undefined,
+      "all",
+    ),
+    /valid eBay mode/,
+  );
+  assert.deepEqual(calls, { fetch: 0, save: 0, credits: 0 });
 });

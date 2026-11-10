@@ -149,3 +149,60 @@ test("invalid eBay results are not saved", async () => {
     null,
   );
 });
+
+test("raw and graded responses share expiry rules but never share cached data", () => {
+  const saved = {
+    ebay: { ...response, marker: "graded" },
+    ebay_raw: { ...response, marker: "raw" },
+  };
+  assert.equal(
+    getStoredEbayResponse(saved, query, now, "graded")?.marker,
+    "graded",
+  );
+  assert.equal(getStoredEbayResponse(saved, query, now, "raw")?.marker, "raw");
+  assert.equal(
+    getStoredEbayResponse(
+      { ebay: response, grok: { ebay_sold: response } },
+      query,
+      now,
+      "raw",
+    ),
+    null,
+  );
+  for (const mode of ["raw", "graded"] as const) {
+    const expired = {
+      ...response,
+      timestamp: new Date(now - 2 * 86_400_000).toISOString(),
+    };
+    assert.equal(
+      getStoredEbayResponse(
+        { ebay: expired, ebay_raw: expired },
+        query,
+        now,
+        mode,
+      ),
+      null,
+    );
+  }
+});
+
+test("raw and graded saves preserve one another and are exposed independently", async () => {
+  await ensurePokeTraceReady();
+  const cardId = "raw-graded-ebay-storage";
+  await pokeTraceDb.execute({
+    sql: "INSERT INTO poketrace_cards (id, name, raw_json, saved_responses) VALUES (?, ?, ?, ?)",
+    args: [
+      cardId,
+      "Pikachu",
+      JSON.stringify({ name: "Pikachu", cardNumber: "027/078" }),
+      "{}",
+    ],
+  });
+  const [graded, raw] = await Promise.all([
+    saveCardEbayResponse(cardId, { ...response, marker: "graded" }, "graded"),
+    saveCardEbayResponse(cardId, { ...response, marker: "raw" }, "raw"),
+  ]);
+  const context = await getCardEbayContext(cardId);
+  assert.deepEqual(context?.savedResponses.ebay, graded);
+  assert.deepEqual(context?.savedResponses.ebay_raw, raw);
+});

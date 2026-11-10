@@ -1,10 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { RadioButtonGroup } from "../../../../components/radioButtonGroup/RadioButtonGroup";
+import { useMarketplaceRateLimit } from "../../../../hooks/useMarketplaceRateLimit";
+import { MARKETPLACE_RATE_LIMIT_MESSAGE } from "../../../../../shared/marketplaceSearch";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Gavel } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { EbayCredits } from "../../../../../shared/ebayCredits";
 import type {
   EbayListingStatus,
   EbayListingType,
+  EbayMode,
 } from "../../../../../shared/ebaySearch";
 import { readEbaySearchStream } from "../../../../ebay/ebaySearchStream";
 import LoginModal from "../../../../components/loginmodal/Loginmodal";
@@ -27,6 +31,21 @@ const LISTING_STATUS_LABELS = {
   error: "failed",
 };
 
+type SearchState = {
+  response: EbayCompsResponse;
+  error: string;
+  listingStates: Record<EbayListingType, EbayListingStatus>;
+  firstListingType: EbayListingType;
+};
+function initialSearchState(): SearchState {
+  return {
+    response: null,
+    error: "",
+    listingStates: { sold: "pending", active: "pending" },
+    firstListingType: "sold",
+  };
+}
+
 type EbaySectionProps = {
   cardId: string;
   cardName: string;
@@ -34,6 +53,7 @@ type EbaySectionProps = {
   setName?: string;
   isDemo?: boolean;
   demoResponse?: Record<string, unknown>;
+  demoRawResponse?: Record<string, unknown>;
   onLoadingChange?: (loading: boolean) => void;
 };
 
@@ -52,13 +72,14 @@ export function EbaySection(props: EbaySectionProps) {
   );
 }
 
-function EbaySectionForAccount({
+const EbaySectionForAccount = memo(function EbaySectionForAccount({
   cardId,
   cardName,
   cardNumber,
   setName,
   isDemo = false,
   demoResponse,
+  demoRawResponse,
   onLoadingChange,
   userId,
   emailVerified,
@@ -70,17 +91,39 @@ function EbaySectionForAccount({
 }) {
   const navigate = useNavigate();
   const { credits, refreshCredits, updateCredits } = useEbayCredits();
-  const [response, setResponse] = useState<EbayCompsResponse>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [listingStates, setListingStates] = useState<
-    Record<EbayListingType, EbayListingStatus>
-  >({
-    sold: "pending",
-    active: "pending",
-  });
-  const [firstListingType, setFirstListingType] =
-    useState<EbayListingType>("sold");
+  const [mode, setMode] = useState<EbayMode>("graded");
+  const sectionRef = useRef<HTMLElement>(null);
+  const restoreModeFocus = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!restoreModeFocus.current) return;
+    restoreModeFocus.current = false;
+    sectionRef.current
+      ?.querySelector<HTMLInputElement>(".ebay-section__mode input:checked")
+      ?.focus({ preventScroll: true });
+  }, [mode]);
+  const [searches, setSearches] = useState<Record<EbayMode, SearchState>>(
+    () => ({
+      raw: initialSearchState(),
+      graded: initialSearchState(),
+    }),
+  );
+  const { response, error, listingStates } = searches[mode];
+  const [loadingMode, setLoadingMode] = useState<EbayMode | null>(null);
+  const loading = loadingMode !== null;
+  const [rateLimited, setRateLimited] = useMarketplaceRateLimit();
+  function updateSearch(
+    update:
+      Partial<SearchState> | ((previous: SearchState) => Partial<SearchState>),
+  ) {
+    setSearches((previous) => ({
+      ...previous,
+      [mode]: {
+        ...previous[mode],
+        ...(typeof update === "function" ? update(previous[mode]) : update),
+      },
+    }));
+  }
   const [showLoginModal, setShowLoginModal] = useState(false);
   const requestPendingRef = useRef(false);
   const { abortActiveRequest, isCurrentRequest, startRequest } =
@@ -93,7 +136,8 @@ function EbaySectionForAccount({
     return () => onLoadingChange?.(false);
   }, [loading, onLoadingChange]);
 
-  const displayedResponse = isDemo ? (demoResponse ?? null) : response;
+  const demoResponses = { raw: demoRawResponse, graded: demoResponse };
+  const displayedResponse = isDemo ? (demoResponses[mode] ?? null) : response;
   const hasResponse = displayedResponse !== null;
   const hasSoldResponse =
     displayedResponse !== null &&
@@ -134,21 +178,25 @@ function EbaySectionForAccount({
       !emailVerified ||
       !credits ||
       (!credits.unlimited && credits.creditsRemaining < 1) ||
-      requestPendingRef.current
+      requestPendingRef.current ||
+      rateLimited
     ) {
       return;
     }
 
     requestPendingRef.current = true;
     const signal = startRequest();
-    setLoading(true);
-    setError("");
-    setResponse(null);
-    setListingStates({ sold: "pending", active: "pending" });
+    setLoadingMode(mode);
+    updateSearch({
+      error: "",
+      response: null,
+      listingStates: { sold: "pending", active: "pending" },
+    });
     let receivedResult = false;
+    let providerRateLimited = false;
 
     try {
-      const params = new URLSearchParams({ cardId, stream: "1" });
+      const params = new URLSearchParams({ cardId, mode, stream: "1" });
       const res = await authenticatedFetch(
         `${API_URL}/ebay?${params.toString()}`,
         { signal: AbortSignal.any([signal, AbortSignal.timeout(45_000)]) },
@@ -158,16 +206,20 @@ function EbaySectionForAccount({
 
       if (!res.ok) {
         if (res.status === 409) {
-          setError("You don't have enough Market credits for this search.");
+          updateSearch({
+            error: "You don't have enough Market credits for this search.",
+          });
           await refreshCredits();
           return;
         }
         if (res.status === 401) {
-          setError("Please log in again to search Ebay.");
+          updateSearch({ error: "Please log in again to search Ebay." });
           return;
         }
         if (res.status === 403) {
-          setError("Please verify your email before searching Ebay.");
+          updateSearch({
+            error: "Please verify your email before searching Ebay.",
+          });
           return;
         }
         throw new Error("eBay request failed");
@@ -178,22 +230,34 @@ function EbaySectionForAccount({
           if (event.type === "started" || event.type === "complete") {
             updateCredits(event.credits);
           } else if (event.type === "result") {
-            if (!receivedResult) {
-              setFirstListingType(event.side);
-              receivedResult = true;
-            }
-            setResponse((previous: unknown) => ({
-              ...(previous && typeof previous === "object" ? previous : {}),
-              [event.side]: event.data,
-            }));
-            setListingStates((previous) => ({
-              ...previous,
-              [event.side]: "success",
+            const first = !receivedResult;
+            receivedResult = true;
+            updateSearch((previous) => ({
+              response: {
+                ...(previous.response && typeof previous.response === "object"
+                  ? previous.response
+                  : {}),
+                [event.side]: event.data,
+              },
+              listingStates: {
+                ...previous.listingStates,
+                [event.side]: "success",
+              },
+              ...(first ? { firstListingType: event.side } : {}),
             }));
           } else if (event.type === "failure") {
-            setListingStates((previous) => ({
-              ...previous,
-              [event.side]: "error",
+            if (event.rateLimited) {
+              providerRateLimited = true;
+              setRateLimited(true);
+            }
+            updateSearch((previous) => ({
+              listingStates: {
+                ...previous.listingStates,
+                [event.side]: "error",
+              },
+              ...(event.rateLimited
+                ? { error: MARKETPLACE_RATE_LIMIT_MESSAGE }
+                : {}),
             }));
           }
         });
@@ -210,19 +274,31 @@ function EbaySectionForAccount({
       }
 
       updateCredits(data.credits);
-      setResponse(data.data);
       const result = data.data as { sold?: unknown; active?: unknown };
-      setFirstListingType(result.sold != null ? "sold" : "active");
-      setListingStates({
-        sold: result.sold != null ? "success" : "error",
-        active: result.active != null ? "success" : "error",
+      updateSearch({
+        response: data.data,
+        firstListingType: result.sold != null ? "sold" : "active",
+        listingStates: {
+          sold: result.sold != null ? "success" : "error",
+          active: result.active != null ? "success" : "error",
+        },
       });
     } catch {
       if (!signal.aborted && isCurrentRequest(signal)) {
-        setError(EBAY_REQUEST_ERROR);
-        setListingStates((previous) => ({
-          sold: previous.sold === "pending" ? "error" : previous.sold,
-          active: previous.active === "pending" ? "error" : previous.active,
+        updateSearch((previous) => ({
+          error: providerRateLimited
+            ? MARKETPLACE_RATE_LIMIT_MESSAGE
+            : EBAY_REQUEST_ERROR,
+          listingStates: {
+            sold:
+              previous.listingStates.sold === "pending"
+                ? "error"
+                : previous.listingStates.sold,
+            active:
+              previous.listingStates.active === "pending"
+                ? "error"
+                : previous.listingStates.active,
+          },
         }));
         // A failed provider request can refund a previously reserved credit.
         void refreshCredits();
@@ -230,13 +306,35 @@ function EbaySectionForAccount({
     } finally {
       if (!signal.aborted && isCurrentRequest(signal)) {
         requestPendingRef.current = false;
-        setLoading(false);
+        setLoadingMode(null);
       }
     }
   }
 
+  const modeControl = (
+    <RadioButtonGroup<EbayMode>
+      ariaLabel="Ebay card type"
+      className="ebay-section__mode"
+      options={[
+        { value: "raw", label: "Raw" },
+        { value: "graded", label: "Graded" },
+      ]}
+      value={mode}
+      onChange={(nextMode) => {
+        restoreModeFocus.current = Boolean(
+          document.activeElement?.closest(".ebay-section__mode"),
+        );
+        setMode(nextMode);
+      }}
+    />
+  );
+
   return (
-    <section aria-label="Ebay sales and listings" className="ebay-section">
+    <section
+      ref={sectionRef}
+      aria-label="Ebay sales and listings"
+      className="ebay-section"
+    >
       <p className="ebay-section__announcement" aria-live="polite">
         {!isDemo && hasUsableResponse
           ? `Sold: ${LISTING_STATUS_LABELS[listingStates.sold]}. Listed: ${LISTING_STATUS_LABELS[listingStates.active]}.`
@@ -251,17 +349,20 @@ function EbaySectionForAccount({
           }}
           color="teal"
           icon={Gavel}
-          label="Available on Ebay"
+          label="Sales & listings"
+          hideIdentity={hasUsableResponse}
           actionLabel={noCredits ? "Add credits" : "1 Market credit"}
-          actionLoading={loading && !headerError}
+          actionLoading={loadingMode === mode && !headerError}
           actionLoadingLabel="Loading listings and sales..."
           actionLoadingMessage="Loading listings and sales..."
           errorMessage={headerError}
           actionDisabled={
             loading ||
+            rateLimited ||
             (noCredits ? false : authLoading || !emailVerified || !credits)
           }
-          actionHidden={isDemo}
+          controls={!hasUsableResponse ? modeControl : undefined}
+          actionHidden={isDemo || (hasUsableResponse && !headerError)}
           onAction={
             noCredits ? () => navigate("/profile") : () => void searchEbay()
           }
@@ -282,19 +383,42 @@ function EbaySectionForAccount({
           )}
         </CardFeatureHeader>
       )}
-      {hasUsableResponse && (
-        <div className="ebay-section__results default-container">
-          <EbaySoldView
-            response={displayedResponse}
-            initialListingType={isDemo ? "sold" : firstListingType}
-            listingStates={isDemo ? undefined : listingStates}
-          />
-        </div>
+      {isDemo && !hasResponse && (
+        <p className="ebay-section__notice">
+          This demo has no saved {mode} eBay results.
+        </p>
       )}
+      {(["raw", "graded"] as const).map((viewMode) => {
+        const data = isDemo
+          ? demoResponses[viewMode]
+          : searches[viewMode].response;
+        if (data == null) return null;
+        return (
+          <div
+            key={viewMode}
+            hidden={mode !== viewMode}
+            className="ebay-section__results default-container"
+          >
+            <EbaySoldView
+              mode={viewMode}
+              topControls={
+                mode === viewMode && hasUsableResponse ? modeControl : undefined
+              }
+              response={data}
+              initialListingType={
+                isDemo ? "sold" : searches[viewMode].firstListingType
+              }
+              listingStates={
+                isDemo ? undefined : searches[viewMode].listingStates
+              }
+            />
+          </div>
+        );
+      })}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
     </section>
   );
-}
+});

@@ -5,15 +5,12 @@
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
-  gap: 0.4rem;
+  gap: 0.3rem;
   min-height: var(--dropdown-trigger-height);
   white-space: nowrap;
 
-  input {
-    accent-color: var(--custom-color-blue);
-    cursor: pointer;
+  .portfolio__controls & input,
+  .set-category-grid__result-control-group & input {
     height: 1rem;
-    margin: 0;
-    width: 1rem;
   }
 }

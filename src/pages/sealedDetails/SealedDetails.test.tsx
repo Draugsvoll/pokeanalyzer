@@ -309,8 +309,8 @@ test("renders stored sealed details with live graph data", async () => {
   expect(cardmarket.getAllByText("€90.00")).toHaveLength(2);
   expect(cardmarket.getByText("€80.00")).toBeInTheDocument();
   expect(cardmarket.getByText("€85.00")).toBeInTheDocument();
-  expect(cardmarket.getByText("30d avg")).toBeInTheDocument();
-  expect(cardmarket.getByText("Trend")).toBeInTheDocument();
+  expect(cardmarket.getByText("30d avg:")).toBeInTheDocument();
+  expect(cardmarket.getByText("Trend:")).toBeInTheDocument();
   expect(
     cardmarket.getByRole("link", { name: "View on Cardmarket" }),
   ).toHaveAttribute(

@@ -56,6 +56,7 @@
 
   &__settings {
     padding: var(--default-container-padding);
+    padding-top: 1.42rem;
     max-width: 60rem;
     margin-inline: auto;
     width: 100%;
@@ -197,6 +198,17 @@
     }
   }
 
+  &__fee-toggle {
+    align-items: center;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+
+  &__fee-toggle + .info-tooltip > button > svg {
+    translate: 0 1px;
+  }
+
   &__fee-split {
     align-items: stretch;
     background: var(--dropdown-trigger-bg);
@@ -207,17 +219,27 @@
     height: var(--dropdown-trigger-height);
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     min-width: 0;
+    margin: 0;
+    padding: 0;
     width: 100%;
     overflow: hidden;
     transition:
       border-color var(--animation-duration-fast) var(--animation-ease-standard),
       box-shadow var(--animation-duration-fast) var(--animation-ease-standard);
 
-    &:hover {
+    &:disabled {
+      opacity: 0.55;
+
+      input {
+        color: var(--font-color-muted);
+      }
+    }
+
+    &:not(:disabled):hover {
       border-color: var(--dropdown-border-hover);
     }
 
-    &:focus-within {
+    &:not(:disabled):focus-within {
       border-color: var(--search-border-focus);
       box-shadow: var(--search-ring-focus);
     }
@@ -916,8 +938,7 @@
       flex: none;
       font-size: var(--font-size-body);
       font-weight: var(--font-weight-semibold);
-      height: 1em;
-      line-height: 1;
+      line-height: 1.2;
     }
 
     input {
@@ -931,8 +952,8 @@
       font-size: var(--font-size-body);
       font-weight: var(--font-weight-semibold);
       font-variant-numeric: tabular-nums;
-      height: 1em;
-      line-height: 1;
+      height: auto;
+      line-height: 1.2;
       margin: 0;
       min-height: 0;
       min-width: 0;

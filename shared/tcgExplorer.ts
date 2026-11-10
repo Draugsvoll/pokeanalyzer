@@ -4,7 +4,7 @@ export const TCG_CONDITIONS = [
   { value: "lightlyPlayed", label: "LP", name: "Lightly Played" },
   { value: "moderatelyPlayed", label: "MP", name: "Moderately Played" },
   { value: "heavilyPlayed", label: "HP", name: "Heavily Played" },
-  { value: "damaged", label: "Damaged", name: "Damaged" },
+  { value: "damaged", label: "DMG", name: "Damaged" },
 ] as const;
 export type TcgCondition = (typeof TCG_CONDITIONS)[number]["value"];
 export const TCG_LANGUAGES = [

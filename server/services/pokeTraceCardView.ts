@@ -79,6 +79,9 @@ export function toPokemonCard(
     },
     grok,
     ...(ebay && { ebay }),
+    ...(record(savedResponses.ebay_raw) && {
+      ebay_raw: savedResponses.ebay_raw,
+    }),
     ...(isTcgSnapshot(savedResponses.tcg_listings) && {
       tcg_listings: savedResponses.tcg_listings,
     }),

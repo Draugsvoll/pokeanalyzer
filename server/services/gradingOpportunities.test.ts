@@ -148,6 +148,40 @@ test("uses the displayed TCG Near Mint average and only the PSA 10 30-day median
   database.close();
 });
 
+test("uses the lower price-increase minimum only for raw prices below $50", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-11-01T12:00:00Z"),
+  });
+  const database = await createDatabase();
+  t.after(() => database.close());
+  const cases = [
+    { id: "below-350", raw: 25, increase: 349.99, qualifies: false },
+    { id: "at-350", raw: 25, increase: 350, qualifies: true },
+    { id: "below-50", raw: 49.99, increase: 350, qualifies: true },
+    { id: "at-50-below-450", raw: 50, increase: 449.99, qualifies: false },
+    { id: "at-50-at-450", raw: 50, increase: 450, qualifies: true },
+    { id: "above-50", raw: 100, increase: 350, qualifies: false },
+  ];
+  for (const { id, raw, increase } of cases) {
+    await insertCard(
+      database,
+      id,
+      id,
+      tier(raw, raw, 40),
+      tier(raw + increase + 10, raw + increase, 40),
+    );
+  }
+  const result = await findGradingOpportunities(database);
+  assert.deepEqual(
+    result.items.map(({ cardId }) => cardId).sort(),
+    cases
+      .filter(({ qualifies }) => qualifies)
+      .map(({ id }) => id)
+      .sort(),
+  );
+});
+
 test("rejects cards outside the sales, gap, and freshness rules", async (t) => {
   t.mock.timers.enable({
     apis: ["Date"],

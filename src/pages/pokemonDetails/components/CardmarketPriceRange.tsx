@@ -43,15 +43,15 @@ export function CardmarketPriceRange({
       ref={rowRef}
     >
       <div>
-        <dt>From</dt>
+        <dt>From:</dt>
         <dd className="poketrace-market__range-price">{from}</dd>
       </div>
       <div ref={averageRef}>
-        <dt>30d avg</dt>
+        <dt>30d avg:</dt>
         <dd className="poketrace-market__range-price">{average30d}</dd>
       </div>
       <div>
-        <dt>Trend</dt>
+        <dt>Trend:</dt>
         <dd className="poketrace-market__range-price">{trend}</dd>
       </div>
     </dl>

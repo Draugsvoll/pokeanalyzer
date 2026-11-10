@@ -541,3 +541,54 @@ test("keeps the TCG link in the Listed panel header in single and dual views", (
     ).queryByRole("link", { name: "View on TCG" }),
   ).not.toBeInTheDocument();
 });
+
+test("provider rate limiting disables TCG search for 15 seconds", async () => {
+  const events = [
+    { type: "started", credits: balance },
+    {
+      type: "failure",
+      side: "sold",
+      message: "Rate limited",
+      rateLimited: true,
+    },
+    {
+      type: "failure",
+      side: "active",
+      message: "Rate limited",
+      rateLimited: true,
+    },
+    { type: "error", message: "Search failed" },
+  ];
+  mocks.fetch.mockResolvedValueOnce(
+    new Response(
+      events.map((event) => JSON.stringify(event)).join("\n") + "\n",
+      {
+        headers: { "Content-Type": "application/x-ndjson" },
+      },
+    ),
+  );
+  render(view());
+  vi.useFakeTimers();
+  try {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "1 Market credit" }));
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Experiencing issues right now. Please try again later.",
+    );
+    const button = screen.getByRole("button", { name: "1 Market credit" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(14_999);
+    });
+    expect(button).toBeDisabled();
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(button).toBeEnabled();
+  } finally {
+    vi.useRealTimers();
+  }
+});

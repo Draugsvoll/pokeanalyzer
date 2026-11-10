@@ -30,6 +30,7 @@ type Props = {
   datesAvailable?: boolean;
   sideStates?: Record<Side, SideState>;
   filters?: ReactNode;
+  topControls?: ReactNode;
   keywordFilters?: MarketplaceKeywordFiltersProps;
   clearFilters?: ReactNode;
   expansion: { expanded: boolean };
@@ -54,6 +55,7 @@ export function MarketplaceListings({
   datesAvailable = true,
   sideStates,
   filters,
+  topControls,
   keywordFilters,
   clearFilters,
   expansion,
@@ -75,35 +77,39 @@ export function MarketplaceListings({
         } as CSSProperties
       }
     >
-      {!dual && (
-        <span className="feature-analysis-eyebrow marketplace-listings__eyebrow">
-          Sold &amp; active listings
-        </span>
-      )}
       <div className="marketplace-listings__surface">
-        {!dual && (
-          <div className="marketplace-listings__listing-selector">
-            <SegmentedRadioGroup
-              ariaLabel={`${source} listing type`}
-              className="marketplace-listings__listing-toggle"
-              name={`${id}-listing-type`}
-              value={side}
-              onChange={onSideChange}
-              options={[
-                {
-                  value: "sold",
-                  label: "Sold",
-                  loading: sideStates?.sold === "pending",
-                  disabled: sideStates && sideStates.sold !== "success",
-                },
-                {
-                  value: "active",
-                  label: "Listed",
-                  loading: sideStates?.active === "pending",
-                  disabled: sideStates && sideStates.active !== "success",
-                },
-              ]}
-            />
+        {(topControls || !dual) && (
+          <div className="marketplace-listings__toggles">
+            {topControls && (
+              <div className="marketplace-listings__top-controls">
+                {topControls}
+              </div>
+            )}
+            {!dual && (
+              <div className="marketplace-listings__listing-selector">
+                <SegmentedRadioGroup
+                  ariaLabel={`${source} listing type`}
+                  className="marketplace-listings__listing-toggle"
+                  name={`${id}-listing-type`}
+                  value={side}
+                  onChange={onSideChange}
+                  options={[
+                    {
+                      value: "sold",
+                      label: "Sold",
+                      loading: sideStates?.sold === "pending",
+                      disabled: sideStates && sideStates.sold !== "success",
+                    },
+                    {
+                      value: "active",
+                      label: "Listed",
+                      loading: sideStates?.active === "pending",
+                      disabled: sideStates && sideStates.active !== "success",
+                    },
+                  ]}
+                />
+              </div>
+            )}
           </div>
         )}
         <div className="marketplace-listings__filter-row">

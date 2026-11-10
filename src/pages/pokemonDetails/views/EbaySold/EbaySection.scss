@@ -17,9 +17,30 @@
   .app-btn-pill {
     --feature-accent: var(--marketplace-accent);
   }
+  &__mode {
+    margin-top: 0.5rem;
+
+    .radio-button-group__option {
+      min-width: 5rem;
+    }
+  }
+
+  .card-feature-header--identity-hidden &__mode,
+  &__results &__mode {
+    margin-top: 0;
+  }
 
   &__results {
     margin-top: var(--space-3);
+
+    .ebay-section__mode .radio-button-group__option {
+      min-width: 4.35rem;
+    }
+  }
+
+  &__results:has(.marketplace-listings__condition-help[data-open="true"]) {
+    position: relative;
+    z-index: calc(var(--dropdown-z-index) + 2);
   }
 
   &__notice {

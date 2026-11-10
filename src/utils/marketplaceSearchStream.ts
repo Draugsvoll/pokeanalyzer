@@ -23,7 +23,12 @@ function parseEvent<T>(
       return { type: "result", side: event.side, data: event.data };
     }
     if (event.type === "failure" && typeof event.message === "string") {
-      return { type: "failure", side: event.side, message: event.message };
+      return {
+        type: "failure",
+        side: event.side,
+        message: event.message,
+        ...(event.rateLimited === true ? { rateLimited: true } : {}),
+      };
     }
   }
   throw new Error("Invalid marketplace search event");

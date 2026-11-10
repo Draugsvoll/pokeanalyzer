@@ -1,3 +1,4 @@
+import { CompSniperRateLimitError } from "./compsniperErrors.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { URL } from "node:url";
@@ -17,9 +18,11 @@ test("eBay card requests preserve the sold and active request contract", () => {
   assert.equal(query, "Charizard ex 004/102");
   assert.deepEqual(soldOptions, {
     titleFilter: { cardName: "Charizard ex", cardNumber: "004/102" },
+    mode: "graded",
   });
   assert.deepEqual(activeOptions, {
     titleFilter: { cardName: "Charizard ex", cardNumber: "004/102" },
+    mode: "graded",
     sold: false,
   });
 
@@ -155,4 +158,33 @@ test("missing CompSniper credentials fail before making a request", async (t) =>
     /COMPSNIPER_API_KEY is not configured/,
   );
   assert.equal(request.mock.callCount(), 0);
+});
+
+test("provider 429 responses are identified as rate limits", async (t) => {
+  const previousKey = process.env.COMPSNIPER_API_KEY;
+  process.env.COMPSNIPER_API_KEY = "test-key";
+  t.after(() => {
+    if (previousKey === undefined) delete process.env.COMPSNIPER_API_KEY;
+    else process.env.COMPSNIPER_API_KEY = previousKey;
+  });
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(null, { status: 429 }),
+  );
+  await assert.rejects(fetchEbayComps("Pikachu"), CompSniperRateLimitError);
+});
+
+test("raw requests use only the ungraded condition filter without altering keywords", () => {
+  const { query, soldOptions, activeOptions } = buildEbayCardRequests(
+    { cardName: "Pikachu", cardNumber: "027/078" },
+    "raw",
+  );
+  assert.equal(query, "Pikachu 027/078");
+  for (const options of [soldOptions, activeOptions]) {
+    const url: URL = new URL(buildEbayCompsUrl(query, options));
+    assert.equal(url.searchParams.get("conditionId"), "4000");
+    assert.equal(url.searchParams.get("keyword"), query);
+    assert.equal(url.searchParams.has("aspectFilter"), false);
+  }
 });

@@ -145,10 +145,10 @@ test("shows Cardmarket as the third market card with EU aggregated prices", asyn
   ).toHaveTextContent("Cardmarket");
   expect(cardmarket.getAllByText("€18.00")).toHaveLength(2);
   expect(cardmarket.getByText("Listings")).toBeInTheDocument();
-  expect(cardmarket.getByText("From")).toBeInTheDocument();
+  expect(cardmarket.getByText("From:")).toBeInTheDocument();
   expect(cardmarket.queryByText("7d avg")).not.toBeInTheDocument();
-  expect(cardmarket.getByText("Trend")).toBeInTheDocument();
-  expect(cardmarket.getByText("30d avg")).toBeInTheDocument();
+  expect(cardmarket.getByText("Trend:")).toBeInTheDocument();
+  expect(cardmarket.getByText("30d avg:")).toBeInTheDocument();
   expect(cardmarket.getByText("€15.00")).toBeInTheDocument();
   expect(cardmarket.queryByText("€17.00")).not.toBeInTheDocument();
   expect(cardmarket.getByText("€16.00")).toBeInTheDocument();

@@ -2,6 +2,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { GradingCalculator } from "./GradingCalculator";
 
+test("numeric fields accept decimals and reject nonnumeric values", () => {
+  render(<GradingCalculator />);
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Ebay portional selling fee" }),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Clear portional fee threshold" }),
+  ).not.toBeInTheDocument();
+  for (const input of screen.getAllByRole("spinbutton")) {
+    fireEvent.change(input, { target: { value: "12.5" } });
+    expect(input).toHaveValue(12.5);
+    fireEvent.change(input, { target: { value: "abc" } });
+    expect(input).toHaveValue(null);
+  }
+});
+
 test.each([7, 8, 9, 10])(
   "shows the estimate prompt in the comparison label only while all PSA inputs are empty (PSA %s)",
   (grade) => {
@@ -28,15 +44,13 @@ test.each([7, 8, 9, 10])(
 test("keeps each grade's costs separate and updates the weighted outcome", () => {
   render(<GradingCalculator />);
 
-  expect(screen.getByLabelText("PSA grading fee")).toHaveValue("59");
-  expect(screen.getByLabelText("Shipping & insurance")).toHaveValue("35");
-  expect(screen.getByLabelText("Ebay selling fee")).toHaveValue("13.25");
+  expect(screen.getByLabelText("PSA grading fee")).toHaveValue(59);
+  expect(screen.getByLabelText("Shipping & insurance")).toHaveValue(35);
+  expect(screen.getByLabelText("Ebay selling fee")).toHaveValue(13.25);
   expect(screen.getByLabelText("Selling fee price threshold")).toHaveValue(
-    "7500",
+    7500,
   );
-  expect(screen.getByLabelText("Selling fee above percent")).toHaveValue(
-    "2.35",
-  );
+  expect(screen.getByLabelText("Selling fee above percent")).toHaveValue(2.35);
   fireEvent.mouseEnter(
     screen.getByRole("link", { name: "PSA grading tiers" }),
     {
@@ -97,7 +111,7 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   expect(
     screen.queryByRole("heading", { name: "PSA 9", level: 3 }),
   ).not.toBeInTheDocument();
-  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue("");
+  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue(null);
   expect(screen.queryByLabelText("graded proceeds")).not.toBeInTheDocument();
   expect(
     screen.queryByText(/instead of selling raw today/),
@@ -146,16 +160,32 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   fireEvent.change(screen.getAllByLabelText("PSA 10 Sell price")[0], {
     target: { value: "10000" },
   });
+  const portionalFee = screen.getByRole("checkbox", {
+    name: "Ebay portional selling fee",
+  });
+  expect(portionalFee).not.toBeChecked();
+  expect(screen.getByLabelText("Selling fee price threshold")).toBeDisabled();
+  expect(screen.getByLabelText("Selling fee above percent")).toBeDisabled();
+  expect(gradeArticle("PSA 10")).not.toHaveTextContent("above $7500");
+  const profitWithoutPortionalFee =
+    screen.getByLabelText("PSA 10 profit").textContent;
+  fireEvent.click(portionalFee);
+  expect(screen.getByLabelText("Selling fee price threshold")).toBeEnabled();
+  expect(screen.getByLabelText("Selling fee above percent")).toBeEnabled();
   expect(screen.getByLabelText("PSA 10 profit")).toHaveTextContent(
     "+$8,766.75",
   );
   expect(gradeArticle("PSA 10")).toHaveTextContent(
-    "13.25% + 2.35% above $7500",
+    "13.25% up to $7500 and 2.35% above",
   );
   expect(
     screen.queryByLabelText("Additional sales tax"),
   ).not.toBeInTheDocument();
   expect(screen.getByLabelText("Raw proceeds")).toHaveTextContent("$86.75");
+  fireEvent.click(portionalFee);
+  expect(screen.getByLabelText("PSA 10 profit")).toHaveTextContent(
+    profitWithoutPortionalFee!,
+  );
 });
 
 test("keeps an empty grade's chance after another slider moves", () => {
@@ -187,9 +217,9 @@ test("fills each grade when prices arrive, and keeps an edited price", () => {
     <GradingCalculator prices={{ tcgplayer: { NEAR_MINT: { avg: 12 } } }} />,
   );
 
-  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue("");
-  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue("");
-  expect(screen.getByLabelText("Raw market value")).toHaveValue("12");
+  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue(null);
+  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue(null);
+  expect(screen.getByLabelText("Raw market value")).toHaveValue(12);
   fireEvent.change(screen.getAllByLabelText("PSA 9 Sell price")[0], {
     target: { value: "80" },
   });
@@ -209,11 +239,11 @@ test("fills each grade when prices arrive, and keeps an edited price", () => {
     />,
   );
 
-  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue("539");
-  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue("80");
-  expect(screen.getAllByLabelText("PSA 8 Sell price")[0]).toHaveValue("34");
-  expect(screen.getAllByLabelText("PSA 7 Sell price")[0]).toHaveValue("34");
-  expect(screen.getByLabelText("Raw market value")).toHaveValue("20");
+  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue(539);
+  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue(80);
+  expect(screen.getAllByLabelText("PSA 8 Sell price")[0]).toHaveValue(34);
+  expect(screen.getAllByLabelText("PSA 7 Sell price")[0]).toHaveValue(34);
+  expect(screen.getByLabelText("Raw market value")).toHaveValue(20);
 });
 
 test("fills prices that are already on the card, including a partial set", () => {
@@ -229,11 +259,11 @@ test("fills prices that are already on the card, including a partial set", () =>
     />,
   );
 
-  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue("539");
-  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue("");
-  expect(screen.getAllByLabelText("PSA 8 Sell price")[0]).toHaveValue("34");
-  expect(screen.getAllByLabelText("PSA 7 Sell price")[0]).toHaveValue("");
-  expect(screen.getByLabelText("Raw market value")).toHaveValue("22.5");
+  expect(screen.getAllByLabelText("PSA 10 Sell price")[0]).toHaveValue(539);
+  expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue(null);
+  expect(screen.getAllByLabelText("PSA 8 Sell price")[0]).toHaveValue(34);
+  expect(screen.getAllByLabelText("PSA 7 Sell price")[0]).toHaveValue(null);
+  expect(screen.getByLabelText("Raw market value")).toHaveValue(22.5);
 });
 
 function gradeArticle(name: string) {
