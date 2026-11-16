@@ -16,11 +16,12 @@
   .marketplace-listings__grade-controls {
     .ui-select-dropdown__toggle {
       min-width: 6rem;
-      height: 2.15rem;
+      height: 2.2rem;
     }
 
     .ui-select-dropdown__count {
       color: inherit;
+      font-weight: var(--font-weight-regular);
     }
 
     .ui-select-dropdown__chevron {
@@ -54,10 +55,10 @@
   }
 
   &__results {
-    margin-top: var(--space-3);
+    margin-top: var(--space-2);
 
     .ebay-section__mode .radio-button-group__option {
-      min-width: 4.35rem;
+      min-width: 6.5rem;
     }
   }
 

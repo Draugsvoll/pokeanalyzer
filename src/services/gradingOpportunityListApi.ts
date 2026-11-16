@@ -1,4 +1,5 @@
 import {
+  GRADING_LIST_BROWSER_MISS_TTL_MS,
   GRADING_LIST_BROWSER_TTL_MS,
   isGradingOpportunityListFresh,
   parseGradingOpportunityList,
@@ -40,11 +41,17 @@ function readCache() {
   }
   if (!memory) return undefined;
   const age = Date.now() - memory.cachedAt;
+  const usable = memory.payload !== null;
+  const fresh = usable && isGradingOpportunityListFresh(memory.payload!);
+  const ttl = !usable
+    ? GRADING_LIST_BROWSER_MISS_TTL_MS
+    : fresh
+      ? GRADING_LIST_BROWSER_TTL_MS
+      : 0;
   return typeof memory.cachedAt === "number" &&
     Number.isFinite(age) &&
     age >= 0 &&
-    age < GRADING_LIST_BROWSER_TTL_MS &&
-    (memory.payload === null || isGradingOpportunityListFresh(memory.payload))
+    age < ttl
     ? memory
     : undefined;
 }
@@ -61,11 +68,9 @@ export function getGradingOpportunityList(): Promise<GradingOpportunityList | nu
     if (!response.ok)
       throw new Error("Grading opportunity list is unavailable");
     const value: unknown = await response.json();
-    const payload = value === null ? null : parseGradingOpportunityList(value);
-    if (payload && !isGradingOpportunityListFresh(payload)) {
-      clearCache();
-      return null;
-    }
+    const parsed = value === null ? null : parseGradingOpportunityList(value);
+    const payload =
+      parsed && isGradingOpportunityListFresh(parsed) ? parsed : null;
     memory = { cachedAt: Date.now(), payload };
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(memory));

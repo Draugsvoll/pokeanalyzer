@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type UIEventHandler,
 } from "react";
-import { ChevronDown, Columns2, Rows2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { SegmentedRadioGroup } from "../ui/SegmentedRadioGroup";
 import { RadioButtonGroup } from "../radioButtonGroup/RadioButtonGroup";
 import "./MarketplaceListings.scss";
@@ -76,118 +76,96 @@ export function MarketplaceListings({
       }
     >
       <div className="marketplace-listings__surface">
-        {!dual && (
-          <div className="marketplace-listings__toggles">
-            {!dual && (
-              <div className="marketplace-listings__listing-selector">
-                <SegmentedRadioGroup
-                  ariaLabel={`${source} listing type`}
-                  className="marketplace-listings__listing-toggle"
-                  name={`${id}-listing-type`}
-                  value={side}
-                  onChange={onSideChange}
-                  options={[
-                    {
-                      value: "sold",
-                      label: "Sold",
-                      loading: sideStates?.sold === "pending",
-                      disabled: sideStates && sideStates.sold !== "success",
-                    },
-                    {
-                      value: "active",
-                      label: "Listed",
-                      loading: sideStates?.active === "pending",
-                      disabled: sideStates && sideStates.active !== "success",
-                    },
-                  ]}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        <div className="marketplace-listings__filter-row">
-          {filters}
-          <div className="marketplace-listings__view-controls">
-            {clearFilters}
-            <div className="marketplace-listings__sorting">
-              <RadioButtonGroup
-                ariaLabel={`Sort ${source} listings`}
-                value={sort}
-                onChange={onSortChange}
-                options={[
-                  { value: "price-desc", label: "Price ↓" },
-                  { value: "price-asc", label: "Price ↑" },
-                  {
-                    value: "date-desc",
-                    label: "Newest",
-                    disabled: !datesAvailable,
-                  },
-                  {
-                    value: "date-asc",
-                    label: "Oldest",
-                    disabled: !datesAvailable,
-                  },
-                ]}
-              />
-            </div>
-            {dualAvailable && (
-              <div className="marketplace-listings__view-toggle-anchor">
-                <RadioButtonGroup
-                  ariaLabel={`${source} results view`}
-                  className="marketplace-listings__view-toggle"
-                  value={dual ? "dual" : "single"}
-                  onChange={(value) => onDualChange(value === "dual")}
-                  options={[
-                    {
-                      value: "single",
-                      label: (
-                        <>
-                          <Rows2 aria-hidden="true" />
-                          Single
-                        </>
-                      ),
-                    },
-                    {
-                      value: "dual",
-                      label: (
-                        <>
-                          <Columns2 aria-hidden="true" />
-                          Dual
-                        </>
-                      ),
-                    },
-                  ]}
-                />
-                {dual && (
-                  <button
-                    type="button"
-                    className="marketplace-listings__expand-all"
-                    aria-label={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
-                    title={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
-                    aria-expanded={expansion.expanded}
-                    onClick={() => onExpandChange(!expansion.expanded)}
-                  >
-                    <span>
-                      {expansion.expanded ? "Collapse all" : "Expand all"}
-                    </span>
-                    <ChevronDown aria-hidden="true" size={16} />
-                  </button>
-                )}
-              </div>
-            )}
+        <div className="marketplace-listings__toggles">
+          <div className="marketplace-listings__listing-selector">
+            <SegmentedRadioGroup
+              ariaLabel={`${source} listing type`}
+              className="marketplace-listings__listing-toggle"
+              name={`${id}-listing-type`}
+              value={dual ? "both" : side}
+              onChange={(value) => {
+                if (value === "both") onDualChange(true);
+                else {
+                  onDualChange(false);
+                  onSideChange(value);
+                }
+              }}
+              options={[
+                {
+                  value: "sold",
+                  label: "Sold",
+                  loading: sideStates?.sold === "pending",
+                  disabled: sideStates && sideStates.sold !== "success",
+                },
+                {
+                  value: "active",
+                  label: "Listed",
+                  loading: sideStates?.active === "pending",
+                  disabled: sideStates && sideStates.active !== "success",
+                },
+                ...(dualAvailable
+                  ? [{ value: "both" as const, label: "All" }]
+                  : []),
+              ]}
+            />
           </div>
         </div>
-        {keywordFilters && (
+        <div className="marketplace-listings__filter-panel">
           <div className="marketplace-listings__filter-row">
-            <MarketplaceKeywordFilters {...keywordFilters} />
+            {filters}
+            <div className="marketplace-listings__view-controls">
+              {clearFilters}
+              <div className="marketplace-listings__sorting">
+                <RadioButtonGroup
+                  ariaLabel={`Sort ${source} listings`}
+                  value={sort}
+                  onChange={onSortChange}
+                  options={[
+                    { value: "price-desc", label: "Price ↓" },
+                    { value: "price-asc", label: "Price ↑" },
+                    {
+                      value: "date-desc",
+                      label: "Newest",
+                      disabled: !datesAvailable,
+                    },
+                    {
+                      value: "date-asc",
+                      label: "Oldest",
+                      disabled: !datesAvailable,
+                    },
+                  ]}
+                />
+              </div>
+              {dual && (
+                <button
+                  type="button"
+                  className="marketplace-listings__expand-all"
+                  aria-label={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
+                  title={`${expansion.expanded ? "Collapse" : "Expand"} all listings`}
+                  aria-expanded={expansion.expanded}
+                  onClick={() => onExpandChange(!expansion.expanded)}
+                >
+                  <span>
+                    {expansion.expanded ? "Collapse all" : "Expand all"}
+                  </span>
+                  <ChevronDown aria-hidden="true" size={16} />
+                </button>
+              )}
+            </div>
           </div>
-        )}
+          {keywordFilters && (
+            <div className="marketplace-listings__filter-row">
+              <MarketplaceKeywordFilters {...keywordFilters} />
+            </div>
+          )}
+        </div>
       </div>
       {children}
       {showResults && (
         <div className="marketplace-listings__results-region" aria-busy={busy}>
           <div
-            className={`marketplace-listings__result-panels${dual ? " marketplace-listings__result-panels--advanced" : ""}`}
+            key={dual ? "both" : side}
+            className={`marketplace-listings__result-panels ui-render-fade${dual ? " marketplace-listings__result-panels--advanced" : ""}`}
           >
             {dual ? (
               <>

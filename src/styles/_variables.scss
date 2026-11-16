@@ -65,7 +65,7 @@
   --primary-hover: color-mix(in srgb, var(--surface3) 82%, white);
 
   --custom-color-purple: var(--ai);
-  --custom-color-copper-rose: #d99a86;
+  --custom-color-copper-rose: #e8836a;
   --custom-color-purple-soft: color-mix(in srgb, var(--ai) 70%, white);
   --custom-color-teal: var(--teal);
   --custom-color-yellow: var(--yellow);
@@ -130,7 +130,7 @@
   --hover-shadow: var(--shadow);
 
   /* Shared page shells. Detail views retain the narrower reading width. */
-  --shell-max-width: 1280px;
+  --shell-max-width: 1290px;
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;
@@ -167,12 +167,12 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 15px;
+  --card-gap: 16px;
   --card-pad: 11px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
-  --font-size-grid-title: 21px;
+  --font-size-grid-title: 22px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
   --font-size-card-title: 17px;

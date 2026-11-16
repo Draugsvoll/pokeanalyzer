@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./Header.scss";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
+import { EmbeddedCardSearchDialog } from "../embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { doc, getDoc } from "firebase/firestore";
 import LoginModal from "../loginmodal/Loginmodal";
 import Button from "../button/Button";
@@ -28,6 +29,8 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const [mobileNavState, setMobileNavState] = useState({
     open: false,
     pathname: location.pathname,
@@ -84,6 +87,25 @@ export const Header: React.FC = () => {
       ignore = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || event.altKey || event.shiftKey) return;
+      if (
+        event.key.toLowerCase() !== "k" ||
+        (!event.ctrlKey && !event.metaKey)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      if (!searchOpen && document.querySelector('[aria-modal="true"]')) {
+        return;
+      }
+      setSearchOpen((isOpen) => !isOpen);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 4);
@@ -160,6 +182,19 @@ export const Header: React.FC = () => {
         </nav>
 
         <div className="btn-container">
+          <button
+            aria-expanded={searchOpen}
+            aria-keyshortcuts="Control+K"
+            aria-label="Search..."
+            className="header__search"
+            onClick={() => setSearchOpen(true)}
+            ref={searchTriggerRef}
+            type="button"
+          >
+            <Search aria-hidden="true" size={15} strokeWidth={2} />
+            <span>Search...</span>
+            <kbd>Ctrl K</kbd>
+          </button>
           {user ? (
             <>
               <Link
@@ -271,6 +306,12 @@ export const Header: React.FC = () => {
         </div>
       )}
       <LoginModal isOpen={open} onClose={() => setOpen(false)} />
+      <EmbeddedCardSearchDialog
+        ariaLabel="Search cards"
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        returnFocusRef={searchTriggerRef}
+      />
     </header>
   );
 };

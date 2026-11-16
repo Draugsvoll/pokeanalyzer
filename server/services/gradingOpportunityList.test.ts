@@ -3,6 +3,7 @@ import test from "node:test";
 import { createClient } from "@libsql/client";
 import {
   GRADING_LIST_MAX_AGE_MS,
+  GRADING_LIST_SERVER_MISS_TTL_MS,
   GRADING_LIST_SERVER_TTL_MS,
   parseGradingOpportunityList,
   type GradingOpportunityList,
@@ -82,6 +83,20 @@ test("deduplicates server loads, caches 24h, and rejects 48h-old snapshots even 
   assert.deepEqual(await lateCache(), snapshot);
   lateNow++;
   assert.equal(await lateCache(), null);
+  let reloads = 0;
+  const reloaded = createGradingOpportunityListCache(
+    async () => {
+      reloads++;
+      return snapshot;
+    },
+    () => lateNow,
+  );
+  assert.equal(await reloaded(), null);
+  assert.equal(await reloaded(), null);
+  assert.equal(reloads, 1);
+  lateNow += GRADING_LIST_SERVER_MISS_TTL_MS;
+  assert.equal(await reloaded(), null);
+  assert.equal(reloads, 2);
 });
 
 test("server failures are retryable and future-dated lists are unusable", async () => {
@@ -103,7 +118,7 @@ test("server failures are retryable and future-dated lists are unusable", async 
   assert.equal(await future(), null);
 });
 
-test("a missing list is cached with a timestamp and renewed after 24 hours", async () => {
+test("a missing list is cached for 2 minutes and then loaded again", async () => {
   let stored: GradingOpportunityList | null = null;
   let now = Date.parse(snapshot.generatedAt);
   let calls = 0;
@@ -116,7 +131,7 @@ test("a missing list is cached with a timestamp and renewed after 24 hours", asy
   );
   assert.equal(await cached(), null);
   stored = snapshot;
-  now += GRADING_LIST_SERVER_TTL_MS - 1;
+  now += GRADING_LIST_SERVER_MISS_TTL_MS - 1;
   assert.equal(await cached(), null);
   assert.equal(calls, 1);
   now++;

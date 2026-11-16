@@ -9,6 +9,7 @@ type GridViewProps = {
   headerControls?: React.ReactNode;
   minimized?: boolean;
   revealOnScroll?: boolean;
+  replayKey?: React.Key;
   sorting?: boolean;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
@@ -19,6 +20,7 @@ export function GridView({
   defaultExpanded = false,
   headerControls,
   minimized = false,
+  replayKey,
   revealOnScroll = true,
   sorting = false,
   subtitle,
@@ -108,6 +110,7 @@ export function GridView({
         </header>
       )}
       <div
+        key={replayKey}
         className={`card-grid ui-card-grid-enter${sorting ? " card-grid--sorting" : ""}`}
         id={canMinimize ? contentId : undefined}
         ref={gridRef}

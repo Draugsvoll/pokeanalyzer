@@ -205,15 +205,11 @@ export function GradingCalculator({
 
   return (
     <section
-      aria-labelledby="grading-calculator-title"
+      aria-label="Grading calculator"
       className="grading-calculator default-container ui-render-fade ui-scroll-reveal"
       hidden={hidden}
       ref={setSectionRef}
     >
-      <header className="grading-calculator__heading">
-        <h3 id="grading-calculator-title">Grading calculator</h3>
-      </header>
-
       <section aria-label="Inputs" className="grading-calculator__settings">
         <div className="grading-calculator__settings-fields">
           <div className="grading-calculator__settings-row grading-calculator__settings-row--raw">
@@ -441,12 +437,9 @@ export function GradingCalculator({
             : "grading-calculator__summary grading-calculator__summary--disabled"
         }
       >
-        <div className="grading-calculator__summary-heading">
-          <h3>Outcomes</h3>
-        </div>
         <article className="grading-calculator__outcome-card grading-calculator__outcome-card--spread">
           <div className="grading-calculator__compare-gain">
-            <h4>Expected incremental gain</h4>
+            <h3>Expected incremental gain</h3>
             <strong
               aria-label="Grade & sell vs. selling raw"
               className={

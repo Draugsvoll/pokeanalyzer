@@ -1,3 +1,4 @@
+import { DEMO_SOURCE_CARD_ID } from "../../shared/demoCard";
 import type { PokemonCard } from "../types/pokemon";
 import {
   isPokeTraceMarket,
@@ -179,7 +180,7 @@ export async function fetchCardById(
 ): Promise<PokemonCard> {
   if (cardId === "demo") {
     const [liveCard, demoValue] = await Promise.all([
-      fetchCardById("019c0001-f4af-73e0-bbc7-f1036725cbc5", signal),
+      fetchCardById(DEMO_SOURCE_CARD_ID, signal),
       cardRequest(`${import.meta.env.BASE_URL}demo-card.json`, signal),
     ]);
     const demo = normalizeCardResponse(demoValue, "demo");

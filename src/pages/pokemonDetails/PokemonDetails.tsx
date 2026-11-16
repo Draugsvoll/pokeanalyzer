@@ -1,3 +1,4 @@
+import { DEMO_SOURCE_CARD_ID } from "../../../shared/demoCard";
 import { AssetSaveActions } from "../../components/assetSaveActions/AssetSaveActions";
 import {
   useCallback,
@@ -458,6 +459,11 @@ function PokemonDetailsForCard() {
           routeCardIdRef.current !== id
         ) {
           return;
+        }
+
+        const expectedCardId = id === "demo" ? DEMO_SOURCE_CARD_ID : id;
+        if (fetchedCard && fetchedCard.id !== expectedCardId) {
+          throw new Error("Card response does not match the requested card");
         }
 
         setCardRequestState({
@@ -960,7 +966,7 @@ function PokemonDetailsForCard() {
         {DISABLE_CARD_AI_ANALYSIS && gradingCalculator}
 
         <div
-          className="card-view__marketplace-panel"
+          className="card-view__marketplace-panel ui-render-fade"
           hidden={selectedPanel !== "tcg"}
         >
           <TcgExplorerSection
@@ -977,7 +983,7 @@ function PokemonDetailsForCard() {
         </div>
         {/* Tab changes preserve eBay's independent request and results. */}
         <div
-          className="card-view__ebay-panel card-view__marketplace-panel"
+          className="card-view__ebay-panel card-view__marketplace-panel ui-render-fade"
           hidden={!showEbay}
         >
           <EbaySection

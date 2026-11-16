@@ -35,7 +35,8 @@ export function buildEbayCompsUrl(
   options: EbayCompsOptions = {},
 ) {
   const params = new URLSearchParams({
-    keyword: query,
+    // Keep exclusions out of the saved query so existing caches remain reusable.
+    keyword: `${query} -lot -bundle`,
     ebaySite: "ebay.com",
     categoryId: "183454",
     conditionId: options.mode === "raw" ? "4000" : "2750",

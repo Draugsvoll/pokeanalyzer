@@ -1,7 +1,7 @@
 .grading-calculator {
   color: var(--font-color-primary);
   display: grid;
-  gap: 1.15rem;
+  gap: 1rem;
   margin-inline: auto;
   max-width: var(--shell-max-width);
   width: 100%;
@@ -35,6 +35,21 @@
     min-width: 0;
   }
 
+  &__grade.ui-render-fade {
+    transform: none;
+    transition:
+      opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    @starting-style {
+      transform: translate3d(0, 0.9rem, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
   &__summary,
   &__settings {
     display: grid;
@@ -46,17 +61,18 @@
   }
 
   &__summary {
-    gap: 1.15rem;
-    margin-top: 0.5rem;
+    gap: var(--space-6);
+    margin-top: var(--space-6);
 
     > h3 {
+      margin-bottom: -0.5rem;
       text-align: center;
     }
   }
 
   &__settings {
     padding: var(--default-container-padding);
-    padding-top: 1.42rem;
+    padding-top: 1.25rem;
     max-width: 60rem;
     margin-inline: auto;
     width: 100%;
@@ -380,9 +396,9 @@
     padding: 1.5rem;
     width: 100%;
 
-    > h4 {
+    > h3 {
       margin: 0;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
     }
 
     > span {
@@ -653,6 +669,7 @@
   &__chance-label {
     color: var(--font-color-muted);
     font-size: var(--font-size-paragraph-sm);
+    font-weight: var(--font-weight-medium);
     justify-content: space-between;
   }
 
@@ -711,9 +728,10 @@
 
     &::-webkit-slider-thumb {
       appearance: none;
-      background: var(--blue);
+      background: var(--bg2);
       border: 0;
       border-radius: 50%;
+      box-shadow: inset 0 0 0 2px var(--blue);
       height: 0.62rem;
       margin-top: -0.2rem;
       width: 0.62rem;
@@ -738,9 +756,10 @@
     }
 
     &::-moz-range-thumb {
-      background: var(--blue);
+      background: var(--bg2);
       border: 0;
       border-radius: 50%;
+      box-shadow: inset 0 0 0 2px var(--blue);
       height: 0.62rem;
       width: 0.62rem;
     }
@@ -768,6 +787,7 @@
 
     &::-webkit-slider-thumb {
       background: var(--chance-muted);
+      box-shadow: none;
     }
 
     &::-moz-range-progress {
@@ -776,6 +796,7 @@
 
     &::-moz-range-thumb {
       background: var(--chance-muted);
+      box-shadow: none;
     }
   }
 

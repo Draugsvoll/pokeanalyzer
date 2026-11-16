@@ -34,6 +34,13 @@ vi.mock("../loginmodal/Loginmodal", () => ({
   default: () => null,
 }));
 
+vi.mock("../embeddedCardSearchDialog/EmbeddedCardSearchDialog", () => ({
+  EmbeddedCardSearchDialog: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? (
+      <div role="dialog" aria-modal="true" aria-label="Search cards" />
+    ) : null,
+}));
+
 function renderHeader(initialEntry = "/") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -43,6 +50,25 @@ function renderHeader(initialEntry = "/") {
 }
 
 describe("Header", () => {
+  test("ignores the search shortcut over another modal and toggles its own search", () => {
+    renderHeader();
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    document.body.append(modal);
+    try {
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      expect(screen.queryByRole("dialog", { name: "Search cards" })).toBeNull();
+    } finally {
+      modal.remove();
+    }
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(
+      screen.getByRole("dialog", { name: "Search cards" }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(screen.queryByRole("dialog", { name: "Search cards" })).toBeNull();
+  });
+
   beforeEach(() => {
     mocks.auth.user = null;
     mocks.unlimitedEbay = false;

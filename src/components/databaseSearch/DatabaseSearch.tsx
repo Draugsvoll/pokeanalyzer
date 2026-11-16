@@ -884,7 +884,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                       <GradingOpportunityFilter
                         checked={gradingActive}
                         count={
-                          sortedResults.filter(
+                          results.filter(
                             (card) => gradingMultiplier(card) !== null,
                           ).length
                         }
@@ -911,7 +911,13 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
                   <p>No cards match the grading criteria in these results.</p>
                 )}
                 {sortedResults.length > 0 && (
-                  <GridView revealOnScroll={false} sorting={isSorting}>
+                  <GridView
+                    replayKey={`${gradingActive ? "grading" : "all"}:${sortedResults
+                      .map((card) => card.id)
+                      .join(",")}`}
+                    revealOnScroll={false}
+                    sorting={isSorting}
+                  >
                     {visibleResults.map((card) => {
                       return (
                         <PokemonCardView

@@ -71,3 +71,7 @@
     font-size: var(--font-size-caption);
   }
 }
+
+.radio-button-group--currency .radio-button-group__option {
+  min-width: 3.1rem;
+}

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { CardIdentity } from "./CardIdentity";
 
-test("renders the card number above the card name", () => {
+test("renders the card number and name", () => {
   const { container } = render(
     <CardIdentity name="Charizard" number="004/102" />,
   );

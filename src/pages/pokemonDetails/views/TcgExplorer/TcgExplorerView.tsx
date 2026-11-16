@@ -58,6 +58,17 @@ export function TcgExplorerView({
   const displayedSort =
     !dual && side === "offers" && sort.startsWith("date") ? "price-desc" : sort;
   const productUrl = `https://www.tcgplayer.com/product/${data.productId}`;
+  const conditionCounts = new Map<string, number>();
+  for (const row of [...(data.sales ?? []), ...(data.offers ?? [])]) {
+    if (row.condition === null) continue;
+    const key = normalizeTcgLabel(row.condition);
+    conditionCounts.set(key, (conditionCounts.get(key) ?? 0) + 1);
+  }
+  const availableConditions = TCG_CONDITIONS.filter(
+    (item) =>
+      item.value === "all" ||
+      (conditionCounts.get(normalizeTcgLabel(item.name)) ?? 0) > 0,
+  );
 
   function renderPanel(panel: "sales" | "offers") {
     const rows = data[panel];
@@ -134,7 +145,7 @@ export function TcgExplorerView({
         count={
           rows === null
             ? undefined
-            : `${sorted.length} ${sorted.length === 1 ? "match" : "matches"}`
+            : `${sorted.length} ${sorted.length === 1 ? "result" : "results"}`
         }
         summary={
           summary
@@ -213,9 +224,11 @@ export function TcgExplorerView({
       filters={
         <div className="marketplace-listings__grade-controls">
           <fieldset className="marketplace-listings__filters radio-group">
-            <legend>Condition</legend>
+            <legend className="marketplace-listings__condition-legend">
+              Condition
+            </legend>
             <div>
-              {TCG_CONDITIONS.map((item) => (
+              {availableConditions.map((item) => (
                 <label key={item.value}>
                   <input
                     type="radio"
@@ -225,7 +238,16 @@ export function TcgExplorerView({
                     onChange={() => setCondition(item.value)}
                     aria-label={item.name}
                   />
-                  <span>{item.value === "all" ? "All" : item.label}</span>
+                  <span>
+                    {item.value === "all" ? "All" : item.label}
+                    {item.value !== "all" && (
+                      <small className="ui-select-dropdown__count">
+                        (
+                        {conditionCounts.get(normalizeTcgLabel(item.name)) ?? 0}
+                        )
+                      </small>
+                    )}
+                  </span>
                 </label>
               ))}
             </div>

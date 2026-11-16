@@ -755,8 +755,11 @@ export function SetCategoryGrid() {
           <GradingOpportunityFilter
             checked={gradingActive}
             count={
-              filteredCards.filter((card) => gradingMultiplier(card) !== null)
-                .length
+              scopedCards.filter(
+                (card) =>
+                  (!rarity || card.rarity?.trim() === rarity) &&
+                  gradingMultiplier(card) !== null,
+              ).length
             }
             onChange={(checked) => {
               setGradingEnabled(checked);
@@ -877,6 +880,9 @@ export function SetCategoryGrid() {
 
           <CardCategoryGrid
             allowGradingFilter={false}
+            replayKey={`${gradingActive ? "grading" : "all"}:${sortedCards
+              .map((card) => card.id)
+              .join(",")}`}
             emptyMessage={
               gradingActive
                 ? "No cards match the grading criteria in this set."

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  GRADING_LIST_BROWSER_MISS_TTL_MS,
   GRADING_LIST_BROWSER_TTL_MS,
   GRADING_LIST_MAX_AGE_MS,
   isGradingOpportunityListFresh,
@@ -22,7 +23,10 @@ export function useGradingOpportunityFilter(load = true) {
       setList(next);
       if (!next) {
         setEnabled(false);
-        timer = setTimeout(() => void refresh(), GRADING_LIST_BROWSER_TTL_MS);
+        timer = setTimeout(
+          () => void refresh(),
+          GRADING_LIST_BROWSER_MISS_TTL_MS,
+        );
         return;
       }
       const remaining =

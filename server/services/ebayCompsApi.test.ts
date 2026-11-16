@@ -34,7 +34,10 @@ test("eBay card requests preserve the sold and active request contract", () => {
 
     assert.equal(requestUrl.origin, "https://api.compsniper.com");
     assert.equal(requestUrl.pathname, "/v1/scrape");
-    assert.equal(requestUrl.searchParams.get("keyword"), query);
+    assert.equal(
+      requestUrl.searchParams.get("keyword"),
+      `${query} -lot -bundle`,
+    );
     assert.equal(requestUrl.searchParams.get("ebaySite"), "ebay.com");
     assert.equal(requestUrl.searchParams.get("exactMatch"), "false");
     assert.equal(requestUrl.searchParams.has("hydrateBoa"), false);
@@ -175,7 +178,7 @@ test("provider 429 responses are identified as rate limits", async (t) => {
   await assert.rejects(fetchEbayComps("Pikachu"), CompSniperRateLimitError);
 });
 
-test("raw requests use only the ungraded condition filter without altering keywords", () => {
+test("raw requests preserve the cache query and exclude lots and bundles upstream", () => {
   const { query, soldOptions, activeOptions } = buildEbayCardRequests(
     { cardName: "Pikachu", cardNumber: "027/078" },
     "raw",
@@ -184,7 +187,7 @@ test("raw requests use only the ungraded condition filter without altering keywo
   for (const options of [soldOptions, activeOptions]) {
     const url: URL = new URL(buildEbayCompsUrl(query, options));
     assert.equal(url.searchParams.get("conditionId"), "4000");
-    assert.equal(url.searchParams.get("keyword"), query);
+    assert.equal(url.searchParams.get("keyword"), `${query} -lot -bundle`);
     assert.equal(url.searchParams.has("aspectFilter"), false);
   }
 });

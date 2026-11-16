@@ -1,6 +1,8 @@
 export const GRADING_LIST_BROWSER_TTL_MS = 6 * 60 * 60 * 1_000;
+export const GRADING_LIST_BROWSER_MISS_TTL_MS = 10 * 60 * 1_000;
 export const GRADING_LIST_SERVER_TTL_MS = 24 * 60 * 60 * 1_000;
-export const GRADING_LIST_MAX_AGE_MS = 48 * 60 * 60 * 1_000;
+export const GRADING_LIST_SERVER_MISS_TTL_MS = 2 * 60 * 1_000;
+export const GRADING_LIST_MAX_AGE_MS = 49 * 60 * 60 * 1_000;
 
 export type GradingOpportunityList = {
   schemaVersion: 2;

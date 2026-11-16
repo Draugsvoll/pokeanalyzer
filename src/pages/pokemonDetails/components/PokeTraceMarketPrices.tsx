@@ -298,19 +298,19 @@ function MarketplaceColumn({
           ) : (
             <dl className="poketrace-market__range">
               <div>
-                <dt>Low:</dt>
+                <dt>Low</dt>
                 <dd className="poketrace-market__range-price">
                   {formatPrice(price.low, currency)}
                 </dd>
               </div>
               <div>
-                <dt>High:</dt>
+                <dt>High</dt>
                 <dd className="poketrace-market__range-price">
                   {formatPrice(price.high, currency)}
                 </dd>
               </div>
               <div>
-                <dt>Sold:</dt>
+                <dt>Sold</dt>
                 <dd>{sales}</dd>
               </div>
             </dl>
@@ -880,20 +880,29 @@ export function PokeTraceMarketPrices({
   const ebayGradedEntries = gradedEntries(prices.ebay);
   const sources = ["tcgplayer", "ebay"];
   const cardmarketPrice = data.marketPrices?.AGGREGATED?.EU?.cardmarket;
-  const [priceHistory, setPriceHistory] =
-    useState<CardPriceHistoryResponse | null>(null);
+  const [historyState, setHistoryState] = useState<{
+    cardId: string;
+    data: CardPriceHistoryResponse | null;
+  } | null>(null);
+  const priceHistory = historyState?.cardId === cardId ? historyState.data : null;
 
   useEffect(() => {
-    setPriceHistory(null);
     if (!cardId) return;
 
     const controller = new AbortController();
     void fetchCardPriceHistory(cardId, 9, controller.signal)
-      .then(setPriceHistory)
+      .then((history) => {
+        if (!controller.signal.aborted) {
+          setHistoryState({ cardId, data: history });
+        }
+      })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
+        if (
+          controller.signal.aborted ||
+          (error instanceof DOMException && error.name === "AbortError")
+        )
           return;
-        setPriceHistory(null);
+        setHistoryState({ cardId, data: null });
       });
 
     return () => controller.abort();

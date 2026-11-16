@@ -1,5 +1,6 @@
 import type { Client } from "@libsql/client";
 import {
+  GRADING_LIST_SERVER_MISS_TTL_MS,
   GRADING_LIST_SERVER_TTL_MS,
   isGradingOpportunityListFresh,
   parseGradingOpportunityList,
@@ -46,11 +47,17 @@ export function createGradingOpportunityListCache(
     { loadedAt: number; list: GradingOpportunityList | null } | undefined;
   let pending: Promise<GradingOpportunityList | null> | undefined;
   return async () => {
-    if (!cached || now() - cached.loadedAt >= GRADING_LIST_SERVER_TTL_MS) {
+    const usable =
+      cached?.list != null && isGradingOpportunityListFresh(cached.list, now());
+    const ttl = usable
+      ? GRADING_LIST_SERVER_TTL_MS
+      : GRADING_LIST_SERVER_MISS_TTL_MS;
+    if (!cached || now() - cached.loadedAt >= ttl) {
       pending ??= load()
         .then((list) => {
-          cached = { list, loadedAt: now() };
-          return list;
+          const fresh = list && isGradingOpportunityListFresh(list, now());
+          cached = { list: fresh ? list : null, loadedAt: now() };
+          return cached.list;
         })
         .finally(() => {
           pending = undefined;

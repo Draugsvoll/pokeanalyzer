@@ -27,9 +27,7 @@ test.each([7, 8, 9, 10])(
       ".grading-calculator__compare-gain",
     )!;
     expect(comparison).toHaveTextContent(prompt);
-    expect(
-      container.querySelector(".grading-calculator__summary-heading"),
-    ).not.toHaveTextContent(prompt);
+    expect(screen.getAllByText(prompt)).toHaveLength(1);
     expect(comparison).not.toHaveTextContent("Compared with selling raw");
     const input = screen.getAllByLabelText(`PSA ${grade} Sell price`)[0];
     fireEvent.change(input, { target: { value: "100" } });

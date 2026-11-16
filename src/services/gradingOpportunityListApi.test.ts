@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
+  GRADING_LIST_BROWSER_MISS_TTL_MS,
   GRADING_LIST_BROWSER_TTL_MS,
   GRADING_LIST_MAX_AGE_MS,
 } from "../../shared/gradingOpportunityList";
@@ -77,7 +78,7 @@ test("discards old seven-day snapshots instead of reusing their PSA prices", asy
   expect(JSON.parse(localStorage.getItem(key)!).payload.schemaVersion).toBe(2);
 });
 
-test("caches no-list responses across reloads and renews them after six hours", async () => {
+test("caches a missing list for 10 minutes and then fetches again", async () => {
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce({ ok: true, json: async () => null })
@@ -92,10 +93,10 @@ test("caches no-list responses across reloads and renews them after six hours", 
   expect(await first.getGradingOpportunityList()).toBeNull();
   vi.resetModules();
   const reloaded = await import("./gradingOpportunityListApi");
-  vi.setSystemTime(now + GRADING_LIST_BROWSER_TTL_MS - 1);
+  vi.setSystemTime(now + GRADING_LIST_BROWSER_MISS_TTL_MS - 1);
   expect(await reloaded.getGradingOpportunityList()).toBeNull();
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  vi.setSystemTime(now + GRADING_LIST_BROWSER_TTL_MS);
+  vi.setSystemTime(now + GRADING_LIST_BROWSER_MISS_TTL_MS);
   expect(await reloaded.getGradingOpportunityList()).toEqual(snapshot);
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
@@ -114,7 +115,7 @@ test("48-hour expiry overrides a freshly written browser cache", async () => {
     await import("./gradingOpportunityListApi");
   expect(await getGradingOpportunityList()).toBeNull();
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  expect(localStorage.getItem(key)).toBeNull();
+  expect(JSON.parse(localStorage.getItem(key)!).payload).toBeNull();
 });
 
 test("failed and malformed requests are not cached; successful empty lists are cached", async () => {
@@ -156,5 +157,5 @@ test("missing or future-dated snapshots are not usable", async () => {
   const { getGradingOpportunityList } =
     await import("./gradingOpportunityListApi");
   expect(await getGradingOpportunityList()).toBeNull();
-  expect(localStorage.getItem(key)).toBeNull();
+  expect(JSON.parse(localStorage.getItem(key)!).payload).toBeNull();
 });

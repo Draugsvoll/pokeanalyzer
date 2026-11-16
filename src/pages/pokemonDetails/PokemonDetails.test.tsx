@@ -1,3 +1,4 @@
+import { DEMO_SOURCE_CARD_ID } from "../../../shared/demoCard";
 import {
   act,
   fireEvent,
@@ -331,7 +332,9 @@ beforeEach(() => {
   mocks.fetchCardById.mockImplementation(async (cardId: string) =>
     cardId === "card-a"
       ? buildCard("card-a", "Pikachu")
-      : buildCard("card-b", "Raichu"),
+      : cardId === "demo"
+        ? buildCard(DEMO_SOURCE_CARD_ID, "Demo card")
+        : buildCard("card-b", "Raichu"),
   );
   mocks.fetchMarketPriceHistory.mockImplementation(async (cardId: string) => ({
     cardId,
@@ -590,7 +593,7 @@ test("shows regular loading instead of locked content while the demo card loads"
     loadingPage.querySelector(".details-page__content .poketrace-market"),
   ).toBeInTheDocument();
   await act(async () => {
-    resolveCard(buildCard("demo-card", "Demo card"));
+    resolveCard(buildCard(DEMO_SOURCE_CARD_ID, "Demo card"));
   });
   expect(
     await screen.findByRole("heading", { name: "Demo card", level: 1 }),
@@ -1118,6 +1121,21 @@ test("feature responses survive view switches and clear for a new card", async (
   expect(mocks.askGrok).toHaveBeenCalledTimes(2);
 });
 
+test.each(["card-a", "demo"])(
+  "rejects a fetched card whose ID does not match route %s",
+  async (routeId) => {
+    mocks.fetchCardById.mockResolvedValue(buildCard("card-b", "Wrong card"));
+    render(
+      <MemoryRouter initialEntries={[`/card/${routeId}`]}>
+        <TestRoutes />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("heading", { name: "Oops" })).toBeVisible();
+    expect(screen.queryByText("Wrong card")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+  },
+);
+
 test("opens the Ebay tab in the shared feature layout without an automatic request", async () => {
   render(
     <MemoryRouter initialEntries={["/card/card-a"]}>
@@ -1132,9 +1150,7 @@ test("opens the Ebay tab in the shared feature layout without an automatic reque
   const primary = title.closest(".details-page__primary")!;
   const ebay = screen.getByRole("region", { name: "Ebay sales and listings" });
   const ai = screen.getByRole("region", { name: "Card insights" });
-  const calculator = screen
-    .getByText("Grading calculator", { selector: "h3" })
-    .closest("section")!;
+  const calculator = document.querySelector("section.grading-calculator")!;
   expect(primary.nextElementSibling).toBe(calculator);
   expect(calculator.nextElementSibling).toBe(ai);
   expect(calculator).not.toBeVisible();
@@ -1404,7 +1420,7 @@ test("keeps logged-out pricing links on the card page while card data loads", as
 test("unlocks demo market history and graded prices without login or membership", async () => {
   mocks.authUser = null;
   mocks.hasSubscription = false;
-  const liveId = "019c0001-f4af-73e0-bbc7-f1036725cbc5";
+  const liveId = DEMO_SOURCE_CARD_ID;
   const demo = buildCard(liveId, "Charizard");
   demo.pokeTrace!.prices = {
     ebay: { NEAR_MINT: { avg: 10 }, PSA_10: { avg: 100, saleCount: 20 } },

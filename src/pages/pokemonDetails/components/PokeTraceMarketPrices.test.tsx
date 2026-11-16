@@ -7,7 +7,10 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import type { MarketPriceHistoryResponse } from "../../../services/cardApi";
+import type {
+  CardPriceHistoryResponse,
+  MarketPriceHistoryResponse,
+} from "../../../services/cardApi";
 import demoCard from "../../../../public/demo-card.json";
 import type { PokemonCard } from "../../../types/pokemon";
 import {
@@ -26,6 +29,94 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
 });
 afterEach(() => vi.useRealTimers());
+
+function deferredCardHistory() {
+  let resolve!: (value: CardPriceHistoryResponse) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<CardPriceHistoryResponse>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function snapshotHistory(
+  id: string,
+  previousPrice: number,
+): CardPriceHistoryResponse {
+  return {
+    cardId: id,
+    days: 9,
+    snapshots: ["2026-10-28", "2026-11-04"].map((recordedAt) => ({
+      recordedAt,
+      currency: "USD",
+      sourceUpdatedAt: null,
+      prices: { tcgplayer: { NEAR_MINT: { avg: previousPrice } } },
+    })),
+  };
+}
+
+test("card snapshot history disappears on card switch until the new history arrives", async () => {
+  const next = deferredCardHistory();
+  vi.mocked(fetchCardPriceHistory)
+    .mockResolvedValueOnce(snapshotHistory("a", 10))
+    .mockReturnValueOnce(next.promise);
+  const { container, rerender } = render(
+    <PokeTraceMarketPrices cardId="a" data={liveData} />,
+  );
+  const change = () =>
+    container.querySelector(
+      ".poketrace-market__marketplace .app-price-change",
+    )!;
+  await waitFor(() => expect(change()).toHaveTextContent("100.0%"));
+  rerender(<PokeTraceMarketPrices cardId="b" data={liveData} />);
+  expect(change()).toHaveClass("app-price-change--unavailable");
+  expect(vi.mocked(fetchCardPriceHistory).mock.calls[0][2]?.aborted).toBe(true);
+  await act(async () => next.resolve(snapshotHistory("b", 16)));
+  expect(change()).toHaveTextContent("25.0%");
+});
+
+test.each(["success", "failure"] as const)(
+  "abandoned card snapshot history %s cannot overwrite the current card",
+  async (outcome) => {
+    const old = deferredCardHistory();
+    vi.mocked(fetchCardPriceHistory)
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValueOnce(snapshotHistory("b", 16));
+    const { container, rerender } = render(
+      <PokeTraceMarketPrices cardId="a" data={liveData} />,
+    );
+    rerender(<PokeTraceMarketPrices cardId="b" data={liveData} />);
+    const change = () =>
+      container.querySelector(
+        ".poketrace-market__marketplace .app-price-change",
+      )!;
+    await waitFor(() => expect(change()).toHaveTextContent("25.0%"));
+    await act(async () => {
+      if (outcome === "success") old.resolve(snapshotHistory("a", 10));
+      else old.reject(new Error("Old request failed"));
+    });
+    expect(change()).toHaveTextContent("25.0%");
+  },
+);
+
+test("current card snapshot history failure leaves its change unavailable", async () => {
+  const next = deferredCardHistory();
+  vi.mocked(fetchCardPriceHistory)
+    .mockResolvedValueOnce(snapshotHistory("a", 10))
+    .mockReturnValueOnce(next.promise);
+  const { container, rerender } = render(
+    <PokeTraceMarketPrices cardId="a" data={liveData} />,
+  );
+  const change = () =>
+    container.querySelector(
+      ".poketrace-market__marketplace .app-price-change",
+    )!;
+  await waitFor(() => expect(change()).toHaveTextContent("100.0%"));
+  rerender(<PokeTraceMarketPrices cardId="b" data={liveData} />);
+  await act(async () => next.reject(new Error("Current request failed")));
+  expect(change()).toHaveClass("app-price-change--unavailable");
+});
 
 test("uses normal prices and live history even when embedded demo snapshots are present", async () => {
   vi.mocked(fetchCardPriceHistory).mockResolvedValue({
@@ -145,10 +236,10 @@ test("shows Cardmarket as the third market card with EU aggregated prices", asyn
   ).toHaveTextContent("Cardmarket");
   expect(cardmarket.getAllByText("€18.00")).toHaveLength(2);
   expect(cardmarket.getByText("Listings")).toBeInTheDocument();
-  expect(cardmarket.getByText("From:")).toBeInTheDocument();
+  expect(cardmarket.getByText("From")).toBeInTheDocument();
   expect(cardmarket.queryByText("7d avg")).not.toBeInTheDocument();
-  expect(cardmarket.getByText("Trend:")).toBeInTheDocument();
-  expect(cardmarket.getByText("30d avg:")).toBeInTheDocument();
+  expect(cardmarket.getByText("Trend")).toBeInTheDocument();
+  expect(cardmarket.getByText("30d-avg")).toBeInTheDocument();
   expect(cardmarket.getByText("€15.00")).toBeInTheDocument();
   expect(cardmarket.queryByText("€17.00")).not.toBeInTheDocument();
   expect(cardmarket.getByText("€16.00")).toBeInTheDocument();

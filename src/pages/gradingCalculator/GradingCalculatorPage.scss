@@ -3,4 +3,13 @@
   gap: var(--space-8);
   min-width: 0;
   width: 100%;
+
+  &__header {
+    margin-bottom: calc(var(--space-4) - var(--space-8));
+    text-align: center;
+
+    h1 {
+      margin: var(--space-2) 0 0;
+    }
+  }
 }

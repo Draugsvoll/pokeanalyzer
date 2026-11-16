@@ -6,7 +6,7 @@ import { GradingOpportunityFilter } from "../components/gradingOpportunitiesGrid
 import { GradingOpportunityBadge } from "../components/gradingOpportunitiesGrid/GradingOpportunityBadge";
 import type { PokemonCard } from "../types/pokemon";
 import {
-  GRADING_LIST_BROWSER_TTL_MS,
+  GRADING_LIST_BROWSER_MISS_TTL_MS,
   GRADING_LIST_MAX_AGE_MS,
 } from "../../shared/gradingOpportunityList";
 
@@ -121,7 +121,7 @@ test("missing or failed lists quietly leave the normal grid usable", async () =>
   expect(screen.getAllByTestId("card")).toHaveLength(3);
 });
 
-test("an open grid retries a no-list response after six hours", async () => {
+test("an open grid retries a missing list after 10 minutes", async () => {
   vi.useFakeTimers();
   vi.mocked(getGradingOpportunityList)
     .mockResolvedValueOnce(null)
@@ -135,7 +135,7 @@ test("an open grid retries a no-list response after six hours", async () => {
   });
   expect(screen.queryByRole("checkbox")).toBeNull();
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(GRADING_LIST_BROWSER_TTL_MS - 1);
+    await vi.advanceTimersByTimeAsync(GRADING_LIST_BROWSER_MISS_TTL_MS - 1);
   });
   expect(getGradingOpportunityList).toHaveBeenCalledTimes(1);
   await act(async () => {

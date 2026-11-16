@@ -10,7 +10,7 @@
     container: marketplace-controls / inline-size;
     display: grid;
     gap: var(--space-3);
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-4);
   }
 
   &__state {
@@ -44,9 +44,22 @@
 
   &__result-summary {
     padding: var(--space-4);
+    background: var(--surface4);
+    border-radius: var(--border-radius);
+    position: relative;
+
+    &::after {
+      background: color-mix(in srgb, var(--border-divider) 50%, transparent);
+      bottom: 0;
+      content: "";
+      height: 1px;
+      left: var(--space-3);
+      position: absolute;
+      right: var(--space-3);
+    }
     > div > h2 {
       color: var(--font-color-secondary);
-      font-size: var(--font-size-caption);
+      font-size: var(--font-size-paragraph-sm);
       font-weight: var(--font-weight-medium);
       text-align: center;
       margin-block: 0.12rem;
@@ -109,17 +122,17 @@
   }
 
   &__toggles {
-    align-items: center;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 1rem;
+    display: flex;
     justify-content: center;
+  }
+
+  &__leading {
+    justify-self: start;
+    min-width: 0;
   }
 
   &__listing-selector {
     display: grid;
-    grid-column: 2;
-    grid-row: 1;
     justify-items: center;
   }
 
@@ -132,11 +145,23 @@
 
   &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--marketplace-accent);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(7.5rem, 1fr));
+    border-radius: var(--border-radius);
     justify-self: center;
-    width: fit-content;
     margin: 0;
+    width: fit-content;
+
+    .segmented-radio-group__option > span {
+      border-radius: calc(var(--border-radius) - 0.2rem);
+    }
+
+    .segmented-radio-group__option {
+      min-width: 6.25rem;
+    }
+  }
+
+  &__filter-panel {
+    display: grid;
+    gap: var(--space-3);
   }
 
   &__filter-row {
@@ -167,7 +192,7 @@
     flex: 0 0 auto;
 
     .ui-select-dropdown__toggle {
-      background: transparent;
+      background: var(--surface4);
       border: 1px solid var(--border-color-strong);
       border-radius: var(--border-radius-pill);
       color: var(--font-color-muted);
@@ -272,37 +297,13 @@
     z-index: calc(var(--dropdown-z-index) + 1);
   }
 
-  &__condition-heading {
+  &__condition-controls {
     align-items: center;
-    color: var(--font-color-muted);
-    display: inline-flex;
-    font-size: var(--font-size-label);
-    font-weight: var(--font-weight-medium);
-    gap: 0.15rem;
-    line-height: 1;
-    margin-bottom: 0.3rem;
-    padding-left: 0.4rem;
+    display: flex;
   }
 
   &__condition-help.info-tooltip {
-    position: relative;
-    display: inline-flex;
-    margin: 0;
-
-    > button {
-      height: 1rem;
-      width: 1rem;
-
-      svg {
-        height: 0.85rem;
-        width: 0.85rem;
-      }
-    }
-  }
-
-  &__condition-help .info-tooltip__content {
-    left: 0;
-    right: auto;
+    margin: 0 0 0 0.45rem;
   }
 
   &__filters {
@@ -316,6 +317,19 @@
       font-weight: var(--font-weight-medium);
       margin-bottom: 0.3rem;
       padding-left: 0.4rem;
+    }
+
+    .marketplace-listings__condition-legend {
+      border: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
     }
 
     > div {
@@ -384,14 +398,21 @@
     --radio-accent: var(--marketplace-accent);
   }
 
-  &__filters.radio-group.radio-group label > span {
+  &__filters.radio-group.radio-group label:has(> input) > span {
     min-width: 4.3rem;
     height: 2.1rem;
+    background: var(--surface4);
     color: var(--font-color-muted);
     font-size: var(--font-size-overline);
   }
 
+  &__filters.radio-group.radio-group .ui-select-dropdown__count {
+    font-size: var(--font-size-label);
+  }
+
   &__filters.radio-group.radio-group input:checked + span {
+    background: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
+    border-color: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
     color: var(--button-font-color);
   }
 
@@ -441,6 +462,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    line-height: 1;
   }
 
   &__expand-all {
@@ -535,34 +557,35 @@
       var(--animation-ease-standard) both;
     background: transparent;
     border: 0;
-    border-top: 1px solid var(--border-divider);
     border-radius: 0;
     box-shadow: none;
     display: grid;
     gap: 0.8rem;
     grid-template-columns: 3.75rem minmax(0, 1fr);
-    overflow: hidden;
+    overflow: visible;
+    background: var(--bg2);
     padding: 0.6rem;
     padding-left: 0.45rem;
     position: relative;
     text-align: left;
     align-items: center;
-    transition: background-color var(--delay-short) ease;
+    transition: filter var(--delay-short) ease;
 
     @media (prefers-reduced-motion: reduce) {
       animation: none;
+      transition: none;
     }
 
-    &:last-child {
-      border-bottom: 1px solid var(--border-divider);
+    .marketplace-listings__media > img {
+      border-radius: 0;
+    }
+
+    &:nth-child(even) {
+      background: color-mix(in srgb, var(--surface5) 80%, var(--bg2));
     }
 
     &:hover {
-      background-color: color-mix(
-        in srgb,
-        var(--font-color-primary) 2.5%,
-        transparent
-      );
+      filter: brightness(1.05);
     }
   }
 
@@ -590,16 +613,7 @@
       object-fit: contain;
       object-position: center;
       width: 100%;
-    }
-
-    > svg {
-      color: var(--font-color-muted);
-      height: 2rem;
-      left: 50%;
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 2rem;
+      border-radius: 0;
     }
   }
 
@@ -625,7 +639,8 @@
 
     svg {
       background: var(--bg2);
-      border: 1px solid var(--border-divider);
+      border: 1px solid
+        color-mix(in srgb, var(--font-color-primary) 18%, transparent);
       border-radius: var(--border-radius-pill);
       box-sizing: border-box;
       height: 1.55rem;
@@ -643,7 +658,8 @@
     .marketplace-listings__result:hover & svg,
     .marketplace-listings__title-block--toggleable:hover & svg {
       background: var(--bg2);
-      border: 1px solid var(--border-divider);
+      border: 1px solid
+        color-mix(in srgb, var(--font-color-primary) 18%, transparent);
       color: var(--font-color-secondary);
       opacity: 1;
     }
@@ -675,11 +691,15 @@
     border: 1px solid var(--border-divider);
     border-radius: var(--border-radius);
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
 
     img {
-      width: 100%;
-      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
       object-fit: contain;
+      border-radius: var(--border-radius);
     }
   }
 
@@ -808,7 +828,7 @@
   &__price-row > strong {
     color: var(--marketplace-accent);
     font-family: var(--font-family-price);
-    font-size: 19px;
+    font-size: 18px;
     font-variant-numeric: tabular-nums;
     font-weight: var(--font-weight-medium);
     letter-spacing: var(--font-tracking-price);

@@ -635,9 +635,10 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                   <GradingOpportunityFilter
                     checked={gradingActive}
                     count={
-                      visibleItems.filter(
+                      items.filter(
                         (item) =>
                           item.type === "single" &&
+                          (!rarity || item.rarity?.trim() === rarity) &&
                           gradingMultiplier(item) !== null,
                       ).length
                     }
@@ -687,7 +688,11 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                 </p>
               </section>
             ) : (
-              <GridView>
+              <GridView
+                replayKey={`${gradingActive ? "grading" : "all"}:${visibleItems
+                  .map((item) => `${item.type}:${item.id}`)
+                  .join(",")}`}
+              >
                 {visibleItems.map((item) => {
                   const itemKey = `${item.type}:${item.id}`;
                   if (gradingActive && item.type === "single") {

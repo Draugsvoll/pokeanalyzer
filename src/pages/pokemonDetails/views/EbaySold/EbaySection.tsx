@@ -311,23 +311,24 @@ const EbaySectionForAccount = memo(function EbaySectionForAccount({
     }
   }
 
-  const modeControl = (
-    <RadioButtonGroup<EbayMode>
-      ariaLabel="Ebay card type"
-      className="ebay-section__mode"
-      options={[
-        { value: "raw", label: "Raw" },
-        { value: "graded", label: "Graded" },
-      ]}
-      value={mode}
-      onChange={(nextMode) => {
-        restoreModeFocus.current = Boolean(
-          document.activeElement?.closest(".ebay-section__mode"),
-        );
-        setMode(nextMode);
-      }}
-    />
-  );
+  const modeControl =
+    userId || isDemo ? (
+      <RadioButtonGroup<EbayMode>
+        ariaLabel="Ebay card type"
+        className="ebay-section__mode"
+        options={[
+          { value: "raw", label: "Raw" },
+          { value: "graded", label: "Graded" },
+        ]}
+        value={mode}
+        onChange={(nextMode) => {
+          restoreModeFocus.current = Boolean(
+            document.activeElement?.closest(".ebay-section__mode"),
+          );
+          setMode(nextMode);
+        }}
+      />
+    ) : null;
 
   return (
     <section

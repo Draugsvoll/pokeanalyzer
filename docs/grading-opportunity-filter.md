@@ -27,13 +27,11 @@ run can populate it without a separate manual setup step.
 server memory for 24 hours per server process and shares simultaneous requests.
 The client stores the validated snapshot in localStorage for six hours under
 `pokelyzer:grading-opportunities:v2`, with an in-memory fallback. Neither cache
-resets generation time. At 48 hours after generation the snapshot is unusable,
-even when its cache TTL has not expired. New generations may take time to become
-visible through these caches. Failed requests are retryable, not cached.
-Successful `null` (no-list) responses are also cached with a fetch timestamp:
-six hours in the browser and 24 hours on the server. Open grids retry after
-six hours when no list is available. A newly generated list can remain hidden
-until these negative caches expire.
+resets generation time. At 49 hours after generation the snapshot is unusable.
+A missing or expired list is cached as a miss: 2 minutes in server memory and
+10 minutes in the browser. An open page refetches after those 10 minutes.
+Failed requests stay retryable and are not cached. A successful empty list is
+a valid snapshot and uses the normal cache lifetime.
 
 Card category grids, set-card results, single-card search results (including embedded search), and
 collection/watchlist grids offer the checkbox when a valid snapshot is available.

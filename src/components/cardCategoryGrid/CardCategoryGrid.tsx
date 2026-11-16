@@ -26,6 +26,7 @@ type CardCategoryGridProps = {
   items: CardCategoryGridItem[];
   loading?: boolean;
   minimized?: boolean;
+  replayKey?: string;
   revealOnScroll?: boolean;
   sorting?: boolean;
   subtitle?: ReactNode;
@@ -42,6 +43,7 @@ export function CardCategoryGrid({
   items,
   loading = false,
   minimized = false,
+  replayKey,
   revealOnScroll = true,
   sorting = false,
   subtitle,
@@ -70,6 +72,7 @@ export function CardCategoryGrid({
         }
         minimized={minimized}
         revealOnScroll={revealOnScroll}
+        replayKey={replayKey ?? (grading.active ? "grading" : "all")}
         sorting={sorting}
         subtitle={subtitle}
         title={title}

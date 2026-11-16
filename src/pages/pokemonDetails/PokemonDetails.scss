@@ -341,7 +341,7 @@
       }
 
       &:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.03);
+        background: color-mix(in srgb, var(--feature-accent) 6%, transparent);
         border-color: transparent;
         box-shadow: none;
         color: var(--font-color-primary);
@@ -349,13 +349,8 @@
       }
 
       &.is-active {
-        background: rgba(255, 255, 255, 0.03);
+        background: color-mix(in srgb, var(--feature-accent) 6%, transparent);
         color: var(--font-color-primary);
-      }
-
-      &.is-active::after {
-        opacity: 0.62;
-        transform: scaleX(1);
       }
 
       &:focus-visible {
@@ -432,15 +427,35 @@
     }
   }
 
+  &__marketplace-panel.ui-render-fade {
+    transform: translateY(0);
+    transition:
+      opacity var(--animation-duration-enter) var(--animation-ease-standard),
+      transform var(--animation-duration-enter) var(--animation-ease-standard);
+
+    @starting-style {
+      transform: translateY(0.9rem);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+      transform: none;
+
+      @starting-style {
+        transform: none;
+      }
+    }
+  }
+
   &__analysis-panel {
     display: grid;
     max-width: 100%;
     scroll-margin-top: 1rem;
     width: 100%;
-    margin-top: -1.5rem;
+    margin-top: -1rem;
 
     > .grading-calculator {
-      margin-top: var(--space-3);
+      margin-top: var(--space-2);
     }
   }
 

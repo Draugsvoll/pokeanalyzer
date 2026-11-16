@@ -29,7 +29,7 @@ import {
   type EbayCompsResponse,
   type EbayCompResult,
 } from "../../../../utils/ebayComps";
-import { ArrowRight, Eye, Gavel } from "lucide-react";
+import { ArrowRight, Eye } from "lucide-react";
 import { ClearFiltersButton } from "../../../../components/clearFiltersButton/ClearFiltersButton";
 import { SelectDropdown } from "../../../../components/selectDropdown/SelectDropdown";
 import { EbayImagePreview } from "./EbayImagePreview";
@@ -55,7 +55,7 @@ type ListingTypeFilter = "sold" | "active";
 type ResultViewMode = "basic" | "advanced";
 const GRADES = ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"] as const;
 type GradeFilter = "all" | (typeof GRADES)[number];
-type GraderFilter = "all" | "psa" | "cgc" | "bgs" | "sgc" | "tag";
+type GraderFilter = "all" | keyof typeof GRADING_COMPANY_PATTERNS;
 
 const GRADE_FILTERS: { value: GradeFilter; label: string }[] = [
   { value: "all", label: "All grades" },
@@ -68,6 +68,17 @@ const GRADER_FILTERS: { value: GraderFilter; label: string }[] = [
   { value: "bgs", label: "Beckett / BGS" },
   { value: "sgc", label: "SGC" },
   { value: "tag", label: "TAG" },
+  { value: "gma", label: "GMA" },
+  { value: "ace", label: "ACE" },
+  { value: "hga", label: "HGA" },
+  { value: "mgc", label: "MGC" },
+  { value: "aog", label: "AOG" },
+  { value: "jca", label: "JCA" },
+  { value: "lcc", label: "LCC" },
+  { value: "pcg", label: "PCG" },
+  { value: "ags", label: "AGS" },
+  { value: "cga", label: "CGA" },
+  { value: "gemix", label: "GEMIX" },
 ];
 
 function getField(result: EbayCompResult, key: string) {
@@ -355,42 +366,87 @@ function EbayResultCard({
             title={title}
           />
         ) : (
-          <div className="marketplace-listings__media">
-            <Gavel aria-hidden="true" />
-          </div>
+          <div className="marketplace-listings__media" />
         )
       }
     />
   );
 }
 
+const GRADING_COMPANY_PATTERNS = {
+  psa: "(?:psa|professional\\s*sports\\s*authenticator)",
+  cgc: "(?:cgc|certified\\s*guaranty\\s*company)",
+  bgs: "(?:bgs|beckett)",
+  sgc: "(?:sgc|sportscard\\s*guaranty\\s*corporation)",
+  tag: "tag",
+  gma: "gma",
+  ace: "ace",
+  hga: "hga",
+  mgc: "mgc",
+  aog: "aog",
+  jca: "jca",
+  lcc: "lcc",
+  pcg: "pcg",
+  ags: "ags",
+  cga: "cga",
+  gemix: "gemix",
+} as const;
+const GRADING_COMPANY_PATTERN = `(?:${Object.values(GRADING_COMPANY_PATTERNS).join("|")})`;
+const GRADE_DESCRIPTION_PATTERN =
+  "(?:gem\\s*(?:mint|mt)|gem|near\\s*mint(?:\\s*(?:mint|mt))?|nm\\s*mt|(?:excellent|ex)\\s*(?:mint|mt)|very\\s*good|vg\\s*ex|vg|ex|nm|gd|fr|pr|poor|fair|good|excellent|mint|pristine|black\\s*label|perfect|graded?|grading|slabbed|certified)";
+// Qualifiers belong to a grading phrase; never remove them from whole titles.
+const GRADE_QUALIFIER_PATTERN = "(?:(?:new|old)\\s+)?";
+const GRADE_DESCRIPTION_SEQUENCE_PATTERN = `${GRADE_QUALIFIER_PATTERN}(?:${GRADE_DESCRIPTION_PATTERN}\\s*){0,3}`;
+const GRADE_END_PATTERN = "(?!half|\\d|st|nd|rd|th)";
+const ANY_GRADE_PATTERN = `(?:10|[1-9](?:half)?)${GRADE_END_PATTERN}`;
+const GRADING_MENTION_PATTERN = `${GRADING_COMPANY_PATTERN}\\s*${GRADE_DESCRIPTION_SEQUENCE_PATTERN}${ANY_GRADE_PATTERN}|tag\\s*${GRADE_QUALIFIER_PATTERN}pristine\\b`;
+const GRADE_OUT_OF_TEN_PATTERN = new RegExp(
+  `(\\b${GRADING_COMPANY_PATTERN}[\\s-]*${GRADE_DESCRIPTION_SEQUENCE_PATTERN}(?:10|[1-9])(?:\\s*\\.\\s*(?:0|5))?)\\s*/\\s*10\\b`,
+  "g",
+);
+const NEGATED_GRADING_PATTERN = new RegExp(
+  `\\b(?:not|non|no)\\s*(?:a\\s+)?(?:${GRADING_MENTION_PATTERN}|${GRADING_COMPANY_PATTERN}\\b)`,
+  "g",
+);
+const PROJECTED_GRADING_PATTERN = new RegExp(
+  `\\b(?:potential|possible)\\s+(?:${GRADING_MENTION_PATTERN})|\\b(?:${GRADING_MENTION_PATTERN})\\s+(?:candidate|contender)\\b`,
+  "g",
+);
+
 function getGradingSearchText(result: EbayCompResult) {
-  const searchableFields = result.fields
+  const searchableText = result.fields
     .filter((field) =>
       /title|condition|grade|grading|grader|certification/i.test(field.key),
     )
-    .map((field) => field.value);
-  const searchableText = searchableFields
-    .filter(Boolean)
-    .join(" ")
-    .toLocaleLowerCase("en-US")
-    // Preserve half grades and normalize whole decimal grades before
-    // punctuation is removed.
-    .replace(/(\d)\s*\.\s*5\b/g, "$1half")
-    .replace(/(\d)\s*\.\s*0\b/g, "$1")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-  // Remove ordinal tokens before joining words, so edition numbers cannot
-  // become compact grades while formats such as PSA10 and BGS9.5 still work.
-  const compactText = searchableText
-    .replace(/\d+(?:st|nd|rd|th)\b/g, " ")
-    .replace(/\s/g, "");
-
-  return { compactText, searchableText };
+    .map((field) =>
+      field.value
+        .toLocaleLowerCase("en-US")
+        .replace(/#\s*\d+/g, " | ")
+        // Keep explicit scores such as PSA 10/10, and year separators.
+        .replace(GRADE_OUT_OF_TEN_PATTERN, "$1")
+        .replace(/(\d+(?:\.\d+)?)\s*[-\u2013]\s*((?:19|20)\d{2})\b/g, "$1 | $2")
+        // Strip complete numeric ranges/fractions, not ordinal suffixes such as 1st.
+        .replace(
+          /\d+(?:\.\d+)?\s*[/\u2013-]\s*\d+(?:\.\d+)?(?!\w|\.\d)/g,
+          " | ",
+        )
+        .replace(/(\d)\s*\.\s*5(?!\d)/g, "$1half")
+        .replace(/(\d)\s*\.\s*0(?!\d)/g, "$1")
+        .replace(/\d+\s*\.\s*\d+/g, " | ")
+        .replace(/[^a-z0-9#|]+/g, " ")
+        // Remove only explicit negative/projected grading mentions. A barrier
+        // prevents the remaining words from forming a new grading phrase.
+        .replace(NEGATED_GRADING_PATTERN, " | ")
+        .replace(PROJECTED_GRADING_PATTERN, " | ")
+        .trim(),
+    )
+    // Keep independent response fields from creating a phrase together.
+    .join(" | ");
+  return { searchableText };
 }
 
 function getGradeHighlightPattern(grade: Exclude<GradeFilter, "all">) {
-  const gradeNumber = String.raw`${grade}(?:\s*\.\s*(?:0|5))?`;
+  const gradeNumber = String.raw`${grade}(?:\s*\.\s*(?:0|5))?\b(?!\s*[/.–-]\s*\d)`;
   const grader =
     "psa|bgs|beckett|cgc|sgc|professional sports authenticator|certified guaranty company|sportscard guaranty corporation";
   const gradeWord = "grade|graded|grading|slab|slabbed|encased|certified";
@@ -403,11 +459,24 @@ function getGradeHighlightPattern(grade: Exclude<GradeFilter, "all">) {
           ? String.raw`(?:near(?:\s+|-)mint(?:\s+|-)?(?:mint|mt)|nm(?:\s+|-)?mt)`
           : grade === "7"
             ? String.raw`(?:near(?:\s+|-)mint|nm)`
-            : String.raw`(?:excellent(?:\s+|-)mint|ex(?:\s+|-)(?:mint|mt))`;
-  const tagGrade = String.raw`\btag(?:[\s-]+(?:grading|pristine))?[\s-]*${gradeNumber}\b`;
+            : grade === "6"
+              ? String.raw`(?:excellent(?:\s+|-)mint|ex(?:\s+|-)(?:mint|mt))`
+              : "";
+  const description = [
+    condition,
+    gradeWord,
+    "pristine",
+    "black[\\s-]+label",
+    "perfect",
+  ]
+    .filter(Boolean)
+    .join("|");
+  const tagGrade = String.raw`\btag(?:[\s-]+(?:grading|pristine))?[\s-]*${gradeNumber}`;
   const tagPristine = grade === "10" ? String.raw`|\btag[\s-]+pristine\b` : "";
 
-  return String.raw`${tagGrade}${tagPristine}|\b(?:${grader})(?:[\s-]+[a-z]+){0,4}[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${grader})\b|\b(?:${gradeWord})[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${gradeWord})\b|\b(?:${condition})[\s-]*${gradeNumber}\b|\b${gradeNumber}[\s-]*(?:${condition})\b`;
+  // Highlight only explicit forward grade phrases; skip ambiguous reverse
+  // notation and arbitrary words between a grader and a number.
+  return String.raw`${tagGrade}${tagPristine}|\b(?:${grader})[\s-]*(?:(?:${description})[\s-]*)?${gradeNumber}|\b(?:${gradeWord})[\s-]*${gradeNumber}${condition ? String.raw`|\b(?:${condition})[\s-]*${gradeNumber}` : ""}`;
 }
 
 function getGraderHighlightPattern(grader: Exclude<GraderFilter, "all">) {
@@ -422,6 +491,8 @@ function getGraderHighlightPattern(grader: Exclude<GraderFilter, "all">) {
       return String.raw`\bsportscard[\s-]+guaranty[\s-]+corporation\b|\bsgc(?=\b|\d)`;
     case "tag":
       return String.raw`\btag(?=(?:[\s-]+(?:grading|pristine)|[\s-]*(?:10|[1-9])(?:\s*\.\s*5)?\b))`;
+    default:
+      return String.raw`\b${GRADING_COMPANY_PATTERNS[grader]}(?=\b|\d)`;
   }
 }
 
@@ -477,14 +548,6 @@ function matchesAnyTextFilter(result: EbayCompResult, query: string) {
   return keywords.some((keyword) => searchableText.includes(keyword));
 }
 
-function matchesTagGrader(result: EbayCompResult) {
-  const { searchableText } = getGradingSearchText(result);
-
-  return /\btag(?:\s+(?:grading|pristine)(?:\s*(?:10|[1-9](?:half)?))?|\s*(?:10|[1-9](?:half)?))\b/.test(
-    searchableText,
-  );
-}
-
 const RAW_CONDITION_LABELS: Record<PokeTraceRawCondition, string> = {
   NEAR_MINT: "NM",
   LIGHTLY_PLAYED: "LP",
@@ -520,27 +583,19 @@ function matchesRawCondition(
 function matchesGrader(
   result: EbayCompResult,
   grader: Exclude<GraderFilter, "all">,
+  gradingText = getGradingSearchText(result),
 ) {
-  const { searchableText } = getGradingSearchText(result);
+  const { searchableText } = gradingText;
 
-  switch (grader) {
-    case "psa":
-      return /\bpsa(?:\b|\d)|\bprofessional sports authenticator\b/.test(
-        searchableText,
-      );
-    case "cgc":
-      return /\bcgc(?:\b|\d)|\bcertified guaranty company\b/.test(
-        searchableText,
-      );
-    case "bgs":
-      return /\bbgs(?:\b|\d)|\bbeckett\b/.test(searchableText);
-    case "sgc":
-      return /\bsgc(?:\b|\d)|\bsportscard guaranty corporation\b/.test(
-        searchableText,
-      );
-    case "tag":
-      return matchesTagGrader(result);
+  if (grader === "tag") {
+    // A bare TAG can refer to a Pokemon Tag Team card.
+    return new RegExp(
+      `\\btag\\s*${GRADE_DESCRIPTION_SEQUENCE_PATTERN}${ANY_GRADE_PATTERN}|\\btag\\s*${GRADE_QUALIFIER_PATTERN}(?:grading|pristine)\\b`,
+    ).test(searchableText);
   }
+  return new RegExp(
+    `\\b${GRADING_COMPANY_PATTERNS[grader]}(?=\\b|\\d|(?:${GRADE_DESCRIPTION_PATTERN}\\s*){1,3}${ANY_GRADE_PATTERN})`,
+  ).test(searchableText);
 }
 
 function matchesGrade(
@@ -548,98 +603,57 @@ function matchesGrade(
   grade: Exclude<GradeFilter, "all">,
   gradingText = getGradingSearchText(result),
 ) {
-  const { compactText, searchableText } = gradingText;
-  // 8.5 is preserved as 8half, so a whole-grade filter includes its half grade.
-  const gradeToken = `(?:${grade}|${grade}half)`;
-  const tagGradePattern = new RegExp(
-    `\\btag(?:\\s+(?:grading|pristine))?\\s*${gradeToken}(?:$|\\s)`,
-  );
+  const { searchableText } = gradingText;
+  // Retain spaces between grades, years and card numbers. Ordinal suffixes
+  // reject 1st/2nd/3rd/4th without deleting text or bridging to another number.
+  const gradeToken = `${grade}${grade === "10" ? "" : "(?:half)?"}${GRADE_END_PATTERN}`;
   if (
-    tagGradePattern.test(searchableText) ||
-    (grade === "10" && /\btag\s+pristine(?:$|\s)/.test(searchableText))
-  ) {
+    new RegExp(
+      `\\b${GRADING_COMPANY_PATTERN}\\s*${GRADE_DESCRIPTION_SEQUENCE_PATTERN}${gradeToken}`,
+    ).test(searchableText) ||
+    new RegExp(
+      `\\b${GRADE_DESCRIPTION_PATTERN}\\s+${gradeToken}\\s+${GRADING_COMPANY_PATTERN}\\b`,
+    ).test(searchableText) ||
+    new RegExp(
+      `\\b(?:grade|graded|grading|slab|slabbed|encased|certified)\\s*${gradeToken}|(?:^|\\s)${gradeToken}\\s*(?:graded|grade|slab|slabbed|encased|certified)\\b`,
+    ).test(searchableText)
+  )
     return true;
-  }
 
-  // Handles PSA 10, BGS-10, CGC Gem Mint 10, SGC10, Beckett 9, and
-  // equivalent compact forms.
-  const grader =
-    "(?:psa|bgs|cgc|sgc|beckett|professional sports authenticator|certified guaranty company|sportscard guaranty corporation)";
-  const compactGrader =
-    "(?:psa|bgs|cgc|sgc|beckett|professionalsportsauthenticator|certifiedguarantycompany|sportscardguarantycorporation)";
   if (
-    new RegExp(`${compactGrader}[a-z]{0,30}${gradeToken}(?!\\d)`).test(
-      compactText,
-    ) ||
-    new RegExp(`(?:^|\\s)${gradeToken}\\s*${grader}(?:$|\\s)`).test(
+    grade === "10" &&
+    (new RegExp(`\\btag\\s*${GRADE_QUALIFIER_PATTERN}pristine\\b`).test(
       searchableText,
-    )
-  ) {
+    ) ||
+      new RegExp(`\\bpristine\\s+${gradeToken}\\b`).test(searchableText))
+  )
     return true;
-  }
 
-  const hasGradeNumber = new RegExp(`(?:^|\\s)${gradeToken}(?:$|\\s)`).test(
-    searchableText,
-  );
-  const hasDirectGradePhrase = new RegExp(
-    `\\b(?:grade|graded|grading|slab|slabbed|encased|certified)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:grade|graded|slab|slabbed|encased|certified)\\b`,
-  ).test(searchableText);
-
-  if (!hasGradeNumber) {
-    return false;
-  }
-  if (hasDirectGradePhrase) {
-    return true;
-  }
-
+  // Explicit condition-and-number phrases remain useful when the title
+  // omits the grading company. Bare card numbers never qualify on their own.
+  let condition: string;
   switch (grade) {
-    case "1":
-    case "2":
-    case "3":
-    case "4":
-    case "5":
-      return false;
     case "6":
-      return new RegExp(
-        `\\b(?:excellent mint|ex mint|ex mt)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:excellent mint|ex mint|ex mt)\\b`,
-      ).test(searchableText);
+      condition = "(?:excellent\\s*mint|ex\\s*(?:mint|mt))";
+      break;
     case "7":
-      return (
-        new RegExp(
-          `\\b(?:near mint|nm)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:near mint|nm)\\b`,
-        ).test(searchableText) &&
-        !/\b(?:near mint (?:mint|mt)|nm mt)\b/.test(searchableText)
-      );
+      condition = "(?:near\\s*mint|nm)(?!\\s*(?:mint|mt))";
+      break;
     case "8":
-      return (
-        new RegExp(
-          `\\b(?:near mint (?:mint|mt)|nm mt)\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:near mint (?:mint|mt)|nm mt)\\b`,
-        ).test(searchableText) ||
-        compactText.includes("nmmt8") ||
-        compactText.includes("8nmmt") ||
-        compactText.includes("nmmt8half") ||
-        compactText.includes("8halfnmmt")
-      );
+      condition = "(?:near\\s*mint\\s*(?:mint|mt)|nm\\s*mt)";
+      break;
     case "9":
-      return Boolean(
-        new RegExp(
-          `\\bmint\\s*${gradeToken}\\b|\\b${gradeToken}\\s*mint\\b`,
-        ).test(searchableText) &&
-        !new RegExp(
-          `\\b(?:gem|near) mint\\s*${gradeToken}\\b|\\b${gradeToken}\\s*(?:gem|near) mint\\b`,
-        ).test(searchableText),
-      );
+      condition = "(?<!gem|gem\\s|near|near\\s)mint";
+      break;
     case "10":
-      return (
-        /\bgem (?:mint|mt)\s*10\b|\b10\s*gem (?:mint|mt)\b/.test(
-          searchableText,
-        ) ||
-        compactText.includes("gemmint10") ||
-        compactText.includes("10gemmint") ||
-        compactText.includes("gemmt10") ||
-        compactText.includes("10gemmt")
-      );
+      condition = "gem\\s*(?:mint|mt)";
+      break;
+    default:
+      return false;
   }
+  return new RegExp(
+    `\\b${condition}\\s*${gradeToken}|(?:^|\\s)${gradeToken}\\s*${condition}\\b`,
+  ).test(searchableText);
 }
 
 export default function EbaySoldView({
@@ -704,16 +718,23 @@ export default function EbaySoldView({
         : listingType === "sold"
           ? responseData
           : null;
-      const listingTypeResults = getVisibleEbayCompResults(
-        listingResponse,
-      ).filter((result) => {
+      return getVisibleEbayCompResults(listingResponse).filter((result) => {
         const price = getNumericSoldPrice(result);
         return (
           getField(result, "listingType") === listingType &&
           (price === null || price > 1)
         );
       });
-      return listingTypeResults.filter(
+    }
+    return {
+      results: { sold: getResults("sold"), active: getResults("active") },
+      splitResponse,
+    };
+  }, [response]);
+
+  const baseResults = useMemo(() => {
+    const filter = (results: EbayCompResult[]) =>
+      results.filter(
         (result) =>
           (mode !== "raw" ||
             rawCondition === "all" ||
@@ -721,27 +742,50 @@ export default function EbaySoldView({
           (!appliedTextFilter ||
             matchesTextFilter(result, appliedTextFilter)) &&
           (!appliedExcludeFilter ||
-            !matchesAnyTextFilter(result, appliedExcludeFilter)),
+            !matchesAnyTextFilter(result, appliedExcludeFilter)) &&
+          (appliedGraderFilter === "all" ||
+            matchesGrader(result, appliedGraderFilter)),
       );
-    }
-    return {
-      results: { sold: getResults("sold"), active: getResults("active") },
-      splitResponse,
-    };
-  }, [response, appliedTextFilter, appliedExcludeFilter, mode, rawCondition]);
-
-  const baseResults = useMemo(() => {
-    const filter = (results: EbayCompResult[]) =>
-      appliedGraderFilter === "all"
-        ? results
-        : results.filter((result) =>
-            matchesGrader(result, appliedGraderFilter),
-          );
     return {
       sold: filter(eligibleResults.sold),
       active: filter(eligibleResults.active),
     };
-  }, [eligibleResults, appliedGraderFilter]);
+  }, [
+    eligibleResults,
+    mode,
+    rawCondition,
+    appliedTextFilter,
+    appliedExcludeFilter,
+    appliedGraderFilter,
+  ]);
+
+  const rawConditionCounts = useMemo(() => {
+    const counts = Object.fromEntries(
+      POKETRACE_RAW_CONDITIONS.map((condition) => [condition, 0]),
+    ) as Record<PokeTraceRawCondition, number>;
+    if (mode !== "raw") return counts;
+    const results = advancedView
+      ? [...eligibleResults.sold, ...eligibleResults.active]
+      : eligibleResults[listingTypeFilter];
+    for (const result of results) {
+      for (const condition of POKETRACE_RAW_CONDITIONS) {
+        if (matchesRawCondition(result, condition)) counts[condition]++;
+      }
+    }
+    return counts;
+  }, [eligibleResults, advancedView, listingTypeFilter, mode]);
+
+  const availableRawConditions = POKETRACE_RAW_CONDITIONS.filter(
+    (condition) => rawConditionCounts[condition] > 0,
+  );
+
+  if (
+    mode === "raw" &&
+    rawCondition !== "all" &&
+    rawConditionCounts[rawCondition] === 0
+  ) {
+    setRawCondition("all");
+  }
 
   const gradeCounts = useMemo(() => {
     const counts = Object.fromEntries(
@@ -761,14 +805,20 @@ export default function EbaySoldView({
   }, [eligibleResults, advancedView, listingTypeFilter, mode]);
 
   const graderCounts = useMemo(() => {
-    const counts = { psa: 0, cgc: 0, bgs: 0, sgc: 0, tag: 0 };
+    const counts = Object.fromEntries(
+      Object.keys(GRADING_COMPANY_PATTERNS).map((grader) => [grader, 0]),
+    ) as Record<Exclude<GraderFilter, "all">, number>;
     if (mode !== "graded") return counts;
     const results = advancedView
       ? [...eligibleResults.sold, ...eligibleResults.active]
       : eligibleResults[listingTypeFilter];
     for (const result of results) {
+      const gradingText = getGradingSearchText(result);
       for (const grader of GRADER_FILTERS) {
-        if (grader.value !== "all" && matchesGrader(result, grader.value))
+        if (
+          grader.value !== "all" &&
+          matchesGrader(result, grader.value, gradingText)
+        )
           counts[grader.value]++;
       }
     }
@@ -963,7 +1013,7 @@ export default function EbaySoldView({
         ariaLabel={
           listingType === "sold" ? "Sold Ebay results" : "Listed Ebay results"
         }
-        count={`${results.length} ${results.length === 1 ? "match" : "matches"}`}
+        count={`${results.length} ${results.length === 1 ? "result" : "results"}`}
         summary={priceSummary}
         dual={advancedView}
         loading={loading}
@@ -1022,22 +1072,12 @@ export default function EbaySoldView({
           {topControls}
           {mode === "raw" ? (
             <div className="marketplace-listings__condition-controls">
-              <div className="marketplace-listings__condition-heading">
-                Condition
-                <InfoTooltip
-                  className="marketplace-listings__condition-help"
-                  label="How eBay condition filters work"
-                  title="Filter"
-                >
-                  Filters by title. Many listings don't specify condition.
-                </InfoTooltip>
-              </div>
               <fieldset
                 aria-label="Condition"
                 className="marketplace-listings__filters radio-group"
               >
                 <div>
-                  {(["all", ...POKETRACE_RAW_CONDITIONS] as const).map(
+                  {(["all", ...availableRawConditions] as const).map(
                     (value) => (
                       <label key={value}>
                         <input
@@ -1059,12 +1099,24 @@ export default function EbaySoldView({
                           {value === "all"
                             ? "All"
                             : RAW_CONDITION_LABELS[value]}
+                          {value !== "all" && (
+                            <small className="ui-select-dropdown__count">
+                              ({rawConditionCounts[value]})
+                            </small>
+                          )}
                         </span>
                       </label>
                     ),
                   )}
                 </div>
               </fieldset>
+              <InfoTooltip
+                className="marketplace-listings__condition-help"
+                label="How eBay condition filters work"
+                title="Condition filter"
+              >
+                Filters by title. Many listings don't specify condition.
+              </InfoTooltip>
             </div>
           ) : (
             <div className="marketplace-listings__grade-controls">

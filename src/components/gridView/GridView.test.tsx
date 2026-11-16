@@ -37,6 +37,23 @@ function mockGridLayout(initialColumns: number) {
   };
 }
 
+test("changing the replay key remounts the grid and replays card entry", () => {
+  const { rerender } = render(
+    <GridView replayKey="all" revealOnScroll={false}>
+      <article>Kept card</article>
+    </GridView>,
+  );
+  const firstGrid = screen.getByText("Kept card").parentElement;
+  rerender(
+    <GridView replayKey="grading" revealOnScroll={false}>
+      <article>Kept card</article>
+    </GridView>,
+  );
+  const nextGrid = screen.getByText("Kept card").parentElement;
+  expect(nextGrid).not.toBe(firstGrid);
+  expect(nextGrid).toHaveClass("ui-card-grid-enter");
+});
+
 test("enables staggered card entry animation by default", () => {
   render(
     <GridView revealOnScroll={false}>
