@@ -34,7 +34,11 @@ export function SearchHero({
       <h1 className="search-hero__title">{title}</h1>
       <p className="search-hero__subtitle">{subtitle}</p>
       <div className="search-hero__search">
-        <ProductTypeSwitch onChange={onProductTypeChange} value={productType} />
+        <ProductTypeSwitch
+          variant="pill"
+          onChange={onProductTypeChange}
+          value={productType}
+        />
         {children}
       </div>
     </header>

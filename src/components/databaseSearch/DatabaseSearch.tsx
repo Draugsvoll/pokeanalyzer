@@ -835,6 +835,7 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
         {embedded ? (
           <>
             <ProductTypeSwitch
+              variant="pill"
               onChange={handleProductTypeChange}
               value={productType}
             />

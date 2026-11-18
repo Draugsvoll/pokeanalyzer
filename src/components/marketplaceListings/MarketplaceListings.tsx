@@ -104,7 +104,7 @@ export function MarketplaceListings({
                   disabled: sideStates && sideStates.active !== "success",
                 },
                 ...(dualAvailable
-                  ? [{ value: "both" as const, label: "All" }]
+                  ? [{ value: "both" as const, label: "Both" }]
                   : []),
               ]}
             />

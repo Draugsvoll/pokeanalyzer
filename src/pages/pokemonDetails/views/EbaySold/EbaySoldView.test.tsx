@@ -201,7 +201,7 @@ test("grade counts follow Sold/Listed in Single view and combine both in Dual vi
     fireEvent.click(
       within(
         screen.getByRole("radiogroup", { name: "Ebay listing type" }),
-      ).getByRole("radio", { name: "All" }),
+      ).getByRole("radio", { name: "Both" }),
     );
     expect(gradeOption({ name: "Grade 9 (2)" })).toBeVisible();
     expect(gradeOption({ name: "Grade 10 (1)" })).toBeVisible();
@@ -477,7 +477,7 @@ test("shows sold and listed results together in the wide advanced view", () => {
     fireEvent.click(
       within(
         screen.getByRole("radiogroup", { name: "Ebay listing type" }),
-      ).getByRole("radio", { name: "All" }),
+      ).getByRole("radio", { name: "Both" }),
     );
 
     expect(
@@ -529,7 +529,7 @@ test("keeps a pending dual-view panel visible with a loading spinner", () => {
     fireEvent.click(
       within(
         screen.getByRole("radiogroup", { name: "Ebay listing type" }),
-      ).getByRole("radio", { name: "All" }),
+      ).getByRole("radio", { name: "Both" }),
     );
 
     expect(screen.getByRole("heading", { name: "Listed" })).toBeVisible();

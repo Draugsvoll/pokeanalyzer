@@ -12,16 +12,8 @@
     transparent
   );
 
-  &:hover {
-    --scrollbar-thumb: color-mix(
-      in srgb,
-      var(--font-color-muted) 36%,
-      transparent
-    );
-  }
-
   &::-webkit-scrollbar {
-    width: 0.6rem;
+    width: calc(0.6rem + 1px);
   }
 
   &::-webkit-scrollbar-track {
@@ -44,6 +36,14 @@
     background-clip: padding-box;
     border: 0.14rem solid transparent;
     border-radius: var(--border-radius-pill);
+
+    &:hover {
+      background-color: color-mix(
+        in srgb,
+        var(--font-color-muted) 36%,
+        transparent
+      );
+    }
   }
 }
 

@@ -88,6 +88,61 @@ function view(cardId = "card-a") {
 }
 afterEach(() => vi.unstubAllGlobals());
 
+test.each(["sold", "active"] as const)(
+  "renders %s TCG results in scroll batches and resets them when sorting or filtering",
+  (side) => {
+    render(
+      <TcgExplorerView
+        initialSide={side}
+        data={{
+          ...snapshot,
+          sales: Array.from({ length: 31 }, (_, index) => ({
+            ...sale,
+            price: index + 1,
+          })),
+          offers: Array.from({ length: 31 }, (_, index) => ({
+            price: index + 1,
+            shippingPrice: 2,
+            condition: "Near Mint",
+            printing: "Holofoil",
+            language: "English",
+            quantity: 1,
+            sellerName: `Seller ${index + 1}`,
+            sellerRating: null,
+            verifiedSeller: null,
+            directSeller: null,
+          })),
+        }}
+      />,
+    );
+    const panel = screen.getByRole("region", {
+      name:
+        side === "sold"
+          ? "TCGplayer recent sales"
+          : "TCGplayer available offers",
+    });
+    const results = panel.querySelector(".marketplace-listings__results")!;
+    Object.defineProperties(results, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 500 },
+    });
+    expect(within(panel).getAllByRole("article")).toHaveLength(15);
+    expect(within(panel).getByText("31 results")).toBeInTheDocument();
+    fireEvent.scroll(results, { target: { scrollTop: 400 } });
+    expect(within(panel).getAllByRole("article")).toHaveLength(15);
+    fireEvent.scroll(results, { target: { scrollTop: 405 } });
+    expect(within(panel).getAllByRole("article")).toHaveLength(30);
+    fireEvent.scroll(results, { target: { scrollTop: 500 } });
+    expect(within(panel).getAllByRole("article")).toHaveLength(31);
+    fireEvent.click(screen.getByRole("radio", { name: "Price ↑" }));
+    expect(within(panel).getAllByRole("article")).toHaveLength(15);
+    fireEvent.scroll(results, { target: { scrollTop: 500 } });
+    expect(within(panel).getAllByRole("article")).toHaveLength(30);
+    fireEvent.click(screen.getByRole("radio", { name: "Near Mint" }));
+    expect(within(panel).getAllByRole("article")).toHaveLength(15);
+  },
+);
+
 beforeEach(() => {
   vi.stubGlobal(
     "matchMedia",
@@ -130,7 +185,7 @@ test("single and dual modes are local controls and prices exclude shipping", () 
   fireEvent.click(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   );
   expect(
     screen.getByRole("region", { name: "TCGplayer available offers" }),
@@ -233,7 +288,7 @@ test("shared controls disable date sorting for offers and expand both panels loc
   fireEvent.click(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   );
   expect(screen.getByRole("radio", { name: "Newest" })).toBeEnabled();
   fireEvent.click(screen.getByRole("button", { name: "Expand all listings" }));
@@ -358,7 +413,7 @@ test("first streamed side appears immediately, hides header, and keeps the other
   fireEvent.click(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   );
   expect(
     screen.getByRole("status", { name: "Loading sold TCG results" }),
@@ -458,7 +513,7 @@ test("falls back to single mode on narrow screens and restores dual on widening"
   fireEvent.click(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   );
   expect(screen.getByRole("radio", { name: "Sold" })).not.toBeChecked();
   act(() => {
@@ -468,7 +523,7 @@ test("falls back to single mode on narrow screens and restores dual on widening"
   expect(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).queryByRole("radio", { name: "All" }),
+    ).queryByRole("radio", { name: "Both" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("radio", { name: "Sold" })).toBeChecked();
   act(() => {
@@ -478,7 +533,7 @@ test("falls back to single mode on narrow screens and restores dual on widening"
   expect(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   ).toBeChecked();
 });
 
@@ -561,7 +616,7 @@ test("keeps the TCG link in the Listed panel header in single and dual views", (
   fireEvent.click(
     within(
       screen.getByRole("radiogroup", { name: "TCG listing type" }),
-    ).getByRole("radio", { name: "All" }),
+    ).getByRole("radio", { name: "Both" }),
   );
   assertListedLink();
   expect(

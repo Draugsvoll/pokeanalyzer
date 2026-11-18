@@ -1,4 +1,12 @@
 .product-type-switch {
   margin: 0 auto 0.75rem;
   width: fit-content;
+
+  &--pill.segmented-radio-group {
+    border-radius: var(--border-radius-pill);
+
+    .segmented-radio-group__option > span {
+      border-radius: var(--border-radius-pill);
+    }
+  }
 }

@@ -3,7 +3,7 @@
    ========================================================================== */
 
 :root {
-  --bg: #080c14;
+  --bg: #0c0f14;
   --bg2: #121720;
   --surface2: #182230;
   --surface3: #202c3c;
@@ -98,8 +98,8 @@
 
   /* ----- Radii (mock: rounded-square controls, not full pills) ----- */
   --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 8px; /* buttons, inputs, search, chips */
+  --radius-sm: 6px;
+  --radius-md: 6px; /* buttons, inputs, search, chips */
   --radius-lg: 18px; /* cards / panels */
   --radius-xl: 22px;
   --radius-control: var(--radius-md);
@@ -130,7 +130,7 @@
   --hover-shadow: var(--shadow);
 
   /* Shared page shells. Detail views retain the narrower reading width. */
-  --shell-max-width: 1290px;
+  --shell-max-width: 1270px;
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 635px;

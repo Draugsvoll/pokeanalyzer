@@ -7,16 +7,18 @@ export type ProductType = "singles" | "sealed";
 export function ProductTypeSwitch({
   onChange,
   value,
+  variant = "default",
 }: {
   onChange: (value: ProductType) => void;
   value: ProductType;
+  variant?: "default" | "pill";
 }) {
   const name = useId();
 
   return (
     <SegmentedRadioGroup
       ariaLabel="Product type"
-      className="product-type-switch"
+      className={`product-type-switch${variant === "pill" ? " product-type-switch--pill" : ""}`}
       name={`product-type-${name}`}
       onChange={onChange}
       options={[

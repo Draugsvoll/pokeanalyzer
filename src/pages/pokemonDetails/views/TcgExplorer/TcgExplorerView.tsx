@@ -23,6 +23,7 @@ import {
 } from "../../../../../shared/tcgExplorer";
 
 type Sort = "price-desc" | "price-asc" | "date-desc" | "date-asc";
+const RESULTS_BATCH_SIZE = 15;
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -55,6 +56,16 @@ export function TcgExplorerView({
     initialSide === "sold" ? "sales" : "offers",
   );
   const [sort, setSort] = useState<Sort>("price-desc");
+  const [visibleResultCounts, setVisibleResultCounts] = useState({
+    sales: RESULTS_BATCH_SIZE,
+    offers: RESULTS_BATCH_SIZE,
+  });
+  function resetVisibleResults() {
+    setVisibleResultCounts({
+      sales: RESULTS_BATCH_SIZE,
+      offers: RESULTS_BATCH_SIZE,
+    });
+  }
   const displayedSort =
     !dual && side === "offers" && sort.startsWith("date") ? "price-desc" : sort;
   const productUrl = `https://www.tcgplayer.com/product/${data.productId}`;
@@ -124,6 +135,22 @@ export function TcgExplorerView({
       <MarketplaceResultPanel
         key={panel}
         scrollResetKey={`${condition}-${sort}`}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          if (
+            element.scrollHeight - element.scrollTop - element.clientHeight <
+              96 &&
+            visibleResultCounts[panel] < sorted.length
+          ) {
+            setVisibleResultCounts((counts) => ({
+              ...counts,
+              [panel]: Math.min(
+                counts[panel] + RESULTS_BATCH_SIZE,
+                sorted.length,
+              ),
+            }));
+          }
+        }}
         label={panel === "sales" ? "Sold" : "Listed"}
         headingAction={
           panel === "offers" ? (
@@ -163,7 +190,7 @@ export function TcgExplorerView({
           state && <div className="marketplace-listings__state">{state}</div>
         }
       >
-        {sorted.map(({ row, key }) => {
+        {sorted.slice(0, visibleResultCounts[panel]).map(({ row, key }) => {
           const offer = "sellerName" in row ? row : null;
           const metadataItems: MarketplaceMetadataItem[] = [
             row.condition,
@@ -235,7 +262,10 @@ export function TcgExplorerView({
                     name={conditionId}
                     value={item.value}
                     checked={condition === item.value}
-                    onChange={() => setCondition(item.value)}
+                    onChange={() => {
+                      setCondition(item.value);
+                      resetVisibleResults();
+                    }}
                     aria-label={item.name}
                   />
                   <span>
@@ -257,7 +287,10 @@ export function TcgExplorerView({
       side={side === "sales" ? "sold" : "active"}
       onSideChange={(value) => setSide(value === "sold" ? "sales" : "offers")}
       sort={displayedSort}
-      onSortChange={setSort}
+      onSortChange={(value) => {
+        setSort(value);
+        resetVisibleResults();
+      }}
       dual={dual}
       dualAvailable={dualAvailable}
       onDualChange={(value) => setMode(value ? "dual" : "single")}

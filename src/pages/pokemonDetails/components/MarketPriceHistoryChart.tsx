@@ -545,12 +545,12 @@ export function MarketPriceHistoryChart({
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
                     offset="0%"
-                    stopOpacity="0.086"
+                    stopOpacity="0.07"
                   />
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
                     offset="72%"
-                    stopOpacity="0.029"
+                    stopOpacity="0.03"
                   />
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
