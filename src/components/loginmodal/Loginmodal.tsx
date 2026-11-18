@@ -6,6 +6,7 @@ import { login, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../googleLoginButton/GoogleLoginButton";
 import { useNotification } from "../../context/notificationContextValue";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { Link, useMatch, useNavigate } from "react-router-dom";
 import { getAuthErrorMessage } from "../../utils/userFacingError";
 
@@ -24,6 +25,7 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const dialogRef = useModalDialog<HTMLDivElement>({ isOpen, onClose });
+  const revealRef = useScrollReveal<HTMLElement>();
 
   const { showNotification } = useNotification();
 
@@ -97,7 +99,8 @@ export default function LoginModal({ isOpen, onClose }: ModalProps) {
       tabIndex={-1}
     >
       <section
-        className="login-modal auth-card"
+        className="login-modal auth-card ui-scroll-reveal"
+        ref={revealRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"

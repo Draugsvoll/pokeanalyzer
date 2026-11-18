@@ -492,3 +492,66 @@ function parseGradingOpportunities(
 export function gradingOpportunities(signal?: AbortSignal) {
   return loadCategory(parseGradingOpportunities, signal);
 }
+
+export type PriceGapItem = {
+  cardId: string;
+  cardNumber: string | null;
+  cardmarketTrend: number;
+  gap: number;
+  gapPercent: number;
+  higherMarket: "cardmarket" | "tcgplayer";
+  image: string | null;
+  marketComparisons?: PokeTraceMarketComparisons;
+  name: string;
+  psaSales: number;
+  rarity: string | null;
+  setName: string | null;
+  tcgPrice: number;
+  tcgSales: number;
+  variant: string | null;
+};
+
+export type PriceGapsResponse = {
+  fetchedAt: string;
+  items: PriceGapItem[];
+  status: MarketCategoryStatus;
+};
+
+function parsePriceGap(value: unknown): PriceGapItem {
+  if (!isRecord(value)) throw new Error("Invalid price gap");
+  const higherMarket = value.higherMarket;
+  if (higherMarket !== "tcgplayer" && higherMarket !== "cardmarket") {
+    throw new Error("Invalid price gap market");
+  }
+  return {
+    cardId: text(value.cardId, "cardId"),
+    cardNumber: nullableText(value.cardNumber),
+    cardmarketTrend: finiteNumber(value.cardmarketTrend, "cardmarketTrend"),
+    gap: finiteNumber(value.gap, "gap"),
+    gapPercent: finiteNumber(value.gapPercent, "gapPercent"),
+    higherMarket,
+    image: nullableText(value.image),
+    marketComparisons: parsePokeTraceMarketComparisons(value.marketComparisons),
+    name: text(value.name, "name"),
+    psaSales: finiteNumber(value.psaSales, "psaSales"),
+    rarity: nullableText(value.rarity),
+    setName: nullableText(value.setName),
+    tcgPrice: finiteNumber(value.tcgPrice, "tcgPrice"),
+    tcgSales: finiteNumber(value.tcgSales, "tcgSales"),
+    variant: nullableText(value.variant),
+  };
+}
+
+export function tcgCardmarketPriceGaps(signal?: AbortSignal) {
+  return loadCategory((payload) => {
+    const category = findCategory(payload, "tcg-cardmarket-price-gaps");
+    if (!Array.isArray(category.items) || category.status !== "ready") {
+      throw new Error("Invalid market category: tcg-cardmarket-price-gaps");
+    }
+    return {
+      fetchedAt: payload.generatedAt,
+      items: category.items.map(parsePriceGap),
+      status: category.status,
+    } satisfies PriceGapsResponse;
+  }, signal);
+}

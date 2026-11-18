@@ -149,7 +149,7 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: var(--header-actions-gap);
+  gap: var(--space-4);
   justify-self: end;
 }
 
@@ -257,7 +257,6 @@
   }
 
   &:hover {
-    background: var(--bg-input-strong);
     border-color: var(--border-color-strong);
   }
 
@@ -280,7 +279,6 @@
 }
 
 .header__credits {
-  margin-right: var(--space-2);
   align-items: center;
   background: var(--bg-input-strong);
   border: 1px solid var(--border-color);

@@ -239,7 +239,7 @@ test("shows Cardmarket as the third market card with EU aggregated prices", asyn
   expect(cardmarket.getByText("From")).toBeInTheDocument();
   expect(cardmarket.queryByText("7d avg")).not.toBeInTheDocument();
   expect(cardmarket.getByText("Trend")).toBeInTheDocument();
-  expect(cardmarket.getByText("30d-avg")).toBeInTheDocument();
+  expect(cardmarket.getByText("30d avg")).toBeInTheDocument();
   expect(cardmarket.getByText("€15.00")).toBeInTheDocument();
   expect(cardmarket.queryByText("€17.00")).not.toBeInTheDocument();
   expect(cardmarket.getByText("€16.00")).toBeInTheDocument();

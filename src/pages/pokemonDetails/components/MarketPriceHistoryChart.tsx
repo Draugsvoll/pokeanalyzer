@@ -453,7 +453,7 @@ export function MarketPriceHistoryChart({
     point ? [y(point.value)] : [],
   );
   const activeTop = Math.min(...activePointYs);
-  const tooltipViewportWidth = 220 * tooltipScale;
+  const tooltipViewportWidth = 195 * tooltipScale;
   const tooltipHeight = (40 + availableSources.length * 24) * tooltipScale;
   const tooltipX = Math.min(
     WIDTH - PADDING.right - tooltipViewportWidth,
@@ -545,12 +545,12 @@ export function MarketPriceHistoryChart({
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
                     offset="0%"
-                    stopOpacity="0.117"
+                    stopOpacity="0.086"
                   />
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
                     offset="72%"
-                    stopOpacity="0.0405"
+                    stopOpacity="0.029"
                   />
                   <stop
                     className={`poketrace-market__history-area-stop poketrace-market__history-area-stop--${source}`}
@@ -659,7 +659,7 @@ export function MarketPriceHistoryChart({
                 <div
                   className="poketrace-market__history-tooltip-card ui-render-fade"
                   style={{
-                    width: 220,
+                    width: 195,
                     transform: `scale(${tooltipScale})`,
                     transformOrigin: "top left",
                   }}

@@ -4,6 +4,8 @@ import type {
   MostSoldOptions,
   PriceMoversOptions,
 } from "../services/marketCategoryQueries.js";
+import { PRICE_GAP_QUALIFICATIONS } from "./priceGaps.js";
+import type { PriceGapOptions } from "../services/priceGaps.js";
 
 type PriceMoversCategoryDefinition = {
   id: string;
@@ -19,6 +21,13 @@ type MostSoldCategoryDefinition = {
   title: string;
 };
 
+type PriceGapsCategoryDefinition = {
+  id: string;
+  parameters: Partial<PriceGapOptions>;
+  query: "priceGaps";
+  title: string;
+};
+
 type GradingOpportunitiesCategoryDefinition = {
   id: string;
   parameters: Partial<GradingOpportunitiesOptions>;
@@ -29,6 +38,7 @@ type GradingOpportunitiesCategoryDefinition = {
 export type MarketCategoryDefinition =
   | GradingOpportunitiesCategoryDefinition
   | MostSoldCategoryDefinition
+  | PriceGapsCategoryDefinition
   | PriceMoversCategoryDefinition;
 
 // Add or duplicate entries here to export more categories in the same JSON file.
@@ -97,6 +107,15 @@ export const MARKET_CATEGORY_DEFINITIONS = [
     },
     query: "mostSold",
     title: "Ebay high volume this week",
+  },
+  {
+    id: "tcg-cardmarket-price-gaps",
+    parameters: {
+      ...PRICE_GAP_QUALIFICATIONS,
+      limit: 12,
+    },
+    query: "priceGaps",
+    title: "TCG and Cardmarket price gaps",
   },
   {
     id: "grading-opportunities",

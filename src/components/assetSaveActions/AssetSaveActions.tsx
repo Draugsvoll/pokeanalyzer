@@ -1,5 +1,6 @@
 import { Heart, Star, type LucideIcon } from "lucide-react";
 import Button from "../button/Button";
+import { useAuth } from "../../context/authContextValue";
 import { useWatchlistCache } from "../../context/watchlistCacheContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useWatchlist } from "../../hooks/useWatchlist";
@@ -75,19 +76,26 @@ function SaveButton({
 
 export function AssetSaveActions({
   item,
+  onRequireAuth,
   portfolio,
   layout = "card",
 }: {
   item: WatchlistItem;
+  onRequireAuth?: () => void;
   portfolio: ActionState;
   layout?: "card" | "detail";
 }) {
+  const { user } = useAuth();
   const cache = useWatchlistCache();
   const collection = usePortfolioCache();
   const { setWatched } = useWatchlist();
   const { id, type } = item;
   const watched = cache.isItemSaved(type, id);
   async function toggleWatchlist() {
+    if (!user) {
+      onRequireAuth?.();
+      return;
+    }
     if (cache.loadingReferences || cache.referencesError) return;
     await setWatched(item, !watched);
   }

@@ -689,7 +689,7 @@ test.each([400, 1600])(
       fireEvent.pointerMove(screen.getByRole("img"), { clientX: width / 2 });
       const tooltip = document.querySelector("foreignObject")!;
       expect((Number(tooltip.getAttribute("width")) * width) / 800).toBeCloseTo(
-        220,
+        195,
       );
       expect((tooltip.firstElementChild as HTMLElement).style.transform).toBe(
         `scale(${800 / width})`,

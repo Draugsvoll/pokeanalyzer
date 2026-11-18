@@ -49,13 +49,15 @@
     position: relative;
 
     &::after {
-      background: color-mix(in srgb, var(--border-divider) 50%, transparent);
+      background: color-mix(in srgb, var(--border-divider) 80%, transparent);
       bottom: 0;
       content: "";
       height: 1px;
       left: var(--space-3);
       position: absolute;
       right: var(--space-3);
+      width: 97%;
+      margin: auto;
     }
     > div > h2 {
       color: var(--font-color-secondary);
@@ -145,14 +147,9 @@
 
   &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--marketplace-accent);
-    border-radius: var(--border-radius);
     justify-self: center;
     margin: 0;
     width: fit-content;
-
-    .segmented-radio-group__option > span {
-      border-radius: calc(var(--border-radius) - 0.2rem);
-    }
 
     .segmented-radio-group__option {
       min-width: 6.25rem;
@@ -197,6 +194,8 @@
       border-radius: var(--border-radius-pill);
       color: var(--font-color-muted);
       font-weight: var(--font-weight-medium);
+      justify-content: center;
+      padding: 0 0.82rem;
       min-width: 0;
       font-size: var(--font-size-overline);
     }
@@ -350,7 +349,6 @@
     }
 
     span {
-      background: transparent;
       min-width: 2.8rem;
       text-align: center;
       border: var(--border);
@@ -365,27 +363,8 @@
         color var(--delay-short) ease;
     }
 
-    label:hover span {
-      border-color: color-mix(
-        in srgb,
-        var(--marketplace-accent) 45%,
-        transparent
-      );
+    label:hover > input:not(:checked) + span {
       color: var(--font-color-primary);
-    }
-
-    input:checked + span {
-      background: color-mix(
-        in srgb,
-        var(--marketplace-accent) 12%,
-        transparent
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--marketplace-accent) 40%,
-        transparent
-      );
-      color: var(--marketplace-accent);
     }
 
     input:focus-visible + span {
@@ -401,19 +380,16 @@
   &__filters.radio-group.radio-group label:has(> input) > span {
     min-width: 4.3rem;
     height: 2.1rem;
-    background: var(--surface4);
-    color: var(--font-color-muted);
     font-size: var(--font-size-overline);
+  }
+
+  &__filters.radio-group.radio-group label:has(> input:not(:checked)) > span {
+    color: var(--font-color-muted);
   }
 
   &__filters.radio-group.radio-group .ui-select-dropdown__count {
     font-size: var(--font-size-label);
-  }
-
-  &__filters.radio-group.radio-group input:checked + span {
-    background: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
-    border-color: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
-    color: var(--button-font-color);
+    font-weight: var(--font-weight-medium);
   }
 
   &__filters.radio-group.radio-group > div {
@@ -532,7 +508,6 @@
   }
 
   &__result-panel {
-    background: var(--bg2);
     border: var(--border);
     border-radius: var(--border-radius);
     min-width: 0;

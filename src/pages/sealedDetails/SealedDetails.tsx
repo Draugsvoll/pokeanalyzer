@@ -17,6 +17,7 @@ import Button from "../../components/button/Button";
 import { DetailsPage } from "../../components/detailsPage/DetailsPage";
 import { EmbeddedCardSearchDialog } from "../../components/embeddedCardSearchDialog/EmbeddedCardSearchDialog";
 import { PriceChange } from "../../components/priceChange/PriceChange";
+import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { usePortfolioCache } from "../../context/portfolioCacheContextValue";
 import { useSealedPortfolio } from "../../hooks/sealedPortfolio";
@@ -316,6 +317,7 @@ export default function SealedDetails() {
   const { id } = useParams();
   const location = useLocation();
   const { user: authUser } = useAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
   const { isItemSaved, loadingPortfolioReferences, portfolioReferencesError } =
     usePortfolioCache();
   const { saveSealedToPortfolio, removeSealedFromPortfolio } =
@@ -378,6 +380,10 @@ export default function SealedDetails() {
     Boolean(authUser) && Boolean(portfolioReferencesError);
 
   async function handlePortfolioToggle() {
+    if (!authUser) {
+      setLoginOpen(true);
+      return;
+    }
     if (
       !product ||
       updatingPortfolio ||
@@ -522,11 +528,11 @@ export default function SealedDetails() {
               />
             )}
           </div>
-          {authUser && (
-            <AssetSaveActions
+          <AssetSaveActions
               key={product.id}
               item={{ ...product, type: "sealed" }}
               layout="detail"
+              onRequireAuth={() => setLoginOpen(true)}
               portfolio={{
                 saved: productIsSaved,
                 busy: portfolioBusy,
@@ -534,7 +540,6 @@ export default function SealedDetails() {
                 onToggle: handlePortfolioToggle,
               }}
             />
-          )}
           <div className="sealed-details__change-product">
             <Button
               aria-expanded={showSealedSearch}
@@ -571,6 +576,7 @@ export default function SealedDetails() {
         </span>
       }
     >
+      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <EmbeddedCardSearchDialog
         ariaLabel="Switch sealed product"
         initialProductType="sealed"

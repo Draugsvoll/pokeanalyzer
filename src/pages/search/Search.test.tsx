@@ -24,6 +24,10 @@ vi.mock(
   }),
 );
 
+vi.mock("../../components/priceGapGrid/PriceGapGrid", () => ({
+  PriceGapGrid: ({ title }: { title: string }) => <section>{title}</section>,
+}));
+
 vi.mock("../../components/marketMoversGrid/MarketMoversGrid", () => ({
   MarketMoversGrid: ({ title }: { title: string }) => (
     <section>{title}</section>
@@ -41,6 +45,7 @@ test("uses the shared search experience without replacing market sections", () =
   expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
+  expect(screen.getByText("TCG and Cardmarket price gaps")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 
@@ -55,6 +60,7 @@ test("keeps market sections visible when initialized in sealed mode", () => {
   expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
+  expect(screen.getByText("TCG and Cardmarket price gaps")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Losers")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });

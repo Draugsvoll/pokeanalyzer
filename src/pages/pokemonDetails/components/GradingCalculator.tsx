@@ -626,236 +626,225 @@ export function GradingCalculator({
           </div>
         </article>
         {GRADES.some((grade) => grades[grade].expectedPrice != null) && (
-          <>
-            <h3>Calculations</h3>
-            <div className="grading-calculator__grades">
-              {GRADES.map((grade) => {
-                const expectedPrice = grades[grade].expectedPrice;
-                if (expectedPrice == null) return null;
-                const priced = true;
-                const sellingFees = sellingFeeAmount(
-                  expectedPrice,
-                  sellingFeePercent,
-                  sellingFeeThreshold,
-                  sellingFeeAbovePercent,
-                );
-                const gain = gains[grade];
-                const priceMultiple = formatMultiple(rawPrice, expectedPrice);
-                const gradedBelowRaw =
-                  expectedPrice != null &&
-                  rawPrice != null &&
-                  expectedPrice < rawPrice;
-                return (
-                  <article
-                    className={
-                      priced
-                        ? "grading-calculator__grade ui-render-fade"
-                        : "grading-calculator__grade grading-calculator__grade--empty ui-render-fade"
-                    }
-                    key={grade}
-                  >
-                    <header className="default-container-inner">
-                      <h3>PSA {grade}</h3>
-                      <p className="grading-calculator__transform">
-                        <span className="grading-calculator__transform-side">
-                          <span className="grading-calculator__transform-amount">
-                            <Price>{formatMoney(rawPrice, currency)}</Price>
-                          </span>
-                          <span className="grading-calculator__transform-label">
-                            Raw price
-                          </span>
+          <div className="grading-calculator__grades">
+            {GRADES.map((grade) => {
+              const expectedPrice = grades[grade].expectedPrice;
+              if (expectedPrice == null) return null;
+              const priced = true;
+              const sellingFees = sellingFeeAmount(
+                expectedPrice,
+                sellingFeePercent,
+                sellingFeeThreshold,
+                sellingFeeAbovePercent,
+              );
+              const gain = gains[grade];
+              const priceMultiple = formatMultiple(rawPrice, expectedPrice);
+              const gradedBelowRaw =
+                expectedPrice != null &&
+                rawPrice != null &&
+                expectedPrice < rawPrice;
+              return (
+                <article
+                  className={
+                    priced
+                      ? "grading-calculator__grade ui-render-fade"
+                      : "grading-calculator__grade grading-calculator__grade--empty ui-render-fade"
+                  }
+                  key={grade}
+                >
+                  <header className="default-container-inner">
+                    <h3>PSA {grade}</h3>
+                    <p className="grading-calculator__transform">
+                      <span className="grading-calculator__transform-side">
+                        <span className="grading-calculator__transform-amount">
+                          <Price>{formatMoney(rawPrice, currency)}</Price>
                         </span>
-                        <span className="grading-calculator__transform-mid">
-                          <span
-                            aria-hidden="true"
-                            className="grading-calculator__transform-arrow"
-                          >
-                            →
-                          </span>
-                          {priceMultiple != null && (
-                            <span
-                              className={`grading-calculator__transform-multiple ${
-                                gradedBelowRaw
-                                  ? "grading-calculator__value--down"
-                                  : "grading-calculator__value--up"
-                              }`}
-                            >
-                              {priceMultiple}
-                            </span>
-                          )}
+                        <span className="grading-calculator__transform-label">
+                          Raw price
                         </span>
-                        <span className="grading-calculator__transform-side">
-                          <span
-                            className={`grading-calculator__transform-amount ${
-                              priced
-                                ? gradedBelowRaw
-                                  ? "grading-calculator__value--down"
-                                  : "grading-calculator__value--up"
-                                : ""
-                            }`.trim()}
-                          >
-                            {priced && (
-                              <Price>
-                                {formatMoney(
-                                  grades[grade].expectedPrice,
-                                  currency,
-                                )}
-                              </Price>
-                            )}
-                          </span>
-                          <span className="grading-calculator__transform-label">
-                            Graded price
-                          </span>
+                      </span>
+                      <span className="grading-calculator__transform-mid">
+                        <span
+                          aria-hidden="true"
+                          className="grading-calculator__transform-arrow"
+                        >
+                          →
                         </span>
-                      </p>
-                    </header>
-                    <div className="grading-calculator__breakdown">
-                      <div className="grading-calculator__fields">
-                        <div className="grading-calculator__field">
-                          <span className="grading-calculator__sell-label">
-                            Sell price
-                          </span>
+                        {priceMultiple != null && (
                           <span
-                            className={moneyClass(fields[grade].expectedPrice)}
+                            className={`grading-calculator__transform-multiple ${
+                              gradedBelowRaw
+                                ? "grading-calculator__value--down"
+                                : "grading-calculator__value--up"
+                            }`}
                           >
-                            <span aria-hidden="true">
-                              {currencySymbol(currency)}
-                            </span>
-                            <input
-                              aria-label={`PSA ${grade} Sell price`}
-                              inputMode="decimal"
-                              type="number"
-                              min={0}
-                              step="any"
-                              placeholder="0"
-                              onChange={(event) =>
-                                setFields((current) => ({
-                                  ...current,
-                                  [grade]: {
-                                    expectedPrice: event.target.value,
-                                  },
-                                }))
-                              }
-                              onFocus={() => {
-                                if (fields[grade].expectedPrice !== "0") return;
-                                setFields((current) => ({
-                                  ...current,
-                                  [grade]: { expectedPrice: "" },
-                                }));
-                              }}
-                              value={fields[grade].expectedPrice}
-                            />
-                            {fields[grade].expectedPrice ? (
-                              <ClearInputButton
-                                label={`Clear PSA ${grade} sell price`}
-                                onClear={() =>
-                                  setFields((current) => ({
-                                    ...current,
-                                    [grade]: { expectedPrice: "" },
-                                  }))
-                                }
-                              />
-                            ) : null}
+                            {priceMultiple}
                           </span>
-                        </div>
-                      </div>
-                      <div className="grading-calculator__ledger">
-                        <div className="grading-calculator__ledger-row">
-                          <span>PSA grading fee</span>
-                          <strong
-                            className={
-                              priced
-                                ? "grading-calculator__deduction"
-                                : undefined
-                            }
-                          >
+                        )}
+                      </span>
+                      <span className="grading-calculator__transform-side">
+                        <span
+                          className={`grading-calculator__transform-amount ${
+                            priced
+                              ? gradedBelowRaw
+                                ? "grading-calculator__value--down"
+                                : "grading-calculator__value--up"
+                              : ""
+                          }`.trim()}
+                        >
+                          {priced && (
                             <Price>
-                              {priced
-                                ? formatDeduction(gradingFee ?? 0, currency)
-                                : "—"}
-                            </Price>
-                          </strong>
-                        </div>
-                        <div className="grading-calculator__ledger-row">
-                          <span>Shipping & insurance</span>
-                          <strong
-                            className={
-                              priced
-                                ? "grading-calculator__deduction"
-                                : undefined
-                            }
-                          >
-                            <Price>
-                              {priced
-                                ? formatDeduction(shipping ?? 0, currency)
-                                : "—"}
-                            </Price>
-                          </strong>
-                        </div>
-                        <div className="grading-calculator__ledger-row">
-                          <span>
-                            Selling fees
-                            <span className="grading-calculator__ledger-note">
-                              {sellingFeeLabel(
-                                sellingFeePercent,
-                                sellingFeeThreshold,
-                                sellingFeeAbovePercent,
+                              {formatMoney(
                                 grades[grade].expectedPrice,
                                 currency,
                               )}
-                            </span>
-                          </span>
-                          <strong
-                            className={
-                              priced
-                                ? "grading-calculator__deduction"
-                                : undefined
-                            }
-                          >
-                            <Price>
-                              {priced
-                                ? formatDeduction(sellingFees, currency)
-                                : "—"}
                             </Price>
-                          </strong>
-                        </div>
-                        <div className="grading-calculator__ledger-row">
-                          <span>
-                            Raw proceeds
-                            <span className="grading-calculator__ledger-note">
-                              Opportunity cost
-                            </span>
+                          )}
+                        </span>
+                        <span className="grading-calculator__transform-label">
+                          Graded price
+                        </span>
+                      </span>
+                    </p>
+                  </header>
+                  <div className="grading-calculator__breakdown">
+                    <div className="grading-calculator__fields">
+                      <div className="grading-calculator__field">
+                        <span className="grading-calculator__sell-label">
+                          Sell price
+                        </span>
+                        <span
+                          className={moneyClass(fields[grade].expectedPrice)}
+                        >
+                          <span aria-hidden="true">
+                            {currencySymbol(currency)}
                           </span>
-                          <strong
-                            className={
-                              priced
-                                ? "grading-calculator__deduction"
-                                : undefined
+                          <input
+                            aria-label={`PSA ${grade} Sell price`}
+                            inputMode="decimal"
+                            type="number"
+                            min={0}
+                            step="any"
+                            placeholder="0"
+                            onChange={(event) =>
+                              setFields((current) => ({
+                                ...current,
+                                [grade]: {
+                                  expectedPrice: event.target.value,
+                                },
+                              }))
                             }
-                          >
-                            <Price>
-                              {priced
-                                ? formatDeduction(rawProceeds ?? 0, currency)
-                                : "—"}
-                            </Price>
-                          </strong>
-                        </div>
-                        <div className="grading-calculator__ledger-row grading-calculator__ledger-row--total">
-                          <span>Additional gain from grading.</span>
-                          <strong
-                            aria-label={`PSA ${grade} profit`}
-                            className={toneClass(gain)}
-                          >
-                            <Price>{formatSignedMoney(gain, currency)}</Price>
-                          </strong>
-                        </div>
+                            onFocus={() => {
+                              if (fields[grade].expectedPrice !== "0") return;
+                              setFields((current) => ({
+                                ...current,
+                                [grade]: { expectedPrice: "" },
+                              }));
+                            }}
+                            value={fields[grade].expectedPrice}
+                          />
+                          {fields[grade].expectedPrice ? (
+                            <ClearInputButton
+                              label={`Clear PSA ${grade} sell price`}
+                              onClear={() =>
+                                setFields((current) => ({
+                                  ...current,
+                                  [grade]: { expectedPrice: "" },
+                                }))
+                              }
+                            />
+                          ) : null}
+                        </span>
                       </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          </>
+                    <div className="grading-calculator__ledger">
+                      <div className="grading-calculator__ledger-row">
+                        <span>PSA grading fee</span>
+                        <strong
+                          className={
+                            priced ? "grading-calculator__deduction" : undefined
+                          }
+                        >
+                          <Price>
+                            {priced
+                              ? formatDeduction(gradingFee ?? 0, currency)
+                              : "—"}
+                          </Price>
+                        </strong>
+                      </div>
+                      <div className="grading-calculator__ledger-row">
+                        <span>Shipping & insurance</span>
+                        <strong
+                          className={
+                            priced ? "grading-calculator__deduction" : undefined
+                          }
+                        >
+                          <Price>
+                            {priced
+                              ? formatDeduction(shipping ?? 0, currency)
+                              : "—"}
+                          </Price>
+                        </strong>
+                      </div>
+                      <div className="grading-calculator__ledger-row">
+                        <span>
+                          Selling fees
+                          <span className="grading-calculator__ledger-note">
+                            {sellingFeeLabel(
+                              sellingFeePercent,
+                              sellingFeeThreshold,
+                              sellingFeeAbovePercent,
+                              grades[grade].expectedPrice,
+                              currency,
+                            )}
+                          </span>
+                        </span>
+                        <strong
+                          className={
+                            priced ? "grading-calculator__deduction" : undefined
+                          }
+                        >
+                          <Price>
+                            {priced
+                              ? formatDeduction(sellingFees, currency)
+                              : "—"}
+                          </Price>
+                        </strong>
+                      </div>
+                      <div className="grading-calculator__ledger-row">
+                        <span>
+                          Raw proceeds
+                          <span className="grading-calculator__ledger-note">
+                            Opportunity cost
+                          </span>
+                        </span>
+                        <strong
+                          className={
+                            priced ? "grading-calculator__deduction" : undefined
+                          }
+                        >
+                          <Price>
+                            {priced
+                              ? formatDeduction(rawProceeds ?? 0, currency)
+                              : "—"}
+                          </Price>
+                        </strong>
+                      </div>
+                      <div className="grading-calculator__ledger-row grading-calculator__ledger-row--total">
+                        <span>Additional gain from grading.</span>
+                        <strong
+                          aria-label={`PSA ${grade} profit`}
+                          className={toneClass(gain)}
+                        >
+                          <Price>{formatSignedMoney(gain, currency)}</Price>
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
       </article>
     </section>

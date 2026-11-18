@@ -44,6 +44,11 @@ export type PokemonCardViewProps = {
     priceLabel?: string;
     primaryText?: string;
     source?: string;
+    trendPrice?: {
+      amount: number;
+      currency: "EUR";
+      higher: boolean;
+    };
   };
   onPortfolioChanged?: (saved: boolean) => void;
   priceChangeLabel?: string;
@@ -81,9 +86,7 @@ export function PokemonCardView({
   const activeOption = resolvePokeTraceCardPrice(card);
   const imageSrc = card.image;
   const imageAvailable = Boolean(imageSrc && failedImageSrc !== imageSrc);
-  const displayedPrice = marketDisplay
-    ? marketDisplay.price
-    : activeOption?.price;
+  const displayedPrice = marketDisplay?.price ?? activeOption?.price;
   const displayedPriceChange = resolveDisplayedPokeTracePriceChange(card, {
     comparisonPeriod,
     comparisonPriceSnapshot,
@@ -235,15 +238,35 @@ export function PokemonCardView({
 
         <div className="product-card__price-row">
           <span
-            className="product-card__price-value pokemon-card__price-value"
+            className={`product-card__price-value pokemon-card__price-value${marketDisplay?.trendPrice ? " pokemon-card__price-value--with-trend" : ""}`}
             title={marketDisplay?.priceLabel}
           >
             {marketDisplay?.primaryText ??
               (displayedPrice != null
                 ? formatPokeTraceMoney(displayedPrice)
                 : "-")}
+            {marketDisplay?.trendPrice && (
+              <span
+                className="pokemon-card__trend-price"
+                title="Cardmarket trend"
+              >
+                <span aria-hidden="true" className="pokemon-card__trend-arrow">
+                  →
+                </span>
+                <span
+                  className={`pokemon-card__trend-amount pokemon-card__trend-amount--${marketDisplay.trendPrice.higher ? "up" : "down"}`}
+                >
+                  {new Intl.NumberFormat("en-US", {
+                    currency: marketDisplay.trendPrice.currency,
+                    maximumFractionDigits: 2,
+                    minimumFractionDigits: 2,
+                    style: "currency",
+                  }).format(marketDisplay.trendPrice.amount)}
+                </span>
+              </span>
+            )}
           </span>
-          {showPriceChange && (
+          {showPriceChange && !marketDisplay?.trendPrice && (
             <PriceChange
               animate
               key={`${priceChangeTitle}:${displayedPriceChangePercent}`}

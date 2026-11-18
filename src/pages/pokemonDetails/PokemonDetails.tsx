@@ -569,7 +569,7 @@ function PokemonDetailsForCard() {
           name: card.pokeTrace.variant?.trim() || "Normal",
         },
       ];
-  const cardIsSaved = !isDemo && isCardSaved(card.id);
+  const cardIsSaved = isCardSaved(card.id);
   const portfolioBusy =
     updatingPortfolio || (Boolean(authUser) && loadingPortfolioReferences);
   const portfolioUnavailable =
@@ -765,19 +765,18 @@ function PokemonDetailsForCard() {
             </div>
           )}
           <div className="card-view__image-controls">
-            {authUser && !isDemo && (
-              <AssetSaveActions
-                key={card.id}
-                item={{ ...card, type: "single" }}
-                layout="detail"
-                portfolio={{
-                  saved: cardIsSaved,
-                  busy: portfolioBusy,
-                  unavailable: portfolioUnavailable,
-                  onToggle: handlePortfolioToggle,
-                }}
-              />
-            )}
+            <AssetSaveActions
+              key={card.id}
+              item={{ ...card, type: "single" }}
+              layout="detail"
+              onRequireAuth={() => setShowLoginModal(true)}
+              portfolio={{
+                saved: cardIsSaved,
+                busy: portfolioBusy,
+                unavailable: portfolioUnavailable,
+                onToggle: handlePortfolioToggle,
+              }}
+            />
             <div className="card-view__change-card">
               <Button
                 ref={cardSearchTriggerRef}

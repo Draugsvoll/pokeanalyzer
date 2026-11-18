@@ -2,6 +2,7 @@ import { DatabaseSearch } from "../../components/databaseSearch/DatabaseSearch";
 import { GradingOpportunitiesGrid } from "../../components/gradingOpportunitiesGrid/GradingOpportunitiesGrid";
 import { MarketMoversGrid } from "../../components/marketMoversGrid/MarketMoversGrid";
 import { MostSoldGrid } from "../../components/mostSoldGrid/MostSoldGrid";
+import { PriceGapGrid } from "../../components/priceGapGrid/PriceGapGrid";
 import {
   dailyTcgNearMintGainers,
   dailyTcgNearMintLosers,
@@ -19,6 +20,7 @@ export default function Search({
     <div className="search-page">
       <DatabaseSearch autoFocusName initialProductType={initialProductType} />
       <GradingOpportunitiesGrid minimized title="Grading Opportunities" />
+      <PriceGapGrid minimized title="TCG and Cardmarket price gaps" />
       <MostSoldGrid minimized title="TCG high volume this week" />
       <MostSoldGrid
         minimized

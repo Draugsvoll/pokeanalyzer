@@ -306,6 +306,11 @@
 
     .feature-button {
       --feature-accent: var(--blue);
+      --feature-button-selected-bg: color-mix(
+        in srgb,
+        var(--feature-accent) 10%,
+        transparent
+      );
 
       align-items: center;
       background: transparent;
@@ -340,8 +345,12 @@
         width: 1px;
       }
 
-      &:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--feature-accent) 6%, transparent);
+      &:hover:not(:disabled):not(.is-active) {
+        background: color-mix(
+          in srgb,
+          var(--radio-neutral-bg) 15%,
+          var(--radio-track-bg)
+        );
         border-color: transparent;
         box-shadow: none;
         color: var(--font-color-primary);
@@ -349,7 +358,7 @@
       }
 
       &.is-active {
-        background: color-mix(in srgb, var(--feature-accent) 6%, transparent);
+        background: var(--feature-button-selected-bg);
         color: var(--font-color-primary);
       }
 
@@ -425,6 +434,13 @@
     to {
       transform: rotate(360deg);
     }
+  }
+
+  // The entrance transform creates a stacking context; raise the panel while
+  // a dropdown is open so its menu can overlap the following card grid.
+  &__marketplace-panel:has(.ui-select-dropdown__toggle.is-open) {
+    position: relative;
+    z-index: var(--dropdown-z-index);
   }
 
   &__marketplace-panel.ui-render-fade {

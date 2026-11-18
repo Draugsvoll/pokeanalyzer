@@ -42,6 +42,14 @@
     z-index: 1;
   }
 
+  .product-type-switch.segmented-radio-group {
+    border-radius: var(--border-radius-pill);
+
+    .segmented-radio-group__option > span {
+      border-radius: var(--border-radius-pill);
+    }
+  }
+
   @media (max-width: 64rem) {
     &__title {
       font-size: var(--font-size-h1);

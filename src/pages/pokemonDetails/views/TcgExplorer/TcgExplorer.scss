@@ -2,6 +2,10 @@
   display: grid;
   gap: 1rem;
 
+  .marketplace-listings__filters.radio-group {
+    --radio-track-bg: var(--surface4);
+  }
+
   &__results {
     margin-top: var(--space-2);
   }

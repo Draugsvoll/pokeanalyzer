@@ -139,6 +139,46 @@
   white-space: nowrap;
 }
 
+.pokemon-card__price-value--with-trend {
+  position: relative;
+}
+
+.pokemon-card__trend-price {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.55rem;
+  left: calc(100% + 0.65rem);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.pokemon-card__trend-arrow {
+  align-items: center;
+  color: var(--font-color-muted);
+  display: flex;
+  font-size: var(--font-size-price);
+  line-height: 1;
+}
+
+.pokemon-card__trend-amount {
+  font-family: var(--font-family-price);
+  font-size: var(--font-size-paragraph-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-price-change);
+  line-height: 1;
+
+  &--up {
+    color: var(--price-value-positive);
+  }
+
+  &--down {
+    color: var(--price-value-negative);
+  }
+}
+
 .pokemon-card__price-value {
   flex: 0 0 auto;
   font-family: var(--font-family-price);

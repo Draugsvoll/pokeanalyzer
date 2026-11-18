@@ -16,6 +16,7 @@ import { register, signInWithGoogle } from "../../services/auth";
 import { GoogleLoginButton } from "../../components/googleLoginButton/GoogleLoginButton";
 import { logClientError } from "../../utils/logClientError";
 import { useNotification } from "../../context/notificationContextValue";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getAuthErrorMessage } from "../../utils/userFacingError";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,6 +58,7 @@ export default function SignUpForm() {
   });
 
   const [loading, setLoading] = useState(false);
+  const revealRef = useScrollReveal<HTMLElement>();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -160,7 +162,11 @@ export default function SignUpForm() {
 
   return (
     <div className="signup-page">
-      <section className="signup-card auth-card" aria-labelledby="signup-title">
+      <section
+        aria-labelledby="signup-title"
+        className="signup-card auth-card ui-scroll-reveal"
+        ref={revealRef}
+      >
         <header className="auth-card__header">
           <span className="auth-card__eyebrow">New collector</span>
           <h1 id="signup-title">Create account</h1>

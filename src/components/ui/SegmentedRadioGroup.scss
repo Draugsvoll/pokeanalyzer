@@ -1,10 +1,12 @@
 .segmented-radio-group {
   --segment-group-accent: var(--custom-color-blue);
 
+  --radio-accent: var(--segment-group-accent);
+
   align-items: center;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid var(--border-divider);
-  border-radius: var(--border-radius-pill);
+  background: var(--radio-track-bg);
+  border: var(--radio-track-border);
+  border-radius: var(--radio-track-radius);
   display: inline-flex;
   flex: 0 0 auto;
   gap: 0.15rem;
@@ -14,6 +16,13 @@
 
 .segmented-radio-group__option {
   --segment-accent: var(--segment-group-accent);
+  --radio-accent: var(--segment-accent);
+  --radio-selected-bg: color-mix(in srgb, var(--radio-accent) 80%, var(--bg2));
+  --radio-hover-bg: color-mix(
+    in srgb,
+    var(--radio-neutral-bg) 50%,
+    var(--radio-track-bg)
+  );
 
   cursor: pointer;
   display: inline-flex;
@@ -36,7 +45,7 @@
 
 .segmented-radio-group__option > span {
   background: none;
-  border-radius: var(--border-radius-pill);
+  border-radius: calc(var(--radio-track-radius) - 0.2rem);
   color: var(--font-color-secondary);
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
@@ -73,13 +82,13 @@
 .segmented-radio-group__option:hover
   > input:not(:disabled):not(:checked)
   + span {
-  background: color-mix(in srgb, var(--segment-accent) 6%, transparent);
+  background: var(--radio-hover-bg);
   color: var(--font-color-primary);
 }
 
 .segmented-radio-group__option input:checked + span {
-  background: color-mix(in srgb, var(--segment-accent) 80%, var(--bg2));
-  color: var(--button-font-color);
+  background: var(--radio-selected-bg);
+  color: var(--radio-selected-color);
   font-weight: var(--font-weight-semibold);
 }
 

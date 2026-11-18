@@ -1115,7 +1115,9 @@ export default function EbaySoldView({
                 label="How eBay condition filters work"
                 title="Condition filter"
               >
-                Filters by title. Many listings don't specify condition.
+                <span>
+                  Filters by title. Many listings don't specify condition.
+                </span>
               </InfoTooltip>
             </div>
           ) : (
