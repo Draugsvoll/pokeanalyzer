@@ -71,7 +71,6 @@ const SORT_OPTIONS: { value: PortfolioSort; label: string }[] = [
   { value: "name-az", label: "Name: A–Z" },
   { value: "price-high", label: "Price: high–low" },
   { value: "price-low", label: "Price: low–high" },
-  { value: "holding-high", label: "Holding value" },
   { value: "change-high", label: "% Change: high–low" },
   { value: "change-low", label: "% Change: low–high" },
 ];
@@ -413,8 +412,6 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
         setLoading(!loadedLists[nextMode]);
         setError("");
         setQuantityDialogItemKey(null);
-        if (nextMode === "watchlist" && sort === "holding-high")
-          setSort("unsorted");
         setMode(nextMode);
         setGradingEnabled(false);
         setRarity("");
@@ -663,13 +660,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                     ariaLabel={`Sort ${mode} assets`}
                     placeholder="Sort by"
                     className="portfolio__sort"
-                    options={
-                      isWatchlist
-                        ? SORT_OPTIONS.filter(
-                            (option) => option.value !== "holding-high",
-                          )
-                        : SORT_OPTIONS
-                    }
+                    options={SORT_OPTIONS}
                     value={sort}
                     onChange={setSort}
                   />

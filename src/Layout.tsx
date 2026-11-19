@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { Header } from "./components/header/Header";
 import { Footer } from "./components/footer/Footer";
+import { useBlockNumberInputWheel } from "./hooks/useBlockNumberInputWheel";
 import { SITE_NAME } from "./config/site";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -29,6 +30,7 @@ export default function Layout() {
   const pageKey = routeSegments[0] ?? "home";
   const usesDetailShell =
     routeSegments.length === 2 && (pageKey === "card" || pageKey === "sealed");
+  useBlockNumberInputWheel();
 
   useLayoutEffect(() => {
     const scrollPositions = scrollPositionsRef.current;

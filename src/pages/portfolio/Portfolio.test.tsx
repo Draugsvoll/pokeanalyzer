@@ -278,6 +278,7 @@ describe("Portfolio", () => {
     fireEvent.click(control);
     expect(screen.queryByRole("option", { name: "Sort by" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Unsorted" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Holding value" })).toBeNull();
     fireEvent.click(screen.getByRole("option", { name: "Price: high–low" }));
     expect(control).toHaveTextContent("Price: high–low");
     expect(

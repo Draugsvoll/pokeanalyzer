@@ -287,7 +287,7 @@
 
   &__actions {
     background: var(--bg2);
-    border: 1px solid var(--border-divider);
+    border: var(--border);
     border-radius: var(--border-radius);
     box-sizing: border-box;
     display: grid;
@@ -473,7 +473,6 @@
     .card-feature-header,
     .ebay-section__results,
     .tcg-explorer__results,
-    > .grading-calculator,
     .card-view__active-body .default-container {
       padding: var(--default-container-inner-padding);
     }

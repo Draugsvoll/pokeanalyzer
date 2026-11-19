@@ -19,7 +19,7 @@ test.each([7, 8, 9, 10])(
   "shows the estimate prompt in the comparison label only while all PSA inputs are empty (PSA %s)",
   (grade) => {
     const { container } = render(<GradingCalculator />);
-    const prompt = "Insert price estimates. See calculations below.";
+    const prompt = "Insert price estimates.";
     const comparison = container.querySelector(
       ".grading-calculator__compare-gain",
     )!;
@@ -77,9 +77,7 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   });
 
   const card = gradeArticle("PSA 10");
-  expect(card).toHaveTextContent("Raw");
-  expect(card).toHaveTextContent("Graded");
-  expect(card).toHaveTextContent("$1,000.00");
+  expect(screen.getByLabelText("PSA 10 Sell price")).toHaveValue(1000);
   expect(card).not.toHaveTextContent("Chance of PSA 10");
   fireEvent.change(screen.getByLabelText("Raw market value"), {
     target: { value: "100" },
@@ -92,20 +90,19 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   expect(card).toHaveTextContent("−$35.00");
   expect(card).toHaveTextContent("−$86.75");
   expect(card).toHaveTextContent("Raw proceeds");
-  expect(card).toHaveTextContent("Additional gain from grading.");
+  expect(card).toHaveTextContent("Net gains");
   expect(card).not.toHaveTextContent("Sell raw vs. sell graded");
-  expect(card).toHaveTextContent("10×");
 
   expect(card).not.toHaveTextContent("+$886.00 net proceeds");
   expect(
     screen.queryByLabelText("Net gain from grading"),
   ).not.toBeInTheDocument();
-  expect(gradeArticle("PSA 10")).not.toHaveClass(
-    "grading-calculator__grade--empty",
+  expect(gradeArticle("PSA 10")).toHaveClass(
+    "grading-calculator__outcome-card",
   );
   expect(
-    screen.queryByRole("heading", { name: "PSA 9", level: 3 }),
-  ).not.toBeInTheDocument();
+    screen.getByRole("heading", { name: "PSA 9", level: 3 }),
+  ).toBeInTheDocument();
   expect(screen.getAllByLabelText("PSA 9 Sell price")[0]).toHaveValue(null);
   expect(screen.queryByLabelText("graded proceeds")).not.toBeInTheDocument();
   expect(
@@ -158,6 +155,10 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   const tieredFee = screen.getByRole("checkbox", {
     name: "Tiered selling fee",
   });
+  expect(tieredFee).not.toBeChecked();
+  expect(screen.getByLabelText("Selling fee price threshold")).toBeDisabled();
+  expect(screen.getByLabelText("Selling fee above percent")).toBeDisabled();
+  fireEvent.click(tieredFee);
   expect(tieredFee).toBeChecked();
   expect(screen.getByLabelText("Selling fee price threshold")).toBeEnabled();
   expect(screen.getByLabelText("Selling fee above percent")).toBeEnabled();
@@ -264,7 +265,9 @@ function gradeArticle(name: string) {
   const heading = screen
     .getAllByRole("heading", { name })
     .find((node) =>
-      node.closest("article")?.classList.contains("grading-calculator__grade"),
+      node.closest("article")?.classList.contains(
+        "grading-calculator__outcome-card",
+      ),
     );
   const article = heading?.closest("article");
   if (!article) throw new Error(`Missing grade card ${name}`);

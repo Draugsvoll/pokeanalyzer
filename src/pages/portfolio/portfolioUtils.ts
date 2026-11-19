@@ -16,7 +16,6 @@ export type PortfolioSort =
   | "name-az"
   | "price-high"
   | "price-low"
-  | "holding-high"
   | "change-high"
   | "change-low";
 
@@ -144,14 +143,6 @@ export function getVisiblePortfolioItems(
         portfolioPrice(left),
         portfolioPrice(right),
         sort === "price-high" ? "descending" : "ascending",
-      );
-    } else if (sort === "holding-high") {
-      const leftPrice = portfolioPrice(left);
-      const rightPrice = portfolioPrice(right);
-      comparison = compareNullableNumbers(
-        leftPrice == null ? null : leftPrice * portfolioQuantity(left),
-        rightPrice == null ? null : rightPrice * portfolioQuantity(right),
-        "descending",
       );
     } else {
       comparison = compareNullableNumbers(
