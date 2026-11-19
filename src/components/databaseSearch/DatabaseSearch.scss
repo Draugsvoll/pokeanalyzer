@@ -28,10 +28,6 @@
     padding: 0;
     text-align: left;
 
-    .search-results-toolbar {
-      margin-top: 0.5rem;
-    }
-
     .database-search-filter-toolbar {
       --dropdown-trigger-bg: var(--search-surface);
     }
@@ -313,8 +309,8 @@
   letter-spacing: 0;
   line-height: 1;
   min-width: var(--search-btn-min-width);
-  padding: 0.7rem var(--search-btn-pad-x);
-  margin-right: 0.7rem;
+  padding: 0.65rem var(--search-btn-pad-x);
+  margin-right: 0.6rem;
   transition:
     background-color var(--delay-short) ease,
     border-color var(--delay-short) ease,

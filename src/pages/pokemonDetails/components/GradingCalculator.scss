@@ -527,15 +527,19 @@
   }
 
   &__grades {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--space-4);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   &__grade {
     display: grid;
+    flex: 0 0 calc((100% - 2 * var(--space-4)) / 3);
     gap: 0.85rem;
-    padding: var(--space-8);
+    max-width: 100%;
+    min-width: max-content;
+    padding: var(--space-6);
+    padding-bottom: 1.15rem;
     background: var(--surface4);
 
     header {
@@ -571,6 +575,8 @@
     grid-template-columns: auto auto auto;
     justify-content: center;
     margin: 0 auto;
+    min-width: max-content;
+    width: max-content;
 
     .grading-calculator__transform-side {
       display: grid;
@@ -587,6 +593,7 @@
       letter-spacing: var(--font-tracking-price);
       line-height: 1.15;
       min-height: calc(var(--font-size-h2) * 1.15);
+      white-space: nowrap;
     }
 
     .grading-calculator__transform-amount .grading-calculator__price {
@@ -612,9 +619,11 @@
     .grading-calculator__transform-multiple {
       color: var(--green);
       font-size: var(--font-size-caption);
-      margin-top: -0.2rem;
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
+      margin-top: -0.2rem;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .grading-calculator__transform-label {
@@ -811,6 +820,7 @@
 
   &__breakdown {
     display: grid;
+    min-width: 0;
   }
 
   &__breakdown &__fields {
@@ -862,6 +872,7 @@
   &__ledger {
     display: grid;
     gap: 0.85rem;
+    min-width: 0;
   }
 
   &__ledger-row {
@@ -869,16 +880,20 @@
     display: flex;
     gap: 1rem;
     justify-content: space-between;
+    min-width: 0;
 
     > span {
+      flex: 1;
       font-size: var(--font-size-body);
       min-width: 0;
     }
 
     strong {
+      flex: none;
       font-size: var(--font-size-body);
       font-variant-numeric: tabular-nums;
       font-weight: var(--font-weight-semibold);
+      white-space: nowrap;
     }
 
     strong .grading-calculator__price {
@@ -895,6 +910,7 @@
   }
 
   &__ledger-row--total {
+    align-items: center;
     border-top: var(--border);
     margin-top: 0.2rem;
     padding-top: 0.65rem;
@@ -903,6 +919,12 @@
     strong {
       color: var(--font-color-primary);
       font-weight: var(--font-weight-medium);
+    }
+
+    strong {
+      background: var(--surface5);
+      border-radius: var(--default-container-radius);
+      padding: 0.6rem;
     }
 
     strong.grading-calculator__value--up {
@@ -1112,6 +1134,14 @@
   }
 
   @media (max-width: 52rem) {
+    &__grades {
+      display: grid;
+    }
+
+    &__grade {
+      min-width: 0;
+    }
+
     &__grades,
     &__settings-row,
     &__settings-row--raw,

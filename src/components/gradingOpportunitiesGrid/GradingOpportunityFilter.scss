@@ -8,6 +8,7 @@
   gap: 0.3rem;
   min-height: var(--dropdown-trigger-height);
   white-space: nowrap;
+  font-weight: var(--font-weight-regular);
 
   .portfolio__controls & input,
   .set-category-grid__result-control-group & input {

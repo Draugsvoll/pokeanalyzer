@@ -183,7 +183,7 @@
     max-width: 100%;
     height: auto;
     object-fit: contain;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-pokemon-image);
     box-shadow:
       0 0 0.65rem color-mix(in srgb, var(--yellow) 6%, transparent),
       0 0 1.45rem color-mix(in srgb, var(--yellow) 4%, transparent),
@@ -326,7 +326,7 @@
       max-width: none;
       min-height: 3.2rem;
       min-width: 0;
-      padding: 1.1rem 0.95rem;
+      padding: 1rem 0.95rem;
       position: relative;
       text-align: left;
       transition: background-color var(--animation-duration-fast)
@@ -468,7 +468,15 @@
     max-width: 100%;
     scroll-margin-top: 1rem;
     width: 100%;
-    margin-top: -1rem;
+    margin-top: -1.25rem;
+
+    .card-feature-header,
+    .ebay-section__results,
+    .tcg-explorer__results,
+    > .grading-calculator,
+    .card-view__active-body .default-container {
+      padding: var(--default-container-inner-padding);
+    }
 
     > .grading-calculator {
       margin-top: var(--space-2);
@@ -607,7 +615,6 @@
   }
 
   .card-view__image {
-    border-radius: 16px;
     box-shadow: none;
   }
 

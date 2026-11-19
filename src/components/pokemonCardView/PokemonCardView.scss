@@ -189,7 +189,7 @@
 
 .pokemon-card__image {
   background: transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius-pokemon-image);
   box-sizing: border-box;
   box-shadow: inset 0 0 0 1px
     color-mix(in srgb, var(--border-color) 35%, transparent);
@@ -204,6 +204,7 @@
 }
 
 .pokemon-card__image > img {
+  border-radius: var(--border-radius-pokemon-image);
   display: block;
   height: 100%;
   object-fit: contain;

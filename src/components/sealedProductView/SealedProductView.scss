@@ -18,14 +18,14 @@
   align-items: center;
   aspect-ratio: 1 / 1;
   background: color-mix(in srgb, var(--bg-input) 72%, transparent);
-  border-radius: calc(var(--border-radius-card) - 3px);
+  border-radius: var(--border-radius-pokemon-image);
   color: var(--font-color-faint);
   display: flex;
   justify-content: center;
   overflow: hidden;
 
   img {
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-pokemon-image);
     display: block;
     height: auto;
     max-height: 100%;

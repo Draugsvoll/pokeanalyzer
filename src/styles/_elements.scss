@@ -330,7 +330,7 @@ input[type="radio"] {
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
-  padding-bottom: 0.9rem;
+  padding-bottom: 1.15rem;
 }
 
 .grid-header__subtitle {
@@ -862,8 +862,8 @@ input[type="radio"] {
   align-items: center;
   -webkit-appearance: none;
   appearance: none;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface4);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--border-radius-pill);
   box-sizing: border-box;
   color: var(--font-color-muted);

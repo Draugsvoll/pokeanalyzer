@@ -4,11 +4,8 @@ import { GradingCalculator } from "./GradingCalculator";
 
 test("numeric fields accept decimals and reject nonnumeric values", () => {
   render(<GradingCalculator />);
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: "Ebay portional selling fee" }),
-  );
   expect(
-    screen.queryByRole("button", { name: "Clear portional fee threshold" }),
+    screen.queryByRole("button", { name: "Clear tiered selling fee threshold" }),
   ).not.toBeInTheDocument();
   for (const input of screen.getAllByRole("spinbutton")) {
     fireEvent.change(input, { target: { value: "12.5" } });
@@ -158,31 +155,30 @@ test("keeps each grade's costs separate and updates the weighted outcome", () =>
   fireEvent.change(screen.getAllByLabelText("PSA 10 Sell price")[0], {
     target: { value: "10000" },
   });
-  const portionalFee = screen.getByRole("checkbox", {
-    name: "Ebay portional selling fee",
+  const tieredFee = screen.getByRole("checkbox", {
+    name: "Tiered selling fee",
   });
-  expect(portionalFee).not.toBeChecked();
-  expect(screen.getByLabelText("Selling fee price threshold")).toBeDisabled();
-  expect(screen.getByLabelText("Selling fee above percent")).toBeDisabled();
-  expect(gradeArticle("PSA 10")).not.toHaveTextContent("above $7500");
-  const profitWithoutPortionalFee =
-    screen.getByLabelText("PSA 10 profit").textContent;
-  fireEvent.click(portionalFee);
+  expect(tieredFee).toBeChecked();
   expect(screen.getByLabelText("Selling fee price threshold")).toBeEnabled();
   expect(screen.getByLabelText("Selling fee above percent")).toBeEnabled();
   expect(screen.getByLabelText("PSA 10 profit")).toHaveTextContent(
     "+$8,766.75",
   );
   expect(gradeArticle("PSA 10")).toHaveTextContent(
-    "13.25% up to $7500 and 2.35% above",
+    "13.25% on first $7,500, then 2.35%",
   );
+  const profitWithTieredFee = screen.getByLabelText("PSA 10 profit").textContent;
   expect(
     screen.queryByLabelText("Additional sales tax"),
   ).not.toBeInTheDocument();
   expect(screen.getByLabelText("Raw proceeds")).toHaveTextContent("$86.75");
-  fireEvent.click(portionalFee);
+  fireEvent.click(tieredFee);
+  expect(screen.getByLabelText("PSA 10 profit")).not.toHaveTextContent(
+    profitWithTieredFee!,
+  );
+  fireEvent.click(tieredFee);
   expect(screen.getByLabelText("PSA 10 profit")).toHaveTextContent(
-    profitWithoutPortionalFee!,
+    profitWithTieredFee!,
   );
 });
 

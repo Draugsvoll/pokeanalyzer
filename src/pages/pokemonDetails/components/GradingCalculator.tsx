@@ -91,11 +91,11 @@ export function GradingCalculator({
     sellingFeeAbove: moneyInputValue(2.35),
     sellingFeeThreshold: moneyInputValue(7500),
   });
-  const [portionalFeeEnabled, setPortionalFeeEnabled] = useState(false);
+  const [tieredFeeEnabled, setTieredFeeEnabled] = useState(true);
   const gradingFee = parseMoney(settings.gradingFee);
   const shipping = parseMoney(settings.shipping);
   const sellingFeePercent = parseMoney(settings.sellingFee) ?? 0;
-  const sellingFeeThreshold = portionalFeeEnabled
+  const sellingFeeThreshold = tieredFeeEnabled
     ? parseMoney(settings.sellingFeeThreshold)
     : null;
   const sellingFeeAbovePercent = parseMoney(settings.sellingFeeAbove);
@@ -358,25 +358,25 @@ export function GradingCalculator({
                   <input
                     type="checkbox"
                     className="app-checkbox"
-                    checked={portionalFeeEnabled}
+                    checked={tieredFeeEnabled}
                     onChange={(event) =>
-                      setPortionalFeeEnabled(event.target.checked)
+                      setTieredFeeEnabled(event.target.checked)
                     }
                   />
-                  Ebay portional selling fee
+                  Tiered selling fee
                 </label>
-                <InfoTooltip label="Portional fee">
-                  <strong>Ebay portional selling fee</strong>
+                <InfoTooltip label="Tiered selling fee">
+                  <strong>Tiered selling fee</strong>
                   <span>
-                    Different fee applied to the portion of a price above a
-                    treshold.
+                    Different fee applied to the portion of the sale above the
+                    threshold.
                   </span>
                 </InfoTooltip>
               </span>
               <fieldset
                 className="grading-calculator__fee-split"
-                disabled={!portionalFeeEnabled}
-                aria-label="Portional selling fee settings"
+                disabled={!tieredFeeEnabled}
+                aria-label="Tiered selling fee settings"
               >
                 <span className="grading-calculator__money">
                   <span aria-hidden="true">{currencySymbol(currency)}</span>
@@ -831,7 +831,7 @@ export function GradingCalculator({
                         </strong>
                       </div>
                       <div className="grading-calculator__ledger-row grading-calculator__ledger-row--total">
-                        <span>Additional gain from grading.</span>
+                        <span>Additional gain from grading</span>
                         <strong
                           aria-label={`PSA ${grade} profit`}
                           className={toneClass(gain)}
@@ -993,10 +993,11 @@ function sellingFeeLabel(
   ) {
     return base;
   }
-  const limit = Number.isInteger(threshold)
-    ? String(threshold)
-    : String(Number(threshold.toFixed(2)));
-  return `${base} up to ${currencySymbol(currency)}${limit} and ${formatFeePercent(abovePercent)} above`;
+  const limit = threshold.toLocaleString("en-US", {
+    minimumFractionDigits: Number.isInteger(threshold) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `${base} on first ${currencySymbol(currency)}${limit}, then ${formatFeePercent(abovePercent)}`;
 }
 
 function formatMultiple(raw: number | null, graded: number | null) {

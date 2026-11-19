@@ -243,6 +243,8 @@
 }
 
 .app-overview-scope__selector.segmented-radio-group {
+  --radio-track-radius: var(--border-radius-pill);
+
   width: auto;
 }
 

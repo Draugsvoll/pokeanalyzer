@@ -23,6 +23,7 @@
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) auto;
   margin: var(--search-grid-gap) 0 var(--space-4);
+  margin-top: var(--space-3);
   padding-bottom: var(--space-3);
   text-align: left;
   width: 100%;
@@ -34,7 +35,7 @@
 }
 
 .search-results-toolbar__meta {
-  color: var(--font-color-muted);
+  color: var(--font-color-secondary);
   font-size: var(--font-size-results-meta);
   font-weight: 500;
   line-height: 1.35;

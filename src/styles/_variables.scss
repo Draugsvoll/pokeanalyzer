@@ -3,11 +3,11 @@
    ========================================================================== */
 
 :root {
-  --bg: #0c0f14;
+  --bg: #0b0e13;
   --bg2: #121720;
   --surface2: #182230;
   --surface3: #202c3c;
-  --surface4: #11151d;
+  --surface4: #10141c;
   --surface5: #181f2b;
   --border-color: rgba(170, 190, 220, 0.09);
   --card-border-color: rgba(170, 190, 220, 0.12);
@@ -116,6 +116,7 @@
   --border-radius-md: var(--radius-md);
   --border-radius-lg: var(--radius-md);
   --border-radius-card: var(--radius-md);
+  --border-radius-pokemon-image: 10px; /* single and sealed product images only */
   --border-radius-control: var(--radius-control);
   --border-radius-pill: var(--radius-pill);
   --border-radius-round: var(--radius-round);
@@ -130,17 +131,17 @@
   --hover-shadow: var(--shadow);
 
   /* Shared page shells. Detail views retain the narrower reading width. */
-  --shell-max-width: 1270px;
+  --shell-max-width: 1280px;
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
-  --search-max-width: 635px;
+  --search-max-width: 630px;
   --search-grid-gap: var(--space-5);
-  --search-height: 49px;
+  --search-height: 47px;
   --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
   --search-field-pad-x: 16px;
   --search-btn-height: 39px;
-  --search-btn-min-width: 86px;
+  --search-btn-min-width: 84px;
   --search-btn-pad-x: 16px;
   --search-icon-gap: 8px;
   --search-radius: var(--radius-md);
@@ -167,7 +168,7 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 18px;
+  --card-gap: 20px;
   --card-pad: 11px;
 
   /* Section headings (e.g. “Search results”) + card type */
