@@ -248,6 +248,11 @@
     sans-serif;
 
   --font-color-primary: var(--text);
+  --font-color-primary-muted: color-mix(
+    in srgb,
+    var(--font-color-primary) 80%,
+    var(--muted)
+  );
   --font-color-body: var(--text);
   --font-color-secondary: var(--secondary);
   --font-color-secondary-strong: #d8dde4;

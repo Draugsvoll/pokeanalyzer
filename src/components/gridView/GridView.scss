@@ -2,6 +2,7 @@
 
 .grid-view {
   display: grid;
+  gap: var(--space-4);
   min-width: 0;
   width: 100%;
 }
@@ -47,7 +48,7 @@
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--font-color-secondary);
+  color: var(--font-color-primary-muted);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;

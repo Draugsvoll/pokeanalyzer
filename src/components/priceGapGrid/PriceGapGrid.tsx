@@ -45,7 +45,7 @@ function toGridItem(item: PriceGapItem): CardCategoryGridItem {
 export function PriceGapGrid({
   loadCards = tcgCardmarketPriceGaps,
   minimized = false,
-  title = "TCG and Cardmarket price gaps",
+  title = "Price Gaps - TCG and Cardmarket",
 }: {
   loadCards?: PriceGapFetcher;
   minimized?: boolean;

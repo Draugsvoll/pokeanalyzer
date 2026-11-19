@@ -327,10 +327,11 @@ input[type="radio"] {
 
 .grid-header {
   align-items: last baseline;
+  border-bottom: 1px solid var(--border-divider);
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
-  padding-bottom: 1.15rem;
+  padding-bottom: var(--space-3);
 }
 
 .grid-header__subtitle {

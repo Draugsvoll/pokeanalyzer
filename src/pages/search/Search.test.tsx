@@ -45,7 +45,7 @@ test("uses the shared search experience without replacing market sections", () =
   expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
-  expect(screen.getByText("TCG and Cardmarket price gaps")).toBeInTheDocument();
+  expect(screen.getByText("Price Gaps - TCG and Cardmarket")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });
 
@@ -60,7 +60,7 @@ test("keeps market sections visible when initialized in sealed mode", () => {
   expect(screen.getByText("TCG high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Ebay high volume this week")).toBeInTheDocument();
   expect(screen.getByText("Grading Opportunities")).toBeInTheDocument();
-  expect(screen.getByText("TCG and Cardmarket price gaps")).toBeInTheDocument();
+  expect(screen.getByText("Price Gaps - TCG and Cardmarket")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Losers")).toBeInTheDocument();
   expect(screen.getByText("TCG Daily Gainers")).toBeInTheDocument();
 });

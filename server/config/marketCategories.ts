@@ -115,7 +115,7 @@ export const MARKET_CATEGORY_DEFINITIONS = [
       limit: 12,
     },
     query: "priceGaps",
-    title: "TCG and Cardmarket price gaps",
+    title: "Price Gaps - TCG and Cardmarket",
   },
   {
     id: "grading-opportunities",
