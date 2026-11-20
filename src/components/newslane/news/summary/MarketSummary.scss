@@ -68,12 +68,13 @@
 .market-summary__entries {
   display: grid;
   gap: var(--space-8);
-  margin-top: var(--space-3);
 }
 
 .market-summary__entries .market-summary__entry {
   align-items: flex-start;
   padding: 0;
+  max-width: 39rem;
+  margin: auto;
 
   &::before {
     margin-top: 0.55rem;

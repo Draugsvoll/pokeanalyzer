@@ -785,6 +785,10 @@
     --app-link-color: var(--font-color-secondary);
     line-height: 1.7;
     white-space: nowrap;
+
+    &:hover {
+      color: var(--font-color-primary);
+    }
   }
 
   &__price {
@@ -900,7 +904,6 @@
 .marketplace-listings__product-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
   white-space: nowrap;
   font-size: var(--font-size-caption);
 }

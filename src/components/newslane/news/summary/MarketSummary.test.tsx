@@ -39,7 +39,9 @@ test("groups each summary section while keeping the lead hero full-width", () =>
     name: "Highlights",
   });
   const themesCard = themesHeading.closest("article");
-  const leadHero = container.querySelector(".feature-analysis-hero");
+  const leadHero = container.querySelector(
+    ".feature-analysis-hero",
+  ) as HTMLElement | null;
   expect(container.querySelector(".market-summary__hero")).toContainElement(
     leadHero,
   );

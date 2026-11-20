@@ -126,9 +126,7 @@ export function TcgExplorerView({
         <p>No exact product match was returned by the offer search.</p>
       ) : !sorted.length ? (
         <p>
-          {panel === "sales"
-            ? "No recent sales were returned for these filters."
-            : "No matching offers in the returned sample. Other offers may be available on TCGplayer."}
+          No matching TCG {panel === "sales" ? "sales" : "listings"} found.
         </p>
       ) : null;
     return (

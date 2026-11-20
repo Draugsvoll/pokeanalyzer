@@ -205,6 +205,15 @@ test("failed and unmatched offer panels do not claim there are no market listing
   rerender(<TcgExplorerView data={{ ...snapshot, offersMatched: false }} />);
   expect(screen.getByText(/No exact product match/)).toBeInTheDocument();
 });
+test("empty sales and listed panels use the same no-matching copy pattern as Ebay", () => {
+  const { rerender } = render(
+    <TcgExplorerView data={{ ...snapshot, sales: [] }} />,
+  );
+  expect(screen.getByText("No matching TCG sales found.")).toBeVisible();
+  rerender(<TcgExplorerView data={{ ...snapshot, offers: [] }} />);
+  fireEvent.click(screen.getByRole("radio", { name: "Listed" }));
+  expect(screen.getByText("No matching TCG listings found.")).toBeVisible();
+});
 test("a failed search shows the generic message", async () => {
   mocks.fetch.mockResolvedValueOnce(
     new Response("Too many requests", {
