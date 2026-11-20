@@ -543,12 +543,13 @@ Write a Pokemon market summary for the past 7 days.
 export const marketSummaryInstructions: string = `
 ${extraToolsInstructions}
 
-if you don't have the needed data to supply a field in the schema, simply return NULL in that field.
+If you don't have the needed data to supply a field in the schema, simply return NULL in that field.
 
 {
+"market_score": "Must be an Integer 1-100. The score reflects how healthy and functional the markets have been for this period.",
 "market_tone": {
 "label": "positive | neutral | negative | mixed",
-"headline":"A headline version of what the markets have been doing"
+"headline":"A headline version of what the markets have been doing. Max 20 words."
 },
 "market_overview": [
 "Give a brief overview of what the markets have been doing the past 7 days, only the most noteworthy information. If you mention market indexes then mention them by name. For lengthy texts structure it into paragraphs by giving multiple entries in this array."
@@ -598,9 +599,9 @@ if you don't have the needed data to supply a field in the schema, simply return
 - Avoid using financial jargon, phrases or slogans.
 - Avoid marketing type language
 - Speak in normal sentences, preferably avoid semicolons.
-- Focus in generalities like sets, segments trends rather than individual cards.
+- Focus on generalities like sets, segments and trends rather than individual cards.
 - Avoid giving advice, focus on stating your findings.
-- Avoid hedging language, simply state your findings honestly.
+- Avoid hedging language, state your findings honestly.
 - Don't try to give advice or forecasts, describe your findings honestly and what they typically mean. If something is uncertain be honest about that.
 
 # FINAL CHECK

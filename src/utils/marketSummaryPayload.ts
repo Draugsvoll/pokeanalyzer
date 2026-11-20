@@ -1,3 +1,4 @@
+import { isScoreNumber } from "../../shared/analysisScores";
 import type { MarketSummaryPayload } from "../types/news";
 
 type JsonRecord = Record<string, unknown>;
@@ -52,6 +53,8 @@ export function isMarketSummaryPayload(
 ): value is MarketSummaryPayload {
   if (!isRecord(value) || typeof value.generatedAt !== "string") return false;
 
+  const validMarketScore =
+    value.marketScore === null || isScoreNumber(value.marketScore);
   const validMarketTone =
     value.marketTone === null ||
     hasStringFields(value.marketTone, ["label", "headline"]);
@@ -59,7 +62,9 @@ export function isMarketSummaryPayload(
     value.collectorOutlook === null ||
     hasStringFields(value.collectorOutlook, ["label", "outlook"]);
 
-  if (!validMarketTone || !validCollectorOutlook) return false;
+  if (!validMarketScore || !validMarketTone || !validCollectorOutlook) {
+    return false;
+  }
   if (!isStringArray(value.marketOverview)) return false;
   if (
     !isRecordArray(value.keyThemesAndChanges, ["title", "label", "theme"]) ||

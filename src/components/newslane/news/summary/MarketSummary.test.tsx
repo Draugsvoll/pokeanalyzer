@@ -5,6 +5,7 @@ import { MarketSummary } from "./MarketSummary";
 
 const payload: MarketSummaryPayload = {
   generatedAt: "2026-09-30T12:00:00.000Z",
+  marketScore: null,
   marketTone: {
     headline: "The market remained balanced",
     label: "neutral",
@@ -32,26 +33,28 @@ const payload: MarketSummaryPayload = {
   whatToWatch: [],
 };
 
-test("groups each summary section while keeping the lead card full-width", () => {
+test("groups each summary section while keeping the lead hero full-width", () => {
   const { container } = render(<MarketSummary payload={payload} />);
   const themesHeading = screen.getByRole("heading", {
     name: "Highlights",
   });
   const themesCard = themesHeading.closest("article");
-  const leadCard = screen
-    .getByRole("heading", { name: "The market remained balanced" })
-    .closest("article");
-
+  const leadHero = container.querySelector(".feature-analysis-hero");
+  expect(container.querySelector(".market-summary__hero")).toContainElement(
+    leadHero,
+  );
+  expect(leadHero?.querySelector(".feature-analysis-hero__eyebrow")).toBeNull();
   expect(
-    container.querySelectorAll(".market-summary__card--wide"),
-  ).toHaveLength(1);
-  expect(leadCard).toHaveClass("market-summary__card--wide");
+    screen.queryByRole("img", { name: /Market health score/i }),
+  ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("heading", { name: "The market remained balanced" })
-      .tagName,
-  ).toBe("H2");
+    container.querySelector(".market-summary__hero"),
+  ).toHaveStyle("--feature-accent: var(--custom-color-blue)");
+  expect(leadHero?.querySelector(".feature-analysis-hero__headline")).toHaveTextContent(
+    "The market remained balanced",
+  );
   expect(themesHeading.tagName).toBe("H3");
-  expect(leadCard).toContainElement(
+  expect(leadHero).toContainElement(
     screen.getByText("Older cards offset softness in recent releases."),
   );
   expect(
@@ -69,4 +72,41 @@ test("groups each summary section while keeping the lead card full-width", () =>
   expect(within(themesCard!).getAllByRole("listitem")).toHaveLength(2);
   expect(within(themesCard!).getByText("New releases")).toBeVisible();
   expect(within(themesCard!).getByText("Modern corrections")).toBeVisible();
+});
+
+test("renders the shared score meter for a valid market score", () => {
+  const { container } = render(
+    <MarketSummary payload={{ ...payload, marketScore: 72 }} />,
+  );
+
+  expect(
+    screen.getByRole("img", { name: "Market health score: 72 out of 100" }),
+  ).toBeVisible();
+  expect(
+    container.querySelector(".feature-analysis-hero__eyebrow"),
+  ).toHaveTextContent("Market health");
+});
+
+test("skips the score meter when market score is out of range", () => {
+  render(<MarketSummary payload={{ ...payload, marketScore: 0 as number }} />);
+
+  expect(
+    screen.queryByRole("img", { name: /Market health score/i }),
+  ).not.toBeInTheDocument();
+});
+
+test("matches the hero accent to the market tone color", () => {
+  const { container } = render(
+    <MarketSummary
+      payload={{
+        ...payload,
+        marketTone: { headline: "Demand improved", label: "positive" },
+      }}
+    />,
+  );
+
+  expect(container.querySelector(".market-summary__hero")).toHaveStyle(
+    "--feature-accent: var(--custom-color-green)",
+  );
+  expect(screen.getByText("positive Sentiment")).toBeVisible();
 });

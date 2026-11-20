@@ -615,7 +615,9 @@ export const DatabaseSearch: React.FC<DatabaseSearchProps> = ({
           trimmedCardNumber && `#${trimmedCardNumber}`,
           trimmedSetName,
           rarity,
-          condition ? POKETRACE_RAW_CONDITION_LABELS[condition] : "",
+          hasNonDefaultCondition
+            ? POKETRACE_RAW_CONDITION_LABELS[condition]
+            : "",
           minPrice !== undefined && maxPrice !== undefined
             ? `$${minPrice}–$${maxPrice}`
             : minPrice !== undefined

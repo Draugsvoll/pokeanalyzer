@@ -203,16 +203,17 @@ export function DatabaseSearchBarShell({
             </div>
           </div>
 
-          <div className="database-search-filter-actions">
-            <ClearFiltersButton
-              disabled={filterCount === 0}
-              label="Clear filters"
-              onClick={() => {
-                onClearFilters();
-                setFiltersOpen(false);
-              }}
-            />
-          </div>
+          {filterCount > 0 && (
+            <div className="database-search-filter-actions">
+              <ClearFiltersButton
+                label="Clear filters"
+                onClick={() => {
+                  onClearFilters();
+                  setFiltersOpen(false);
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { isScoreNumber } from "../../../../../shared/analysisScores";
 import type { MarketSummaryPayload } from "../../../../types/news";
+import { FeatureAnalysisHero } from "../../../../pages/pokemonDetails/components/FeatureAnalysisPanel";
 import { Badge } from "../../../ui/Badge";
 import {
   getNewsAccentStyle,
@@ -14,7 +16,6 @@ type SummaryCardProps = {
   children: ReactNode;
   label?: string;
   title: string;
-  wide?: boolean;
 };
 
 function SummaryCard({
@@ -22,25 +23,23 @@ function SummaryCard({
   children,
   label = "",
   title,
-  wide = false,
 }: SummaryCardProps) {
-  const className = `news-card market-summary__card${
-    wide ? " market-summary__card--wide" : ""
-  }`;
-
   return (
-    <article className={className} style={getNewsAccentStyle(accent)}>
+    <article
+      className="news-card market-summary__card"
+      style={getNewsAccentStyle(accent)}
+    >
       <div className="news-card__content">
         <header className="news-card__heading">
           {label && (
             <div className="market-summary__meta">
-              <Badge accent={accent} size={wide ? "lg" : "sm"} weight="strong">
+              <Badge accent={accent} size="sm" weight="strong">
                 {label}
               </Badge>
             </div>
           )}
           <div className="market-summary__card-title">
-            {wide ? <h2>{title}</h2> : <h3>{title}</h3>}
+            <h3>{title}</h3>
           </div>
         </header>
         <div className="news-card__body">{children}</div>
@@ -91,8 +90,12 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
     : [];
   const marketTone = payload.marketTone;
   const collectorOutlook = payload.collectorOutlook;
+  const marketScore = isScoreNumber(payload.marketScore)
+    ? payload.marketScore
+    : null;
   const toneAccent = getNewsLabelAccent(marketTone?.label || "market");
   const hasLeadContent = Boolean(
+    marketScore != null ||
     marketTone?.headline ||
     marketTone?.label ||
     collectorOutlook?.outlook ||
@@ -103,16 +106,34 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
     <section className="market-summary news-collection">
       <div className="news-card-grid market-summary__grid">
         {hasLeadContent && (
-          <SummaryCard
-            accent={toneAccent}
-            label={
-              marketTone?.label ? `${marketTone.label} Sentiment` : undefined
+          <div
+            className="market-summary__hero"
+            style={
+              {
+                "--feature-accent": `var(--custom-color-${toneAccent})`,
+              } as CSSProperties
             }
-            title={marketTone?.headline || "Weekly Market Report"}
-            wide
           >
-            {collectorOutlook?.outlook && <p>{collectorOutlook.outlook}</p>}
-          </SummaryCard>
+            <FeatureAnalysisHero
+              badge={
+                marketTone?.label ? (
+                  <Badge accent={toneAccent} size="lg" weight="strong">
+                    {`${marketTone.label} Sentiment`}
+                  </Badge>
+                ) : undefined
+              }
+              eyebrow={marketScore != null ? "Market health" : undefined}
+              headline={marketTone?.headline || "Weekly Market Report"}
+              score={marketScore}
+              scoreLabel="Market health score"
+            >
+              {collectorOutlook?.outlook && (
+                <p className="feature-analysis-summary feature-analysis-summary-text">
+                  {collectorOutlook.outlook}
+                </p>
+              )}
+            </FeatureAnalysisHero>
+          </div>
         )}
 
         {!!keyThemesAndChanges.length && (

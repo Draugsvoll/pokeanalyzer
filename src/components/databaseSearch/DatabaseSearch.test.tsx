@@ -508,7 +508,7 @@ test("marks a suggested set name as an exact catalog match", async () => {
   fireEvent.click(baseSetOption);
 
   expect(
-    await screen.findByText(/^0 cards matching .*Base Set.*Near Mint/),
+    await screen.findByText(/^0 cards matching .*Base Set/),
   ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3001/api/cards/search?setName=Base+Set&setNameExact=true&condition=NEAR_MINT",
@@ -541,7 +541,7 @@ test("keeps a typed set name as a partial match", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(
-    await screen.findByText(/^0 cards matching .*base.*Near Mint/),
+    await screen.findByText(/^0 cards matching .*Base/),
   ).toBeInTheDocument();
   expect(mocks.searchResponse).toHaveBeenCalledWith({
     cardNumber: "",
@@ -632,8 +632,9 @@ test("distinguishes an empty search from a failed request", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
   expect(await screen.findByRole("status")).toHaveTextContent(
-    /^0 cards matching .*missing.*Near Mint/,
+    /^0 cards matching .*Missing/,
   );
+  expect(screen.getByRole("status")).not.toHaveTextContent("Near Mint");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Sort search results" }),
@@ -677,8 +678,9 @@ test("hides an empty result summary while the next search loads", async () => {
   fireEvent.click(searchButton);
 
   expect(
-    await screen.findByText(/^0 cards matching .*missing.*Near Mint/),
+    await screen.findByText(/^0 cards matching .*Missing/),
   ).toBeInTheDocument();
+  expect(screen.getByRole("status")).not.toHaveTextContent("Near Mint");
   await waitFor(() => expect(searchButton).toBeEnabled(), { timeout: 2_000 });
 
   let resolveNextSearch!: (cards: PokemonCard[]) => void;

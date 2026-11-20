@@ -117,7 +117,8 @@
   --border-radius-md: var(--radius-md);
   --border-radius-lg: var(--radius-md);
   --border-radius-card: var(--radius-md);
-  --border-radius-pokemon-image: 10px; /* single and sealed product images only */
+  --border-radius-pokemon-image: 10px; /* grid card / sealed product thumbnails */
+  --border-radius-details-image: 13px; /* details page hero image only */
   --border-radius-control: var(--radius-control);
   --border-radius-pill: var(--radius-pill);
   --border-radius-round: var(--radius-round);
@@ -136,7 +137,7 @@
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 630px;
-  --search-grid-gap: var(--space-5);
+  --search-grid-gap: var(--space-4);
   --search-height: 47px;
   --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
@@ -174,7 +175,7 @@
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
-  --font-size-grid-title: 22px;
+  --font-size-grid-title: 21px;
   --font-weight-section-title: 600;
   --font-size-results-meta: 13px;
   --font-size-card-title: 17px;

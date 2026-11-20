@@ -11,6 +11,7 @@ export type GeneralNewsPayload = {
 
 export type MarketSummaryPayload = {
   generatedAt: string;
+  marketScore: number | null;
   marketTone: {
     label: string;
     headline: string;

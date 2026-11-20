@@ -12,13 +12,15 @@
     margin-bottom: 0.3rem;
 
     > .app-badge {
+      background: color-mix(in srgb, var(--app-badge-accent) 3%, transparent);
       font-size: 10px;
+      margin-bottom: -0.2rem;
     }
   }
 
   &__title {
     color: var(--font-color-primary);
-    font-size: 2.6rem;
+    font-size: 2.5rem;
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.03em;
     line-height: 1.08;
@@ -30,13 +32,13 @@
     color: var(--font-color-muted);
     font-size: var(--font-size-paragraph-sm);
     line-height: var(--font-leading-relaxed);
-    margin: 0.2rem auto 0;
+    margin: 0.15rem auto 0;
     max-width: 32rem;
     font-weight: var(--font-weight-medium);
   }
 
   &__search {
-    margin-top: var(--space-6);
+    margin-top: var(--space-4);
     position: relative;
     width: 100%;
     z-index: 1;

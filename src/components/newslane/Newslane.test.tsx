@@ -50,6 +50,7 @@ const freshFeeds: NewsFeedsResponse = {
 
 const marketSummary: MarketSummaryPayload = {
   generatedAt: "2026-09-30T12:00:00.000Z",
+  marketScore: null,
   marketTone: {
     headline: "The market was mixed",
     label: "mixed",

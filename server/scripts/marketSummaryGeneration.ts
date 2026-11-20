@@ -1,3 +1,4 @@
+import { isScoreNumber } from "../../shared/analysisScores.js";
 import type { MarketSummaryPayload } from "../../src/types/news.js";
 import { hasRenderableMarketSummaryContent } from "../../src/utils/marketSummaryPayload.js";
 import type { GrokChatOptions } from "../services/xaiService.js";
@@ -70,8 +71,11 @@ export function parseMarketSummaryResponse(
     payload.collector_outlook ?? payload.collectorOutlook,
   );
 
+  const rawMarketScore = payload.market_score ?? payload.marketScore;
+
   const result: MarketSummaryPayload = {
     generatedAt: generatedAt ?? optionalString(payload.generatedAt),
+    marketScore: isScoreNumber(rawMarketScore) ? rawMarketScore : null,
     marketTone: marketTone
       ? {
           label: optionalString(marketTone.label),

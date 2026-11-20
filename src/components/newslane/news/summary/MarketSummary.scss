@@ -2,10 +2,18 @@
   align-items: stretch;
 }
 
+.market-summary__hero {
+  grid-column: 1 / -1;
+
+  .feature-analysis-hero__badge .app-badge {
+    text-transform: capitalize;
+  }
+}
+
 .market-summary__card {
   align-items: flex-start;
   height: 100%;
-  padding: var(--space-7);
+  padding: 1.25rem var(--space-7);
 
   .news-card__content {
     align-self: flex-start;
@@ -17,51 +25,6 @@
 
   .news-card__heading {
     align-items: center;
-  }
-}
-
-.market-summary__card--wide {
-  grid-column: 1 / -1;
-
-  .news-card__content {
-    margin-inline: auto;
-    max-width: var(--max-text-width);
-    width: 100%;
-  }
-
-  .market-summary__meta .app-badge {
-    font-size: var(--font-size-label);
-    padding-inline: var(--space-4);
-  }
-
-  .news-card__heading {
-    border-bottom: 0;
-    padding-bottom: 0;
-  }
-
-  .news-card__eyebrow {
-    font-size: var(--font-size-label);
-  }
-
-  .market-summary__card-title {
-    justify-content: center;
-    text-align: left;
-  }
-
-  .market-summary__card-title h2 {
-    font-size: var(--font-size-h3);
-    max-width: var(--summary-max-width);
-  }
-
-  .market-summary__card-title h2,
-  .news-card__body p {
-    margin-inline: auto;
-    width: 100%;
-  }
-
-  .news-card__body p {
-    text-align: left;
-    text-wrap: wrap;
   }
 }
 
@@ -105,7 +68,7 @@
 .market-summary__entries {
   display: grid;
   gap: var(--space-8);
-  margin-top: var(--space-1);
+  margin-top: var(--space-3);
 }
 
 .market-summary__entries .market-summary__entry {

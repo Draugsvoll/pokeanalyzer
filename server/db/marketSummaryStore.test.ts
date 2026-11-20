@@ -9,6 +9,7 @@ import { PRIMARY_DATABASE_MIGRATIONS } from "./primaryDatabaseMigrations.js";
 
 const marketSummary = {
   generatedAt: "2026-07-29T12:00:00.000Z",
+  marketScore: null,
   marketTone: {
     headline: "Markets were mixed",
     label: "mixed",

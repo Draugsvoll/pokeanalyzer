@@ -3,6 +3,7 @@ import { isMarketSummaryPayload } from "./marketSummaryPayload";
 
 const minimalSummary = {
   generatedAt: "2026-10-01T12:00:00.000Z",
+  marketScore: null,
   marketTone: {
     headline: "The market was mixed",
     label: "mixed",
@@ -38,4 +39,27 @@ test("rejects summaries containing only the hidden market overview", () => {
       marketOverview: ["This field is not rendered."],
     }),
   ).toBe(false);
+});
+
+test("accepts a valid market score and rejects invalid ones", () => {
+  expect(isMarketSummaryPayload({ ...minimalSummary, marketScore: 64 })).toBe(
+    true,
+  );
+  expect(isMarketSummaryPayload({ ...minimalSummary, marketScore: null })).toBe(
+    true,
+  );
+  expect(
+    isMarketSummaryPayload({ ...minimalSummary, marketScore: 0 }),
+  ).toBe(false);
+  expect(
+    isMarketSummaryPayload({ ...minimalSummary, marketScore: 101 }),
+  ).toBe(false);
+  expect(
+    isMarketSummaryPayload({ ...minimalSummary, marketScore: 72.5 }),
+  ).toBe(false);
+  expect(
+    isMarketSummaryPayload({ ...minimalSummary, marketScore: "72" }),
+  ).toBe(false);
+  const { marketScore: _ignored, ...withoutMarketScore } = minimalSummary;
+  expect(isMarketSummaryPayload(withoutMarketScore)).toBe(false);
 });

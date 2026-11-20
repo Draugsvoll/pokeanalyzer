@@ -263,6 +263,10 @@
   align-items: center;
   display: flex;
   justify-content: center;
+
+  .app-clear-filters {
+    margin-bottom: -1rem;
+  }
 }
 
 .database-search-filter-toggle__count {
@@ -545,6 +549,10 @@
 .search-results {
   max-width: 100%;
   width: 100%;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: var(--border);
+  min-height: 9rem;
 }
 
 .search-results__more {
