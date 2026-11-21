@@ -12,7 +12,6 @@ type SearchHeroProps = {
   eyebrow?: string;
   onProductTypeChange: (value: ProductType) => void;
   productType: ProductType;
-  subtitle?: string;
   title?: string;
 };
 
@@ -21,7 +20,6 @@ export function SearchHero({
   eyebrow = SEARCH_HERO_CONTENT.eyebrow,
   onProductTypeChange,
   productType,
-  subtitle = SEARCH_HERO_CONTENT.subtitle,
   title = SEARCH_HERO_CONTENT.title,
 }: SearchHeroProps) {
   return (
@@ -32,7 +30,6 @@ export function SearchHero({
         </Badge>
       </span>
       <h1 className="search-hero__title">{title}</h1>
-      <p className="search-hero__subtitle">{subtitle}</p>
       <div className="search-hero__search">
         <ProductTypeSwitch
           variant="pill"

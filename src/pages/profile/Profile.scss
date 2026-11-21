@@ -1,8 +1,6 @@
 .profile {
   color: var(--font-color-body);
   margin: 0 auto;
-  max-width: 72rem;
-  padding: 2rem 0 0rem;
   width: 100%;
 
   &--status {
@@ -39,7 +37,6 @@
   }
 
   &--guest {
-    max-width: none;
     padding: 0;
   }
 
@@ -597,4 +594,9 @@
       width: 100%;
     }
   }
+}
+
+/* Beats `.main-content > .container > * { max-width: 100% }` in index.scss. */
+.main-content > .container > .profile {
+  max-width: var(--shell-max-width);
 }
