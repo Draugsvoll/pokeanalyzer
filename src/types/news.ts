@@ -9,29 +9,34 @@ export type GeneralNewsPayload = {
   }>;
 };
 
+export const MARKET_SEGMENT_KEYS = [
+  "vintage",
+  "modern",
+  "graded",
+  "sealed",
+] as const;
+
+export type MarketSegmentKey = (typeof MARKET_SEGMENT_KEYS)[number];
+
 export type MarketSummaryPayload = {
   generatedAt: string;
   marketScore: number | null;
+  marketScoreExplanation: string[];
   marketTone: {
     label: string;
     headline: string;
   } | null;
-  marketOverview: string[];
   keyThemesAndChanges: Array<{
     title: string;
     label: string;
     theme: string;
-  }>;
-  liquidity: Array<{
-    label: string;
-    title: string;
-    description: string;
   }>;
   marketDrivers: Array<{
     title: string;
     description: string;
   }>;
   segmentSummary: Array<{
+    key: MarketSegmentKey;
     title: string;
     trend: string;
     description: string;

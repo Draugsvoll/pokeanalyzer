@@ -23,7 +23,7 @@ test("renders only the membership plan columns", () => {
   expect(screen.getByRole("heading", { name: "Free" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Basic" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Pro" })).toBeVisible();
-  expect(screen.getByText("3 AI credits every month")).toBeVisible();
+  expect(screen.getByText("Weekly market report")).toBeVisible();
   expect(screen.getByText("$5.99")).toBeVisible();
   expect(screen.getByText("$2.99")).toBeVisible();
   expect(screen.getByText("5 Market credits every month")).toBeVisible();

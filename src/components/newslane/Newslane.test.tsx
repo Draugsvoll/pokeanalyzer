@@ -51,13 +51,12 @@ const freshFeeds: NewsFeedsResponse = {
 const marketSummary: MarketSummaryPayload = {
   generatedAt: "2026-09-30T12:00:00.000Z",
   marketScore: null,
+  marketScoreExplanation: [],
   marketTone: {
     headline: "The market was mixed",
     label: "mixed",
   },
-  marketOverview: ["Demand varied across product segments."],
   keyThemesAndChanges: [],
-  liquidity: [],
   marketDrivers: [],
   segmentSummary: [],
   collectorOutlook: null,

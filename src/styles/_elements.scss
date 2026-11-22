@@ -479,7 +479,7 @@ input[type="radio"] {
     from -90deg,
     color-mix(
         in srgb,
-        var(--feature-analysis-accent) 82%,
+        var(--feature-analysis-accent) 92%,
         var(--font-color-secondary)
       )
       0,
@@ -487,7 +487,7 @@ input[type="radio"] {
       calc(var(--feature-analysis-score-progress) * 0.56%),
     color-mix(
         in srgb,
-        var(--feature-analysis-accent) 82%,
+        var(--feature-analysis-accent) 92%,
         var(--font-color-secondary)
       )
       calc(var(--feature-analysis-score-progress) * 1%),

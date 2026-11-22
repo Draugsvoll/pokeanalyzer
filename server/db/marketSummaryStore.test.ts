@@ -10,13 +10,12 @@ import { PRIMARY_DATABASE_MIGRATIONS } from "./primaryDatabaseMigrations.js";
 const marketSummary = {
   generatedAt: "2026-07-29T12:00:00.000Z",
   marketScore: null,
+  marketScoreExplanation: ["The score stayed in the middle of the range."],
   marketTone: {
     headline: "Markets were mixed",
     label: "mixed",
   },
-  marketOverview: ["Modern products remained stable."],
   keyThemesAndChanges: [],
-  liquidity: [],
   marketDrivers: [],
   segmentSummary: [],
   collectorOutlook: null,
@@ -69,4 +68,29 @@ test("stored market summary JSON is parsed independently", () => {
   assert.deepEqual(parseStoredMarketSummaryRows([]), {
     marketSummary: null,
   });
+});
+
+test("stored old market summary JSON is skipped", () => {
+  assert.deepEqual(
+    parseStoredMarketSummaryRows([
+      {
+        payload_json: JSON.stringify({
+          generatedAt: "2026-07-29T12:00:00.000Z",
+          marketScore: null,
+          marketTone: {
+            headline: "Markets were mixed",
+            label: "mixed",
+          },
+          marketOverview: ["Modern products remained stable."],
+          keyThemesAndChanges: [],
+          liquidity: [],
+          marketDrivers: [],
+          segmentSummary: [],
+          collectorOutlook: null,
+          whatToWatch: [],
+        }),
+      },
+    ]),
+    { marketSummary: null },
+  );
 });

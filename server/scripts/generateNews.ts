@@ -99,8 +99,16 @@ async function generateAndValidate<T>(
   }
 }
 
-function validateArguments(args: string[]): boolean {
-  const supportedArguments = new Set(["--dry-run"]);
+function validateArguments(args: string[]): {
+  dryRun: boolean;
+  forceMarketSummary: boolean;
+  marketSummaryOnly: boolean;
+} {
+  const supportedArguments = new Set([
+    "--dry-run",
+    "--force-market-summary",
+    "--market-summary-only",
+  ]);
   const unsupportedArguments = args.filter(
     (argument) => !supportedArguments.has(argument),
   );
@@ -111,7 +119,11 @@ function validateArguments(args: string[]): boolean {
     );
   }
 
-  return args.includes("--dry-run");
+  return {
+    dryRun: args.includes("--dry-run"),
+    forceMarketSummary: args.includes("--force-market-summary"),
+    marketSummaryOnly: args.includes("--market-summary-only"),
+  };
 }
 
 async function renewNewsLock(lock: ScriptLock): Promise<void> {
@@ -197,7 +209,9 @@ async function shouldSkipMarketSummary(): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
-  const dryRun = validateArguments(process.argv.slice(2));
+  const { dryRun, forceMarketSummary, marketSummaryOnly } = validateArguments(
+    process.argv.slice(2),
+  );
   assertExplicitDatabaseTarget();
   await ensureScriptLockTable();
   await assertNewsContentSchemaCompatible();
@@ -219,16 +233,23 @@ async function main(): Promise<void> {
 
   try {
     await renewNewsLock(lock);
-    const skipMarketSummary = await shouldSkipMarketSummary();
-    if (skipMarketSummary) {
+    const skipMarketSummary =
+      !forceMarketSummary && (await shouldSkipMarketSummary());
+    if (marketSummaryOnly) {
+      console.log("Latest news skipped; --market-summary-only");
+    }
+    if (forceMarketSummary) {
+      console.log("Market summary refresh forced; freshness check skipped");
+    } else if (skipMarketSummary) {
       console.log(
-        "Market summary skipped; stored summary is under 14 days old",
+        "Market summary skipped; stored summary is under 13 days old",
       );
     }
 
     const failures = await runNewsGenerationWorkflow(
       {
         name: "latest news",
+        skip: marketSummaryOnly,
         generate: async () => {
           const result = await runGeneration(
             "latest_news",
@@ -267,7 +288,6 @@ async function main(): Promise<void> {
             (payload) =>
               `${
                 payload.keyThemesAndChanges.length +
-                payload.liquidity.length +
                 payload.marketDrivers.length +
                 payload.segmentSummary.length +
                 payload.whatToWatch.length
@@ -305,10 +325,22 @@ async function main(): Promise<void> {
       );
     }
 
+    const newsStatus = marketSummaryOnly
+      ? "latest news was skipped"
+      : dryRun
+        ? "latest news passed"
+        : "latest news was updated";
+    const marketStatus = skipMarketSummary
+      ? dryRun
+        ? "market summary was skipped"
+        : "market summary was kept"
+      : dryRun
+        ? "market summary passed"
+        : "market summary was updated";
     console.log(
       dryRun
-        ? `Dry run complete; latest news passed${skipMarketSummary ? " and market summary was skipped" : " and market summary passed"}; no database rows changed`
-        : `News generation finished successfully; latest news was updated and market summary was ${skipMarketSummary ? "kept" : "updated"}`,
+        ? `Dry run complete; ${newsStatus} and ${marketStatus}; no database rows changed`
+        : `News generation finished successfully; ${newsStatus} and ${marketStatus}`,
     );
   } finally {
     const released = await releaseScriptLock(lock);

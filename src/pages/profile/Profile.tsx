@@ -497,7 +497,7 @@ export default function Profile() {
                         <span className="profile__credit-allowance">
                           {unlimited
                             ? "Unlimited monthly"
-                            : `${allowance ?? "—"} renewed monthly`}
+                            : `${allowance ?? "—"} Monthly`}
                         </span>
                       </span>
                       <div className="profile__credit-bar" aria-hidden="true">
@@ -512,7 +512,7 @@ export default function Profile() {
                 )}
               </div>
               <p className="profile__credits-description">
-                Each Ebay or TCGplayer search uses 1 Market credit.
+                Only paid membership gets monthly renewal.
               </p>
             </article>
           </div>

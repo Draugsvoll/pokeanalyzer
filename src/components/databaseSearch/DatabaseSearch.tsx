@@ -354,11 +354,10 @@ export function DatabaseSearchBar({
         <>
           <label className="explore-search-field">
             <Search
-              absoluteStrokeWidth
               aria-hidden="true"
               className="explore-search-field__icon"
-              size={16}
-              strokeWidth={2}
+              size={15}
+              strokeWidth={1.75}
             />
             <input
               ref={pokemonNameInputRef}
@@ -370,7 +369,6 @@ export function DatabaseSearchBar({
               aria-label="Pokemon name"
             />
           </label>
-          <span className="explore-search-shell__divider" aria-hidden="true" />
           <label className="explore-search-field">
             <input
               className="database-search database-search--number"
@@ -381,7 +379,6 @@ export function DatabaseSearchBar({
               aria-label="Card number"
             />
           </label>
-          <span className="explore-search-shell__divider" aria-hidden="true" />
           <label className="explore-search-field">
             <AutosuggestCombobox
               ariaLabel="Set name"

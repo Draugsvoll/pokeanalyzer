@@ -49,10 +49,10 @@
    */
   --search-surface: #10141c;
   --main-search-bar-surface: #161a21;
-  --search-border: color-mix(in srgb, var(--blue) 32%, var(--border-color));
-  --search-border-focus: color-mix(in srgb, var(--blue) 58%, transparent);
-  /* Restrained outer definition; focus remains visible without a glow-heavy edge. */
-  --search-ring: 0 0 0 1px color-mix(in srgb, var(--blue) 7%, transparent);
+  --search-border: color-mix(in srgb, var(--blue) 31%, #3a485bd5);
+  --search-border-focus: color-mix(in srgb, var(--blue) 65%, transparent);
+  /* Idle is a solid edge only; glow lives on focus. */
+  --search-ring: none;
   --search-ring-focus: 0 0 0 2px
     color-mix(in srgb, var(--blue) 12%, transparent);
   --search-divider: var(--border-color-strong);
@@ -80,7 +80,7 @@
   --border-color: rgba(170, 190, 220, 0.11);
   --border-hover: 1px solid var(--border-color-strong);
   --border-subtle: 1px solid var(--border-color);
-  --border-divider: rgba(170, 190, 220, 0.09);
+  --border-divider: #242a33c9;
   --border-divider-header: #1c222b;
   --border-divider-soft: rgba(170, 190, 220, 0.1);
 
@@ -137,8 +137,8 @@
   --shell-max-width: 1280px;
   --shell-wide-max-width: 1505px;
   /* Search bar — sizings matched to mock left */
-  --search-max-width: 630px;
-  --search-grid-gap: var(--space-4);
+  --search-max-width: 625px;
+  --search-grid-gap: var(--space-3);
   --search-height: 47px;
   --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
@@ -268,7 +268,7 @@
   --font-color-faint-soft: #717985;
   --font-color-placeholder: color-mix(
     in srgb,
-    var(--font-color-faint) 78%,
+    var(--font-color-faint) 84%,
     transparent
   );
   --font-color-error: var(--red);

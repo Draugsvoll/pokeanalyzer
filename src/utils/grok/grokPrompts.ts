@@ -546,26 +546,17 @@ ${extraToolsInstructions}
 If you don't have the needed data to supply a field in the schema, simply return NULL in that field.
 
 {
-"market_score": "Must be an Integer 1-100. The score reflects how healthy and functional the markets have been for this period.",
+"market_score": "Must be an Integer 1-100. The score reflects how healthy and functional the pokemon markets have been for this period.",
+"market_score_explanation": ["Justify the reasons why you gave it this exact score. It should be clear why it didn't score higher, and also why not lower. This is an array so you can turn it into paragraphs if the text is lengthy. Keep it clear and concise without losing depth. 40-65 words."],
 "market_tone": {
 "label": "positive | neutral | negative | mixed",
 "headline":"A headline version of what the markets have been doing. Max 20 words."
 },
-"market_overview": [
-"Give a brief overview of what the markets have been doing the past 7 days, only the most noteworthy information. If you mention market indexes then mention them by name. For lengthy texts structure it into paragraphs by giving multiple entries in this array."
-],
 "key_themes_and_changes": [
 {
 "title": "",
 "label":"positive | neutral | negative | mixed",
-"theme": "Describe the key themes and changes for what's been happening the past 7 days. 1 entry in this array per theme/change."
-}
-],
-"liquidity": [
-{
-"label":"low | medium | high ",
-"title": "",
-"description": "Describe liquidity across markets and segments, but only for those seeing meaningful change. 1 entry in this array per meaningful segment change."
+"theme": "Describe the key themes and changes for what's been happening the past 7 days. 1 entry in this array per theme/change. If there are many things to mention, limit it to top 4 important to know."
 }
 ],
 "market_drivers": [
@@ -576,9 +567,22 @@ If you don't have the needed data to supply a field in the schema, simply return
 ],
 "segment_summary": [
 {
-"title": "",
+"vintage": {
 "trend":"rising | stable | mixed | softening | falling",
-"description": "Describe segments across markets, but only those that show meaningful change. Focus on sets/categories/general rather than individual cards."
+"description": "Describe this segments performance for the given time period."
+},
+"modern": {
+"trend":"rising | stable | mixed | softening | falling",
+"description": "Describe this segments performance for the given time period."
+},
+"graded": {
+"trend":"rising | stable | mixed | softening | falling",
+"description": "Describe this segments performance for the given time period."
+},
+"sealed": {
+"trend":"rising | stable | mixed | softening | falling",
+"description": "Describe this segments performance for the given time period."
+},
 }
 ],
 "collector_outlook": {
@@ -587,26 +591,46 @@ If you don't have the needed data to supply a field in the schema, simply return
 },
 "what_to_watch":[{
 "title":"",
-"description":"This is an optional array. Add things here that collector's should keep their eyes on based on this market summary. Only add things if there is something actually valueable, otherwise return NULL"
+"description":"This is an optional array. Add things here that collector's should keep their eyes on based on this market summary. It should be either self-explanatory, or mentioned why it's worth keeping our eyes on. Only add things if they are actually valueable to know, otherwise return NULL"
 }
 ]
 }
 
+# OUTPUT STRUCTURE
+
+To avoid repeating yourself too much, use these defined roles to make
+the fields distinct and serve different purposes. If a dominating theme is present in all fields,
+try to rather fully explain it in max 2-3 fields instead of most or all of them.
+
+- "key_themes_and_changes" explains WHAT happened.
+- "market_drivers" explains WHY things happened.
+- "what_to_watch" explains what collectors should monitor and why (what the current conditions suggest going forward).
+- "collector_outlook" A market summary/overview from a collector perspective.
+
+
 # OUTPUT RULES
 
+- Only use reputable and authoritative sources.
+- Never invent any facts, numbers or data. Always be honest and objective. If there's lacking data/evidence then mention that.
+- Don't try to add content for the purpose of filling up space. Either it's valueable to add, or you skip it.
 - Always use neutral language with a neutral tone.
-- Don't shorten or truncate text, fully explain while being concise and specific.
+- The language should be collector friendly, not necessarily investors.
+- Don't shorten or truncate text. Explain things while keeping it concise, clear and specific.
+- Only add things that are relevant and valueable to collectors.
+- Each field should be sufficiently backed by evidence and explanation, or justification of claims without overdoing it.
+- Claims and statements must be sufficiently justified.
+- Avoid being vague, or refer to trusted sources for vague statements.
 - Avoid using financial jargon, phrases or slogans.
 - Avoid marketing type language
-- Speak in normal sentences, preferably avoid semicolons.
-- Focus on generalities like sets, segments and trends rather than individual cards.
-- Avoid giving advice, focus on stating your findings.
-- Avoid hedging language, state your findings honestly.
-- Don't try to give advice or forecasts, describe your findings honestly and what they typically mean. If something is uncertain be honest about that.
+- Speak in natural sentences, preferably avoid semicolons.
+- Focus mostly on generalities like sets, segments and trends rather than individual cards, but 1-2 specific examples is fine per field.
+- Avoid giving advice, simply state your findings.
+- Avoid hedging language, your job is to report factual and real findings.
+- Don't try to give advice or forecasts, describe the findings and what they typically mean. If something is uncertain, be honest about that.
 
 # FINAL CHECK
 
-- Make sure your output is always following the output rules supplied above.
+- Make sure your output is always following all the output rules supplied.
 
 `.trim();
 

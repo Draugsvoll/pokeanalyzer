@@ -8,7 +8,7 @@
   background-color: color-mix(in srgb, var(--bg) 78%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(120%);
   backdrop-filter: blur(16px) saturate(120%);
-  border-bottom: 1px solid var(--border-divider);
+  border-bottom: 1px solid var(--border-divider-header);
 }
 
 .header--scrolled {

@@ -91,7 +91,7 @@
     > div {
       min-width: 0;
       text-align: center;
-      padding: 0.83rem;
+      padding: 0.8rem;
       border: none;
       border-radius: var(--border-radius);
       background: var(--surface5);
@@ -113,6 +113,7 @@
       font-weight: var(--font-weight-medium);
       font-variant-numeric: tabular-nums;
       margin: 0.1rem 0 0;
+      margin-bottom: -0.1rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -147,12 +148,17 @@
 
   &__listing-toggle.segmented-radio-group {
     --segment-group-accent: var(--marketplace-accent);
+    border-radius: var(--border-radius-pill);
     justify-self: center;
     margin: 0;
     width: fit-content;
 
     .segmented-radio-group__option {
       min-width: 6.25rem;
+    }
+
+    .segmented-radio-group__option > span {
+      border-radius: var(--border-radius-pill);
     }
   }
 
@@ -279,6 +285,10 @@
     .ui-select-dropdown__toggle,
     .radio-button-group__option {
       font-weight: var(--font-weight-medium);
+    }
+
+    .radio-button-group__option {
+      min-width: 4.25rem;
     }
   }
 
@@ -491,7 +501,7 @@
     }
 
     .marketplace-listings__price-summary dd {
-      font-size: 16px;
+      font-size: 17px;
     }
 
     .marketplace-listings__result {

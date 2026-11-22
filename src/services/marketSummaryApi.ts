@@ -1,11 +1,15 @@
+import { isAbortError } from "../hooks/useAbortableRequest";
 import type {
   MarketSummaryPayload,
   MarketSummaryResponse,
 } from "../types/news";
-import { isMarketSummaryPayload } from "../utils/marketSummaryPayload";
+import {
+  isMarketSummaryPayload,
+  parseMarketSummaryPayload,
+} from "../utils/marketSummaryPayload";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const MARKET_SUMMARY_CACHE_KEY = "pokelyzer:market-summary:v1";
+const MARKET_SUMMARY_CACHE_KEY = "pokelyzer:market-summary:v2";
 const MARKET_SUMMARY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
 
 type MarketSummaryApiError = {
@@ -52,19 +56,26 @@ export function cacheMarketSummary(marketSummary: MarketSummaryPayload): void {
   }
 }
 
+async function readJson(response: Response): Promise<unknown> {
+  return response.json() as Promise<unknown>;
+}
+
 export async function fetchMarketSummary(
   signal?: AbortSignal,
 ): Promise<MarketSummaryPayload | null> {
-  const response = await fetch(`${API_URL}/api/market-summary`, {
-    cache: "no-store",
-    signal,
-  });
-  const data = (await response.json()) as MarketSummaryResponse &
-    MarketSummaryApiError;
+  try {
+    const response = await fetch(`${API_URL}/api/market-summary`, {
+      cache: "no-store",
+      signal,
+    });
+    const data = (await readJson(response)) as MarketSummaryResponse &
+      MarketSummaryApiError;
 
-  if (!response.ok) {
-    throw new Error(data.error ?? "Failed to fetch market summary");
+    if (!response.ok) return null;
+
+    return parseMarketSummaryPayload(data.marketSummary);
+  } catch (error: unknown) {
+    if (isAbortError(error)) throw error;
+    return null;
   }
-
-  return isMarketSummaryPayload(data.marketSummary) ? data.marketSummary : null;
 }

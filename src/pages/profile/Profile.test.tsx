@@ -290,7 +290,7 @@ test("shows no included credits or credit renewal date for Free", async () => {
   expect(screen.queryByLabelText(/AI credits:/)).not.toBeInTheDocument();
   expect(
     screen.getByLabelText("Market credits: 10 remaining, 0 per month"),
-  ).toHaveTextContent(/10\s*Market credits\s*0 renewed monthly/);
+  ).toHaveTextContent(/10\s*Market credits\s*0 Monthly/);
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 

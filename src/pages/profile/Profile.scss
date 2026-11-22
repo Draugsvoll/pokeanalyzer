@@ -437,10 +437,10 @@
   }
 
   &__credit-bar {
-    background: color-mix(in srgb, var(--font-color-muted) 10%, transparent);
+    background: color-mix(in srgb, var(--font-color-muted) 15%, transparent);
     border-radius: var(--border-radius-pill);
     grid-column: 1 / -1;
-    height: 4px;
+    height: 5px;
     overflow: hidden;
 
     > span {

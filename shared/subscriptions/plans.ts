@@ -44,10 +44,9 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     description: "Built for basic research across an active collection.",
     features: [
       { label: "Everything in Free" },
-      { label: "3 AI credits every month" },
       { label: "5 Market credits every month" },
       { label: "Track unlimited cards in portfolio & watchlist" },
-      { label: "Weekly market summary" },
+      { label: "Weekly market report" },
       { label: "Price history & graded prices" },
     ],
   },
@@ -62,7 +61,6 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     description: "Built for actively researching the markets",
     features: [
       { label: "Everything in Basic" },
-      { label: "9 AI credits every month" },
       { label: "Unlimited market credits", highlighted: true },
     ],
   },

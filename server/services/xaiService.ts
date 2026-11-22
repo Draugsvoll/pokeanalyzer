@@ -1,6 +1,6 @@
 const XAI_RESPONSES_URL = "https://api.x.ai/v1/responses";
-type GrokModel = "grok-4.3" | "grok-4.5";
-type GrokReasoningEffort = "low" | "medium" | "high";
+type GrokModel = "grok-4.3" | "grok-4.5" | "grok-4.6" | "grok-4.7";
+type GrokReasoningEffort = "low" | "medium" | "high" | "xhigh";
 
 const DEFAULT_GROK_MODEL: GrokModel = "grok-4.3";
 const DEFAULT_REASONING_EFFORT: GrokReasoningEffort = "medium";

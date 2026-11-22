@@ -59,7 +59,8 @@ export function SealedDatabaseSearchBar({
             <SearchIcon
               aria-hidden="true"
               className="explore-search-field__icon"
-              size={16}
+              size={15}
+              strokeWidth={1.75}
             />
             <input
               aria-label="Sealed product name"

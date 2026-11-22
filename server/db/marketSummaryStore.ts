@@ -84,7 +84,11 @@ export function parseStoredMarketSummaryRows(
     throw new Error("Stored market summary payload must be JSON text");
   }
 
-  return { marketSummary: parseMarketSummaryResponse(payload) };
+  try {
+    return { marketSummary: parseMarketSummaryResponse(payload) };
+  } catch {
+    return { marketSummary: null };
+  }
 }
 
 export async function getMarketSummary(): Promise<MarketSummaryResponse> {

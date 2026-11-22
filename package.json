@@ -44,6 +44,7 @@
     "poketrace:generate-grading-list": "tsx server/scripts/generateGradingOpportunityList.ts",
     "news:generate": "tsx server/scripts/generateNews.ts",
     "news:generate:dry-run": "tsx server/scripts/generateNews.ts --dry-run",
+    "news:generate:market-summary:dry-run": "tsx server/scripts/generateNews.ts --dry-run --force-market-summary --market-summary-only",
     "test:server": "tsx --import ./server/testSetup.ts --test --test-concurrency=1 \"server/**/*.test.ts\""
   },
   "dependencies": {

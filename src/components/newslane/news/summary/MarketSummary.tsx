@@ -3,6 +3,7 @@ import { isScoreNumber } from "../../../../../shared/analysisScores";
 import type { MarketSummaryPayload } from "../../../../types/news";
 import { FeatureAnalysisHero } from "../../../../pages/pokemonDetails/components/FeatureAnalysisPanel";
 import { Badge } from "../../../ui/Badge";
+import { InfoTooltip } from "../../../ui/InfoTooltip";
 import {
   getNewsAccentStyle,
   getNewsLabelAccent,
@@ -74,25 +75,40 @@ function SummaryEntry({ description, label = "", title }: SummaryEntryProps) {
   );
 }
 
+function MarketHealthEyebrow({
+  explanation,
+}: {
+  explanation: string[];
+}) {
+  return (
+    <>
+      Market health
+      {explanation.length > 0 && (
+        <InfoTooltip
+          className="market-summary__health-tooltip"
+          label="Market health score explanation"
+          title="Market Health"
+        >
+          {explanation.map((paragraph) => (
+            <span key={paragraph}>{paragraph}</span>
+          ))}
+        </InfoTooltip>
+      )}
+    </>
+  );
+}
+
 export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
-  const keyThemesAndChanges = Array.isArray(payload.keyThemesAndChanges)
-    ? payload.keyThemesAndChanges
-    : [];
-  const liquidity = Array.isArray(payload.liquidity) ? payload.liquidity : [];
-  const marketDrivers = Array.isArray(payload.marketDrivers)
-    ? payload.marketDrivers
-    : [];
-  const segmentSummary = Array.isArray(payload.segmentSummary)
-    ? payload.segmentSummary
-    : [];
-  const whatToWatch = Array.isArray(payload.whatToWatch)
-    ? payload.whatToWatch
-    : [];
+  const keyThemesAndChanges = payload.keyThemesAndChanges;
+  const marketDrivers = payload.marketDrivers;
+  const segmentSummary = payload.segmentSummary;
+  const whatToWatch = payload.whatToWatch;
   const marketTone = payload.marketTone;
   const collectorOutlook = payload.collectorOutlook;
   const marketScore = isScoreNumber(payload.marketScore)
     ? payload.marketScore
     : null;
+  const marketScoreExplanation = payload.marketScoreExplanation;
   const toneAccent = getNewsLabelAccent(marketTone?.label || "market");
   const hasLeadContent = Boolean(
     marketScore != null ||
@@ -117,12 +133,16 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
             <FeatureAnalysisHero
               badge={
                 marketTone?.label ? (
-                  <Badge accent={toneAccent} size="lg" weight="strong">
+                  <Badge accent={toneAccent} size="md" weight="strong">
                     {`${marketTone.label} Sentiment`}
                   </Badge>
                 ) : undefined
               }
-              eyebrow={marketScore != null ? "Market health" : undefined}
+              eyebrow={
+                marketScore != null ? (
+                  <MarketHealthEyebrow explanation={marketScoreExplanation} />
+                ) : undefined
+              }
               headline={marketTone?.headline || "Weekly Market Report"}
               score={marketScore}
               scoreLabel="Market health score"
@@ -151,14 +171,14 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
         )}
 
         {!!segmentSummary.length && (
-          <SummaryCard accent="blue" title="General movements">
+          <SummaryCard accent="blue" title="Segments">
             <ul className="news-card__list market-summary__entries">
-              {segmentSummary.map((item, index) => (
+              {segmentSummary.map((item) => (
                 <SummaryEntry
                   description={item.description}
-                  key={`segment-${item.title}-${index}`}
+                  key={`segment-${item.key}`}
                   label={item.trend}
-                  title={item.title || "Market segment"}
+                  title={item.title}
                 />
               ))}
             </ul>
@@ -179,23 +199,8 @@ export function MarketSummary({ payload }: { payload: MarketSummaryPayload }) {
           </SummaryCard>
         )}
 
-        {!!liquidity.length && (
-          <SummaryCard accent="yellow" title="Liquidity">
-            <ul className="news-card__list market-summary__entries">
-              {liquidity.map((item, index) => (
-                <SummaryEntry
-                  description={item.description}
-                  key={`liquidity-${item.title}-${index}`}
-                  label={item.label}
-                  title={item.title || "Market liquidity"}
-                />
-              ))}
-            </ul>
-          </SummaryCard>
-        )}
-
         {!!whatToWatch.length && (
-          <SummaryCard accent="teal" title="What to watch">
+          <SummaryCard accent="teal" title="Eyes on">
             <ul className="news-card__list market-summary__entries">
               {whatToWatch.map((item, index) => (
                 <SummaryEntry

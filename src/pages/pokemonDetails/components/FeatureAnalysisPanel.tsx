@@ -21,7 +21,7 @@ type FeatureAnalysisPanelProps = {
 type FeatureAnalysisHeroProps = {
   badge?: ReactNode;
   children?: ReactNode;
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   headline?: string;
   score?: number | null;
   scoreLabel?: string;
