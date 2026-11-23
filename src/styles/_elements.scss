@@ -331,7 +331,7 @@ input[type="radio"] {
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
-  padding-bottom: var(--space-3);
+  padding-bottom: 0.85rem;
 }
 
 .grid-header__subtitle {

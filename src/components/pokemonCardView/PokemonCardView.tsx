@@ -151,6 +151,7 @@ export function PokemonCardView({
       <button
         aria-label={`Open ${card.name}`}
         className="pokemon-card__open"
+        data-result-open
         onClick={handleCardClick}
         title={[card.name, card.set?.name, variantName]
           .filter(Boolean)

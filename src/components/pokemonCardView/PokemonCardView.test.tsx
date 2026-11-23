@@ -312,6 +312,9 @@ test("read-only cards hide save actions even for signed-in demo viewers", () => 
     );
     expect(screen.queryByTestId("save-actions")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Pikachu" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Open Pikachu" })).toHaveAttribute(
+      "data-result-open",
+    );
   } finally {
     auth.user = null;
   }

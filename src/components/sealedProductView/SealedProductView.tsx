@@ -86,6 +86,7 @@ export function SealedProductView({
       <button
         aria-label={`Open ${product.name}`}
         className="sealed-product-view__open"
+        data-result-open
         onClick={() =>
           navigate(`/sealed/${encodeURIComponent(product.id)}`, {
             state: { product },

@@ -75,6 +75,9 @@ test("renders the sealed product family and variant", () => {
 
   expect(screen.getByText("Booster Box")).toBeInTheDocument();
   expect(screen.getByText("Pokemon Center Exclusive")).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Open XY Booster Box" }),
+  ).toHaveAttribute("data-result-open");
 });
 
 test("always displays sealed prices in USD", () => {

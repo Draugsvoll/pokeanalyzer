@@ -537,7 +537,7 @@ Respond in the JSON format provided below. Your entire response must only be a v
 `.trim();
 
 export const marketSummaryInput: string = `
-Write a Pokemon market summary for the past 7 days.
+Write a Pokemon market summary for the past 7 days. The purpose is to objectively, neutrally and honestly report your findings.
 `.trim();
 
 export const marketSummaryInstructions: string = `
@@ -547,7 +547,7 @@ If you don't have the needed data to supply a field in the schema, simply return
 
 {
 "market_score": "Must be an Integer 1-100. The score reflects how healthy and functional the pokemon markets have been for this period.",
-"market_score_explanation": ["Justify the reasons why you gave it this exact score. It should be clear why it didn't score higher, and also why not lower. This is an array so you can turn it into paragraphs if the text is lengthy. Keep it clear and concise without losing depth. 40-65 words."],
+"market_score_explanation": ["Justify the reasons why you gave it this exact score. It should be clear why it didn't score higher, and also why not lower. This is an array so you can turn it into paragraphs if the text is lengthy (minimum 2 entries). Keep it clear and concise without losing depth. 40-75 words."],
 "market_tone": {
 "label": "positive | neutral | negative | mixed",
 "headline":"A headline version of what the markets have been doing. Max 20 words."
@@ -556,32 +556,32 @@ If you don't have the needed data to supply a field in the schema, simply return
 {
 "title": "",
 "label":"positive | neutral | negative | mixed",
-"theme": "Describe the key themes and changes for what's been happening the past 7 days. 1 entry in this array per theme/change. If there are many things to mention, limit it to top 4 important to know."
+"theme": "Describe the key themes and changes for what's been happening the past 7 days. 1 entry in this array per theme/change. If there are many things to mention, limit the array to top 4 important to know."
 }
 ],
 "market_drivers": [
 {
 "title": "",
-"description": "Focus on sets/categories/general rather than individual cards."
+"description": "1 entry in array per market driver, limit the array to top 4 most important ones. Focus on sets/categories/general rather than individual cards."
 }
 ],
 "segment_summary": [
 {
 "vintage": {
 "trend":"rising | stable | mixed | softening | falling",
-"description": "Describe this segments performance for the given time period."
+"description": "Justify why it deserved this label. Max 75 words."
 },
 "modern": {
 "trend":"rising | stable | mixed | softening | falling",
-"description": "Describe this segments performance for the given time period."
+"description": "Justify why it deserved this label. Max 75 words."
 },
 "graded": {
 "trend":"rising | stable | mixed | softening | falling",
-"description": "Describe this segments performance for the given time period."
+"description": "Justify why it deserved this label. Max 75 words."
 },
 "sealed": {
 "trend":"rising | stable | mixed | softening | falling",
-"description": "Describe this segments performance for the given time period."
+"description": "Justify why it deserved this label. Max 75 words."
 },
 }
 ],
@@ -591,7 +591,7 @@ If you don't have the needed data to supply a field in the schema, simply return
 },
 "what_to_watch":[{
 "title":"",
-"description":"This is an optional array. Add things here that collector's should keep their eyes on based on this market summary. It should be either self-explanatory, or mentioned why it's worth keeping our eyes on. Only add things if they are actually valueable to know, otherwise return NULL"
+"description":"This is an optional array. Add things here that collector's should keep their eyes on based on this market summary. It should be either self-explanatory, or mentioned why it's worth keeping our eyes on. Only add things if they are actually valueable to know (limit to top 4 important to know), otherwise return NULL"
 }
 ]
 }
@@ -603,34 +603,34 @@ the fields distinct and serve different purposes. If a dominating theme is prese
 try to rather fully explain it in max 2-3 fields instead of most or all of them.
 
 - "key_themes_and_changes" explains WHAT happened.
-- "market_drivers" explains WHY things happened.
+- "market_drivers" explains WHY things happened. Be honest if it's uncertain or confusing.
 - "what_to_watch" explains what collectors should monitor and why (what the current conditions suggest going forward).
 - "collector_outlook" A market summary/overview from a collector perspective.
 
 
 # OUTPUT RULES
 
+- Do not write like it's market commentary. Always use neutral language with a neutral tone.
+- Avoid hedging language, your job is to report factual and trustworthy findings as they are.
+- Preferably you don't use contrast language, such as "Prices are softening rather than collapsing". Simply describe things as they are.
+- Avoid using financial jargon, phrases or slogans.
 - Only use reputable and authoritative sources.
 - Never invent any facts, numbers or data. Always be honest and objective. If there's lacking data/evidence then mention that.
 - Don't try to add content for the purpose of filling up space. Either it's valueable to add, or you skip it.
-- Always use neutral language with a neutral tone.
 - The language should be collector friendly, not necessarily investors.
 - Don't shorten or truncate text. Explain things while keeping it concise, clear and specific.
 - Only add things that are relevant and valueable to collectors.
 - Each field should be sufficiently backed by evidence and explanation, or justification of claims without overdoing it.
-- Claims and statements must be sufficiently justified.
-- Avoid being vague, or refer to trusted sources for vague statements.
-- Avoid using financial jargon, phrases or slogans.
-- Avoid marketing type language
+- Claims and statements must be sufficiently justified through citing sources or using clear reasoning. Especially in the fields "market_drivers" and "what_to_watch" it should be clear how the conclusions were made.
+- If a statement is vague, either clarify reasoning or refer to trusted sources.
 - Speak in natural sentences, preferably avoid semicolons.
-- Focus mostly on generalities like sets, segments and trends rather than individual cards, but 1-2 specific examples is fine per field.
-- Avoid giving advice, simply state your findings.
-- Avoid hedging language, your job is to report factual and real findings.
-- Don't try to give advice or forecasts, describe the findings and what they typically mean. If something is uncertain, be honest about that.
+- Focus mostly on generalities like sets, segments and trends rather than individual cards, but 1-2 specific card examples is fine per field.
+- Avoid giving advice or forecasts, simply state your findings and what they reasonably and typically mean.
+- If something is uncertain, be honest about that.
 
 # FINAL CHECK
 
-- Make sure your output is always following all the output rules supplied.
+- Make sure your output is always following all of the output rules supplied above.
 
 `.trim();
 

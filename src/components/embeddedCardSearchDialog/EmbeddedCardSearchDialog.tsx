@@ -34,6 +34,15 @@ export function EmbeddedCardSearchDialog({
       aria-label={ariaLabel}
       aria-modal="true"
       className="embedded-card-search ui-render-fade"
+      onClick={(event) => {
+        if (
+          !(event.target instanceof Element) ||
+          !event.target.closest("[data-result-open]")
+        ) {
+          return;
+        }
+        onClose();
+      }}
       onMouseDown={(event) => {
         if (event.target !== event.currentTarget) return;
         if (event.clientX >= event.currentTarget.clientWidth) return;
