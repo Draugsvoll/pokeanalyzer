@@ -18,7 +18,7 @@ export default function Search({
 }) {
   return (
     <div className="search-page">
-      <DatabaseSearch autoFocusName initialProductType={initialProductType} />
+      <DatabaseSearch initialProductType={initialProductType} />
       <GradingOpportunitiesGrid minimized title="Grading Opportunities" />
       <PriceGapGrid minimized title="Price Gaps - TCG and Cardmarket" />
       <MostSoldGrid minimized title="TCG high volume this week" />

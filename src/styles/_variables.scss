@@ -3,7 +3,7 @@
    ========================================================================== */
 
 :root {
-  --bg: #0b0e13;
+  --bg: #0a0d12;
   --bg2: #121720;
   --surface2: #182230;
   --surface3: #202c3c;
@@ -19,12 +19,12 @@
   --ai: #a879ff;
   --app-background-glow-primary: color-mix(
     in srgb,
-    var(--blue) 3%,
+    var(--blue) 2%,
     transparent
   );
   --app-background-glow-secondary: color-mix(
     in srgb,
-    var(--ai) 1%,
+    var(--ai) 0%,
     transparent
   );
   --green: #4fd58b;
@@ -49,8 +49,8 @@
    */
   --search-surface: #10141c;
   --main-search-bar-surface: #161a21;
-  --search-border: color-mix(in srgb, var(--blue) 31%, #3a485bd5);
-  --search-border-focus: color-mix(in srgb, var(--blue) 65%, transparent);
+  --search-border: color-mix(in srgb, var(--blue) 31%, #354153d5);
+  --search-border-focus: color-mix(in srgb, var(--blue) 66%, transparent);
   /* Idle is a solid edge only; glow lives on focus. */
   --search-ring: none;
   --search-ring-focus: 0 0 0 2px
@@ -135,10 +135,10 @@
 
   /* Shared page shells. Detail views retain the narrower reading width. */
   --shell-max-width: 1280px;
-  --shell-wide-max-width: 1505px;
+  --shell-wide-max-width: 1480px;
   /* Search bar — sizings matched to mock left */
   --search-max-width: 625px;
-  --search-grid-gap: var(--space-2);
+  --search-grid-gap: var(--space-1);
   --search-height: 47px;
   --search-pad: 8px;
   --search-btn-outer-gap: 14px; /* equal space left & right of Search button */
@@ -171,8 +171,8 @@
   --page-pad-x-lg: 32px;
   --page-pad-x-xl: 40px;
   --section-gap: 140px;
-  --card-gap: 20px;
-  --card-pad: 10px;
+  --card-gap: 21px;
+  --card-pad: 11px;
 
   /* Section headings (e.g. “Search results”) + card type */
   --font-size-section-title: 20px;
