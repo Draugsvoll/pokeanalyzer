@@ -383,6 +383,27 @@ test("waits for membership access before showing locked content or fetching hist
     screen.getByRole("status", { name: "Loading marketplace price history" }),
   ).toBeInTheDocument();
   expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole("radio", { name: "PSA Pop" }),
+  ).not.toBeInTheDocument();
+  rerender(
+    <PokeTraceMarketPrices
+      cardId={cardId}
+      data={{
+        ...liveData,
+        population: {
+          total: 10,
+          gemRate: 0.1,
+          updatedAt: "2026-11-18T23:51:24.142Z",
+          grades: [{ grade: "10", count: 1, qualified: 0 }],
+        },
+      }}
+      marketHistoryAccessPending
+    />,
+  );
+  expect(
+    screen.queryByRole("radio", { name: "PSA Pop" }),
+  ).not.toBeInTheDocument();
   rerender(
     <PokeTraceMarketPrices
       cardId={cardId}
@@ -638,6 +659,9 @@ test("hides grades with three identical numeric medians without hiding raw price
         PSA_8: {
           saleCount: 15,
           avg: 2175,
+          avg1d: 2175,
+          avg7d: 2175,
+          avg30d: 2175,
           median3d: 2175,
           median7d: 2175,
           median30d: 2175,
@@ -661,6 +685,9 @@ test("hides grades with three identical numeric medians without hiding raw price
         BGS_9: {
           saleCount: 15,
           avg: 400,
+          avg1d: 400,
+          avg7d: 400,
+          avg30d: 400,
           median3d: 400,
           median7d: 400,
           median30d: 400,
@@ -1474,4 +1501,110 @@ test("locks previously visible data when access is removed", async () => {
   ).toBeDisabled();
   expect(fetchMarketPriceHistory).not.toHaveBeenCalled();
   expect(fetchCardPriceHistory).not.toHaveBeenCalled();
+});
+
+test("graded panel adds a Prices / PSA Pop toggle after population arrives", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue(
+    snapshotHistory(cardId, 20),
+  );
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
+  const { rerender } = render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={liveData}
+    />,
+  );
+  expect(
+    screen.queryByRole("radio", { name: "PSA Pop" }),
+  ).not.toBeInTheDocument();
+  rerender(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={{
+        ...liveData,
+        population: {
+          total: 108222,
+          gemRate: 0.0045,
+          updatedAt: "2026-11-18T23:51:24.142Z",
+          grades: [
+            { grade: "10", count: 400, qualified: 0 },
+            { grade: "9.5", count: 50, qualified: 0 },
+            { grade: "9", count: 38, qualified: 0 },
+          ],
+        },
+      }}
+    />,
+  );
+  expect(screen.getByRole("radio", { name: "Prices" })).toBeChecked();
+  expect(screen.queryByText("Updated 18 Nov 2026")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("radio", { name: "PSA Pop" }));
+  expect(screen.getByText("Updated 18 Nov 2026")).toBeInTheDocument();
+  expect(screen.getByText("Total Population")).toBeInTheDocument();
+  expect(screen.getByText("108,222")).toBeInTheDocument();
+  expect(screen.getByText("Gem Rate")).toBeInTheDocument();
+  expect(screen.getByText("Grade")).toBeInTheDocument();
+  expect(screen.getByText("PSA 10")).toBeInTheDocument();
+  expect(screen.getByText("400")).toBeInTheDocument();
+  expect(screen.getByText("PSA 9")).toBeInTheDocument();
+  expect(screen.getByText("88")).toBeInTheDocument();
+  expect(screen.queryByText("PSA 9.5")).not.toBeInTheDocument();
+  expect(screen.getAllByText("0.4%").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Authentic (no grade)")).not.toBeInTheDocument();
+});
+
+test("PSA Pop shows Authentic (no grade) in the summary when the count is non-zero", async () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue(
+    snapshotHistory(cardId, 20),
+  );
+  vi.mocked(fetchMarketPriceHistory).mockResolvedValue(history("NEAR_MINT"));
+  render(
+    <PokeTraceMarketPrices
+      hasMarketHistoryAccess
+      cardId={cardId}
+      data={{
+        ...liveData,
+        population: {
+          total: 108222,
+          gemRate: 0.0045,
+          updatedAt: "2026-11-18T23:51:24.142Z",
+          authentic: 12,
+          grades: [
+            { grade: "10", count: 400, qualified: 0 },
+            { grade: "9", count: 38, qualified: 0 },
+          ],
+        },
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "PSA Pop" }));
+  expect(screen.getByText("Authentic (no grade)")).toBeInTheDocument();
+  expect(screen.getByText("12")).toBeInTheDocument();
+  expect(screen.queryByText("Authentic")).not.toBeInTheDocument();
+});
+
+test("hides the PSA Pop toggle without paid membership even when population is present", () => {
+  vi.mocked(fetchCardPriceHistory).mockResolvedValue({
+    cardId,
+    days: 9,
+    snapshots: [],
+  });
+  render(
+    <PokeTraceMarketPrices
+      cardId={cardId}
+      data={{
+        ...liveData,
+        population: {
+          total: 108222,
+          gemRate: 0.0045,
+          updatedAt: "2026-11-18T23:51:24.142Z",
+          grades: [{ grade: "10", count: 400, qualified: 0 }],
+        },
+      }}
+    />,
+  );
+  expect(
+    screen.queryByRole("radio", { name: "PSA Pop" }),
+  ).not.toBeInTheDocument();
 });

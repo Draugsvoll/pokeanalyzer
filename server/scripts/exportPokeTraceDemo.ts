@@ -8,6 +8,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ensurePokeTraceReady, pokeTraceDb } from "../db/pokeTraceDb.js";
 import { loadMarketPriceHistory } from "../services/pokeTraceMarketPriceHistory.js";
+import { refreshStoredPokeTracePopulation } from "../services/pokeTracePopulationRefresh.js";
 
 const demoPath = path.resolve("public/demo-card.json");
 const databaseUrl = process.env.POKETRACE_DATABASE_URL_V2?.trim();
@@ -18,7 +19,7 @@ if (!databaseUrl || databaseUrl.startsWith("file:")) {
 await ensurePokeTraceReady();
 
 try {
-  // Use exactly the same card loader as GET /api/cards/:id.
+  await refreshStoredPokeTracePopulation(DEMO_SOURCE_CARD_ID);
   const card = await loadPokeTraceCard(DEMO_SOURCE_CARD_ID);
   if (!card) throw new Error("The demo source card is missing");
   const marketPriceHistory = await loadMarketPriceHistory(DEMO_SOURCE_CARD_ID);

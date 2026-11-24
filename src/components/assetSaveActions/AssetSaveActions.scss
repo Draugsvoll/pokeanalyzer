@@ -4,6 +4,9 @@
 }
 
 .asset-save-actions--card {
+  gap: 0;
+  justify-content: flex-end;
+  pointer-events: none;
   position: absolute;
   right: calc(var(--card-pad) + 0.2rem);
   top: calc(var(--card-pad) + 0.2rem);
@@ -30,18 +33,24 @@
   color: var(--font-color-secondary);
   cursor: pointer;
   display: flex;
+  flex: 0 0 2rem;
+  height: 2rem;
   justify-content: center;
+  margin-inline-end: 0;
+  margin-inline-start: 0;
   opacity: 0;
   padding: 0;
-  height: 2rem;
-  width: 2rem;
+  pointer-events: none;
   transition:
     background var(--delay-short) ease,
     border-color var(--delay-short) ease,
     color var(--delay-short) ease,
+    margin-inline-end var(--delay-short) ease,
+    margin-inline-start var(--delay-short) ease,
     opacity var(--delay-short) ease,
-    visibility var(--delay-short) ease;
+    visibility var(--delay-short) linear;
   visibility: hidden;
+  width: 2rem;
 
   svg {
     height: 1rem;
@@ -53,13 +62,6 @@
     color: var(--custom-color-blue);
     height: 1rem;
     width: 1rem;
-  }
-
-  &:hover:not(:disabled),
-  &:focus-visible,
-  &.is-saved {
-    opacity: 1;
-    visibility: visible;
   }
 
   &:hover:not(:disabled),
@@ -89,10 +91,30 @@
   }
 }
 
+.asset-save-actions--single
+  > .asset-save-button:not(.asset-save-button--persistent) {
+  margin-inline-end: -2rem;
+}
+
+.asset-save-button--persistent,
 .product-card:hover .asset-save-button,
 .product-card:focus-within .asset-save-button,
 .portfolio-item-card:hover .asset-save-button,
 .portfolio-item-card:focus-within .asset-save-button {
+  margin-inline-end: 0;
   opacity: 1;
+  pointer-events: auto;
   visibility: visible;
+}
+
+.asset-save-button--persistent + .asset-save-button--persistent,
+.product-card:is(:hover, :focus-within)
+  .asset-save-actions--card
+  > .asset-save-button
+  + .asset-save-button,
+.portfolio-item-card:is(:hover, :focus-within)
+  .asset-save-actions--card
+  > .asset-save-button
+  + .asset-save-button {
+  margin-inline-start: var(--space-2);
 }

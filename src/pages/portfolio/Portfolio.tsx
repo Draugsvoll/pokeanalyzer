@@ -686,12 +686,16 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
               >
                 {visibleItems.map((item) => {
                   const itemKey = `${item.type}:${item.id}`;
+                  const hoverOnlySaveAction = isWatchlist
+                    ? "watchlist"
+                    : "portfolio";
                   if (gradingActive && item.type === "single") {
                     return (
                       <PokemonCardView
                         key={itemKey}
                         card={item}
                         readOnly={demo}
+                        hoverOnlySaveAction={hoverOnlySaveAction}
                         comparisonPeriod={changePeriod}
                         comparisonPriceSnapshot={portfolioComparisonSnapshot(
                           item,
@@ -711,6 +715,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                         key={itemKey}
                         card={item}
                         readOnly
+                        hoverOnlySaveAction={hoverOnlySaveAction}
                         comparisonPeriod={changePeriod}
                         comparisonPriceSnapshot={portfolioComparisonSnapshot(
                           item,
@@ -736,6 +741,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                       <PokemonCardView
                         key={itemKey}
                         card={item}
+                        hoverOnlySaveAction={hoverOnlySaveAction}
                         comparisonPeriod={changePeriod}
                         comparisonPriceSnapshot={portfolioComparisonSnapshot(
                           item,
@@ -746,6 +752,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                       <SealedProductView
                         key={itemKey}
                         product={item}
+                        hoverOnlySaveAction={hoverOnlySaveAction}
                         comparisonPeriod={changePeriod}
                       />
                     );
@@ -755,6 +762,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                       {...commonProps}
                       key={itemKey}
                       card={item}
+                      hoverOnlySaveAction={hoverOnlySaveAction}
                       comparisonPriceSnapshot={portfolioComparisonSnapshot(
                         item,
                         changePeriod,
@@ -764,6 +772,7 @@ function PortfolioList({ demo = false }: { demo?: boolean }) {
                     <SealedProductPortfolioView
                       {...commonProps}
                       key={itemKey}
+                      hoverOnlySaveAction={hoverOnlySaveAction}
                       product={item}
                     />
                   );

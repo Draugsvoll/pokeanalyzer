@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -41,7 +40,6 @@ type CardFeatureHeaderProps = {
   cardNumber?: string;
   hideIdentity?: boolean;
   color: CustomColors;
-  icon: LucideIcon;
   label: string;
   actionLabel?: string;
   actionLoading?: boolean;
@@ -62,7 +60,6 @@ export function CardFeatureHeader({
   cardNumber,
   hideIdentity = false,
   color,
-  icon: Icon,
   label,
   actionLabel,
   actionLoading,
@@ -90,10 +87,7 @@ export function CardFeatureHeader({
       className={`card-feature-header default-container${hideIdentity ? " card-feature-header--identity-hidden" : ""}`}
       style={getCustomColors(color)}
     >
-      <span className="card-feature-header__label">
-        <Icon aria-hidden="true" />
-        {label}
-      </span>
+      <span className="card-feature-header__label">{label}</span>
       {!hideIdentity && (
         <div className="card-feature-header__identity">
           <h2>{card.name}</h2>

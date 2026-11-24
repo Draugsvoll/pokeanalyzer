@@ -11,6 +11,7 @@ import type {
   PokeTraceMarkets,
   PokeTracePrices,
 } from "../../../shared/pokeTraceMarkets";
+import type { PokeTracePsaPopulation } from "../../../shared/pokeTracePopulation";
 import type {
   PokeTraceMarketComparisonPeriod,
   PokeTraceMarketComparisons,
@@ -65,6 +66,7 @@ export type PokemonCard = {
     markets?: PokeTraceMarkets;
     marketPrices?: PokeTracePrices;
     gradedOptions?: GradedHistoryTier[];
+    population?: PokeTracePsaPopulation;
     variant?: string;
     variants?: Array<{
       id: string;

@@ -369,6 +369,74 @@ for (const type of ["single", "sealed"] as const) {
   });
 }
 
+test("card tiles keep the other list button visible when one action is hover-only", async () => {
+  render(
+    <Providers>
+      <AssetSaveActions
+        item={{
+          id: "card-1",
+          type: "single",
+          name: "Pikachu",
+          set: { id: "base", name: "Base" },
+          pokeTrace: { currency: "USD", marketplaceUrls: {}, prices: {} },
+        }}
+        layout="card"
+        hoverOnlyAction="portfolio"
+        portfolio={{
+          saved: true,
+          busy: false,
+          unavailable: false,
+          onToggle: vi.fn(),
+        }}
+      />
+    </Providers>,
+  );
+  const hoverOnlyPortfolio = screen.getByRole("button", {
+    name: "Remove from portfolio",
+  });
+  expect(hoverOnlyPortfolio).toHaveClass("asset-save-button--hover-only");
+  expect(hoverOnlyPortfolio).not.toHaveClass("asset-save-button--persistent");
+  expect(
+    await screen.findByRole("button", { name: "Add to watchlist" }),
+  ).not.toHaveClass("asset-save-button--hover-only");
+  expect(hoverOnlyPortfolio.parentElement).not.toHaveClass(
+    "asset-save-actions--single",
+  );
+});
+
+test("card tiles mark a single always-visible saved action for idle collapse", async () => {
+  render(
+    <Providers>
+      <AssetSaveActions
+        item={{
+          id: "card-1",
+          type: "single",
+          name: "Pikachu",
+          set: { id: "base", name: "Base" },
+          pokeTrace: { currency: "USD", marketplaceUrls: {}, prices: {} },
+        }}
+        layout="card"
+        portfolio={{
+          saved: true,
+          busy: false,
+          unavailable: false,
+          onToggle: vi.fn(),
+        }}
+      />
+    </Providers>,
+  );
+  expect(
+    await screen.findByRole("button", { name: "Add to watchlist" }),
+  ).toBeInTheDocument();
+  const persistentPortfolio = screen.getByRole("button", {
+    name: "Remove from portfolio",
+  });
+  expect(persistentPortfolio).toHaveClass("asset-save-button--persistent");
+  expect(persistentPortfolio.parentElement).toHaveClass(
+    "asset-save-actions--single",
+  );
+});
+
 test("detail actions retain their labels and prevent repeated writes while saving", async () => {
   let finish!: (result: unknown) => void;
   mocks.addWatchlist.mockImplementationOnce(

@@ -20,6 +20,7 @@
   // padding-bottom: 11px;
   position: relative;
   text-align: left;
+  transform: translateY(0);
   transition: var(--delay-short) ease;
   width: 100%;
   z-index: 0;
@@ -47,7 +48,7 @@
 
 .product-card:hover > .product-card__surface,
 .product-card:focus-within > .product-card__surface {
-  background: color-mix(in srgb, var(--bg-card) 99%, white);
+  background: color-mix(in srgb, var(--bg-card) 99.8%, white);
   box-shadow: var(--hover-shadow);
   transform: translateY(var(--hover-lift));
 }

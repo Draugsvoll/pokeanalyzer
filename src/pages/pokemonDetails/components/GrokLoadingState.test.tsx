@@ -2,7 +2,6 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GrokLoadingState } from "./GrokLoadingState";
 import { CardFeatureHeader } from "./CardFeatureHeader";
-import { LineChart } from "lucide-react";
 
 describe("GrokLoadingState", () => {
   afterEach(() => {
@@ -18,7 +17,6 @@ describe("GrokLoadingState", () => {
       <CardFeatureHeader
         card={{ name: "Pikachu" }}
         color="orange"
-        icon={LineChart}
         label="Market Analysis"
         actionLabel="1 AI credit"
         onAction={() => undefined}
@@ -49,7 +47,6 @@ describe("GrokLoadingState", () => {
       <CardFeatureHeader
         card={{ name: "Pikachu" }}
         color="orange"
-        icon={LineChart}
         label="Market Analysis"
         actionLabel="1 AI credit"
         onAction={() => undefined}

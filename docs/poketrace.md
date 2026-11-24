@@ -289,9 +289,11 @@ missing or invalid values fall through to the next field. Raw-condition prices
 continue to use averages.
 
 Graded-price boxes and calculator prefills also share `isEligibleGradedPrice`:
-the tier must have a finite numeric `saleCount` of at least 15, and its numeric
-`median3d`, `median7d`, and `median30d` must not all be equal. Missing medians
-alone do not trigger this exclusion. Ineligible grades are hidden from the
+the tier must have a finite numeric `saleCount` of at least 15, and it is
+excluded only when `median3d`, `median7d`, and `median30d` are all equal and
+`avg1d`, `avg7d`, and `avg30d` are all equal. The two windows are independent:
+medians need not match avgs. Missing values in either window do not trigger
+this exclusion. Ineligible grades are hidden from the
 boxes and are not imported into calculator inputs; users can still enter
 calculator prices manually. The history dropdown retains its separate rules
 described above, including its update-age requirement; the identical-median

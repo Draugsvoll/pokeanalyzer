@@ -2,6 +2,7 @@ import { isTcgSnapshot } from "../../shared/tcgExplorer.js";
 import type { PokeTraceSavedResponses } from "../../shared/pokeTraceSavedResponses.js";
 import { isGradedHistoryTier } from "../../shared/pokeTraceHistoryTiers.js";
 import { parsePokeTraceMarketComparisons } from "../../shared/pokeTraceMarketComparisons.js";
+import { parsePokeTracePsaPopulation } from "../../shared/pokeTracePopulation.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -48,6 +49,7 @@ export function toPokemonCard(
   const updatedAt = text(raw.lastUpdated) ?? "";
   const parsedMarketComparisons =
     parsePokeTraceMarketComparisons(marketComparisons);
+  const population = parsePokeTracePsaPopulation(raw.population);
   const { ebay_sold: legacyEbay, ...grok } = savedResponses.grok ?? {};
   const ebay = record(savedResponses.ebay) ?? record(legacyEbay);
 
@@ -70,6 +72,7 @@ export function toPokemonCard(
       ...(Array.isArray(raw.gradedOptions) && {
         gradedOptions: raw.gradedOptions.filter(isGradedHistoryTier),
       }),
+      ...(population && { population }),
       variant: text(raw.variant),
       variants,
       lastUpdated: updatedAt,

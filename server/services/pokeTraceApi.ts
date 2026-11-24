@@ -2,6 +2,7 @@ import {
   isMarketHistoryTier,
   type MarketHistoryTier,
 } from "../../shared/pokeTraceHistoryTiers.js";
+import type { PokeTracePsaPopulation } from "../../shared/pokeTracePopulation.js";
 
 export type PokeTraceCard = Record<string, unknown> & {
   id: string;
@@ -19,6 +20,7 @@ export type PokeTraceCard = Record<string, unknown> & {
   game: "pokemon";
   market: "US";
   productType: "single";
+  population?: PokeTracePsaPopulation;
 };
 
 export type PokeTraceSealedProduct = Record<string, unknown> & {

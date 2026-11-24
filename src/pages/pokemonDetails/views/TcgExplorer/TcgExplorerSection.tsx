@@ -6,7 +6,6 @@ import type {
 } from "../../../../../shared/marketplaceSearch";
 import { readMarketplaceSearchStream } from "../../../../utils/marketplaceSearchStream";
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CircleDollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../context/authContextValue";
 import { useEbayCredits } from "../../../../ebay/useEbayCredits";
@@ -251,7 +250,6 @@ const TcgExplorerForAccount = memo(function TcgExplorerForAccount({
         <CardFeatureHeader
           card={{ name: cardName, number: cardNumber, set: { name: setName } }}
           color="orange"
-          icon={CircleDollarSign}
           label="Sales & listings"
           actionLabel={noCredits ? "Add credits" : "1 Market credit"}
           actionLoading={loading && !headerError}

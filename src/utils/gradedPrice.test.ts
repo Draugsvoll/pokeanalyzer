@@ -17,7 +17,43 @@ test.each([
 });
 
 test.each([
-  [{ saleCount: 15, median3d: 100, median7d: 100, median30d: 100 }, false],
+  [
+    {
+      saleCount: 15,
+      median3d: 100,
+      median7d: 100,
+      median30d: 100,
+      avg1d: 90,
+      avg7d: 90,
+      avg30d: 90,
+    },
+    false,
+  ],
+  [
+    {
+      saleCount: 15,
+      median3d: 4475,
+      median7d: 4475,
+      median30d: 4475,
+      avg1d: 3950,
+      avg7d: 5037.5,
+      avg30d: 5037.5,
+    },
+    true,
+  ],
+  [
+    {
+      saleCount: 15,
+      median3d: 100,
+      median7d: 110,
+      median30d: 100,
+      avg1d: 90,
+      avg7d: 90,
+      avg30d: 90,
+    },
+    true,
+  ],
+  [{ saleCount: 15, median3d: 100, median7d: 100, median30d: 100 }, true],
   [{ saleCount: 15, median3d: 100, median7d: 100, median30d: 110 }, true],
   [{ saleCount: 15, median3d: null, median7d: null, median30d: null }, true],
   [{ saleCount: 15, median7d: 100, avg: 110 }, true],

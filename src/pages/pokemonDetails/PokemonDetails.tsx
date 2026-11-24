@@ -57,7 +57,7 @@ import LoginModal from "../../components/loginmodal/Loginmodal";
 import { useAuth } from "../../context/authContextValue";
 import { formatCardNumber } from "../../../shared/formatCardNumber";
 import { normalizeCardVariant } from "../../../shared/normalizeCardVariant";
-import { fetchCardById } from "../../services/cardApi";
+import { fetchCardById, refreshCardPopulation } from "../../services/cardApi";
 import { getRarityBadgeAccent } from "../../utils/pokemonRarity";
 import { PokeTraceMarketPrices } from "./components/PokeTraceMarketPrices";
 import { GradingCalculator } from "./components/GradingCalculator";
@@ -273,6 +273,15 @@ function PokemonDetailsForCard() {
     refreshSubscription,
   } = useMembershipSubscription();
   const { creditsRemaining, updatingCredits } = useCredits(subscription);
+  const hasMarketHistoryAccess =
+    isDemo ||
+    (!!authUser &&
+      !loadingSubscription &&
+      (subscription?.planId === "basic" || subscription?.planId === "pro") &&
+      (subscription.status === "active" ||
+        subscription.status === "trialing"));
+  const marketHistoryAccessPending =
+    !isDemo && (authLoading || (!!authUser && loadingSubscription));
 
   useLayoutEffect(() => {
     routeCardIdRef.current = id;
@@ -498,6 +507,50 @@ function PokemonDetailsForCard() {
   }, [cardRequestAttempt, id, navigationCard, prefetchedVariantCard]);
 
   useEffect(() => {
+    if (!card?.id || cardRequestPending || marketHistoryAccessPending) return;
+    if (!hasMarketHistoryAccess) return;
+    const controller = new AbortController();
+    const cardId = card.id;
+    refreshCardPopulation(cardId, controller.signal)
+      .then((updatedCard) => {
+        if (
+          controller.signal.aborted ||
+          routeCardIdRef.current !== id ||
+          updatedCard.id !== cardId
+        ) {
+          return;
+        }
+        const population = updatedCard.pokeTrace.population;
+        setCardRequestState((current) =>
+          current.card?.id === cardId
+            ? {
+                ...current,
+                card: {
+                  ...current.card,
+                  pokeTrace: {
+                    ...current.card.pokeTrace,
+                    population,
+                  },
+                },
+              }
+            : current,
+        );
+      })
+      .catch((error: unknown) => {
+        if (!isAbortError(error)) {
+          logClientError("Failed to refresh card population", error);
+        }
+      });
+    return () => controller.abort();
+  }, [
+    card?.id,
+    cardRequestPending,
+    hasMarketHistoryAccess,
+    id,
+    marketHistoryAccessPending,
+  ]);
+
+  useEffect(() => {
     if (!featureCooldown) return;
 
     const cooldownTimer = window.setTimeout(() => {
@@ -622,7 +675,6 @@ function PokemonDetailsForCard() {
         card={card}
         cardNumber={activeView === "prices" ? displayedCardNumber : undefined}
         color={activeFeature.color}
-        icon={activeFeature.icon}
         label={activeFeature.title}
         actionLabel={
           shouldAddCredits
@@ -708,18 +760,8 @@ function PokemonDetailsForCard() {
             dataRequestFailed={cardLoadFailed}
             gradingCalculatorOpen={gradingCalculatorOpen}
             pricingHref={authUser ? "/profile" : "#membership-pricing"}
-            hasMarketHistoryAccess={
-              isDemo ||
-              (!!authUser &&
-                !loadingSubscription &&
-                (subscription?.planId === "basic" ||
-                  subscription?.planId === "pro") &&
-                (subscription.status === "active" ||
-                  subscription.status === "trialing"))
-            }
-            marketHistoryAccessPending={
-              !isDemo && (authLoading || (!!authUser && loadingSubscription))
-            }
+            hasMarketHistoryAccess={hasMarketHistoryAccess}
+            marketHistoryAccessPending={marketHistoryAccessPending}
             onToggleGradingCalculator={
               DISABLE_CARD_AI_ANALYSIS
                 ? undefined

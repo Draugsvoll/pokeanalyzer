@@ -38,6 +38,7 @@ import { isPokeTraceRawCondition } from "../../../shared/pokeTraceMarketConditio
 import type { PokeTraceFilterOptions } from "../../../shared/pokeTraceFilterOptions.js";
 import { loadPokeTraceFilterOptions } from "../../services/pokeTraceFilterOptions.js";
 import { createCatalogRefreshHandler } from "./catalogRefreshHandler.js";
+import { refreshStoredPokeTracePopulation } from "../../services/pokeTracePopulationRefresh.js";
 
 const router = Router();
 const gzipAsync = promisify(gzip);
@@ -671,6 +672,35 @@ router.get("/", async (_req, res) => {
 
 router.get("/:id/price-history", createPokeTracePriceHistoryHandler());
 router.get("/:id/market-price-history", createMarketPriceHistoryHandler());
+router.get("/:id/population", async (req, res) => {
+  const id = req.params.id;
+  if (!isValidCardId(id)) {
+    res.status(400).json({ error: "Invalid card ID" });
+    return;
+  }
+  try {
+    const existing = await loadPokeTraceCard(id);
+    if (!existing) {
+      res.status(404).json({ error: "Card not found" });
+      return;
+    }
+    try {
+      const updated = await refreshStoredPokeTracePopulation(id);
+      const card = updated
+        ? ((await loadPokeTraceCard(id)) ?? existing)
+        : existing;
+      res.setHeader("Cache-Control", "no-store");
+      res.json(card);
+    } catch (error) {
+      logError("Failed to refresh PokeTrace population", error);
+      res.setHeader("Cache-Control", "no-store");
+      res.json(existing);
+    }
+  } catch (error) {
+    logError("Failed to refresh PokeTrace population", error);
+    res.status(500).json({ error: "Failed to refresh card population" });
+  }
+});
 
 export async function loadPokeTraceCard(id: string) {
   await ensurePokeTraceReady();

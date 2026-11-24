@@ -50,7 +50,29 @@ export function cardUpsert(card: PokeTraceCard) {
         variant = excluded.variant,
         image_url = excluded.image_url,
         tcgplayer_id = excluded.tcgplayer_id,
-        raw_json = excluded.raw_json,
+        raw_json = CASE
+          WHEN json_type(excluded.raw_json, '$.population') = 'object'
+            THEN json_set(
+              excluded.raw_json,
+              '$.populationCheckedAt',
+              COALESCE(
+                json_extract(excluded.raw_json, '$.populationCheckedAt'),
+                json_extract(poketrace_cards.raw_json, '$.populationCheckedAt')
+              )
+            )
+          WHEN json_type(poketrace_cards.raw_json, '$.population') IN ('object', 'null')
+            THEN json_set(
+              excluded.raw_json,
+              '$.population',
+              CASE json_type(poketrace_cards.raw_json, '$.population')
+                WHEN 'null' THEN json('null')
+                ELSE json(json_extract(poketrace_cards.raw_json, '$.population'))
+              END,
+              '$.populationCheckedAt',
+              json_extract(poketrace_cards.raw_json, '$.populationCheckedAt')
+            )
+          ELSE excluded.raw_json
+        END,
         fetched_at = excluded.fetched_at
     `,
     args: [

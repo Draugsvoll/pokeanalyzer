@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import { CircleDollarSign } from "lucide-react";
 import { expect, test } from "vitest";
 import { CardFeatureHeader } from "./CardFeatureHeader";
 import { MarketAnalysisView } from "../views/MarketAnalysis/MarketAnalysisView";
@@ -30,7 +29,6 @@ test.each([
         <CardFeatureHeader
           card={{ name: "Pikachu" }}
           color="teal"
-          icon={CircleDollarSign}
           label="Analysis"
           actionLabel="1 AI credit"
           onAction={() => undefined}

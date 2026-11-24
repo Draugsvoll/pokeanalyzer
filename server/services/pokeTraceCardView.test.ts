@@ -2,6 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { toPokemonCard } from "./pokeTraceCardView.js";
 
+test("maps PSA population when PokeTrace includes it", () => {
+  const population = {
+    total: 108222,
+    gemRate: 0.0045,
+    updatedAt: "2026-11-18T23:51:24.142Z",
+    grades: [{ grade: "10", count: 488, qualified: 0 }],
+  };
+  assert.deepEqual(
+    toPokemonCard({
+      id: "card-1",
+      name: "Charizard",
+      population,
+    }).pokeTrace.population,
+    population,
+  );
+  assert.equal(
+    toPokemonCard({ id: "card-2", name: "Pikachu" }).pokeTrace.population,
+    undefined,
+  );
+});
+
 test("preserves advertised graded history options and filters invalid tiers", () => {
   const card = toPokemonCard({
     id: "card-1",

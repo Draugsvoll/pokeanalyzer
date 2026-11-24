@@ -1,4 +1,7 @@
-import { AssetSaveActions } from "../assetSaveActions/AssetSaveActions";
+import {
+  AssetSaveActions,
+  type HoverOnlySaveAction,
+} from "../assetSaveActions/AssetSaveActions";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { PortfolioItemCard } from "../portfolioItemCard/PortfolioItemCard";
@@ -52,6 +55,7 @@ export type PokemonCardViewProps = {
   };
   onPortfolioChanged?: (saved: boolean) => void;
   priceChangeLabel?: string;
+  hoverOnlySaveAction?: HoverOnlySaveAction;
 };
 
 function getVariantBadgeAccent(variant?: string) {
@@ -74,6 +78,7 @@ export function PokemonCardView({
   badge,
   onPortfolioChanged,
   priceChangeLabel,
+  hoverOnlySaveAction,
 }: PokemonCardViewProps) {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -163,6 +168,7 @@ export function PokemonCardView({
           key={card.id}
           item={{ ...card, type: "single" }}
           layout="card"
+          hoverOnlyAction={hoverOnlySaveAction}
           portfolio={{
             saved: cardIsSaved,
             busy: portfolioBusy,

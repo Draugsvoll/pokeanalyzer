@@ -1,4 +1,6 @@
 .pokemon-card-view__card {
+  transform: translateY(0);
+
   img {
     height: auto;
     object-fit: contain;

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   fetchCardById: vi.fn(),
   fetchCardPriceHistory: vi.fn(),
   fetchMarketPriceHistory: vi.fn(),
+  refreshCardPopulation: vi.fn(),
   hasSubscription: true,
   loadingSubscription: false,
   updateSubscription: vi.fn(),
@@ -87,6 +88,7 @@ vi.mock("../../services/cardApi", () => ({
   fetchCardById: mocks.fetchCardById,
   fetchCardPriceHistory: mocks.fetchCardPriceHistory,
   fetchMarketPriceHistory: mocks.fetchMarketPriceHistory,
+  refreshCardPopulation: mocks.refreshCardPopulation,
 }));
 
 vi.mock("../../services/pokeTraceSets", () => ({
@@ -324,6 +326,10 @@ beforeEach(() => {
   mocks.fetchCardById.mockReset();
   mocks.fetchCardPriceHistory.mockReset();
   mocks.fetchMarketPriceHistory.mockReset();
+  mocks.refreshCardPopulation.mockReset();
+  mocks.refreshCardPopulation.mockImplementation(async (cardId: string) =>
+    buildCard(cardId, "Card"),
+  );
   mocks.hasSubscription = true;
   mocks.loadingSubscription = false;
   mocks.updateSubscription.mockReset();
@@ -1343,6 +1349,12 @@ test.each(["basic", "pro"] as const)(
     await waitFor(() =>
       expect(mocks.fetchMarketPriceHistory).toHaveBeenCalled(),
     );
+    await waitFor(() =>
+      expect(mocks.refreshCardPopulation).toHaveBeenCalledWith(
+        "card-a",
+        expect.any(AbortSignal),
+      ),
+    );
     expect(
       screen.queryByText("Available with Basic or Pro membership."),
     ).not.toBeInTheDocument();
@@ -1361,6 +1373,7 @@ test("renders mock history beneath locked content for a Free member", async () =
     ).toHaveLength(2),
   );
   expect(mocks.fetchMarketPriceHistory).not.toHaveBeenCalled();
+  expect(mocks.refreshCardPopulation).not.toHaveBeenCalled();
   await waitFor(() => expect(mocks.fetchCardPriceHistory).toHaveBeenCalled());
 });
 
@@ -1381,6 +1394,7 @@ test("shows membership pricing at the bottom of a regular card when logged out",
   expect(document.getElementById("membership-pricing")).toContainElement(
     screen.getByRole("heading", { name: "Compare plans" }),
   );
+  expect(mocks.refreshCardPopulation).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Get started" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Choose Basic" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Choose Pro" })).toBeEnabled();
@@ -1438,6 +1452,12 @@ test("unlocks demo market history and graded prices without login or membership"
   expect(
     screen.getByRole("button", { name: "Price history condition or grade" }),
   ).toBeEnabled();
+  await waitFor(() =>
+    expect(mocks.refreshCardPopulation).toHaveBeenCalledWith(
+      liveId,
+      expect.any(AbortSignal),
+    ),
+  );
   await waitFor(() =>
     expect(mocks.fetchMarketPriceHistory).toHaveBeenCalledWith(
       liveId,

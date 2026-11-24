@@ -302,6 +302,86 @@ test("stores each available supported condition by source", async () => {
   database.close();
 });
 
+async function readCardJson(database: Awaited<ReturnType<typeof createDatabase>>) {
+  return JSON.parse(
+    String(
+      (
+        await database.execute({
+          sql: "SELECT raw_json FROM poketrace_cards WHERE id = ?",
+          args: [card.id],
+        })
+      ).rows[0]?.raw_json,
+    ),
+  );
+}
+
+async function stampPopulation(
+  database: Awaited<ReturnType<typeof createDatabase>>,
+  population: unknown,
+  checkedAt: string,
+) {
+  await database.execute({
+    sql: `
+      UPDATE poketrace_cards
+      SET raw_json = json_set(
+        raw_json,
+        '$.population', json(?),
+        '$.populationCheckedAt', json(?)
+      )
+      WHERE id = ?
+    `,
+    args: [JSON.stringify(population), JSON.stringify(checkedAt), card.id],
+  });
+}
+
+test("catalogue upserts keep existing PSA population when a refresh omits it", async () => {
+  const database = await createDatabase();
+  const population = {
+    total: 108222,
+    gemRate: 0.0045,
+    updatedAt: "2026-11-18T23:51:24.142Z",
+    grades: [{ grade: "10", count: 488, qualified: 0 }],
+  };
+  const checkedAt = "2026-11-20T12:00:00.000Z";
+  await database.execute(cardUpsert({ ...card, population }));
+  await stampPopulation(database, population, checkedAt);
+  await database.execute(
+    cardUpsert({ ...card, name: "Updated Charizard", prices: card.prices }),
+  );
+  const stored = await readCardJson(database);
+  assert.equal(stored.name, "Updated Charizard");
+  assert.deepEqual(stored.population, population);
+  assert.equal(stored.populationCheckedAt, checkedAt);
+  await database.execute(
+    cardUpsert({
+      ...card,
+      population: {
+        ...population,
+        total: 108300,
+      },
+    }),
+  );
+  const updated = await readCardJson(database);
+  assert.equal(updated.population.total, 108300);
+  assert.equal(updated.populationCheckedAt, checkedAt);
+  database.close();
+});
+
+test("catalogue upserts keep a stored missing PSA population stamp", async () => {
+  const database = await createDatabase();
+  const checkedAt = "2026-11-20T12:00:00.000Z";
+  await database.execute(cardUpsert(card));
+  await stampPopulation(database, null, checkedAt);
+  await database.execute(
+    cardUpsert({ ...card, name: "Updated Charizard", prices: card.prices }),
+  );
+  const stored = await readCardJson(database);
+  assert.equal(stored.name, "Updated Charizard");
+  assert.equal(stored.population, null);
+  assert.equal(stored.populationCheckedAt, checkedAt);
+  database.close();
+});
+
 test("catalogue upserts preserve saved responses and price refresh state", async () => {
   const database = await createDatabase();
   const fetchedAt = "2026-09-17T08:30:00.000Z";

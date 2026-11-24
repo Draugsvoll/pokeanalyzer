@@ -7,6 +7,7 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
+import type { PokeTracePsaPopulation } from "../../../../shared/pokeTracePopulation";
 import type { PokeTraceMarket } from "../../../../shared/pokeTraceMarkets";
 import {
   isEligibleGradedPrice,
@@ -40,6 +41,7 @@ import {
   resolveEbaySevenDayAverageChange,
   resolveSevenDayMarketPriceChange,
 } from "./marketPriceChange";
+import { formatDateStamp } from "../../../utils/formatDateStamp";
 import "./PokeTraceMarketPrices.scss";
 
 type TierPrice = {
@@ -131,6 +133,35 @@ function gradeLabel(grade: string) {
     grader: grader || conditionLabel(grade),
     score: scoreParts.length > 0 ? scoreParts.join(".") : conditionLabel(grade),
   };
+}
+
+function formatPopulationCount(value: number) {
+  return value.toLocaleString("en-US");
+}
+
+function formatPopulationUpdatedAt(value: string) {
+  if (!value.trim()) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return formatDateStamp(value);
+}
+
+function populationGradeRows(population: PokeTracePsaPopulation) {
+  const merged = new Map<
+    string,
+    { count: number; label: string; sort: number }
+  >();
+  for (const entry of population.grades) {
+    const score = Number(entry.grade);
+    const bucket = Number.isFinite(score) ? String(Math.floor(score)) : entry.grade;
+    const current = merged.get(bucket);
+    merged.set(bucket, {
+      count: entry.count + (current?.count ?? 0),
+      label: Number.isFinite(score) ? `PSA ${Math.floor(score)}` : entry.grade,
+      sort: Number.isFinite(score) ? Math.floor(score) : -1,
+    });
+  }
+  return [...merged.values()].sort((left, right) => right.sort - left.sort);
 }
 
 function formatSales(price: TierPrice) {
@@ -326,7 +357,9 @@ function GradedEbayPrices({
   dataPending = false,
   dataRequestFailed = false,
   entries,
+  hasMarketHistoryAccess = false,
   locked = false,
+  population,
   pricingHref,
   gradingCalculatorOpen = false,
   onToggleGradingCalculator,
@@ -335,6 +368,8 @@ function GradedEbayPrices({
   dataPending?: boolean;
   dataRequestFailed?: boolean;
   entries: Array<[string, TierPrice]>;
+  hasMarketHistoryAccess?: boolean;
+  population?: PokeTracePsaPopulation;
   locked?: boolean;
   pricingHref: string;
   gradingCalculatorOpen?: boolean;
@@ -358,6 +393,14 @@ function GradedEbayPrices({
   const showLoader = dataPending;
   const showEmptyState = !hasPrices && !dataPending && !dataRequestFailed;
   const showPrices = hasPrices && !dataPending;
+  const [gradedView, setGradedView] = useState<"prices" | "psa-pop">(
+    "prices",
+  );
+  const showPop = Boolean(population) && hasMarketHistoryAccess;
+  const viewingPop = showPop && gradedView === "psa-pop";
+  const populationUpdatedAt = viewingPop
+    ? formatPopulationUpdatedAt(population?.updatedAt ?? "")
+    : "";
 
   return (
     <section
@@ -368,8 +411,30 @@ function GradedEbayPrices({
         <header
           className={`poketrace-market__graded-header${showPrices ? " poketrace-market__graded-header--with-prices" : ""}`}
         >
-          <h4 id="poketrace-graded-title">Graded</h4>
-          {graders.length > 0 && (
+          <div className="poketrace-market__graded-header-start">
+            <h4 id="poketrace-graded-title">Graded</h4>
+            {showPop && (
+              <RadioButtonGroup
+                ariaLabel="Graded view"
+                className="poketrace-market__graded-view-toggle"
+                onChange={setGradedView}
+                options={[
+                  { value: "prices", label: "Prices" },
+                  { value: "psa-pop", label: "PSA Pop" },
+                ]}
+                value={viewingPop ? "psa-pop" : "prices"}
+              />
+            )}
+          </div>
+          {populationUpdatedAt && population?.updatedAt && (
+            <time
+              className="poketrace-market__population-updated"
+              dateTime={population.updatedAt}
+            >
+              Updated {populationUpdatedAt}
+            </time>
+          )}
+          {graders.length > 0 && !viewingPop && (
             <RadioButtonGroup
               ariaLabel="Grading company"
               className="poketrace-market__grader-tabs"
@@ -414,14 +479,84 @@ function GradedEbayPrices({
           <span aria-hidden="true" className="app-loading-spinner" />
         </div>
       )}
-      {showEmptyState && (
+      {showEmptyState && !viewingPop && (
         <MarketDataUnavailable
           className="poketrace-market__graded-unavailable"
           description="Graded sales have not been recorded for this card."
           title="No graded prices"
         />
       )}
-      {showPrices && (
+      {viewingPop && population && (
+        <div className="poketrace-market__population ui-render-fade">
+          <div className="poketrace-market__population-summary">
+            <div className="poketrace-market__graded-price">
+              <span>Total Population</span>
+              <strong>{formatPopulationCount(population.total)}</strong>
+            </div>
+            <div className="poketrace-market__graded-price">
+              <span>Gem Rate</span>
+              <strong>
+                {typeof population.gemRate === "number"
+                  ? `${(population.gemRate * 100).toFixed(1)}%`
+                  : "—"}
+              </strong>
+            </div>
+            {(population.authentic ?? 0) > 0 && (
+              <div className="poketrace-market__graded-price">
+                <span>Authentic (no grade)</span>
+                <strong>{formatPopulationCount(population.authentic ?? 0)}</strong>
+              </div>
+            )}
+          </div>
+          <div className="poketrace-market__population-grades">
+            <div className="poketrace-market__population-head">
+              <span>Grade</span>
+              <span>Population</span>
+              <span>Share</span>
+            </div>
+            {populationGradeRows(population).map((entry) => {
+              const hasPercentage = population.total > 0;
+              const percentage = hasPercentage
+                ? Math.min(
+                    100,
+                    Math.max(0, (entry.count / population.total) * 100),
+                  )
+                : null;
+              return (
+                <div
+                  className="poketrace-market__population-grade"
+                  key={entry.label}
+                >
+                  <span className="poketrace-market__population-grade-name">
+                    {entry.label}
+                  </span>
+                  <strong>{formatPopulationCount(entry.count)}</strong>
+                  <div
+                    aria-label={
+                      hasPercentage
+                        ? `${entry.label} population: ${formatPopulationCount(entry.count)} of ${formatPopulationCount(population.total)} (${percentage?.toFixed(1)}%)`
+                        : undefined
+                    }
+                    aria-valuemax={hasPercentage ? 100 : undefined}
+                    aria-valuemin={hasPercentage ? 0 : undefined}
+                    aria-valuenow={percentage ?? undefined}
+                    className="poketrace-market__population-track"
+                    role={hasPercentage ? "progressbar" : undefined}
+                  >
+                    {percentage != null && (
+                      <span style={{ width: `${percentage}%` }} />
+                    )}
+                  </div>
+                  <span className="poketrace-market__population-share">
+                    {percentage != null ? `${percentage.toFixed(1)}%` : "—"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {showPrices && !viewingPop && (
         <div className="poketrace-market__graded-body">
           <div
             className="poketrace-market__graded-grid ui-render-fade"
@@ -547,7 +682,7 @@ function PriceHistory({
   const marketControl = (
     <RadioButtonGroup<PokeTraceMarket>
       ariaLabel="Price history market"
-      className="radio-button-group--currency"
+      className="radio-button-group--currency poketrace-market__history-market-toggle"
       options={(["US", "EU"] as const).map((value) => ({
         value,
         label: (
@@ -784,7 +919,7 @@ function LockedPriceHistory({
       marketControl={
         <RadioButtonGroup
           ariaLabel="Price history market"
-          className="radio-button-group--currency"
+          className="radio-button-group--currency poketrace-market__history-market-toggle"
           options={[
             {
               value: "US",
@@ -959,10 +1094,12 @@ export function PokeTraceMarketPrices({
       </MarketContent>
       <GradedEbayPrices
         currency={data.currency}
+        hasMarketHistoryAccess={hasMarketHistoryAccess}
         dataPending={
           marketHistoryAccessPending || (hasMarketHistoryAccess && dataPending)
         }
         dataRequestFailed={hasMarketHistoryAccess && dataRequestFailed}
+        population={data.population}
         entries={
           marketHistoryAccessPending
             ? []

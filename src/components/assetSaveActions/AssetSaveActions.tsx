@@ -22,10 +22,12 @@ function SaveButton({
   icon: Icon,
   label,
   layout,
+  hoverOnly,
 }: ActionState & {
   icon: LucideIcon;
   label: "Portfolio" | "Watchlist";
   layout: "card" | "detail";
+  hoverOnly?: boolean;
 }) {
   const name = label.toLowerCase();
   const visibleLabel = saved ? `In ${name}` : label;
@@ -52,10 +54,11 @@ function SaveButton({
   ) : (
     <Icon aria-hidden="true" fill={saved ? "currentColor" : "none"} />
   );
+  const persistent = saved && !hoverOnly;
   return layout === "card" ? (
     <button
       {...props}
-      className={`asset-save-button${saved ? " is-saved" : ""}`}
+      className={`asset-save-button${saved ? " is-saved" : ""}${hoverOnly ? " asset-save-button--hover-only" : ""}${persistent ? " asset-save-button--persistent" : ""}`}
       type="button"
     >
       {icon}
@@ -74,16 +77,20 @@ function SaveButton({
   );
 }
 
+export type HoverOnlySaveAction = "portfolio" | "watchlist";
+
 export function AssetSaveActions({
   item,
   onRequireAuth,
   portfolio,
   layout = "card",
+  hoverOnlyAction,
 }: {
   item: WatchlistItem;
   onRequireAuth?: () => void;
   portfolio: ActionState;
   layout?: "card" | "detail";
+  hoverOnlyAction?: HoverOnlySaveAction;
 }) {
   const { user } = useAuth();
   const cache = useWatchlistCache();
@@ -99,6 +106,15 @@ export function AssetSaveActions({
     if (cache.loadingReferences || cache.referencesError) return;
     await setWatched(item, !watched);
   }
+  const portfolioHoverOnly =
+    layout === "card" && hoverOnlyAction === "portfolio";
+  const watchlistHoverOnly =
+    layout === "card" && hoverOnlyAction === "watchlist";
+  const singlePersistent =
+    layout === "card" &&
+    Number(portfolio.saved && !portfolioHoverOnly) +
+      Number(watched && !watchlistHoverOnly) ===
+      1;
   const portfolioButton = (
     <SaveButton
       {...portfolio}
@@ -106,6 +122,7 @@ export function AssetSaveActions({
       icon={Star}
       label="Portfolio"
       layout={layout}
+      hoverOnly={portfolioHoverOnly}
     />
   );
   const watchlistButton = (
@@ -117,11 +134,14 @@ export function AssetSaveActions({
       icon={Heart}
       label="Watchlist"
       layout={layout}
+      hoverOnly={watchlistHoverOnly}
     />
   );
 
   return (
-    <div className={`asset-save-actions asset-save-actions--${layout}`}>
+    <div
+      className={`asset-save-actions asset-save-actions--${layout}${singlePersistent ? " asset-save-actions--single" : ""}`}
+    >
       {layout === "card" ? watchlistButton : portfolioButton}
       {layout === "card" ? portfolioButton : watchlistButton}
     </div>

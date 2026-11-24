@@ -2,7 +2,6 @@ import { RadioButtonGroup } from "../../../../components/radioButtonGroup/RadioB
 import { useMarketplaceRateLimit } from "../../../../hooks/useMarketplaceRateLimit";
 import { MARKETPLACE_RATE_LIMIT_MESSAGE } from "../../../../../shared/marketplaceSearch";
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Gavel } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { EbayCredits } from "../../../../../shared/ebayCredits";
 import type {
@@ -349,7 +348,6 @@ const EbaySectionForAccount = memo(function EbaySectionForAccount({
             set: { name: setName },
           }}
           color="teal"
-          icon={Gavel}
           label="Sales & listings"
           hideIdentity={hasUsableResponse}
           actionLabel={noCredits ? "Add credits" : "1 Market credit"}

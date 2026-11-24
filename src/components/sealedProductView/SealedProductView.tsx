@@ -1,4 +1,7 @@
-import { AssetSaveActions } from "../assetSaveActions/AssetSaveActions";
+import {
+  AssetSaveActions,
+  type HoverOnlySaveAction,
+} from "../assetSaveActions/AssetSaveActions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PokeTraceSealedCatalogProduct } from "../../../shared/pokeTraceSealed";
@@ -34,10 +37,12 @@ function priceChange(
 }
 
 export function SealedProductView({
+  hoverOnlySaveAction,
   comparisonPeriod = "7d",
   onPortfolioChanged,
   product,
 }: {
+  hoverOnlySaveAction?: HoverOnlySaveAction;
   comparisonPeriod?: PriceChangePeriod;
   onPortfolioChanged?: (saved: boolean) => void;
   product: PokeTraceSealedCatalogProduct;
@@ -99,6 +104,7 @@ export function SealedProductView({
           key={product.id}
           item={{ ...product, type: "sealed" }}
           layout="card"
+          hoverOnlyAction={hoverOnlySaveAction}
           portfolio={{
             saved: productIsSaved,
             busy: portfolioBusy,
@@ -153,6 +159,7 @@ export function SealedProductView({
 }
 
 type SealedProductPortfolioViewProps = {
+  hoverOnlySaveAction?: HoverOnlySaveAction;
   comparisonPeriod: PriceChangePeriod;
   onQuantityDialogOpenChange?: (open: boolean) => void;
   onQuantityUpdated?: (productId: string, quantity: number) => void;
@@ -162,6 +169,7 @@ type SealedProductPortfolioViewProps = {
 };
 
 export function SealedProductPortfolioView({
+  hoverOnlySaveAction,
   comparisonPeriod,
   onQuantityDialogOpenChange,
   onQuantityUpdated,
@@ -188,6 +196,7 @@ export function SealedProductPortfolioView({
       }}
     >
       <SealedProductView
+        hoverOnlySaveAction={hoverOnlySaveAction}
         comparisonPeriod={comparisonPeriod}
         onPortfolioChanged={(saved) => {
           if (!saved) onRemoved?.(product.id);

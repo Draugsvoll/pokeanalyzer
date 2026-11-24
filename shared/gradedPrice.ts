@@ -1,4 +1,7 @@
 type GradedPrice = {
+  avg1d?: unknown;
+  avg7d?: unknown;
+  avg30d?: unknown;
   median3d?: unknown;
   median30d?: unknown;
   median7d?: unknown;
@@ -7,6 +10,15 @@ type GradedPrice = {
 };
 
 export const MINIMUM_GRADED_PRICE_SALES = 15;
+
+function sameWindow(first: unknown, second: unknown, third: unknown) {
+  return (
+    typeof first === "number" &&
+    Number.isFinite(first) &&
+    first === second &&
+    second === third
+  );
+}
 
 export function isEligibleGradedPrice(price: GradedPrice): boolean {
   if (
@@ -17,10 +29,8 @@ export function isEligibleGradedPrice(price: GradedPrice): boolean {
     return false;
   }
   return !(
-    typeof price.median3d === "number" &&
-    Number.isFinite(price.median3d) &&
-    price.median3d === price.median7d &&
-    price.median7d === price.median30d
+    sameWindow(price.median3d, price.median7d, price.median30d) &&
+    sameWindow(price.avg1d, price.avg7d, price.avg30d)
   );
 }
 

@@ -199,6 +199,17 @@ export async function fetchCardById(
   return normalizeCardResponse(value, cardId);
 }
 
+export async function refreshCardPopulation(
+  cardId: string,
+  signal?: AbortSignal,
+): Promise<PokemonCard> {
+  const value = await cardRequest(
+    `${API_URL}/api/cards/${encodeURIComponent(cardId)}/population`,
+    signal,
+  );
+  return normalizeCardResponse(value, cardId);
+}
+
 function normalizeCardResponse(value: unknown, cardId: string): PokemonCard {
   if (!isRecord(value) || value.id !== cardId) {
     throw new Error("Invalid card response");

@@ -18,15 +18,8 @@
     display: inline-flex;
     font-size: var(--font-size-caption);
     font-weight: var(--font-weight-bold);
-    gap: 0.45rem;
     letter-spacing: var(--font-tracking-wider);
     text-transform: uppercase;
-
-    svg {
-      flex: 0 0 auto;
-      height: var(--font-size-paragraph-sm);
-      width: var(--font-size-paragraph-sm);
-    }
   }
 
   &__action {
