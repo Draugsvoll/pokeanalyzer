@@ -5,7 +5,7 @@ import {
   parsePokeTracePsaPopulation,
   POKE_TRACE_POPULATION_FRESH_MS,
   POKE_TRACE_POPULATION_MISSING_FRESH_MS,
-} from "./pokeTracePopulation.js";
+} from "../../shared/pokeTracePopulation.js";
 
 const population = {
   total: 10,

@@ -587,6 +587,9 @@ test("shows regular loading instead of locked content while the demo card loads"
   expect(
     screen.queryByText("Available with Basic or Pro membership."),
   ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("status", { name: "Loading market data" }),
+  ).not.toBeInTheDocument();
   expect(mocks.fetchMarketPriceHistory).not.toHaveBeenCalled();
   const loadingPage = screen
     .getByRole("heading", { name: "Loading card…", level: 1 })
@@ -609,6 +612,29 @@ test("shows regular loading instead of locked content while the demo card loads"
       .getByRole("heading", { name: "Demo card", level: 1 })
       .closest("article"),
   ).toBe(loadingPage);
+});
+
+test("loads a regular card with in-box market loaders instead of a full-page overlay", async () => {
+  subscription.planId = "basic";
+  mocks.fetchCardById.mockReturnValue(new Promise<PokemonCard>(() => {}));
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("status", { name: "Loading marketplace price history" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("status", { name: "Loading graded prices" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("No price data")).not.toBeInTheDocument();
+  expect(
+    screen.queryByText("Available with Basic or Pro membership."),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("status", { name: "Loading market data" }),
+  ).not.toBeInTheDocument();
 });
 
 test("shows membership pricing at the bottom of the demo card page", async () => {
@@ -1360,6 +1386,40 @@ test.each(["basic", "pro"] as const)(
     ).not.toBeInTheDocument();
   },
 );
+
+test("adds the PSA Pop toggle only after population refresh finishes", async () => {
+  subscription.planId = "basic";
+  const card = buildCard("card-a", "Bulbasaur");
+  card.pokeTrace.prices = { tcgplayer: { NEAR_MINT: { avg: 10 } } };
+  card.pokeTrace.population = {
+    total: 10,
+    gemRate: 0.1,
+    updatedAt: "2026-11-18T23:51:24.142Z",
+    grades: [{ grade: "10", count: 1, qualified: 0 }],
+  };
+  let resolvePopulation!: (value: PokemonCard) => void;
+  mocks.fetchCardById.mockResolvedValue(card);
+  mocks.refreshCardPopulation.mockReturnValue(
+    new Promise<PokemonCard>((resolve) => {
+      resolvePopulation = resolve;
+    }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/card/card-a"]}>
+      <TestRoutes />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "Bulbasaur", level: 1 });
+  expect(screen.getByText("$10.00")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("radio", { name: "PSA Pop" }),
+  ).not.toBeInTheDocument();
+  await waitFor(() => expect(mocks.refreshCardPopulation).toHaveBeenCalled());
+  await act(async () => {
+    resolvePopulation(card);
+  });
+  expect(await screen.findByRole("radio", { name: "PSA Pop" })).toBeVisible();
+});
 
 test("renders mock history beneath locked content for a Free member", async () => {
   render(

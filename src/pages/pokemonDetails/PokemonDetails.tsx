@@ -107,6 +107,12 @@ function getDemoFeatureResponse(
   return undefined;
 }
 
+function withoutPopulation(card: PokemonCard): PokemonCard {
+  if (!card.pokeTrace.population) return card;
+  const { population: _population, ...pokeTrace } = card.pokeTrace;
+  return { ...card, pokeTrace };
+}
+
 function getNavigationCard(
   state: unknown,
   cardId: string | undefined,
@@ -118,7 +124,9 @@ function getNavigationCard(
     navigationSource?: string;
   };
 
-  return navigationState.card?.id === cardId ? navigationState.card : null;
+  return navigationState.card?.id === cardId
+    ? withoutPopulation(navigationState.card)
+    : null;
 }
 
 function PokemonDetailsForCard() {
@@ -242,7 +250,7 @@ function PokemonDetailsForCard() {
 
       navigate(`/card/${encodeURIComponent(variantId)}`, {
         state: {
-          card: variantCard,
+          card: withoutPopulation(variantCard),
           navigationSource: "card-variant",
         },
       });
@@ -476,7 +484,7 @@ function PokemonDetailsForCard() {
         }
 
         setCardRequestState({
-          card: fetchedCard,
+          card: withoutPopulation(fetchedCard),
           cardId: id,
           loading: false,
         });
@@ -574,10 +582,10 @@ function PokemonDetailsForCard() {
             <PokeTraceMarketPrices
               cardId=""
               data={{ currency: "USD", marketplaceUrls: {}, prices: {} }}
-              dataPending={isDemo}
-              marketHistoryAccessPending={isDemo}
+              dataPending
+              hasMarketHistoryAccess={hasMarketHistoryAccess}
+              marketHistoryAccessPending={marketHistoryAccessPending}
               pricingHref={authUser ? "/profile" : "#membership-pricing"}
-              variantLoading={!isDemo}
             />
           </div>
         }
