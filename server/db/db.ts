@@ -1,5 +1,4 @@
 import "dotenv/config";
-import path from "path";
 import {
   createClient,
   type InStatement,
@@ -7,28 +6,26 @@ import {
   type TransactionMode,
 } from "@libsql/client";
 import { implicitLocalDatabaseError } from "./databaseTargetPolicy.js";
+import { logError } from "../security/logging.js";
 
 export type SqlValue = InValue;
 export type SqlStatement = InStatement;
 
-/** Local file fallback when TURSO_DATABASE_URL is not set. */
-const localFileUrl = `file:${path.resolve("server/db/pokemon.sqlite")}`;
+const databaseUrl = process.env.TURSO_DATABASE_URL?.trim();
+const databaseTargetError = implicitLocalDatabaseError(databaseUrl);
+if (databaseTargetError) {
+  const error = new Error(databaseTargetError);
+  logError("Database configuration failed", error);
+  throw error;
+}
 
 export const db = createClient({
-  url: process.env.TURSO_DATABASE_URL || localFileUrl,
+  url: databaseUrl!,
   authToken: process.env.TURSO_AUTH_TOKEN || undefined,
 });
 
 export function closeDatabase(): void {
   db.close();
-}
-
-export function assertExplicitDatabaseTarget(): void {
-  const error = implicitLocalDatabaseError(
-    process.env.TURSO_DATABASE_URL,
-    process.env.ALLOW_LOCAL_DATABASE,
-  );
-  if (error) throw new Error(error);
 }
 
 export async function dbExecute(sql: string, args: SqlValue[] = []) {

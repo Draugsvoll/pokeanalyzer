@@ -9,7 +9,7 @@ import {
   marketSummaryInput,
   marketSummaryInstructions,
 } from "../../src/utils/grok/grokPrompts.js";
-import { assertExplicitDatabaseTarget, closeDatabase } from "../db/db.js";
+import { closeDatabase } from "../db/db.js";
 import {
   assertNewsContentSchemaCompatible,
   NEWS_FEEDS,
@@ -212,7 +212,6 @@ async function main(): Promise<void> {
   const { dryRun, forceMarketSummary, marketSummaryOnly } = validateArguments(
     process.argv.slice(2),
   );
-  assertExplicitDatabaseTarget();
   await ensureScriptLockTable();
   await assertNewsContentSchemaCompatible();
 

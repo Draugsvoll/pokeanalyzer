@@ -1,4 +1,4 @@
-import { closeDatabase, assertExplicitDatabaseTarget } from "../db/db.js";
+import { closeDatabase } from "../db/db.js";
 import { migratePrimaryDatabase } from "../db/migratePrimaryDatabase.js";
 import {
   assertExplicitPokeTraceDatabaseTarget,
@@ -8,7 +8,6 @@ import {
 import { logError } from "../security/logging.js";
 
 async function migrateDatabases() {
-  assertExplicitDatabaseTarget();
   assertExplicitPokeTraceDatabaseTarget();
 
   await migratePrimaryDatabase();

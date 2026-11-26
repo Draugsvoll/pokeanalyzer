@@ -4,19 +4,18 @@ import { implicitLocalDatabaseError } from "./databaseTargetPolicy.js";
 
 test("database scripts reject an accidental implicit local database", () => {
   assert.match(
-    implicitLocalDatabaseError(undefined, undefined) ?? "",
+    implicitLocalDatabaseError(undefined) ?? "",
     /TURSO_DATABASE_URL is missing/,
   );
   assert.match(
-    implicitLocalDatabaseError("   ", "false") ?? "",
-    /Refusing to use the implicit local database/,
+    implicitLocalDatabaseError("   ") ?? "",
+    /TURSO_DATABASE_URL is missing/,
   );
 });
 
-test("database scripts accept explicit remote or local configuration", () => {
+test("database scripts accept explicit remote configuration", () => {
   assert.equal(
-    implicitLocalDatabaseError("libsql://database.example", undefined),
+    implicitLocalDatabaseError("libsql://database.example"),
     null,
   );
-  assert.equal(implicitLocalDatabaseError(undefined, "TRUE"), null);
 });
