@@ -333,4 +333,10 @@
   --font-size-subtitle: var(--font-size-paragraph-sm);
 }
 
+@media (max-width: 1350px) {
+  :root {
+    --search-grid-gap: var(--space-3);
+  }
+}
+
 $price-value-letter-spacing: 0.04em;

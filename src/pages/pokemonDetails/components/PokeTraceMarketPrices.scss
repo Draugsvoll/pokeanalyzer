@@ -172,11 +172,14 @@
   &__market-link {
     flex-shrink: 0;
     margin-right: -0.25rem;
+    gap: 0.3rem;
     white-space: nowrap;
     font-size: var(--font-size-caption);
 
     > svg {
+      height: 0.85rem;
       flex-shrink: 0;
+      width: 0.85rem;
     }
   }
 
@@ -417,7 +420,7 @@
   }
   &__history-market-toggle.radio-button-group {
     .radio-button-group__option {
-      min-width: 3.5rem;
+      min-width: 3.25rem;
     }
   }
 
@@ -580,9 +583,19 @@
   }
 
   &__graded-grid {
+    --graded-price-min-width: 7.5rem;
+    --graded-price-max-width: 10.43rem;
+
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(
+        min(100%, var(--graded-price-min-width)),
+        var(--graded-price-max-width)
+      )
+    );
+    justify-content: start;
   }
 
   &__graded-price {
@@ -619,6 +632,13 @@
       margin-top: -0.1rem;
       font-weight: 500;
     }
+  }
+
+  &__graded-grid > &__graded-price {
+    min-width: min(100%, var(--graded-price-min-width));
+    max-width: var(--graded-price-max-width);
+    width: 100%;
+    justify-self: stretch;
   }
 
   &__history {
@@ -735,8 +755,8 @@
     flex-wrap: wrap;
     gap: var(--space-9);
     justify-content: center;
-    margin-bottom: -0.25rem;
-    margin-top: -0.25rem;
+    margin-bottom: -0.2rem;
+    margin-top: -0.2rem;
   }
 
   &__history-legend-item {
@@ -1076,10 +1096,6 @@
 
     &__grader-tabs.radio-button-group {
       width: 100%;
-
-      .radio-button-group__option {
-        flex: 1 1 auto;
-      }
     }
 
     &__condition-tabs {
@@ -1093,11 +1109,47 @@
     }
 
     &__history {
-      padding: 1rem var(--poketrace-history-padding) 0;
+      padding: 1rem var(--poketrace-history-padding) var(--space-3);
     }
 
-    &__graded-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    &__history-chart {
+      min-height: 0;
     }
+
+    &__history-header {
+      align-items: flex-start;
+      margin-bottom: var(--space-4);
+    }
+
+    &__history-title,
+    &__history-controls {
+      gap: var(--space-3);
+    }
+
+    &__history-controls {
+      justify-content: flex-start;
+      margin-left: 0;
+      width: 100%;
+    }
+
+    &__history-legend {
+      column-gap: var(--space-5);
+      row-gap: var(--space-3);
+      justify-content: center;
+    }
+  }
+}
+
+@media (max-width: 470px) {
+  .poketrace-market__population-grades {
+    grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .poketrace-market__population-head span:last-child {
+    grid-column: 3;
+  }
+
+  .poketrace-market__population-track {
+    display: none;
   }
 }

@@ -5,5 +5,27 @@ $pokemon-card-size-token: 1 !default;
    * Pokemon card layout sizing.
    * Cards stay readable and the fluid grid drops columns as space runs out.
    */
-  --pokemon-card-grid-min-width: #{12.5rem * $pokemon-card-size-token};
+  --pokemon-card-grid-min-width: clamp(
+    #{9rem * $pokemon-card-size-token},
+    31vw,
+    #{12.5rem * $pokemon-card-size-token}
+  );
+}
+
+@media (max-width: 40rem) {
+  :root {
+    --card-gap: 14px;
+    --card-pad: 8px;
+  }
+}
+
+@media (max-width: 365px) {
+  .product-card__title {
+    font-size: 0.9rem;
+  }
+
+  .product-card__price-value,
+  .pokemon-card__price-value {
+    font-size: 1rem;
+  }
 }

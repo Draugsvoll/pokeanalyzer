@@ -16,7 +16,7 @@ test("hides only the 30-day average when the full row cannot fit, and restores i
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
     function (this: HTMLElement) {
       return {
-        width: this.textContent?.includes("30d avg") ? 120 : 80,
+        width: this.textContent?.includes("30d Avg") ? 120 : 80,
       } as DOMRect;
     },
   );
@@ -37,7 +37,7 @@ test("hides only the 30-day average when the full row cannot fit, and restores i
       trend="€2,082.00"
     />,
   );
-  const average = screen.getByText("30d avg").parentElement!;
+  const average = screen.getByText("30d Avg").parentElement!;
   expect(average).not.toHaveAttribute("hidden");
 
   width = 200;

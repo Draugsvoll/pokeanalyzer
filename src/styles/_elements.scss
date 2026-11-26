@@ -400,6 +400,9 @@ input[type="radio"] {
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--font-tracking-wider);
   text-transform: uppercase;
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-2);
 }
 
 .feature-analysis-hero {
@@ -1007,6 +1010,21 @@ input[type="radio"] {
     minmax(min(100%, var(--pokemon-card-grid-min-width)), 1fr)
   );
   width: 100%;
+}
+
+@media (max-width: 40rem) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 365px) {
+  .card-grid {
+    min-width: calc(
+      365px - var(--page-pad-x) - var(--page-pad-x) + var(--space-2) +
+        var(--space-2)
+    );
+  }
 }
 
 /*

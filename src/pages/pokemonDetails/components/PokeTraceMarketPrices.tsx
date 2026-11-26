@@ -3,8 +3,8 @@ import {
   Calculator,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   LockKeyhole,
+  ShoppingCart,
 } from "lucide-react";
 import type { PokemonCard } from "../../../types/pokemon";
 import type { PokeTracePsaPopulation } from "../../../../shared/pokeTracePopulation";
@@ -246,7 +246,7 @@ function MarketplaceColumn({
               target="_blank"
             >
               {sourceLabel(source)}
-              <ExternalLink aria-hidden="true" />
+              <ShoppingCart aria-hidden="true" />
             </a>
           ) : (
             sourceLabel(source)

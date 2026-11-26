@@ -7,6 +7,15 @@
   width: 100%;
 }
 
+@media (max-width: 365px) {
+  .grid-view {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--border-color-strong) transparent;
+    scrollbar-width: thin;
+  }
+}
+
 .grid-header--minimized {
   position: relative;
 }

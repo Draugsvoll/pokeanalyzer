@@ -1,5 +1,6 @@
 .marketplace-listings {
   --marketplace-accent: var(--custom-color-teal);
+  --feature-accent: var(--marketplace-accent);
 
   accent-color: var(--marketplace-accent);
   margin-inline: auto;
@@ -13,7 +14,6 @@
   &__surface {
     container: marketplace-controls / inline-size;
     display: grid;
-    gap: var(--space-3);
     margin-bottom: var(--space-4);
   }
 
@@ -131,6 +131,7 @@
   &__toggles {
     display: flex;
     justify-content: center;
+    margin-bottom: 0.25rem;
   }
 
   &__leading {
@@ -292,7 +293,7 @@
     }
 
     .radio-button-group__option {
-      min-width: 4.25rem;
+      min-width: 3.5rem;
     }
   }
 
@@ -849,10 +850,14 @@
   }
 
   @media (max-width: 34rem) {
+    &__filter-panel {
+      gap: var(--space-2);
+    }
+
     &__filter-row {
       align-items: stretch;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: var(--space-2);
     }
 
     &__text-filter {
@@ -880,6 +885,39 @@
     &__sorting .radio-button-group {
       width: 100%;
     }
+
+    &__view-controls {
+      gap: var(--space-2);
+      margin-left: 0;
+      width: 100%;
+    }
+
+    &__price-summary {
+      gap: var(--space-1);
+
+      > div {
+        margin: 0;
+        padding: 0.65rem 0.35rem;
+      }
+
+      dd {
+        font-size: var(--font-size-paragraph);
+      }
+    }
+
+    &__result-summary {
+      padding: var(--space-3);
+    }
+
+    &__results {
+      margin-inline: 0;
+    }
+  }
+}
+
+@media (max-width: 1199px) {
+  .marketplace-listings__surface {
+    gap: var(--space-1);
   }
 }
 

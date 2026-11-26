@@ -75,6 +75,9 @@ export function MarketplaceListings({
         } as CSSProperties
       }
     >
+      <span className="feature-analysis-eyebrow marketplace-listings__eyebrow">
+        Sales &amp; listings
+      </span>
       <div className="marketplace-listings__surface">
         <div className="marketplace-listings__toggles">
           <div className="marketplace-listings__listing-selector">

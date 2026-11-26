@@ -47,7 +47,7 @@ export function CardmarketPriceRange({
         <dd className="poketrace-market__range-price">{from}</dd>
       </div>
       <div ref={averageRef}>
-        <dt>30d avg</dt>
+        <dt>30d Avg</dt>
         <dd className="poketrace-market__range-price">{average30d}</dd>
       </div>
       <div>

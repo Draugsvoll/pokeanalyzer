@@ -248,6 +248,18 @@ body {
   max-width: var(--shell-max-width);
 }
 
+@media (max-width: 40rem) {
+  .main-content {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-8);
+  }
+
+  .main-content:has(> .search-page) {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
 /* Only the visible marketplace in dual mode uses the wider browsing layout. */
 .main-content--details:has(
   .card-view__marketplace-panel:not([hidden])

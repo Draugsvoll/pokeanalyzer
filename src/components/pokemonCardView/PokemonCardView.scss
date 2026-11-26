@@ -221,3 +221,9 @@
   justify-content: center;
   width: 100%;
 }
+
+@media (max-width: 365px) {
+  .pokemon-card__badge-row {
+    flex-wrap: wrap;
+  }
+}

@@ -49,6 +49,12 @@
     }
   }
 
+  @media (max-width: 34rem) {
+    &__mode {
+      margin-inline: auto;
+    }
+  }
+
   .card-feature-header--identity-hidden &__mode,
   &__results &__mode {
     margin-top: 0;
@@ -56,10 +62,6 @@
 
   &__results {
     margin-top: var(--space-2);
-
-    .ebay-section__mode .radio-button-group__option {
-      min-width: 6.5rem;
-    }
   }
 
   &__results:has(.marketplace-listings__condition-help[data-open="true"]) {

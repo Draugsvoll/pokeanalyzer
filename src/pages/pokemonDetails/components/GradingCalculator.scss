@@ -1180,6 +1180,19 @@
   }
 
   @media (max-width: 52rem) {
+    &__compare-gain {
+      min-height: 0;
+      padding: 0.9rem 1rem;
+
+      > h3 {
+        font-size: var(--font-size-h3);
+      }
+
+      > strong {
+        font-size: clamp(1.5rem, 7vw, var(--font-size-price-lg));
+      }
+    }
+
     &__grades {
       display: grid;
     }

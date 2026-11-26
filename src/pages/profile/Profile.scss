@@ -570,6 +570,29 @@
 
     .profile__identity-main {
       align-items: flex-start;
+      gap: 0.9rem;
+    }
+
+    .profile__eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .profile__identity-details {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      p {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
+      p + .profile__joined::before {
+        content: none;
+      }
     }
 
     .profile__logout-slot {

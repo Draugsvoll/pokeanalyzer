@@ -264,6 +264,7 @@ export function MarketPriceHistoryChart({
   const chartId = useId().replaceAll(":", "");
   const glowId = `market-history-glow-${chartId}`;
   const svgRef = useRef<SVGSVGElement>(null);
+  const [chartHeight, setChartHeight] = useState(HEIGHT);
   const [axisFontSize, setAxisFontSize] = useState(12);
   const [tooltipScale, setTooltipScale] = useState(1);
   const [leftPadding, setLeftPadding] = useState(PADDING.left);
@@ -309,6 +310,11 @@ export function MarketPriceHistoryChart({
     const updateFontSize = () => {
       const width = svg.getBoundingClientRect().width;
       if (width <= 0) return;
+      const mobileChartHeight = Math.min(
+        620,
+        Math.max(HEIGHT, (WIDTH * 190) / width),
+      );
+      setChartHeight(width < 760 ? mobileChartHeight : HEIGHT);
       setTooltipScale(WIDTH / width);
       // Compensate for SVG scaling; keep rendered labels between 11 and 12px.
       const renderedSize = Math.max(11, Math.min(12, (12 * width) / WIDTH));
@@ -384,7 +390,8 @@ export function MarketPriceHistoryChart({
     ),
   ].sort();
   const plotWidth = WIDTH - leftPadding - PADDING.right;
-  const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
+  const plotBottomPadding = chartHeight > HEIGHT ? 44 : PADDING.bottom;
+  const plotHeight = chartHeight - PADDING.top - plotBottomPadding;
   const plotBottom = PADDING.top + plotHeight;
   const firstTimestamp = dateTimestamp(dates[0]);
   const lastTimestamp = dateTimestamp(dates.at(-1)!);
@@ -418,7 +425,7 @@ export function MarketPriceHistoryChart({
     };
   });
   const dateTickCount = Math.min(
-    7,
+    chartHeight > HEIGHT ? 3 : 7,
     Math.round((lastTimestamp - firstTimestamp) / DAY_MS) + 1,
   );
   const dateTicks = Array.from({ length: dateTickCount }, (_, index) => {
@@ -516,13 +523,13 @@ export function MarketPriceHistoryChart({
             onPointerMove={loading ? undefined : handlePointerMove}
             role="img"
             aria-hidden={chartOverlay ? true : undefined}
-            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            viewBox={`0 0 ${WIDTH} ${chartHeight}`}
           >
             <defs>
               <filter
                 filterUnits="userSpaceOnUse"
                 id={glowId}
-                height={HEIGHT + 8}
+                height={chartHeight + 8}
                 width={WIDTH + 8}
                 x={-4}
                 y={-4}
@@ -696,7 +703,7 @@ export function MarketPriceHistoryChart({
                       : "middle"
                 }
                 x={tick.x}
-                y={HEIGHT - 8}
+                y={chartHeight - 8}
               >
                 {formatHistoryDate(tick.date)}
               </text>
