@@ -355,8 +355,9 @@
       color: var(--font-color-secondary);
       font-size: var(--font-size-label);
       font-variant-numeric: tabular-nums;
-      font-weight: var(--font-weight-semibold);
+      font-weight: var(--font-weight-medium);
       margin: 0;
+      letter-spacing: -0.01rem;
     }
 
     dd.poketrace-market__range-price {
@@ -386,6 +387,7 @@
     margin-bottom: 0.5rem;
     &:has(.poketrace-market__graded-view-toggle) {
       margin-bottom: 1rem;
+      margin-top: 0;
     }
     &--with-prices {
       margin-top: -0.5rem;
@@ -440,7 +442,6 @@
 
   &__population {
     display: grid;
-    gap: 0.5rem;
   }
 
   &__population-summary {
@@ -480,8 +481,8 @@
     align-items: center;
     column-gap: 1.5rem;
     display: grid;
-    grid-template-columns: max-content max-content minmax(0, 1fr) 5.25rem;
-    row-gap: var(--space-4);
+    grid-template-columns: max-content max-content minmax(0, 1fr) 4.75rem;
+    row-gap: var(--space-3);
   }
 
   &__population-grade {
@@ -492,7 +493,8 @@
     margin-bottom: -0.25rem;
     align-items: end;
     border-bottom: 1px solid var(--border-divider);
-    padding-block: 1rem;
+    padding-top: 1rem;
+    padding-bottom: 0.75rem;
     column-gap: inherit;
     display: grid;
     grid-column: 1 / -1;
@@ -543,7 +545,7 @@
       border-radius: inherit;
       display: block;
       height: 100%;
-      filter: brightness(0.9);
+      filter: brightness(0.95);
     }
   }
 
@@ -590,7 +592,7 @@
     display: grid;
     justify-items: center;
     min-width: 0;
-    padding: 0.7rem 0.75rem;
+    padding: 0.6rem 0.65rem;
     text-align: center;
     gap: 0.03rem;
 
@@ -667,7 +669,7 @@
     flex-wrap: wrap;
     gap: var(--space-4);
     justify-content: space-between;
-    margin-bottom: -0.35rem;
+    margin-bottom: -0.15rem;
 
     h4 {
       color: var(--font-color-primary);

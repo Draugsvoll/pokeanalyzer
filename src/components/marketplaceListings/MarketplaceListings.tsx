@@ -67,7 +67,7 @@ export function MarketplaceListings({
   const id = useId();
   return (
     <div
-      className="marketplace-listings ui-render-fade"
+      className={`marketplace-listings ui-render-fade${source === "TCG" && !dual ? " marketplace-listings--tcg-single-view" : ""}`}
       style={
         {
           "--marketplace-accent":

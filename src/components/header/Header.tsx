@@ -185,14 +185,14 @@ export const Header: React.FC = () => {
           <button
             aria-expanded={searchOpen}
             aria-keyshortcuts="Control+K"
-            aria-label="Search..."
+            aria-label="Search"
             className="header__search"
             onClick={() => setSearchOpen(true)}
             ref={searchTriggerRef}
             type="button"
           >
             <Search aria-hidden="true" size={15} strokeWidth={2} />
-            <span>Search...</span>
+            <span>Search</span>
             <kbd>Ctrl K</kbd>
           </button>
           {user ? (
